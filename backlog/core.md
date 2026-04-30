@@ -207,7 +207,7 @@ Remaining follow-up work:
 
 ### 11. Add maintenance review summary checker
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session maintenance-review-standard-verify worktree
 Branch: codex/maintenance-review-standard-verify
 Started: 2026-05-01
@@ -280,7 +280,8 @@ Review outcome:
   so no why-not-10 residual-risk item was required.
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed.
-- Final acceptance: review-ready; not marked complete until merged to `main`.
+- Final acceptance: accepted and merged to `main` in commit
+  `cbf44e9 merge: add maintenance review checker to standard verification`.
 
 ### 12. Clarify prompt-as-code search boundary
 
