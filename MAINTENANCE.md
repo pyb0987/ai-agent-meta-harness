@@ -81,6 +81,89 @@ work look unstarted.
 Use this mode when more than one session may work from separate Git worktrees or
 branches before merging back to `main`.
 
+If a worktree session skips reservation, scope control, verification,
+multi-review, or review-score handling, do not merge the branch as normal
+backlog work. Follow the recovery procedure below first, then tighten the item
+record before continuing.
+
+## Noncompliant Worktree Recovery
+
+Use this procedure when a parallel session produced useful changes but did not
+follow this maintenance process.
+
+1. Treat the branch as `보류`, not `리뷰대기`, until the missing record is
+   reconstructed.
+2. Identify the intended backlog item, actual changed files, and any scope
+   overlap with other `예약됨`, `진행중`, or `리뷰대기` items.
+3. Add a recovery note to the relevant backlog item. Do not claim the original
+   session complied; state that the entry is reconstructed after the fact.
+4. Record whether the change is harness-affecting and whether multi-review is
+   required under `Multi-Review Use`.
+5. Run or rerun the minimum verification for the actual changed files. Record
+   PASS, FAIL, or SKIPPED with exact skipped reasons.
+6. If the change is harness-affecting, run relevant Active `search-set.md`
+   verify commands before and after when practical. If no project search-set
+   exists, record that exact skipped reason.
+7. Run the required multi-review if the change affects adapter behavior,
+   release gates, hook semantics, core methodology boundaries, or another
+   durable contract.
+8. Treat every reviewer score below 9 as VETO, even if the session had marked
+   the work accepted. Iterate or leave the branch `보류`.
+9. Move the item to `리뷰대기` only after the reconstructed record shows scope,
+   verification, search-set status, review status, residual risk, and merge
+   eligibility.
+
+Recovery notes should be explicit and short. Use this shape when practical:
+
+```md
+Recovery note:
+- Original session compliance: incomplete
+- Actual changed files:
+- Scope deviations:
+- Verification:
+- Search-set verification:
+- Multi-review required:
+- Multi-review result:
+- Merge eligible: yes/no
+```
+
+Recovered work remains blocked if the intended backlog item cannot be
+identified, if active scopes conflict, if required verification cannot be
+reconstructed, or if any required critic remains below score 9.
+
+## Worktree Session Gates
+
+Parallel worktree sessions must pass these gates in order. A session should not
+edit implementation files before the Start Gate is recorded in the backlog item
+or reported to the maintainer.
+
+Start Gate:
+
+- Selected item
+- Status block added or updated
+- Harness-affecting: yes/no
+- Multi-review required: yes/no, with reason
+- Minimum verification commands
+- Expected scope
+- Overlap check against active `예약됨`, `진행중`, and `리뷰대기` items
+
+Completion Gate:
+
+- Backlog status
+- Changed files
+- Scope deviations, or `none`
+- Verification results
+- Search-set verification status, or skipped reason
+- Multi-review result, or reason not required
+- Reviewer scores and VETO handling
+- Residual risk or follow-up
+- Merge eligible: yes/no
+
+A branch is merge-eligible only when the backlog item is `리뷰대기`, relevant
+verification is recorded, required multi-review is recorded, every required
+critic score is at least 9, scope overlaps are resolved, and residual risk is
+either accepted or split into follow-up work.
+
 Before editing, each session must reserve exactly one concrete backlog item.
 Record the reservation in the item itself, above the implementation notes:
 

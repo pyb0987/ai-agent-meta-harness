@@ -10,7 +10,9 @@ verified.
 When multiple sessions work in parallel worktrees, check each candidate item's
 status block before starting. Reserve one concrete item with the
 `Status`/`Owner`/`Branch`/`Started`/`Scope` fields described in
-`../MAINTENANCE.md`, and avoid overlapping another active scope.
+`../MAINTENANCE.md`, pass the Start Gate before implementation edits, and avoid
+overlapping another active scope. Worktree branches that skipped these gates
+must go through the recovery procedure before they can become merge-eligible.
 
 Use this folder by ownership, not by where an issue was discovered:
 
