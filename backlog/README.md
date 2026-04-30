@@ -7,6 +7,11 @@ policy live in `../MAINTENANCE.md`. This folder tracks future work; the
 maintenance plan describes how that work should be selected, reviewed, and
 verified.
 
+When multiple sessions work in parallel worktrees, check each candidate item's
+status block before starting. Reserve one concrete item with the
+`Status`/`Owner`/`Branch`/`Started`/`Scope` fields described in
+`../MAINTENANCE.md`, and avoid overlapping another active scope.
+
 Use this folder by ownership, not by where an issue was discovered:
 
 | Area | File | Ownership |
