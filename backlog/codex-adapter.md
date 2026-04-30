@@ -299,7 +299,7 @@ Remaining follow-up work:
 
 ### 17. Define Codex plugin marketplace metadata policy
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session codex-label-sub-agent-extension
 Branch: codex-label-sub-agent-extension
 Started: 2026-05-01
@@ -324,7 +324,8 @@ Recovery note:
 - Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
   review; all required critics scored at least 9, and every score of 9 records
   why it was not 10.
-- Merge eligible: yes.
+- Merge eligible: yes; merged to `main` in commit
+  `d77759e docs: define codex marketplace metadata policy`.
 
 The marketplace path is future work, but plugin metadata choices can leak into local plugin structure if left implicit.
 
@@ -370,8 +371,7 @@ Review outcome:
 - Score handling: no critic scored below 9; no VETO triggered.
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed.
-- Final acceptance: accepted for review coordination; item remains `리뷰대기`
-  until merged or otherwise accepted on the integration branch.
+- Final acceptance: accepted and merged to the integration branch.
 
 ### 18. Add local plugin artifact smoke test
 
