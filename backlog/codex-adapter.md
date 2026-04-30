@@ -23,6 +23,17 @@ Remaining follow-up work:
 
 ### 2. Clarify Codex trace-root migration behavior
 
+Status: 리뷰대기
+Owner: Codex session autoresearch trace-root worktree
+Branch: codex/autoresearch-trace-root-alignment
+Started: 2026-05-01
+Scope:
+- adapters/codex/skills/autoresearch/SKILL.md
+- adapters/codex/hook-schema.md
+- plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md
+- plugins/ai-agent-meta-harness/hook-schema.md
+- backlog/codex-adapter.md
+
 Codex prefers `.harness/traces/`, but may need to reuse existing `.claude/traces/` history when a project is migrated from Claude Code.
 
 Decision implemented:
@@ -36,15 +47,47 @@ Decision implemented:
   minimum migration plan: preserve `search-set.md`, copy or move raw trace
   files, update `AGENTS.md`, record source/destination roots, and write an
   evolution trace before writing new traces to the new root.
+- `autoresearch` Setup Mode now chooses trace roots by meaningful history
+  instead of directory existence alone, so an empty or template-only
+  `.harness/traces/` does not outrank a `.claude/traces/` root with real
+  failures, evolution entries, experiment episodes, or Active search-set cases.
+- The generated local plugin copy of the `autoresearch` skill is synchronized
+  with the canonical adapter skill.
+- Hook schema assumptions were re-verified because the changed `autoresearch`
+  skill is a hook-sensitive adapter surface; no Codex hook output or config
+  contract changes were needed.
 
 Remaining follow-up work:
 
 - Add a fixture smoke test when init skill execution can be tested
   mechanically.
-- Align the `autoresearch` skill's Setup Mode trace-root selection with the same
-  meaningful-history rule. In particular, do not let an empty `.harness/traces/`
-  outrank a `.claude/traces/` root that contains real prior failures, episodes,
-  or Active search-set entries.
+
+Review outcome:
+
+- Verification: PASS; `rg -n "meaningful history|trace root|\\.claude/traces|\\.harness/traces|Setup Mode|temporary history reuse|template-only" adapters/codex/skills/autoresearch/SKILL.md plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md backlog/codex-adapter.md`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, and `git diff --check`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review mode: `FALLBACK_NONINDEPENDENT` sequential review; no
+  independent sub-agents were requested for this worktree session.
+- Trace-root semantics critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the skill now evaluates both roots by
+  meaningful history before selecting `.harness/traces/`.
+- Generated plugin critic: score 10, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: none; the plugin copy is generated from the
+  canonical adapter skill and `--check` passes.
+- Hook schema critic: score 10, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: none; the official Codex hooks and config docs were
+  re-checked and the existing `PreToolUse`, `PermissionRequest`, and
+  `features.codex_hooks` assumptions remain unchanged.
+- Maintenance compliance critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; scope, verification, search-set skip,
+  review handling, and merge eligibility are recorded.
+- Score handling: no critic scored below 9; no VETO triggered. No score was 9,
+  so no why-not-10 residual-risk item was required.
+- Rerun status: all sequential fallback critics reviewed the final scoped diff
+  after verification passed; no VETO fixes required.
+- Final acceptance: accepted for review; merge eligible once coordinated onto
+  the integration branch.
 
 ### 3. Harden Codex hook enforcement templates
 

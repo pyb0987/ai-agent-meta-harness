@@ -21,7 +21,8 @@ The evaluator and its dependencies are the feedback signal. Once setup is comple
 
 - Core methodology: `core/methodology.md` when available
 - Core reference: `core/reference.md` when available
-- Existing harness traces: `.harness/traces/` preferred, `.claude/traces/` reused when it already contains project history
+- Existing harness traces: choose by meaningful project history; prefer
+  `.harness/traces/` only when history evidence is equivalent or absent
 
 If shared core files are unavailable because the skill was installed standalone, proceed from this skill and project-local traces.
 
@@ -64,13 +65,29 @@ Ask the user for missing objective or guard information only if it cannot be inf
 
 ### Step 2: Choose Trace Root
 
-Use the existing harness trace root when present:
+Choose the trace root by evidence, not by directory existence alone:
 
-1. Existing `.harness/traces/`
-2. Existing `.claude/traces/` when it has meaningful project history
-3. New `.harness/traces/`
+1. If both roots have meaningful history, use `.harness/traces/` only when the
+   histories are equivalent or already migrated there; if they are divergent,
+   stop and propose a migration or merge plan before creating experiment
+   episodes.
+2. Use `.harness/traces/` when it is the only root with meaningful history.
+3. Use `.claude/traces/` temporarily when it has meaningful project history and
+   `.harness/traces/` is missing, empty, or template-only.
+4. If no trace root exists, or neither existing root has meaningful history,
+   initialize `.harness/traces/`.
 
-Ensure `{trace_root}/experiments/` exists. Do not split trace history without explicit migration intent.
+Meaningful history means `search-set.md` has Active cases, `failures/` has
+diagnoses, `evolution/` has prior harness changes, or `experiments/` has
+episodes relevant to current work. Empty directories, placeholder files, and
+template-only `search-set.md` entries do not outrank real history in the other
+root.
+
+When reusing `.claude/traces/` in Codex, call it temporary history reuse in
+`AGENTS.md` or setup output and propose migration into `.harness/traces/` once
+the project is ready to preserve and update the history. Ensure
+`{trace_root}/experiments/` exists. Do not split trace history without explicit
+migration intent.
 
 ### Step 3: Write `evaluate.py`
 

@@ -15,6 +15,10 @@ This drift check validates documented output-shape assumptions only. It does not
 - Re-verification note: 2026-04-30 item 15 changed autoresearch protection
   reporting only; `PreToolUse`, `PermissionRequest`, and `features.codex_hooks`
   output/config assumptions were re-checked and remain unchanged.
+- Re-verification note: 2026-05-01 item 2 aligned autoresearch trace-root
+  selection only; official Codex hooks and config docs were re-checked, and
+  `PreToolUse`, `PermissionRequest`, and `features.codex_hooks` output/config
+  assumptions remain unchanged.
 - Re-verification note: 2026-04-30 item 12 hardened Bash mutation detection for
   pathlib evaluator writes; hook output shapes were re-checked and remain
   unchanged.
