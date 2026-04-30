@@ -181,7 +181,8 @@ The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scr
 ```text
 1. Frame the decision (what, stakes, constraints, input)
 2. Design 2-4 disjoint critics on the spot
-3. Run critics in parallel as independent sub-agents
+3. Run critics through isolated runtime mechanisms: sub-agents when available,
+   or external review / separated sequential checklist when unavailable
 4. Convergence check → PASS / VETO / MIXED
 5. Present table + final verdict; user retains final decision authority
 ```

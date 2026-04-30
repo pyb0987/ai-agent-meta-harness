@@ -297,20 +297,72 @@ Review outcome:
 
 ### 13. Label sub-agent guidance as an applied extension
 
-The sub-agent section is useful operational guidance, but it can read as if
-parallel critics or isolated evaluator contexts are part of the paper's core
+Status: 리뷰대기
+Owner: Codex session prompt-contract worktree
+Branch: codex/prompt-as-code-contract
+Started: 2026-05-01
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- README.md
+- backlog/core.md
+
+The sub-agent section was useful operational guidance, but it could read as if
+parallel critics or isolated evaluator contexts were part of the paper's core
 Meta-Harness claim. The paper's core loop is a coding-agent proposer using
 filesystem evidence, scores, and traces; sub-agents are an adapter/runtime
 mechanism layered on top.
 
-Potential improvement:
+Decision implemented:
 
-- Mark the sub-agent section as an applied extension or adapter mechanism, not
-  the core Meta-Harness methodology itself.
-- Keep the contamination/isolation guidance, but separate paper-backed
-  principles from repo-specific review mechanics.
-- Add a short note that runtimes without isolated sub-agent support can use
-  fixed evaluator scripts, sequential checklists, or external review instead.
+- `core/methodology.md` and its temporary compatibility mirror
+  `docs/methodology.md` now label sub-agent usage as an applied runtime
+  extension rather than the paper's core claim.
+- The section keeps the contamination/isolation guidance while framing
+  sub-agents, external reviewers, sequential checklists, and fixed evaluator
+  scripts as runtime mechanisms selected by adapters.
+- README multi-review flow now names sub-agents as one isolation mechanism and
+  documents external review or separated sequential checklist fallback when
+  isolated sub-agents are unavailable.
+
+Remaining follow-up work:
+
+- Adapter docs may update runtime-specific wording only when their local
+  mechanism names or capabilities diverge from the shared framing.
+
+Verification:
+
+- PASS: `python3 scripts/check-compat-mirrors.py`
+- PASS: `python3 scripts/check-claude-adapter-paths.py`
+- PASS: `python3 scripts/sync-codex-plugin.py --check`
+- PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+- PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+- PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+- PASS: `python3 -m unittest discover -s tests`
+- PASS: `python3 -m unittest discover -s adapters/claude/tests`
+- PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- PASS: `git diff --check`
+- Search-set verification: SKIPPED; no `search-set.md` exists in this
+  repository worktree.
+
+Review outcome:
+
+- Multi-review mode: `FALLBACK_NONINDEPENDENT` sequential review; no independent
+  sub-agents were requested for this worktree session.
+- Core-boundary critic: score 10, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: none; the section now explicitly separates the
+  paper's core loop from applied runtime mechanisms.
+- Adapter-compatibility critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the heading keeps `Sub-Agent Invocation`
+  for existing adapter references while adding the applied-extension label.
+- Verification/backlog critic: score 10, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: none; standard verification, skipped search-set
+  reason, scope, and review handling are recorded.
+- Score handling: no critic scored below 9; no VETO triggered. No score was 9,
+  so no why-not-10 residual-risk item was required.
+- Rerun status: all sequential fallback critics reviewed the final scoped diff
+  after verification passed.
+- Final acceptance: ready for merge coordination.
 
 ### 14. Calibrate README evidence-level claims
 
