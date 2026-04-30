@@ -23,7 +23,7 @@ Remaining follow-up work:
 
 ### 2. Clarify Codex trace-root migration behavior
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session autoresearch trace-root worktree
 Branch: codex/autoresearch-trace-root-alignment
 Started: 2026-05-01
@@ -86,8 +86,8 @@ Review outcome:
   so no why-not-10 residual-risk item was required.
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed; no VETO fixes required.
-- Final acceptance: accepted for review; merge eligible once coordinated onto
-  the integration branch.
+- Final acceptance: accepted and merged to `main` in commit
+  `d231ccb merge: refresh autoresearch trace root branch`.
 
 ### 3. Harden Codex hook enforcement templates
 
