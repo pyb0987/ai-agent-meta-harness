@@ -95,6 +95,15 @@ class LocalPluginSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("MISSING ASSET", result.stderr)
 
+    def test_rejects_non_executable_hook_asset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = self.copy_plugin(tmp)
+            path = plugin / "templates" / "hooks" / "pre-commit-autoresearch-protected.sh"
+            path.chmod(0o644)
+            result = self.run_smoke(plugin)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("NON-EXECUTABLE ASSET", result.stderr)
+
     def test_rejects_missing_degraded_fallback_warning(self):
         with tempfile.TemporaryDirectory() as tmp:
             plugin = self.copy_plugin(tmp)

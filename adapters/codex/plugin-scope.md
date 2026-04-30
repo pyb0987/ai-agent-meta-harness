@@ -30,12 +30,17 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `templates/hooks/pre-commit-autoresearch-protected.sh`
 - `templates/hooks/github-actions-autoresearch-protected.yml`
 - `templates/hooks/agents-autoresearch-protection.md`
+- `examples/AGENTS.md.example`
 - `scripts/check-autoresearch-protected.py`
 - `scripts/check-codex-hook-schema-drift.py`
 - `scripts/smoke-autoresearch-hooks.py`
 - `scripts/smoke-local-plugin.py`
 
-The sync map copies only explicitly listed template and script files. Future templates or scripts must be added to this scope document and the sync map before they ship in the generated plugin.
+The sync map recursively copies all files under the canonical `skills/`,
+`templates/`, `scripts/`, and `examples/` trees, while still requiring the
+minimum v1 assets listed here to exist. Future templates, scripts, or examples
+must be added to this scope document before they are considered supported bundle
+surface.
 
 `adapters/codex/` remains the editable canonical source. Generated plugin files
 must be updated with `python3 scripts/sync-codex-plugin.py --write` and checked
@@ -72,7 +77,7 @@ Do not include:
 | Hook smoke assertions | `adapters/codex/scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Mechanically asserts Codex hook deny JSON shapes |
 | Local plugin artifact smoke test | `adapters/codex/scripts/smoke-local-plugin.py` | `scripts/smoke-local-plugin.py` | Verifies manifest, expected skills, protection assets, and degraded fallback warning |
 | Protected-path template | `adapters/codex/templates/autoresearch-protected.txt` | `templates/autoresearch-protected.txt` | Project bootstrap asset copied to `.harness/autoresearch-protected.txt` |
-| Completed Codex example | `adapters/codex/examples/` | `examples/` | Added after a real project dry run |
+| Completed Codex example | `adapters/codex/examples/` | `examples/` | Onboarding reference; additional examples should come from real project dry runs |
 
 ## Manifest Rules
 

@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             "hook_event_name": "PermissionRequest",
             "tool_name": "Bash",
             "tool_input": {
-                "command": "python3 -c \"open('evaluate.py', 'w').write('x')\"",
+                "command": "python3 -c \"from pathlib import Path; Path('evaluate.py').open('w').write('x')\"",
                 "description": "requesting escalation to write evaluator",
             },
         }

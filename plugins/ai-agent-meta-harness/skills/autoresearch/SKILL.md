@@ -202,9 +202,24 @@ Codex does not consume Claude Code hooks, but Codex has its own hook system. Use
 
 Protection tiers:
 
-- Minimum local tier: `.harness/autoresearch-protected.txt`, `scripts/check-autoresearch-protected.py`, Codex `PreToolUse`/`PermissionRequest` hooks, and a local pre-commit hook all installed and smoke-tested.
-- Shared repository tier: add a CI required check that calls the same checker. If CI is unavailable, record the skipped reason and treat the project as local-only protection until CI exists.
-- Structural tier: when generated evaluator dependencies or duplicated metric definitions exist, move toward single source + generator + drift check.
+- `incomplete`: minimum local protection is missing, skipped, or not
+  smoke-tested. Treat this as unsafe for unattended autoresearch runs.
+- `local-only`: minimum local protection is installed and smoke-tested, but CI
+  or shared repository enforcement is unavailable. Record the skipped CI reason.
+- `shared-repo`: minimum local protection plus CI or shared repository
+  enforcement are installed and smoke-tested.
+- `structural`: shared-repo protection plus single-source/generated evaluator
+  dependencies or drift checks protect duplicated metric definitions.
+
+Do not report skipped minimum local protection as merely skipped. If any
+minimum local tier component cannot be installed or smoke-tested, report
+`Protection level: incomplete` with the exact reason and stop before presenting
+the project as ready for normal autoresearch runs.
+
+If CI is unavailable but the minimum local tier passes, report
+`Protection level: local-only` and include the CI skipped reason. Local-only is
+acceptable for a human-supervised local setup, but it is not shared repository
+protection.
 
 Required protection bundle for the minimum local tier:
 
@@ -331,6 +346,9 @@ Before ending Setup Mode, verify:
 - `{trace_root}/experiments/` exists
 - `AGENTS.md` or `docs/autoresearch.md` documents the loop and trace timing
 - Codex hook smoke test, pre-commit check, and CI/protection status are PASS or skipped with explicit reason
+- protection level is one of `incomplete`, `local-only`, `shared-repo`, or
+  `structural`, and the reason matches the installed/smoke-tested enforcement
+  layers
 
 ## Run Mode
 
@@ -428,7 +446,8 @@ For Setup Mode:
 - Mutable genome: {paths}
 - Immutable evaluator boundary: {paths}
 - Evaluator command: {command}
-- Protection: installed | skipped, with reason
+- Protection level: incomplete | local-only | shared-repo | structural
+- Protection reason: {installed layers and skipped/failed layer reasons}
 
 ### Verification
 - Evaluator smoke test: PASS | FAIL | SKIPPED
@@ -466,3 +485,4 @@ For Run Mode:
 - Logging summarized evaluator results instead of raw JSON fields
 - Copying Claude Code hook configuration into Codex projects as if Codex consumed it
 - Relying only on Codex hooks without the same protection in git hooks or CI
+- Reporting skipped minimum local protection as ready, local-only, or harmless

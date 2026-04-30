@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 import sys
@@ -39,6 +41,9 @@ REQUIRED_SCRIPT_FILES = (
     "smoke-autoresearch-hooks.py",
     "smoke-local-plugin.py",
 )
+REQUIRED_EXAMPLE_FILES = (
+    "AGENTS.md.example",
+)
 
 
 @dataclass(frozen=True)
@@ -59,6 +64,7 @@ def validate_source_tree() -> list[str]:
         ("skills", REQUIRED_SKILL_FILES),
         ("templates", REQUIRED_TEMPLATE_FILES),
         ("scripts", REQUIRED_SCRIPT_FILES),
+        ("examples", REQUIRED_EXAMPLE_FILES),
     )
     for directory, files in required:
         base = SOURCE_ROOT / directory
@@ -72,6 +78,19 @@ def validate_source_tree() -> list[str]:
             path = base / file_name
             if not path.is_file():
                 errors.append(f"MISSING REQUIRED SOURCE: {path.relative_to(ROOT)}")
+    return errors
+
+
+def validate_all_owned(mappings: list[Mapping]) -> list[str]:
+    mapped_sources = {mapping.source for mapping in mappings}
+    errors: list[str] = []
+    for directory in ("skills", "templates", "scripts", "examples"):
+        base = SOURCE_ROOT / directory
+        if not base.exists():
+            continue
+        for source in _iter_files(base):
+            if source not in mapped_sources:
+                errors.append(f"UNMAPPED SOURCE: {source.relative_to(ROOT)}")
     return errors
 
 
@@ -90,12 +109,17 @@ def build_mappings() -> list[Mapping]:
         mappings.append(Mapping(source, PLUGIN_ROOT / "skills" / source.relative_to(skills_root)))
 
     templates_root = SOURCE_ROOT / "templates"
-    for file_name in REQUIRED_TEMPLATE_FILES:
-        mappings.append(Mapping(templates_root / file_name, PLUGIN_ROOT / "templates" / file_name))
+    for source in _iter_files(templates_root):
+        mappings.append(Mapping(source, PLUGIN_ROOT / "templates" / source.relative_to(templates_root)))
 
     scripts_root = SOURCE_ROOT / "scripts"
-    for file_name in REQUIRED_SCRIPT_FILES:
-        mappings.append(Mapping(scripts_root / file_name, PLUGIN_ROOT / "scripts" / file_name))
+    for source in _iter_files(scripts_root):
+        mappings.append(Mapping(source, PLUGIN_ROOT / "scripts" / source.relative_to(scripts_root)))
+
+    examples_root = SOURCE_ROOT / "examples"
+    if examples_root.exists():
+        for source in _iter_files(examples_root):
+            mappings.append(Mapping(source, PLUGIN_ROOT / "examples" / source.relative_to(examples_root)))
     return mappings
 
 
@@ -146,7 +170,7 @@ def find_extra_files(expected: set[Path]) -> list[Path]:
 
 
 def write_files(mappings: list[Mapping]) -> int:
-    source_errors = validate_source_tree()
+    source_errors = validate_source_tree() + validate_all_owned(mappings)
     if source_errors:
         for error in source_errors:
             print(error, file=sys.stderr)
@@ -166,7 +190,7 @@ def write_files(mappings: list[Mapping]) -> int:
 
     for mapping in mappings:
         mapping.dest.parent.mkdir(parents=True, exist_ok=True)
-        mapping.dest.write_bytes(mapping.source.read_bytes())
+        shutil.copy2(mapping.source, mapping.dest)
 
     extra = find_extra_files({m.dest for m in mappings})
     if extra:
@@ -184,7 +208,7 @@ def check_files(mappings: list[Mapping]) -> int:
     failed = False
     expected = {m.dest for m in mappings}
 
-    for error in validate_source_tree():
+    for error in validate_source_tree() + validate_all_owned(mappings):
         print(error, file=sys.stderr)
         failed = True
 
@@ -208,6 +232,15 @@ def check_files(mappings: list[Mapping]) -> int:
             )
             for line in render_diff(mapping.source, mapping.dest, source, dest)[:80]:
                 print(line, file=sys.stderr)
+        source_mode = stat.S_IMODE(mapping.source.stat().st_mode)
+        dest_mode = stat.S_IMODE(mapping.dest.stat().st_mode)
+        if source_mode != dest_mode:
+            failed = True
+            print(
+                f"MODE MISMATCH: {mapping.dest.relative_to(ROOT)} "
+                f"{dest_mode:o} (canonical: {mapping.source.relative_to(ROOT)} {source_mode:o})",
+                file=sys.stderr,
+            )
 
     for path in find_extra_files(expected):
         print(f"EXTRA GENERATED: {path.relative_to(ROOT)}", file=sys.stderr)

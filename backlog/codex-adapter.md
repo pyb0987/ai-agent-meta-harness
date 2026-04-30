@@ -8,28 +8,43 @@ Codex-specific backlog for adapter behavior that should not be pushed into the s
 
 The Codex `harness-engineer` skill says sandbox, permission, and network outcomes are first-class verification outcomes, but it does not give a compact recording template.
 
-Potential improvement:
+Decision implemented:
 
-```markdown
-- command: `{command}`
-- status: PASS | FAIL | SKIPPED
-- blocked_by: sandbox | permission | network | unsafe_side_effect | missing_dependency | none
-- escalation_required: yes | no
-- approval_reason: {short reason, if escalation is needed}
-- rerun_status: {what should happen after approval or environment change}
-```
+- `adapters/codex/skills/harness-engineer/SKILL.md` now includes a compact
+  command outcome template with `command`, `status`, `blocked_by`,
+  `escalation_required`, `approval_reason`, and `rerun_status`.
+- The template lives with Codex verification discipline so actual approval
+  mechanics remain in runtime instructions instead of shared core methodology.
 
-Keep actual approval mechanics in Codex runtime instructions rather than duplicating them in the skill.
+Remaining follow-up work:
+
+- Add examples only after real project traces show which blocked-command fields
+  need clarification.
 
 ### 2. Clarify Codex trace-root migration behavior
 
 Codex prefers `.harness/traces/`, but may need to reuse existing `.claude/traces/` history when a project is migrated from Claude Code.
 
-Potential improvement:
+Decision implemented:
 
-- Define when Codex should continue using `.claude/traces/` temporarily.
-- Define when it should propose migration into `.harness/traces/`.
-- Define the minimum migration plan: copy/move strategy, search-set preservation, and a trace entry recording the migration.
+- `init-codex-harness` now keeps `.claude/traces/` temporarily only when it has
+  meaningful history, and initializes `.harness/traces/` when the Claude root is
+  empty or template-only.
+- `harness-engineer` now labels `.claude/traces/` reuse as temporary history
+  reuse when Codex is operating on a migrated project.
+- Both skills define when to propose migration into `.harness/traces/` and the
+  minimum migration plan: preserve `search-set.md`, copy or move raw trace
+  files, update `AGENTS.md`, record source/destination roots, and write an
+  evolution trace before writing new traces to the new root.
+
+Remaining follow-up work:
+
+- Add a fixture smoke test when init skill execution can be tested
+  mechanically.
+- Align the `autoresearch` skill's Setup Mode trace-root selection with the same
+  meaningful-history rule. In particular, do not let an empty `.harness/traces/`
+  outrank a `.claude/traces/` root that contains real prior failures, episodes,
+  or Active search-set entries.
 
 ### 3. Harden Codex hook enforcement templates
 
@@ -97,54 +112,93 @@ Remaining follow-up work:
 
 Claude-oriented flows often center hook recipes. Codex harnesses rely more heavily on `search-set.md` Active verify commands and explicit terminal verification.
 
-Potential improvement:
+Decision implemented:
 
-- Define project command discovery order: package scripts, test config, CI jobs, README docs, existing AGENTS/CLAUDE instructions.
-- Define how to choose the initial Active verify command for TypeScript, Python, research, and mixed projects.
-- Require verify commands to be deterministic, non-interactive, and non-network by default unless explicitly marked.
-- Record sandbox, permission, or network requirements in the search-set entry.
+- `init-codex-harness` now defines command discovery order: package/build-tool
+  scripts, local CI jobs, README/project docs, existing AGENTS/CLAUDE
+  instructions, then confirmed framework defaults.
+- It defines initial Active verify choices for TypeScript/frontend,
+  Python/backend/research, mixed repos, and fixed-evaluator research projects.
+- `harness-engineer` uses the same discovery order when creating new Active
+  seed cases.
+- Both skills require deterministic, non-interactive, local commands by default
+  and require sandbox, permission, network, dependency, or cost requirements to
+  be recorded.
+
+Remaining follow-up work:
+
+- Refine the project-type examples after real TypeScript and Python dry runs.
 
 ### 7. Document sub-agent capability matrix by Codex surface
 
 Codex sub-agent availability may differ across Desktop, CLI, API, and future surfaces.
 
-Potential improvement:
+Decision implemented:
 
-- Document which surfaces support sub-agents today.
-- For `multi-review`, define fallback to a sequential review checklist when sub-agents are unavailable.
-- For evaluator independence, prefer fixed evaluator scripts when sub-agents are unavailable.
-- For explorer/evaluator patterns, document what degrades and what must stop.
+- `adapters/codex/README.md` now documents Codex Desktop, CLI, API, and local
+  plugin bundle sub-agent expectations.
+- Multi-review falls back to sequential checklist passes with residual risk
+  recorded when sub-agents are unavailable.
+- Evaluator independence falls back to fixed evaluator scripts with immutable
+  boundaries.
+- Explorer/evaluator patterns must either accept low contamination risk in the
+  parent context or stop and request a runtime surface with isolation.
+
+Remaining follow-up work:
+
+- Update the matrix when Codex CLI/API expose stable sub-agent semantics.
 
 ### 8. Expand Codex permission and escalation guidance
 
 Codex execution depends on sandbox mode, approval policy, writable roots, and network restrictions. This differs from Claude hook/permission assumptions.
 
-Potential improvement:
+Decision implemented:
 
-- Add a more concrete Codex Permission Notes section to the AGENTS template.
-- Include fields for sandbox mode, writable roots, network availability, escalation request policy, and commands that are safe/unsafe to run.
-- Define how skipped verification due to permission/network limits should be recorded.
+- The Codex `AGENTS.md` template now asks projects to record sandbox mode,
+  writable roots, network availability, approval/escalation policy, missing
+  dependencies, and unsafe commands when they affect verification.
+- Skipped verification caused by permissions, network, sandboxing, cost, or
+  unsafe side effects must be recorded as SKIPPED with the exact reason and
+  rerun command, not treated as PASS.
+
+Remaining follow-up work:
+
+- Add a concrete filled example after `adapters/codex/examples/AGENTS.md.example`
+  exists.
 
 ### 9. Codexize MCP and tool-use policy
 
 The core principle favors CLI and direct filesystem access unless an external system requires a tool. Codex has additional surfaces such as tool search, MCP resources, browser plugin, and local browser workflows.
 
-Potential improvement:
+Decision implemented:
 
-- Define when to use shell/CLI, MCP resources, tool_search, browser plugin, and web search.
-- Keep external-system access explicit and source-backed.
-- Prefer repo-local files and commands for harness diagnosis unless the task requires live external state.
-- Document how tool limitations or sandbox restrictions affect verification outcomes.
+- `adapters/codex/README.md` now defines when to use shell/CLI, MCP resources,
+  `tool_search`, browser plugin, and web search.
+- The policy keeps shell/CLI as the default for repo-local harness diagnosis and
+  reserves web search for live external state or source-backed current facts.
+- Tool limitations from sandbox, permissions, network, missing dependencies, or
+  product-surface limits must be recorded as verification outcomes.
+
+Remaining follow-up work:
+
+- Add surface-specific examples when Codex plugin activation docs exist.
 
 ### 10. Add Codex examples
 
 Claude has a `CLAUDE.md.example`; Codex currently has an `AGENTS.md.template` but not a completed example.
 
-Potential improvement:
+Decision implemented:
 
-- Add `adapters/codex/examples/AGENTS.md.example` for a realistic project.
-- Include trace root, search-set policy, permission notes, verify commands, and autoresearch pointer.
-- Keep the example distinct from the template: template is a scaffold, example is an onboarding reference.
+- Added `adapters/codex/examples/AGENTS.md.example` as a realistic TypeScript
+  web app onboarding reference.
+- The example includes trace root, migration note, search-set policy, verify
+  commands, Codex permission notes, and an autoresearch pointer.
+- `scripts/sync-codex-plugin.py` now maps Codex examples into the generated
+  plugin bundle, and `smoke-local-plugin.py` requires the example asset.
+
+Remaining follow-up work:
+
+- Add additional Python/research examples after real dry runs.
 
 ### 11. Test Codex adapter on real project types
 
@@ -165,7 +219,8 @@ Implemented foundation:
 
 - `adapters/codex/scripts/check-autoresearch-protected.py` supports Codex `PreToolUse`, Codex `PermissionRequest`, pre-commit, and CI modes.
 - `adapters/codex/templates/autoresearch-protected.txt` provides the project-local `.harness/autoresearch-protected.txt` starting point.
-- `adapters/codex/tests/test_check_autoresearch_protected.py` covers exact path matching, prefix matching, Codex deny JSON shapes, and pre-commit violation detection.
+- `adapters/codex/tests/test_check_autoresearch_protected.py` covers exact path matching, prefix matching, Codex deny JSON shapes, Bash/pathlib evaluator-write detection, and pre-commit violation detection.
+- `adapters/codex/scripts/smoke-autoresearch-hooks.py` asserts Codex hook deny shapes for a pathlib evaluator write payload.
 - The plugin sync map generates checker and protected-path template assets into `plugins/ai-agent-meta-harness/`.
 
 Remaining follow-up work:
@@ -213,11 +268,22 @@ Remaining follow-up work:
 
 The `autoresearch` skill allows local-only protection when CI is unavailable, but the reporting format can be more explicit.
 
-Potential improvement:
+Decision implemented:
 
-- Add `Protection level: local-only | shared-repo | structural | incomplete` to setup output.
-- Treat skipped minimum local protection as incomplete/unsafe, not merely skipped.
-- Treat skipped CI as local-only with explicit reason.
+- `adapters/codex/skills/autoresearch/SKILL.md` now reports
+  `Protection level: incomplete | local-only | shared-repo | structural` in
+  Setup Mode output.
+- Skipped or unsmoke-tested minimum local protection is `incomplete` and unsafe
+  for unattended autoresearch runs.
+- Passing minimum local protection with unavailable CI is `local-only` and must
+  include the skipped CI reason.
+- `shared-repo` and `structural` are reserved for CI/shared enforcement and
+  additional single-source/drift-check protections.
+
+Remaining follow-up work:
+
+- Add a concrete setup transcript after a real autoresearch dry run exercises
+  all protection levels.
 
 ### 16. Extend the Codex plugin layout as assets grow
 

@@ -29,7 +29,7 @@ Create the minimal project-local structure Codex needs to work reliably:
 AGENTS.md
 ```
 
-Prefer `.harness/traces/` for runtime-neutral projects. If the project already has `.claude/traces/`, keep it and document that Codex should use the existing trace root to avoid splitting history.
+Prefer `.harness/traces/` for runtime-neutral projects. If the project already has `.claude/traces/`, keep it temporarily when it contains meaningful history so Codex does not split evidence across roots.
 
 ## Workflow
 
@@ -50,10 +50,27 @@ Use `rg --files` first. Keep inspection targeted.
 Use this order:
 
 1. Existing `.harness/traces/`
-2. Existing `.claude/traces/`
+2. Existing `.claude/traces/` with meaningful history
 3. New `.harness/traces/`
 
 Do not create both `.claude/traces/` and `.harness/traces/` in the same project unless the user explicitly asks for split histories.
+
+Meaningful history means `search-set.md` has Active cases, `failures/` has
+diagnoses, `evolution/` has prior harness changes, or `experiments/` has
+episodes relevant to current work. If `.claude/traces/` exists but is empty or
+template-only, initialize `.harness/traces/` instead.
+
+Propose migration from `.claude/traces/` to `.harness/traces/` when Codex is now
+the primary runtime, the Claude history is stable enough to preserve, and the
+user is ready to update project instructions. Minimum migration plan:
+
+- copy or move the full trace tree without dropping `search-set.md`
+- preserve Active/Archived cases and raw trace files unchanged unless a merge is
+  explicitly reviewed
+- update `AGENTS.md` and any remaining project docs to name the new trace root
+- write an evolution trace recording the migration source, destination, and
+  verification result
+- keep using `.claude/traces/` until the migration plan is applied
 
 ### Step 3: Create Trace Filesystem
 
@@ -67,6 +84,29 @@ Create:
 ```
 
 `search-set.md` must use the Active/Archived format from `core/reference.md` and contain at least one Active case with an executable `verify` command. Choose the most important command found during inspection, usually typecheck, tests, lint, or build.
+
+Verify command discovery order:
+
+1. package manager scripts or build-tool tasks (`package.json`, `pyproject.toml`,
+   `Makefile`, `justfile`, `Taskfile`, language-native test config)
+2. CI jobs that run locally without secrets or network access
+3. README or project docs that name test/lint/typecheck/build commands
+4. existing `AGENTS.md`, `CLAUDE.md`, or adapter instructions
+5. direct framework defaults only when project files confirm the framework
+
+Initial Active verify choices by project type:
+
+- TypeScript/frontend: prefer typecheck, then focused tests, then lint/build.
+- Python/backend/research: prefer focused tests, then lint/typecheck when
+  configured, then evaluator smoke if the repo is research-oriented.
+- Mixed/monorepo: prefer the narrow workspace command that covers the current
+  harness risk before a repo-wide command.
+- Fixed-evaluator research: prefer the evaluator command only when it is
+  deterministic, local, non-interactive, and exits non-zero on regression.
+
+Do not seed Active cases with commands that only print information. If network,
+credentials, sandbox approval, missing dependencies, or high cost are
+unavoidable, record that requirement in the search-set entry.
 
 ### Step 4: Write or Update AGENTS.md
 

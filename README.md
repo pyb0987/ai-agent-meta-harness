@@ -101,7 +101,7 @@ your-project/
 
 ## Codex Adapter
 
-Codex support is intentionally an adapter, not a fork. Shared methodology stays in `core/`; Codex-specific skills describe how Codex should apply it using `AGENTS.md`, `.harness/traces/` by default, existing `.claude/traces/` when present, terminal verification, and Codex sub-agents.
+Codex support is intentionally an adapter, not a fork. Shared methodology stays in `core/`; Codex-specific skills describe how Codex should apply it using `AGENTS.md`, `.harness/traces/` by default, existing `.claude/traces/` only when it contains meaningful history, terminal verification, and optional Codex sub-agents when the active surface supports them.
 
 Initial Codex adapter contents:
 
@@ -120,6 +120,7 @@ Suggested local plugin workflow while developing the adapter:
 python3 scripts/sync-codex-plugin.py --write
 python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
+python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
 ```
 
@@ -136,7 +137,7 @@ Codex does not consume Claude Code slash commands or `.claude/settings.local.jso
 
 ## Migration Notes
 
-Top-level `docs/`, `commands/`, and `skills/` paths are retained as temporary compatibility mirrors for one transition period. Old install commands continue to install working Claude Code assets, but new work should edit `core/` and `adapters/`; mirror files are only there to protect existing bookmarks, scripts, and user muscle memory.
+Top-level `docs/`, `commands/`, and `skills/` paths are retained as temporary compatibility mirrors for one transition period. Old install commands continue to install working Claude Code assets, but new work should edit `core/` and `adapters/`; mirror files are only there to protect existing bookmarks, scripts, and user muscle memory. `MAINTENANCE.md` owns the mirror removal lifecycle: announce one transition window, keep drift checks until removal, and migrate users to `core/` plus `adapters/claude/`.
 
 Compatibility mirror mapping:
 
@@ -148,7 +149,7 @@ Compatibility mirror mapping:
 | `skills/*` | `adapters/claude/skills/*` |
 | `adapters/codex/templates/AGENTS.md.template` | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` |
 
-Run `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` before committing changes that touch mirrored paths or adapters.
+Run `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` before committing changes that touch mirrored paths or adapters.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.
@@ -161,7 +162,7 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` so temporary compatibility mirrors, Claude path contracts, and the generated Codex plugin cannot silently drift.
+The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, and the generated Codex plugin cannot silently drift.
 
 ## How It Works
 

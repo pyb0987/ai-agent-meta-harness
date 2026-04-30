@@ -63,6 +63,45 @@ The generated plugin now carries a reference checker at `scripts/check-autoresea
 
 Hook schema drift is tracked in `hook-schema.md`. Before changing Codex hook templates, checker hook output, or autoresearch hook instructions, re-check the official Codex hooks documentation and run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.
 
+## Sub-Agent Capability Matrix
+
+Codex sub-agent support is surface-dependent. Treat sub-agents as an optional
+tactical mechanism, not a required persistence model.
+
+| Surface | Sub-agent expectation | Harness behavior |
+|---------|-----------------------|------------------|
+| Codex Desktop | Available when the runtime exposes `spawn_agent`/worker/explorer tools | Use for independent exploration, multi-review, and sidecar implementation only when tasks can run in parallel |
+| Codex CLI | May be unavailable or policy-limited depending on release and invocation | Fall back to a sequential review checklist and fixed evaluator scripts for independence |
+| Codex API | Do not assume sub-agent orchestration unless the caller provides it | Keep evaluator independence in deterministic scripts or caller-managed review passes |
+| Local plugin bundle | Carries skills/assets, not guaranteed sub-agent activation | Skills must describe fallback behavior instead of requiring sub-agents |
+
+Fallback rules:
+
+- For multi-review without sub-agents, run independent checklist passes
+  sequentially and record the loss of independence as residual risk.
+- For evaluator independence without sub-agents, prefer fixed evaluator scripts
+  with immutable boundaries.
+- For explorer/evaluator patterns without sub-agents, keep the work in the
+  parent context only if contamination risk is low; otherwise stop and request a
+  runtime surface that supports the needed isolation.
+
+## Tool-Use Policy
+
+Prefer repo-local evidence and CLI commands for harness diagnosis. Use richer
+tools only when they expose information the filesystem cannot.
+
+| Surface | Use when | Notes |
+|---------|----------|-------|
+| Shell/CLI | Reading files, running tests, inspecting Git, validating generated artifacts | Default path for repo-local harness work |
+| MCP resources | The runtime exposes project or external-system context more directly than files/CLI | Prefer resources over web search when they are authoritative for the local task |
+| `tool_search` | The active Codex surface exposes tool discovery and a needed MCP/app tool is not already visible | Search for automation, browser, or plugin-specific tools before inventing a workaround |
+| Browser plugin | Inspecting local browser targets such as localhost or file previews | Use for local UI/runtime verification, not as a replacement for repo checks |
+| Web search | Live external state, official docs, standards, or source-backed current facts are required | Cite sources and prefer primary/official sources |
+
+When a tool cannot run because of sandbox, permissions, network, missing
+dependencies, or product-surface limits, record the limitation as a verification
+outcome and include the command or action that should be retried later.
+
 ## Local Development Install
 
 Generate and verify the repo-local plugin bundle before artifact-level dogfooding:
@@ -71,6 +110,7 @@ Generate and verify the repo-local plugin bundle before artifact-level dogfoodin
 python3 scripts/sync-codex-plugin.py --write
 python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
+python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
 ```
 

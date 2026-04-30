@@ -67,6 +67,61 @@ class ProtectedPathTests(unittest.TestCase):
         }
         self.assertEqual(checker.hook_violations(payload, protected), {"evaluate.py"})
 
+    def test_bash_pathlib_open_write_is_denied(self):
+        protected = checker.ProtectedPaths(["evaluate.py"])
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 -c \"from pathlib import Path; Path('evaluate.py').open('w').write('x')\""
+            },
+        }
+        self.assertEqual(checker.hook_violations(payload, protected), {"evaluate.py"})
+
+    def test_bash_pathlib_open_r_plus_write_is_denied(self):
+        protected = checker.ProtectedPaths(["evaluate.py"])
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 -c \"from pathlib import Path; Path('evaluate.py').open('r+').write('x')\""
+            },
+        }
+        self.assertEqual(checker.hook_violations(payload, protected), {"evaluate.py"})
+
+    def test_bash_builtin_open_mode_r_plus_write_is_denied(self):
+        protected = checker.ProtectedPaths(["evaluate.py"])
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 -c \"open('evaluate.py', mode='r+').write('x')\""
+            },
+        }
+        self.assertEqual(checker.hook_violations(payload, protected), {"evaluate.py"})
+
+    def test_bash_builtin_open_file_keyword_write_is_denied(self):
+        protected = checker.ProtectedPaths(["evaluate.py"])
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 -c \"open(file='evaluate.py', mode='w').write('x')\""
+            },
+        }
+        self.assertEqual(checker.hook_violations(payload, protected), {"evaluate.py"})
+
+    def test_bash_builtin_open_mode_read_only_is_allowed(self):
+        protected = checker.ProtectedPaths(["evaluate.py"])
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "python3 -c \"open('evaluate.py', mode='r').read()\""
+            },
+        }
+        self.assertEqual(checker.hook_violations(payload, protected), set())
+
     def test_write_payload_normalizes_file_path(self):
         protected = checker.ProtectedPaths(["evaluate.py"])
         payload = {
@@ -148,6 +203,25 @@ class CliTests(unittest.TestCase):
             self.assertEqual(output["hookEventName"], "PermissionRequest")
             self.assertEqual(output["decision"]["behavior"], "deny")
             self.assertIn("evaluate.py", output["decision"]["message"])
+
+    def test_pre_tool_use_outputs_deny_for_pathlib_open_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = Path(tmp)
+            protected = cwd / "protected.txt"
+            protected.write_text("evaluate.py\n", encoding="utf-8")
+            payload = {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": "python3 -c \"from pathlib import Path; Path('evaluate.py').open('w').write('x')\""
+                },
+            }
+            result = self.run_checker(cwd, ["--codex-pre-tool-use", "--protected-file", str(protected)], json.dumps(payload))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            body = json.loads(result.stdout)
+            output = body["hookSpecificOutput"]
+            self.assertEqual(output["permissionDecision"], "deny")
+            self.assertIn("evaluate.py", output["permissionDecisionReason"])
 
     def test_pre_commit_detects_staged_exact_path(self):
         with tempfile.TemporaryDirectory() as tmp:

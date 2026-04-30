@@ -60,15 +60,20 @@ resolved: true | false
 {How to prevent recurrence — added rules/hooks/tests and their content}
 ```
 
-### Autoresearch Failure Trace Supplement
+### Fixed-Evaluator Failure Trace Supplement
 
-When recording an autoresearch REJECT in failures/, additionally include:
-- **genome diff**: `git diff HEAD~1` output (captured before revert)
-- **evaluator JSON**: full evaluate.py stdout
-- **causal analysis**: 1-2 line summary (why hypothesis and result diverged)
+When recording a rejected fixed-evaluator experiment in failures/, additionally
+include:
+- **candidate diff**: the full diff for the rejected candidate, captured before
+  any revert or cleanup
+- **evaluator output**: the raw machine-readable evaluator result, including
+  guard details and metrics
+- **causal analysis**: 1-2 line summary of why hypothesis and result diverged
 
-**Reject workflow**: (1) parse verdict → (2) if recording trigger applies, capture diff + JSON → (3) `git reset --hard HEAD~1` → (4) jsonl logging.
-Code is unrecoverable after revert, so order matters.
+**Reject workflow**: (1) parse verdict -> (2) if a recording trigger applies,
+capture candidate diff + evaluator output -> (3) revert or discard the rejected
+candidate using the adapter's approved mechanism -> (4) append the experiment
+log. Candidate code may be unrecoverable after revert, so order matters.
 
 ### Numbering
 - `NNN` is a 3-digit sequence number (001, 002, ...)
@@ -77,9 +82,10 @@ Code is unrecoverable after revert, so order matters.
 
 ### Experiment Episode Format (`traces/experiments/NNN-{name}.md`)
 
-Preserves autoresearch session results as episodes.
-experiments.jsonl is a 1-line summary, insufficient for diagnosis context.
-Episode traces preserve "why this hypothesis succeeded/failed" with raw context.
+Preserves fixed-evaluator or search-loop session results as episodes.
+Machine-readable experiment logs are usually one-line summaries, insufficient
+for diagnosis context. Episode traces preserve "why this hypothesis
+succeeded/failed" with raw context.
 
 ```markdown
 ---
@@ -96,7 +102,7 @@ metric_end: 0.22                  # Baseline metric at episode end
 
 ### Context
 {Direction and motivation explored in this session}
-- program.md direction: {research direction at this point}
+- Current direction: {research direction at this point, with file/path if applicable}
 - Prior episode lessons: {referenced episode numbers + key lessons}
 
 ### Key Experiments
@@ -122,15 +128,28 @@ Do not wait for session end. Write immediately when milestones occur.
 (Reason: if the user hits Ctrl+C, there is no recording opportunity)
 
 - **On ADOPT**: immediately record the adopted change and rationale
-- **On axis exhaustion**: record experiment range and exhaustion rationale + **add the exhausted axis to the `## Rejection History` section of program.md** (prevents re-exploration in the next session). program.md is co-managed by human and agent, so the agent can update Rejection History
+- **On axis exhaustion**: record experiment range and exhaustion rationale, then
+  update the adapter-defined research state with the exhausted axis so the next
+  session does not re-explore it
 - **On termination**: record full session experiment summary
 - **Every 10 experiments**: write an interim summary (even without ADOPTs)
 - Multiple episode files are possible per session
 
-#### Relationship with experiments.jsonl
-- `experiments.jsonl`: machine-readable 1-line log per experiment (for agent loop resumption)
+#### Relationship with Machine-Readable Experiment Logs
+- Experiment log: machine-readable 1-line log per experiment for loop resumption
 - `traces/experiments/NNN-*.md`: episode-level diagnostic context for humans/agents (why?)
 - Not duplication but complementary: jsonl records "what", episodes record "why"
+
+#### Minimum Research State Example
+Adapters may choose the concrete research-state file, but it should preserve
+exhausted axes in a machine-readable or grep-able form so later sessions do not
+retest the same failed direction.
+
+```markdown
+## Exhausted Axes
+- beam-width-search: exhausted 2026-04-30 after E12-E19; no metric lift above
+  baseline and guard failures increased. See traces/experiments/004-beam-width.md.
+```
 
 ### Trace Usage Patterns
 When harness-engineer diagnoses:
@@ -176,7 +195,7 @@ Determine components based on analysis results. Do not include everything.
 | Build | dev, build, test, lint commands |
 | Conventions | Naming, structure, style rules (extracted from linter) |
 | Architecture | Layer direction, dependency rules, prohibited patterns |
-| Traces | trace root initialization, e.g. `.claude/traces/` or `.harness/traces/` |
+| Traces | trace root initialization using the adapter's chosen path |
 | Feedback rules | Rules to prevent repeated failures (added incrementally) |
 
 ### Conditional (Only When Applicable)
@@ -242,3 +261,30 @@ Curated failure cases for verifying harness changes don't regress.
 - Each Active entry must have a `verify` field — an automatically executable verification command
 - Keep at least one Active entry; if Active reaches 0, restore an Archived entry or register an unresolved failure
 - Add new Active entries when a failure is worth guarding against in future changes
+
+### Archived Restore Workflow
+- Restore an Archived case to Active when the same failure class recurs, when a
+  harness change touches the same prevention mechanism, or when Active coverage
+  would otherwise drop to zero.
+- When restoring, preserve the original Source/Symptom/verify fields and add a
+  short note in the related evolution or failure trace explaining why it became
+  relevant again.
+- Re-archive only after the updated prevention has passed its verify command and
+  the case no longer needs active regression coverage.
+- Update `archived_reason` with the re-archive date and reason instead of
+  leaving stale context from the first archive.
+
+### Verify Command Quality
+- Deterministic: repeated runs against the same checkout should produce the same
+  pass/fail result.
+- Non-interactive: the command must not wait for prompts, editors, GUI input, or
+  manual confirmation.
+- Regression-sensitive: the command must exit non-zero when the guarded failure
+  recurs. Commands that only print information are not sufficient unless they
+  pipe into an assertion.
+- Local by default: prefer commands that avoid network calls, paid services,
+  credentials, and high-cost resources.
+- Explicit requirements: record sandbox, permission, network, dependency, or
+  fixture requirements in the search-set entry when they are unavoidable.
+- Narrow enough to diagnose: prefer the smallest command that covers the failure
+  pattern without hiding it behind unrelated long-running checks.

@@ -53,11 +53,21 @@ Use this workflow for backlog work:
 1. Pick a theme and one concrete item.
 2. Implement the smallest useful contract, document, smoke test, or adapter
    change.
-3. Run the relevant checks before review.
-4. Use multi-review for adapter behavior, release gates, hook semantics, or
+3. Keep one functional harness change per iteration. Batch only independent
+   non-functional health fixes, and list each item separately in the review or
+   evolution trace.
+4. For harness-affecting changes, run the Active verify commands from the
+   relevant trace root's `search-set.md` before and after the change when
+   practical. Record PASS/FAIL or the skipped reason.
+5. Record harness behavior changes in the relevant evolution trace. If no trace
+   is written because the change is repository-only maintenance, state that in
+   the review summary, PR description, or backlog entry.
+6. Run the relevant checks before review.
+7. Use multi-review for adapter behavior, release gates, hook semantics, or
    anything that can steer future work in the wrong direction.
-5. If reviewers score below 9, treat it as a veto and iterate.
-6. Record reasons for not reaching 10 only when they are actionable future work.
+8. Treat reviewer scores below 9 as VETO. Iterate until every required critic
+   scores at least 9, or stop and record that the item is not accepted.
+9. Record actionable residual risk as follow-up work.
 
 When a backlog item becomes implemented foundation, keep it in place but change
 the wording from "Potential improvement" to "Decision implemented" plus
@@ -90,30 +100,55 @@ Use unit tests for pure validators and temp-repo integration tests for Git
 index semantics. Prefer smoke tests when the artifact is a generated bundle or
 runtime-facing install surface.
 
-## Standard Verification
+## Verification Tiers
 
-Before committing ordinary repository changes, run:
+Run the narrowest tier that covers the files changed while iterating. Before
+multi-review, release-like commits, or changes that alter repository contracts,
+run the full standard verification set.
+
+| Change area | Minimum verification |
+|-------------|----------------------|
+| Docs/backlog only | Review changed docs plus any linked command examples |
+| Core methodology or reference | Docs/backlog tier + multi-review when behavior changes + relevant search-set verify commands if a trace root applies |
+| Claude adapter | `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 -m unittest discover -s adapters/claude/tests` |
+| Codex adapter/plugin | `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests` |
+| Compatibility/generated surfaces | Drift check for the generated or mirrored surface plus its owning adapter tests |
+| Harness-affecting behavior | Relevant tier above + Active `search-set.md` verify commands before and after the change, with skipped reasons recorded |
+
+Harness-affecting behavior means a change that alters agent-visible runtime
+behavior or the rules used to judge it: project instruction templates, skills,
+commands, hook behavior, checker semantics, trace/search-set schemas,
+evaluator-boundary policy, install/activation behavior, or release gates.
+Docs, README text, backlog wording, generated metadata, and smoke-test-only
+changes do not require search-set verification unless they change one of those
+contracts.
+
+Standard verification:
 
 ```bash
 python3 scripts/check-compat-mirrors.py
 python3 scripts/check-claude-adapter-paths.py
 python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py
+python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 -m unittest discover -s tests
 python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
-The tracked pre-commit hook runs the drift and smoke checks:
+The tracked pre-commit hook runs the drift and smoke checks, but not the full
+unit test suites:
 
 ```bash
 git config core.hooksPath .githooks
 sh .githooks/pre-commit
 ```
 
-Run targeted tests while iterating, but run the standard verification set before
-multi-review and before release-like commits.
+Search-set verification is project-contextual rather than repo-global: use the
+active trace root for the project whose harness behavior is changing. If this
+repository is the target harnessed project and no trace root exists, record that
+there is no project search-set yet instead of marking the check PASS.
 
 ## Release Checklist
 
@@ -126,14 +161,38 @@ handoff point:
 - Codex local plugin artifact smoke test passes.
 - Codex hook schema drift check passes; hook-sensitive changes update or
   intentionally re-verify `adapters/codex/hook-schema.md`.
+- Codex autoresearch hook smoke passes against the real checker and protected
+  path template.
 - Unit and integration tests pass for root, Claude adapter, and Codex adapter
   test suites.
+- Harness-affecting changes ran relevant Active search-set verify commands
+  before and after the change, or recorded the skipped reason.
 - README repository name, install commands, and adapter paths match the current
   repo layout.
 - Backlog entries touched by the change are updated from potential work to
   implemented foundation when appropriate.
 - Multi-review is recorded or summarized for high-impact adapter or release-gate
   changes.
+
+## Compatibility Mirror Lifecycle
+
+Top-level Claude compatibility mirrors (`docs/`, `commands/`, and `skills/`)
+are temporary transition surfaces, not permanent source paths. Keep them until
+at least one stable handoff point after the canonical `adapters/claude/` install
+commands and old mirrored install commands both have smoke coverage.
+
+Before removing mirrors:
+
+- Announce the removal in README guidance and release notes for one release or
+  transition window.
+- Keep `scripts/check-compat-mirrors.py` enforcing drift until the removal
+  commit.
+- Document the migration path from `docs/`, `commands/`, and `skills/` to
+  `core/` and `adapters/claude/`.
+- Decide whether old install commands should fail fast with guidance or remain
+  as thin redirect docs for one additional window.
+- Remove mirrors and mirror checks in the same release-oriented change so stale
+  compatibility policy does not remain behind.
 
 ## Multi-Review Use
 
@@ -143,22 +202,36 @@ Use multi-review when a change affects:
 - Hook enforcement or protected-file semantics.
 - Release gates and pre-commit behavior.
 - Core methodology boundaries.
-- Anything that future harness-engineer or autoresearch work will build on.
+- Durable contracts that future harness-engineer or autoresearch work will rely
+  on, such as trace schemas, evaluator-boundary rules, install behavior, or
+  runtime enforcement semantics.
 
-Reviewer scores below 9 are vetoes. Scores of 9 mean the change is acceptable
+Reviewer scores below 9 are VETO. Scores of 9 mean the change is acceptable
 with remaining risk tracked. Scores of 10 should be rare and reserved for cases
 where there is no meaningful known follow-up.
 
-## Near-Term Maintenance Sequence
+Review summaries for multi-review items must record:
 
-The next high-leverage sequence is:
+- critic name or scope
+- score
+- verdict
+- blocking findings or "none"
+- follow-up or residual risk
+- score handling, especially whether any score below 9 triggered iteration
+- rerun status after fixes, including whether all critics were rerun
+- final acceptance status
 
-1. Finish release-gate clarity: choose semantics for generated artifact checks
-   in `scripts/sync-codex-plugin.py`.
-2. Add Claude `/init-harness` fixture smoke coverage.
-3. Strengthen Codex install/activation smoke once the local plugin activation
-   path is mechanically known.
-4. Consolidate trace lifecycle rules in core, then keep Codex-specific
-   `.claude/traces` to `.harness/traces` migration behavior in the Codex
-   adapter.
-5. Add realistic Codex examples only after one or more real project dry runs.
+Do not mark an item accepted while any required critic score is below 9.
+
+## Current Maintenance Plan
+
+Near-term work lives in `backlog/`, not as permanent policy. Current pointers:
+
+- `backlog/core.md` for shared methodology and repo-wide release-gate follow-up.
+- `backlog/claude-adapter.md` for Claude fixture and runtime activation follow-up.
+- `backlog/codex-adapter.md` for Codex plugin activation, examples, and install
+  validation.
+
+Update those backlog files when the next sequence changes. Keep this document
+focused on maintenance rules that should survive the current implementation
+queue.

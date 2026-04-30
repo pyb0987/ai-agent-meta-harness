@@ -34,10 +34,17 @@ EXPECTED_ASSETS = (
     "templates/hooks/codex-hooks.json.template",
     "templates/hooks/github-actions-autoresearch-protected.yml",
     "templates/hooks/pre-commit-autoresearch-protected.sh",
+    "examples/AGENTS.md.example",
     "scripts/check-autoresearch-protected.py",
     "scripts/check-codex-hook-schema-drift.py",
     "scripts/smoke-autoresearch-hooks.py",
     "scripts/smoke-local-plugin.py",
+)
+
+EXPECTED_EXECUTABLE_ASSETS = (
+    "scripts/check-autoresearch-protected.py",
+    "scripts/smoke-autoresearch-hooks.py",
+    "templates/hooks/pre-commit-autoresearch-protected.sh",
 )
 
 DEGRADED_FALLBACK_PHRASES = (
@@ -133,6 +140,15 @@ def validate_assets(plugin_root: Path) -> list[str]:
     return errors
 
 
+def validate_executable_assets(plugin_root: Path) -> list[str]:
+    errors: list[str] = []
+    for asset in EXPECTED_EXECUTABLE_ASSETS:
+        path = plugin_root / asset
+        if path.is_file() and not path.stat().st_mode & 0o111:
+            errors.append(f"NON-EXECUTABLE ASSET: {rel(path)}")
+    return errors
+
+
 def validate_degraded_fallback_warning(plugin_root: Path) -> list[str]:
     readme = plugin_root / "README.md"
     try:
@@ -157,6 +173,7 @@ def validate_plugin(plugin_root: Path) -> list[str]:
         errors.extend(validate_manifest(plugin_root, manifest))
     errors.extend(validate_skills(plugin_root))
     errors.extend(validate_assets(plugin_root))
+    errors.extend(validate_executable_assets(plugin_root))
     errors.extend(validate_degraded_fallback_warning(plugin_root))
     return errors
 

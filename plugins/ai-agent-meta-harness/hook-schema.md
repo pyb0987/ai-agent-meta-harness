@@ -12,6 +12,12 @@ This drift check validates documented output-shape assumptions only. It does not
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
+- Re-verification note: 2026-04-30 item 15 changed autoresearch protection
+  reporting only; `PreToolUse`, `PermissionRequest`, and `features.codex_hooks`
+  output/config assumptions were re-checked and remain unchanged.
+- Re-verification note: 2026-04-30 item 12 hardened Bash mutation detection for
+  pathlib evaluator writes; hook output shapes were re-checked and remain
+  unchanged.
 
 Before changing Codex hook templates, hook checker output, or autoresearch hook
 instructions, check the official Codex hooks documentation again and update this

@@ -37,15 +37,27 @@ If the user asks only for diagnosis or review, stop at the Proposal and Verifica
 
 Select the trace root by evidence, not by fixed path preference:
 
-1. If only one of `.harness/traces/` or `.claude/traces/` exists, use it.
-2. If both exist, inspect both before choosing:
+1. If only `.harness/traces/` exists, use it.
+2. If only `.claude/traces/` exists, use it only when it has meaningful history:
+   `search-set.md` with Active cases, failure diagnoses, prior evolution
+   entries, or experiment episodes relevant to current work. If it is empty or
+   template-only, propose initializing `.harness/traces/` with
+   `init-codex-harness`.
+3. If both exist, inspect both before choosing:
    - count files in `evolution/`, `failures/`, `experiments/`
    - check which has `search-set.md`
    - prefer the root with meaningful history, not merely the newer directory
-3. If both have meaningful but divergent history, stop and propose a migration/merge plan before recording new traces.
-4. If neither exists, propose initializing `.harness/traces/` with `init-codex-harness` before making harness evolution claims.
+4. If both have meaningful but divergent history, stop and propose a migration/merge plan before recording new traces.
+5. If neither exists, propose initializing `.harness/traces/` with `init-codex-harness` before making harness evolution claims.
 
 Do not create a second trace root without explicit migration intent.
+
+When reusing `.claude/traces/` in Codex, call it temporary history reuse in the
+proposal or trace. Propose migration into `.harness/traces/` when Codex is the
+primary runtime and project instructions can be updated safely. A minimum
+migration plan must preserve `search-set.md`, copy or move raw trace files, name
+the source/destination roots, update `AGENTS.md`, and write an evolution trace
+for the migration before new traces are written to the new root.
 
 ## Required Diagnosis Procedure
 
@@ -115,11 +127,32 @@ Active-0 policy:
 - If there are no unresolved failures and no Archived cases, create a new Active seed case from the current failure or harness risk before applying a functional harness change. The seed must include an auto-executable `verify` command.
 - If no executable verification can be defined, stop at Proposal and ask for the missing verification surface; do not mark the change verified.
 
+When choosing a new verify command, discover commands in this order: package or
+build-tool scripts, local CI jobs, README/project docs, existing AGENTS/CLAUDE
+instructions, then framework defaults confirmed by project files. Prefer
+deterministic, non-interactive, local commands that exit non-zero on regression.
+For TypeScript projects, start with typecheck or focused tests. For Python and
+research projects, start with focused tests or deterministic evaluator smoke.
+For mixed repos, prefer the narrowest workspace command that covers the failure.
+Record sandbox, permission, network, dependency, or cost requirements in the
+search-set entry.
+
 Sandbox/permission/network outcomes are first-class verification outcomes:
 
 - If a command cannot run because of Codex sandboxing, permission approval, missing network, or unsafe side effects, record the reason.
 - Provide the exact command to run later and whether escalation is required.
 - Do not convert a skipped verification into PASS.
+
+Use this compact record for each blocked or environment-dependent command:
+
+```markdown
+- command: `{command}`
+- status: PASS | FAIL | SKIPPED
+- blocked_by: sandbox | permission | network | unsafe_side_effect | missing_dependency | none
+- escalation_required: yes | no
+- approval_reason: {short reason, if escalation is needed}
+- rerun_status: {what should happen after approval or environment change}
+```
 
 ## Recording
 

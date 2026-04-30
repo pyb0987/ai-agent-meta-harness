@@ -48,3 +48,9 @@ Recurring failures should move from instructions to tooling, CI, generated artif
 
 - Codex does not use Claude Code slash commands or `.claude/settings.local.json` hooks.
 - Use explicit verification commands unless project tooling provides stronger enforcement.
+- Record local execution constraints here when they affect verification:
+  sandbox mode, writable roots, network availability, approval/escalation
+  policy, missing dependencies, and commands that are unsafe to run.
+- If verification is skipped because of permissions, network, sandboxing, cost,
+  or unsafe side effects, record SKIPPED with the exact reason and rerun command
+  instead of treating it as PASS.

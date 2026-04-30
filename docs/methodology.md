@@ -15,7 +15,29 @@ Runtime-neutral core principles. For detailed reference in an installed Claude s
 - Use `grep`, `cat`, `diff` for selective access — don't dump everything into the prompt
 
 ### Trace Filesystem (Required for All Projects)
-Every harnessed project must have a trace root. Adapters choose the concrete path: Claude Code uses `.claude/traces/`; Codex should prefer `.harness/traces/` unless reusing existing Claude history.
+Every harnessed project must have exactly one active trace root. Adapters choose
+the concrete path for their runtime and must document migration behavior when a
+project already has history in another trace root. Do not split harness history
+across multiple trace roots without an explicit migration plan.
+
+When more than one candidate trace root exists, choose the active history by
+evidence:
+
+- Prefer roots with `search-set.md` and Active cases over empty or template-only
+  roots.
+- Prefer roots with unresolved failures, recent evolution entries, or
+  experiment episodes relevant to the current issue.
+- Prefer the runtime adapter's default root only when history evidence is tied
+  or absent.
+- Treat divergent non-empty roots as a migration question, not as a normal write
+  target. Propose a copy/move/merge plan before recording new traces.
+
+After selecting the active trace root, check for the minimum trace surface:
+`evolution/`, `failures/`, `experiments/`, and `search-set.md`. For applied
+harness changes, create missing minimum directories/files before writing traces
+so future work has a complete history surface. For diagnosis-only work, report
+missing trace infrastructure in the proposal or handoff instead of silently
+expanding the project.
 ```
 {trace_root}/
 ├── evolution/           # Harness change history
@@ -37,7 +59,31 @@ Every harnessed project must have a trace root. Adapters choose the concrete pat
   3. Structural code change failure (logic change, not parameter tuning)
   Simple threshold misses (REJECT_THRESHOLD) don't need recording — experiments/ episode tables suffice
 - **search-set**: each entry must have a `verify` field — an auto-executable verification command
-- **experiments/**: record episodes immediately at milestones (ADOPT, axis exhaustion, every 10 experiments). Format: see reference.md
+- **experiments/**: record experiment episodes immediately at adapter-defined
+  milestones so interruption does not erase diagnostic context. Format: see
+  reference.md
+
+### Fixed-Evaluator Search-Loop Detection
+
+Treat fixed-evaluator search loops as an adapter-neutral project pattern, not
+as a runtime-specific label. A project likely uses this pattern when two or
+more of these signals are present:
+
+- A direction file that defines the search objective, such as `program.md` or
+  an adapter-defined equivalent.
+- A mutable search surface that is safe for the agent to edit, such as source,
+  configuration, genomes, prompts-as-code, or generated candidates.
+- An immutable evaluator boundary: evaluator command, protected evaluator
+  files/dependencies, and a machine-readable verdict.
+- A machine-readable experiment log that records one result per attempt, such
+  as `experiments.jsonl`.
+- Episode traces under `{trace_root}/experiments/` that preserve diagnostic
+  context around adopted changes, rejected hypotheses, and exhausted axes.
+
+If only one signal exists, inspect nearby docs, project instructions, scripts,
+and trace files before deciding that search-loop rules apply. If signals
+conflict, record the uncertainty in the proposal or trace instead of applying
+fixed-evaluator-specific changes blindly.
 
 ## Additive Modification — Change Strategy
 
@@ -76,13 +122,16 @@ Why this sits next to Additive Modification: both stem from the same finding —
 - Harness control flow (hook chain, evaluator path, done conditions) must be immediately understandable
 - Complex conditional branching, multi-stage orchestration, agent-to-agent protocols increase outer loop cost
 - **Self-check**: "Can I explain this harness's entire flow in 5 minutes?" → No means simplify
-- **Autoresearch application**: program.md → genome modification → evaluate.py → ADOPT/REJECT is the entire loop. Don't make it more complex
+- **Fixed-evaluator application**: direction file -> mutable search surface ->
+  immutable evaluator -> adopt/reject decision is the entire loop. Don't make it
+  more complex
 
 ### P4: Agents search in code space
 - What agents modify is **code and configuration files**, not natural language prompts
 - Project instructions, hooks, skill documents, config files = the agent's search space
 - Rewriting prompts in natural language ("try harder") is noise, not search
-- **Autoresearch application**: directly modify the genome (Python code) to explore performance. Code changes, not natural language instructions
+- **Fixed-evaluator application**: directly modify the mutable search surface to
+  explore performance. Code/config changes, not natural language instructions
 
 ### P5: Recurring failures are absorbed by structure, not rules
 
@@ -120,12 +169,14 @@ Meta-Harness is the **policy layer** (when to isolate, when to learn). Sub-agent
 
 ### Trigger categories
 
-Two triggers map to repo-specific mechanisms. Generic sub-agent uses (parallel exploration, context firewall) are runtime tool patterns, not harness policy — invoke them at your own judgment without a trigger table.
+Two triggers map to adapter-defined mechanisms. Generic sub-agent uses
+(parallel exploration, context firewall) are runtime tool patterns, not harness
+policy — invoke them at your own judgment without a trigger table.
 
 | Trigger | Mechanism | When |
 |---------|-----------|------|
-| **Qualitative multi-perspective judgment** | `multi-review` skill (parallel critics with role separation) | Hard-to-reverse decisions, regressions with suspected confounders, domains where single-perspective evaluation has failed before |
-| **Evaluator independence** | Dedicated Evaluator sub-agent OR Fixed Evaluator (immutable Python script) | High-stakes generation where self-evaluation bias is the primary risk; the generator must not score its own output. Fixed Evaluator is the cheapest and strongest form; a dedicated sub-agent is the alternative when binary verdict is not viable |
+| **Qualitative multi-perspective judgment** | Parallel critics with role separation | Hard-to-reverse decisions, regressions with suspected confounders, domains where single-perspective evaluation has failed before |
+| **Evaluator independence** | Dedicated evaluator context OR fixed immutable evaluator | High-stakes generation where self-evaluation bias is the primary risk; the generator must not score its own output. A fixed evaluator is the cheapest and strongest form when a binary verdict is viable; a dedicated context is the alternative when judgment cannot be scripted |
 
 This is why Meta-Harness can absorb multi-agent benefits without abandoning the single-agent paradigm: each benefit has a tactical mechanism that does not require persistent agent definitions or multi-persona orchestration.
 
@@ -167,11 +218,15 @@ Use the runtime's available model routing when spawning sub-agents:
 ### Completion Criteria
 Before starting work, define: `Done when: [specific, verifiable condition]`
 
-### Fixed Evaluator (for autoresearch)
-- Evaluator: Python script, **immutable**, JSON stdout
-- Verdict: binary (ADOPT/REJECT), REJECT → revert
-- **Reject code preservation**: before reverting, capture `git diff HEAD~1` into failures/ trace (when recording triggers apply). Reverting without preserving the diff permanently loses raw context
-- Escalation: 20 consecutive REJECTs → manual review
+### Fixed Evaluator Search Loops
+- Evaluator: adapter-defined command with an immutable evaluator boundary and
+  machine-readable output.
+- Verdict: binary or thresholded adopt/reject decision defined by the project.
+- Rejected candidate preservation: before reverting or discarding a rejected
+  candidate, capture the candidate diff and raw evaluator output in traces when
+  recording triggers apply. Candidate code may be unrecoverable after cleanup.
+- Escalation: repeated rejects, suspected evaluator defects, or exhausted search
+  axes should stop normal experimentation and trigger manual review.
 
 ### Hooks vs Backpressure
 - **Hooks**: enforced externally (type checks, formatters)
@@ -186,10 +241,18 @@ Before starting work, define: `Done when: [specific, verifiable condition]`
 
 > Skill document quality has a larger impact on performance than iteration count or population size.
 
+### Documentation Abstraction Boundaries
+- Core owns what and why: methodology principles, trace semantics, verification
+  policy, general failure recording, and agent-agnostic workflow contracts.
+- Adapters own how: runtime-specific instruction files, hook schemas,
+  permission models, install paths, tool surfaces, and examples.
+- Adapter docs may reference core rules, but should not fork or copy large
+  methodology blocks unless runtime behavior truly differs.
+- During review, treat copied methodology blocks in adapters as drift risks and
+  either replace them with references or document the runtime-specific reason.
+
 ### Skill Document Writing Principles
 - **State prohibitions and goals**, leave diagnosis methods free (agent decides)
 - Define role, directory structure, CLI commands, output format
 - Debug skill documents with 3-5 short test iterations before production runs
 - After enough iterations, **accumulated traces shape behavior more strongly than the skill document itself**
-
-

@@ -4,36 +4,64 @@ Agent-agnostic quality backlog for the shared Meta-Harness methodology. These it
 
 ## Priority Candidates
 
-### 1. Add autoresearch detection heuristics
+### 1. Add fixed-evaluator search-loop detection heuristics
 
-Current adapter wording says "if the project uses autoresearch", which leaves detection to the agent.
+Current adapter wording can leave fixed-evaluator/search-loop detection to the
+agent without a shared abstraction.
 
-Potential improvement:
+Decision implemented:
 
-- Treat a project as autoresearch when two or more of these are present: `program.md`, `evaluate.py`, `experiments.jsonl`, `auto-search/session-*`, `{trace_root}/experiments/`.
-- If only one signal exists, inspect nearby docs before deciding.
-- If signals conflict, record uncertainty in the proposal instead of applying autoresearch-specific changes blindly.
+- `core/methodology.md` now defines adapter-neutral detection signals for a
+  direction file, mutable search surface, immutable evaluator boundary,
+  machine-readable experiment log, and episode traces.
+- The rule requires nearby docs, project instructions, scripts, and traces to
+  be inspected when only one signal exists.
+- Conflicting signals must be recorded as uncertainty instead of triggering
+  fixed-evaluator-specific changes blindly.
+
+Remaining follow-up work:
+
+- Let adapters add runtime-specific examples only when they differ from the
+  shared signal model.
 
 ### 2. Define meaningful trace history tie-breakers
 
 When more than one trace root or trace history exists, the harness should define how to choose the active history.
 
-Potential improvement:
+Decision implemented:
 
-- Prefer roots with `search-set.md` and Active cases.
-- Prefer roots with unresolved failures, recent evolution entries, or experiment episodes relevant to the current issue.
-- Treat divergent non-empty roots as a migration question, not as a normal write target.
+- `core/methodology.md` now selects active trace history by evidence instead of
+  path preference alone.
+- Roots with `search-set.md` Active cases, unresolved failures, recent
+  evolution entries, or relevant experiment episodes outrank empty/template
+  roots.
+- Runtime adapter defaults only break ties when history evidence is absent or
+  equivalent.
+- Divergent non-empty roots are treated as migration questions that need a
+  copy/move/merge plan before new traces are written.
+
+Remaining follow-up work:
+
+- Let adapters define their concrete source and destination paths for migration.
 
 ### 3. Strengthen Active seed verification quality rules
 
 The methodology requires auto-executable verify commands, but should define what makes one good enough.
 
-Potential improvement:
+Decision implemented:
 
-- Verify commands should be deterministic, non-interactive, and fail with a non-zero exit code on regression.
-- Prefer local commands that avoid network and high cost.
-- Record sandbox, permission, or network requirements explicitly when applicable.
-- Avoid verify commands that only print information without checking the failure pattern.
+- `core/reference.md` now defines verify command quality rules for Active
+  search-set entries.
+- Verify commands must be deterministic, non-interactive, regression-sensitive,
+  and non-zero on recurrence.
+- Local, low-cost commands are preferred, and unavoidable sandbox, permission,
+  network, dependency, or fixture requirements must be recorded.
+- Print-only commands are rejected unless they pipe into an assertion.
+
+Remaining follow-up work:
+
+- Add mechanical validation only if search-set entries become machine-parsed in
+  this repository.
 
 ## Later Improvements
 
@@ -41,53 +69,90 @@ Potential improvement:
 
 A trace root may exist while one or more required subdirectories or files are missing.
 
-Potential improvement:
+Decision implemented:
 
-- After selecting a trace root, check for `evolution/`, `failures/`, `experiments/`, and `search-set.md`.
-- For applied harness changes, create missing minimum directories/files before writing traces.
-- For diagnosis-only requests, report missing trace infrastructure in the proposal.
+- `core/methodology.md` now requires checking the selected trace root for
+  `evolution/`, `failures/`, `experiments/`, and `search-set.md`.
+- Applied harness changes must create missing minimum trace infrastructure
+  before writing traces.
+- Diagnosis-only work should report missing trace infrastructure instead of
+  silently expanding the project.
+
+Remaining follow-up work:
+
+- Let adapters define the exact empty `search-set.md` template they install.
 
 ### 5. Specify Archived case restore and re-archive workflow
 
 The methodology allows restoring Archived search-set cases but should define when to re-archive them.
 
-Potential improvement:
+Decision implemented:
 
-- Restore Archived cases when the same failure class recurs or when validating a harness change that touches the same prevention.
-- Re-archive after the new prevention has passed and the case no longer needs active regression coverage.
-- Update `archived_reason` with the date and reason for re-archive.
+- `core/reference.md` now defines when to restore Archived search-set cases:
+  recurring failure class, changed prevention mechanism, or Active coverage
+  dropping to zero.
+- Restored cases preserve original Source/Symptom/verify fields and require a
+  related trace note explaining why the case became relevant again.
+- Re-archive only after updated prevention passes, and refresh
+  `archived_reason` with date and reason.
 
-### 6. Expand standalone autoresearch reference details
+Remaining follow-up work:
 
-Standalone users may benefit from a short relationship map around autoresearch trace artifacts.
+- Add parser-level support only if search-set migration becomes automated.
 
-Potential improvement:
+### 6. Expand standalone fixed-evaluator reference details
 
-- State that `experiments.jsonl` records machine-readable "what" and episode traces record diagnostic "why".
-- Include a minimum `program.md ## Rejection History` example.
-- Clarify that episode traces may be written multiple times in one session.
+Standalone users may benefit from a short relationship map around
+fixed-evaluator trace artifacts.
+
+Decision implemented:
+
+- `core/reference.md` states that machine-readable experiment logs record
+  "what" while episode traces record diagnostic "why".
+- Episode timing rules clarify that multiple episode files may be written in one
+  session.
+- The reference now includes a minimum exhausted-axis research-state example
+  that adapters can map to their concrete files.
+
+Remaining follow-up work:
+
+- Adapter examples may name concrete state files when a runtime chooses one.
 
 ### 7. Define documentation abstraction boundaries
 
 The repository now has a shared core plus runtime adapters. The boundary should be made explicit so future work does not duplicate methodology across adapters.
 
-Potential improvement:
+Decision implemented:
 
-- Core owns what/why: methodology principles, trace semantics, verification policy, general failure recording, and agent-agnostic workflow contracts.
-- Adapters own how: runtime-specific instruction files, hook schemas, permission models, install paths, tool surfaces, and examples.
-- Add a short document-writing rule that says adapter docs may reference core rules but should not fork them unless runtime behavior truly differs.
-- During review, flag copied methodology blocks in adapters as possible drift risks.
+- `core/methodology.md` now defines core-owned what/why surfaces and
+  adapter-owned runtime how surfaces.
+- Adapter docs may reference core rules but should not fork large methodology
+  blocks unless runtime behavior truly differs.
+- Review should treat copied methodology blocks in adapters as drift risks.
+
+Remaining follow-up work:
+
+- Add mechanical duplicate-block detection only if drift recurs.
 
 ### 8. Plan compatibility mirror removal
 
 Temporary top-level Claude paths are currently retained as compatibility mirrors. They need a removal plan before they become permanent accidental API.
 
-Potential improvement:
+Decision implemented:
 
-- Define the removal milestone or release window.
-- Add a warning strategy before removal, such as README notice, release note, or pre-commit warning period.
-- Decide whether old install commands should fail fast with guidance or keep thin redirect docs.
-- Document the migration path for users with scripts that still read `docs/`, `commands/`, or `skills/`.
+- `MAINTENANCE.md` now defines the compatibility mirror lifecycle for top-level
+  `docs/`, `commands/`, and `skills/`.
+- Mirrors stay until at least one stable handoff after canonical Claude install
+  commands and old mirrored install commands both have smoke coverage.
+- Removal requires README/release-note warning for one transition window,
+  continued drift checks until removal, migration guidance, and an explicit
+  decision between fail-fast old commands or thin redirect docs.
+- README points maintainers to `MAINTENANCE.md` for the removal lifecycle.
+
+Remaining follow-up work:
+
+- Execute the warning/removal plan only after old Claude install smoke coverage
+  exists.
 
 ### 9. Define repository release checklist
 
@@ -95,8 +160,9 @@ Release readiness should be verified with a stable checklist instead of ad hoc m
 
 Decision implemented:
 
-- `MAINTENANCE.md` now defines the standard verification set, release checklist,
-  test policy, multi-review use, and near-term maintenance sequence.
+- `MAINTENANCE.md` now defines verification tiers, the standard verification
+  set, release checklist, test policy, multi-review use, and backlog pointers
+  for current planning.
 
 Remaining follow-up work:
 
@@ -130,10 +196,96 @@ Remaining follow-up work:
 
 - Decide whether generated artifact checks should use index content, working
   tree content, or an explicit mode flag.
+- Make `scripts/sync-codex-plugin.py --check` safe for pre-commit by validating
+  the staged/index view of generated plugin content and executable modes, or by
+  adding an explicit staged mode. Cover partially staged commits where generated
+  content or mode changes are omitted from the index.
 - Add tests for staged-added, staged-modified, and staged-deleted paths that are
   relevant to generated-artifact drift.
 - Add temp-git staged-added coverage if the compatibility mirror contract starts
   accepting newly introduced mirror pairs during the transition period.
+
+### 11. Add maintenance review summary checker
+
+`MAINTENANCE.md` now requires multi-review summaries to record critic scope,
+score, verdict, blocking findings, follow-up/residual risk, score handling,
+rerun status, and final acceptance. It also treats reviewer scores below 9 as
+VETO. Those rules should be mechanically checked so future maintenance work does
+not rely on memory.
+
+Decision implemented:
+
+- Added `scripts/check-maintenance-review.py` to validate tracked
+  `backlog/review-*.md` summaries.
+- The checker fails when a required critic score below 9 lacks VETO or
+  not-accepted handling.
+- The checker fails when unresolved `pending`, active re-review, or not-yet
+  accepted status remains in rerun/final-acceptance fields.
+- The checker fails when required review fields are missing from a multi-review
+  or review-outcome section.
+- Tests cover accepted score 9, rejected score 8, pending review status, and
+  missing required fields.
+
+Remaining follow-up work:
+
+- Start as a standard verification command; add to pre-commit only after the
+  format is stable enough not to create noisy local failures.
+- Add `python3 scripts/check-maintenance-review.py` to the documented standard
+  verification set before relying on review-summary enforcement as a release
+  gate. Add it to pre-commit only after the summary format is stable enough to
+  avoid noisy local failures.
+
+### 12. Clarify prompt-as-code search boundary
+
+The core methodology currently risks over-forbidding prompt edits by saying
+agents modify code/configuration, not natural language prompts. That matches the
+anti-pattern of vague exhortation-only prompt tweaks, but it can incorrectly
+exclude executable prompt-template or prompt-construction changes that are
+isolated, versioned, and evaluated like other code-space changes.
+
+Potential improvement:
+
+- Distinguish vague natural-language exhortation changes from prompt templates,
+  prompt-construction code, and generated candidate prompts that are part of the
+  executable search surface.
+- Allow prompt-as-code changes when they are isolated to mutable search files,
+  evaluated by the same fixed verifier/evaluator boundary, and traceable in raw
+  diffs.
+- Keep "try harder" style instruction rewrites listed as an anti-pattern.
+
+### 13. Label sub-agent guidance as an applied extension
+
+The sub-agent section is useful operational guidance, but it can read as if
+parallel critics or isolated evaluator contexts are part of the paper's core
+Meta-Harness claim. The paper's core loop is a coding-agent proposer using
+filesystem evidence, scores, and traces; sub-agents are an adapter/runtime
+mechanism layered on top.
+
+Potential improvement:
+
+- Mark the sub-agent section as an applied extension or adapter mechanism, not
+  the core Meta-Harness methodology itself.
+- Keep the contamination/isolation guidance, but separate paper-backed
+  principles from repo-specific review mechanics.
+- Add a short note that runtimes without isolated sub-agent support can use
+  fixed evaluator scripts, sequential checklists, or external review instead.
+
+### 14. Calibrate README evidence-level claims
+
+The README says the listed principles come directly from experiments and
+ablation studies. Some principles are directly supported by reported
+experiments, while others, such as skill document quality and practical adapter
+guidance, are better framed as engineering lessons inferred from applying the
+methodology.
+
+Potential improvement:
+
+- Separate "paper-backed experimental findings" from "engineering guidance used
+  by this repository".
+- Avoid implying every README principle is ablation-backed when some are
+  practical harness-writing lessons.
+- Preserve the strong claims where the paper or traces directly support them,
+  but lower the evidence level for repository-specific adapter practices.
 
 ## Current Status
 
