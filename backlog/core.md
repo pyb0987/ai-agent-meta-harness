@@ -176,6 +176,15 @@ Remaining follow-up work:
 
 ### 10. Make repository drift checks staged-content-aware
 
+Status: 리뷰대기
+Owner: Codex session codex-plugin-index-check worktree
+Branch: codex/codex-plugin-index-check
+Started: 2026-05-01
+Scope:
+- scripts/sync-codex-plugin.py
+- tests/test_sync_codex_plugin.py
+- backlog/core.md
+
 Pre-commit checks should validate the content that will actually be committed,
 not only the current working tree. The Claude adapter path checker already reads
 indexed files, but other repository drift checks should converge on the same
@@ -192,18 +201,65 @@ Decision implemented for compatibility mirrors:
 - Temp-git integration tests cover unstaged drift, staged modified mirrors, and
   staged deleted mirrors.
 
+Decision implemented for Codex generated plugin drift:
+
+- `scripts/sync-codex-plugin.py --check` now reads canonical and generated
+  plugin content from the Git index when run inside a Git worktree, matching
+  pre-commit's staged-content contract.
+- Generated plugin checks compare indexed file contents, executable modes,
+  missing generated files, and extra generated files instead of unstaged
+  working-tree content.
+- Dynamic plugin mappings for skills, templates, scripts, and examples are
+  discovered from the same staged view, so newly staged canonical files require
+  corresponding staged generated files.
+- Non-Git temp trees continue to use filesystem validation so the checker can
+  still be unit-tested without a repository index.
+
 Remaining follow-up work:
 
-- Decide whether generated artifact checks should use index content, working
-  tree content, or an explicit mode flag.
-- Make `scripts/sync-codex-plugin.py --check` safe for pre-commit by validating
-  the staged/index view of generated plugin content and executable modes, or by
-  adding an explicit staged mode. Cover partially staged commits where generated
-  content or mode changes are omitted from the index.
-- Add tests for staged-added, staged-modified, and staged-deleted paths that are
-  relevant to generated-artifact drift.
 - Add temp-git staged-added coverage if the compatibility mirror contract starts
   accepting newly introduced mirror pairs during the transition period.
+
+Verification:
+
+- PASS: `python3 -m unittest tests/test_sync_codex_plugin.py`
+- PASS: `python3 scripts/sync-codex-plugin.py --check`
+- PASS: `python3 scripts/check-maintenance-review.py`
+- PASS: `python3 scripts/check-compat-mirrors.py`
+- PASS: `python3 scripts/check-claude-adapter-paths.py`
+- PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+- PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+- PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+- PASS: `python3 -m unittest discover -s tests`
+- PASS: `python3 -m unittest discover -s adapters/claude/tests`
+- PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- PASS: `git diff --check`
+- Search-set verification: SKIPPED; no `search-set.md` exists in this
+  repository worktree.
+
+Review outcome:
+
+- Multi-review mode: `FALLBACK_NONINDEPENDENT` sequential review; no independent
+  sub-agents were requested for this worktree session.
+- Release-gate/index contract critic: score 10, verdict PASS, Blocking
+  findings: none. Follow-up/residual risk: none; `--check` now validates the
+  staged/index view used by pre-commit.
+- Generated-artifact coverage critic: score 10, verdict PASS, Blocking
+  findings: none. Follow-up/residual risk: none; tests cover unstaged
+  generated drift, partially staged content and mode changes, staged-added
+  canonical files, staged-added generated extras, and staged-deleted generated
+  files.
+- Maintenance compliance critic: score 9, verdict PASS, Blocking findings:
+  none. Why not 10: review used the documented sequential fallback rather than
+  isolated reviewers. No backlog item added because the residual risk is
+  process-level review independence in this session, not an actionable
+  repository change.
+- Score handling: no critic scored below 9; no VETO triggered. The one score 9
+  records why it was not 10 and does not create an actionable follow-up item.
+- Rerun status: all sequential fallback critics reviewed the final scoped diff
+  after verification passed; no VETO fixes required.
+- Final acceptance: accepted for review; merge eligible after normal branch
+  review.
 
 ### 11. Add maintenance review summary checker
 
