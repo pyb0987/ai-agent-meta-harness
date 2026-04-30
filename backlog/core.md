@@ -176,7 +176,7 @@ Remaining follow-up work:
 
 ### 10. Make repository drift checks staged-content-aware
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session codex-plugin-index-check worktree
 Branch: codex/codex-plugin-index-check
 Started: 2026-05-01
@@ -258,8 +258,8 @@ Review outcome:
   records why it was not 10 and does not create an actionable follow-up item.
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed; no VETO fixes required.
-- Final acceptance: accepted for review; merge eligible after normal branch
-  review.
+- Final acceptance: accepted and merged to `main` in commit
+  `e7b985e merge: check codex plugin drift from index`.
 
 ### 11. Add maintenance review summary checker
 
