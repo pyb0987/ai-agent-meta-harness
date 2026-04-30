@@ -415,20 +415,62 @@ Review outcome:
 
 ### 14. Calibrate README evidence-level claims
 
+Status: 완료
+Owner: Codex session readme-evidence worktree
+Branch: codex/readme-evidence-claims-main
+Started: 2026-05-01
+Scope:
+- README.md
+- backlog/core.md
+
 The README says the listed principles come directly from experiments and
 ablation studies. Some principles are directly supported by reported
 experiments, while others, such as skill document quality and practical adapter
 guidance, are better framed as engineering lessons inferred from applying the
 methodology.
 
-Potential improvement:
+Decision implemented:
 
-- Separate "paper-backed experimental findings" from "engineering guidance used
-  by this repository".
-- Avoid implying every README principle is ablation-backed when some are
-  practical harness-writing lessons.
-- Preserve the strong claims where the paper or traces directly support them,
-  but lower the evidence level for repository-specific adapter practices.
+- README now says the project combines Meta-Harness experimental findings with
+  engineering guidance from applying those findings to everyday agentic
+  workflows.
+- The Core Principles section distinguishes paper-backed findings from
+  repository practice.
+- Individual bullets preserve direct paper claims where cited, while adapter and
+  harness-writing guidance is framed as repository practice unless a paper
+  source is named.
+
+Remaining follow-up work:
+
+- Keep future README principle additions evidence-labeled when they mix paper
+  claims with adapter practice.
+
+Review outcome:
+
+- Verification: PASS; `rg -n "experiments|ablation|paper-backed|engineering guidance|repository practice|principles" README.md backlog/core.md`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, and `python3 scripts/sync-codex-plugin.py --check`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because the README evidence framing affects core
+  methodology claims future maintainers may rely on.
+- Multi-review result: PASS; no reviewer scored below 9, so no VETO was
+  triggered.
+- Core evidence-boundary critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the README now separates paper-backed
+  claims from repository practice while preserving direct paper references.
+- README reader-impact critic: score 9, verdict PASS, Blocking findings: none.
+  Why not 10: README bullets remain compact instead of adding a full evidence
+  matrix or per-claim citation table. No backlog item added because the residual
+  risk is acceptable for a top-level README; detailed source mapping belongs in
+  core docs or future paper/reference work if needed.
+- Maintenance compliance critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; scope, verification, search-set skip,
+  score handling, and merge eligibility are recorded.
+- Score handling: no critic scored below 9; no VETO triggered. The one score 9
+  records why it was not 10 and does not create an actionable follow-up item.
+- Rerun status: all critics reviewed the final scoped diff after verification
+  passed; no VETO fixes required.
+- Final acceptance: accepted and merged to `main` in commit
+  `e8b4dea merge: calibrate readme evidence claims`.
 
 ## Current Status
 
