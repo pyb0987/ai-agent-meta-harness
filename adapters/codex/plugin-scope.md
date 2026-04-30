@@ -87,6 +87,37 @@ repo has an executable hook config under `adapters/codex/hooks/` that is
 smoke-tested through the local plugin activation path. Template-only files under
 `templates/hooks/` should not be advertised as active runtime hooks.
 
+## Marketplace Metadata Policy
+
+Marketplace metadata is a release surface, not part of the local-only dogfood
+path. Keep `.codex-plugin/plugin.json` limited to metadata required for local
+plugin loading until local activation, install, and hook-event coverage have
+mechanical smoke tests.
+
+Use these stable identity values when a marketplace path is introduced:
+
+- Package name: `ai-agent-meta-harness`
+- Display name: `AI Agent Meta-Harness`
+- Category: developer tools / agent harnessing
+- Installation policy: local-plugin first until a release checklist explicitly
+  accepts marketplace publication
+- Authentication policy: no external authentication required unless a future
+  runtime surface adds a documented need
+
+Do not generate or update `.agents/plugins/marketplace.json` for normal local
+plugin development. Add that file only when all of these are true:
+
+- Codex local plugin activation has an automated smoke test.
+- Marketplace installation behavior is documented for the supported Codex
+  surface.
+- The release checklist includes marketplace metadata validation.
+- Any published metadata can be generated from canonical adapter files without
+  manual dual-editing.
+
+If Codex UI ordering eventually needs local marketplace-like metadata before
+publication, keep it explicitly local-only and smoke-test that it does not
+change plugin activation, skill discovery, or hook registration semantics.
+
 ## Methodology Boundary
 
 Meta-Harness paper principles are acceptance criteria here, not duplicated

@@ -299,14 +299,79 @@ Remaining follow-up work:
 
 ### 17. Define Codex plugin marketplace metadata policy
 
+Status: 리뷰대기
+Owner: Codex session codex-label-sub-agent-extension
+Branch: codex-label-sub-agent-extension
+Started: 2026-05-01
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- backlog/codex-adapter.md
+
+Recovery note:
+- Original session compliance: incomplete; implementation files were edited
+  before the Start Gate was reported.
+- Actual changed files: `adapters/codex/plugin-scope.md`,
+  `plugins/ai-agent-meta-harness/plugin-scope.md`, and
+  `backlog/codex-adapter.md`.
+- Scope deviations: none from the reconstructed scope.
+- Verification: PASS; `python3 scripts/sync-codex-plugin.py --check` and
+  `python3 adapters/codex/scripts/smoke-local-plugin.py`.
+- Search-set verification: SKIPPED; no `search-set.md` exists in this
+  repository worktree.
+- Multi-review required: yes, because this affects Codex plugin distribution
+  policy and future marketplace metadata contracts.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; all required critics scored at least 9, and every score of 9 records
+  why it was not 10.
+- Merge eligible: yes.
+
 The marketplace path is future work, but plugin metadata choices can leak into local plugin structure if left implicit.
 
-Potential improvement:
+Decision implemented:
 
-- Decide plugin name, display name, category, installation policy, and authentication policy.
-- Keep marketplace metadata out of the local-only path unless needed for Codex UI ordering.
-- Document when `.agents/plugins/marketplace.json` should be generated or updated.
-- Avoid publishing-oriented metadata churn while the local plugin layout is still stabilizing.
+- `adapters/codex/plugin-scope.md` now treats marketplace metadata as a release
+  surface, separate from local-only plugin dogfooding.
+- The policy fixes future identity values: package name
+  `ai-agent-meta-harness`, display name `AI Agent Meta-Harness`, developer
+  tools / agent harnessing category, local-plugin-first installation, and no
+  external authentication by default.
+- `.agents/plugins/marketplace.json` must not be generated during normal local
+  plugin development.
+- Marketplace metadata is gated on local activation smoke coverage, documented
+  marketplace install behavior, release-checklist validation, and generated
+  single-source metadata.
+- Any local UI-ordering metadata before publication must be marked local-only
+  and smoke-tested for activation, skill discovery, and hook registration
+  neutrality.
+
+Remaining follow-up work:
+
+- Add marketplace metadata validation to the release checklist only when the
+  marketplace path is ready to publish.
+- Revisit the category if Codex publishes an official marketplace taxonomy.
+
+Review outcome:
+
+- Distribution contract critic: score 9, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: the category is intentionally provisional
+  until Codex publishes an official taxonomy. Why not 10: the policy names a
+  sensible category but cannot prove future marketplace taxonomy alignment yet.
+- Generated artifact critic: score 9, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: generated `plugins/ai-agent-meta-harness/plugin-scope.md`
+  must remain sync-checked with canonical `adapters/codex/plugin-scope.md`.
+  Why not 10: correctness depends on the existing sync check continuing to
+  cover this generated document.
+- Release-gate critic: score 9, verdict PASS, Blocking findings: none.
+  Follow-up/residual risk: marketplace metadata validation is deliberately
+  deferred until the marketplace path becomes real release work. Why not 10:
+  the release gate is specified as a future condition, not implemented as an
+  executable check now.
+- Score handling: no critic scored below 9; no VETO triggered.
+- Rerun status: all sequential fallback critics reviewed the final scoped diff
+  after verification passed.
+- Final acceptance: accepted for review coordination; item remains `리뷰대기`
+  until merged or otherwise accepted on the integration branch.
 
 ### 18. Add local plugin artifact smoke test
 
@@ -337,6 +402,23 @@ Potential improvement:
 - Identify the exact local Codex plugin activation command or manifest registration path for the supported Codex surface.
 - Add an automated smoke test that installs or activates `plugins/ai-agent-meta-harness/` in an isolated Codex home and verifies the expected skills are discoverable through Codex.
 - Keep runtime hook manifest fields gated until activation and tool-event coverage are both smoke-tested.
+
+### 20. Add Codex marketplace metadata release validation
+
+Marketplace metadata is intentionally deferred, but before publication the
+repository should mechanically validate that published metadata matches the
+adapter policy and official Codex marketplace expectations.
+
+Potential improvement:
+
+- Re-check the official Codex marketplace taxonomy and replace the provisional
+  `developer tools / agent harnessing` category if a canonical category exists.
+- Add a validation command for marketplace metadata once `.agents/plugins/marketplace.json`
+  or an equivalent publication manifest exists.
+- Include marketplace metadata validation in the release checklist only after
+  the marketplace distribution path is ready to publish.
+- Confirm the metadata source remains generated from canonical adapter files
+  rather than manually dual-edited plugin metadata.
 
 ## Current Status
 
