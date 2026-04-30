@@ -2,7 +2,7 @@
 
 A practical framework for building reliable AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
 
-Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project takes the paper's key experimental findings and applies them to everyday agentic development workflows.
+Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project combines the paper's experimental findings with engineering guidance from applying those findings to everyday agentic development workflows.
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 
@@ -18,14 +18,18 @@ The repository is split into a shared core plus thin runtime adapters. The metho
 
 ## Core Principles
 
-Core principles come directly from Meta-Harness experiments and ablation studies:
+This repository separates paper-backed experimental findings from engineering
+guidance inferred while applying the methodology to Claude Code, Codex, and
+project-local harnesses. The strongest claims below cite the Meta-Harness paper
+or its ablations directly; adapter and skill guidance should be read as
+repository practice unless a paper source is named.
 
-- **Raw traces over summaries** — Full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' traces/evolution/` instantly filters regression cases.
-- **Additive modification** — 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Adding is safer than restructuring.
-- **Code-space search** — Agents explore by modifying isolated, diffable, executable search surfaces: source, configuration, prompt templates, or generated candidates that are evaluated by the same verifier. "Try harder" is noise; a 3-line config or prompt-construction change with a fixed evaluator is search.
-- **Minimal outer loop** — The search loop is deliberately simple: propose → evaluate → log → repeat. Complex orchestration increases outer loop cost without proportional benefit.
-- **Skill document quality as highest leverage** — "Iterating on the skill text had a larger effect on search quality than changing iteration count or population size" (Appendix D). Define goals and prohibitions; leave diagnosis free.
-- **Confounding variable isolation** — Prompt changes were confounded with structural fixes (Appendix A.2, iteration 3), leading to misattributed regressions. One change at a time.
+- **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' traces/evolution/` instantly filters regression cases.
+- **Additive modification** — Paper-backed: 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Repository practice: prefer adding evidence or guardrails before restructuring.
+- **Code-space search** — Paper-backed principle, repository-calibrated surfaces: agents explore by modifying isolated, diffable, executable search surfaces such as source, configuration, prompt templates, or generated candidates that are evaluated by the same verifier. "Try harder" is noise; a 3-line config or prompt-construction change with a fixed evaluator is search.
+- **Minimal outer loop** — Paper-backed principle: the search loop is deliberately simple: propose -> evaluate -> log -> repeat. Repository practice: avoid orchestration that makes the harness harder to verify by inspection.
+- **Skill document quality as highest leverage** — Paper-backed: "Iterating on the skill text had a larger effect on search quality than changing iteration count or population size" (Appendix D). Repository practice: define goals and prohibitions; leave diagnosis free.
+- **Confounding variable isolation** — Paper-backed: prompt changes were confounded with structural fixes (Appendix A.2, iteration 3), leading to misattributed regressions. Repository practice: keep one functional change per iteration.
 
 ## Repository Layout
 
