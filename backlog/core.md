@@ -237,7 +237,7 @@ Remaining follow-up work:
 
 ### 12. Clarify prompt-as-code search boundary
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session prompt-boundary worktree
 Branch: codex/prompt-as-code-boundary
 Started: 2026-05-01
@@ -293,7 +293,8 @@ Review outcome:
   Blocking findings: none. Why not 10: Completion Gate details still needed.
   Addressed by updating this backlog record and rerunning the critic. Rerun
   score 10, verdict PASS.
-- Final acceptance: ready for merge coordination.
+- Final acceptance: accepted and merged to `main` in commit
+  `e5c1410 docs: clarify prompt-as-code search boundary`.
 
 ### 13. Label sub-agent guidance as an applied extension
 
