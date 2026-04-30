@@ -125,11 +125,16 @@ Why this sits next to Additive Modification: both stem from the same finding —
   more complex
 
 ### P4: Agents search in code space
-- What agents modify is **code and configuration files**, not natural language prompts
-- Project instructions, hooks, skill documents, config files = the agent's search space
-- Rewriting prompts in natural language ("try harder") is noise, not search
+- What agents modify is **versioned, executable search surfaces**, not vague
+  natural language exhortations
+- Source, configuration, prompt templates, prompt-construction code, generated
+  candidates, hooks, skill documents, and project instructions can be search
+  space when they are isolated, diffable, and evaluated by the same verifier
+- Rewriting prompts in natural language ("try harder") without an evaluator,
+  isolation boundary, or raw diff trail is noise, not search
 - **Fixed-evaluator application**: directly modify the mutable search surface to
-  explore performance. Code/config changes, not natural language instructions
+  explore performance. Prompt-as-code changes are allowed only when they are
+  part of that mutable surface and judged by the immutable evaluator boundary
 
 ### P5: Recurring failures are absorbed by structure, not rules
 

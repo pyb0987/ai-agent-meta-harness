@@ -237,21 +237,63 @@ Remaining follow-up work:
 
 ### 12. Clarify prompt-as-code search boundary
 
+Status: 리뷰대기
+Owner: Codex session prompt-boundary worktree
+Branch: codex/prompt-as-code-boundary
+Started: 2026-05-01
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- README.md
+- backlog/core.md
+
 The core methodology currently risks over-forbidding prompt edits by saying
 agents modify code/configuration, not natural language prompts. That matches the
 anti-pattern of vague exhortation-only prompt tweaks, but it can incorrectly
 exclude executable prompt-template or prompt-construction changes that are
 isolated, versioned, and evaluated like other code-space changes.
 
-Potential improvement:
+Decision implemented:
 
-- Distinguish vague natural-language exhortation changes from prompt templates,
-  prompt-construction code, and generated candidate prompts that are part of the
-  executable search surface.
-- Allow prompt-as-code changes when they are isolated to mutable search files,
-  evaluated by the same fixed verifier/evaluator boundary, and traceable in raw
-  diffs.
-- Keep "try harder" style instruction rewrites listed as an anti-pattern.
+- `core/methodology.md` and its temporary compatibility mirror
+  `docs/methodology.md` now define P4 search surfaces as isolated, diffable,
+  versioned, executable surfaces instead of only code/configuration files.
+- Prompt templates, prompt-construction code, generated candidates, hooks,
+  skill documents, and project instructions can be search space only when they
+  are evaluated by the same verifier and preserve an isolation/diff trail.
+- Vague natural-language exhortation rewrites such as "try harder" remain an
+  anti-pattern when they lack an evaluator, isolation boundary, or raw diff
+  trail.
+- The README summary now mirrors the same distinction for top-level readers.
+
+Remaining follow-up work:
+
+- Add a short prompt-as-code example that distinguishes generated candidates or
+  project instructions used as evaluated search surfaces from vague prompt
+  tweaking.
+
+Review outcome:
+
+- Verification: PASS; `rg -n "natural language prompts|prompt-as-code|try harder|mutable search surface|Code-space search|isolated, diffable|prompt-construction" README.md core/methodology.md docs/methodology.md backlog/core.md`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/sync-codex-plugin.py --check`, and `python3 adapters/codex/scripts/smoke-local-plugin.py`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because the change affects core methodology
+  boundaries and durable fixed-evaluator/search-surface semantics.
+- Multi-review result: PASS; no reviewer scored below 9, so no VETO was
+  triggered.
+- Core methodology boundary critic: score 9, verdict PASS, Blocking findings:
+  none. Why not 10: generated candidates and project instructions would benefit
+  from a concrete example; recorded as remaining follow-up work above. Rerun
+  after README/backlog updates: score 9, verdict PASS.
+- Fixed-evaluator/search-loop critic: initial score 9, verdict PASS, Blocking
+  findings: none. Why not 10: README should mirror the isolation/diffability
+  guardrail; addressed by updating README and rerunning the critic. Rerun score
+  10, verdict PASS.
+- Maintenance/backlog compliance critic: initial score 9, verdict PASS,
+  Blocking findings: none. Why not 10: Completion Gate details still needed.
+  Addressed by updating this backlog record and rerunning the critic. Rerun
+  score 10, verdict PASS.
+- Final acceptance: ready for merge coordination.
 
 ### 13. Label sub-agent guidance as an applied extension
 
