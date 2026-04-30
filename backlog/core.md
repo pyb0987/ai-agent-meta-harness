@@ -368,7 +368,7 @@ Review outcome:
 
 ### 14. Calibrate README evidence-level claims
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session readme-evidence worktree
 Branch: codex/readme-evidence-claims-main
 Started: 2026-05-01
@@ -422,7 +422,8 @@ Review outcome:
   records why it was not 10 and does not create an actionable follow-up item.
 - Rerun status: all critics reviewed the final scoped diff after verification
   passed; no VETO fixes required.
-- Final acceptance: ready for merge coordination.
+- Final acceptance: accepted and merged to `main` in commit
+  `e8b4dea merge: calibrate readme evidence claims`.
 
 ## Current Status
 
