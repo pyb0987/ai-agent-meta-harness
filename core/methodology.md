@@ -166,27 +166,37 @@ Human-editable truth (YAML / schema / config)
 
 **Self-check**: "Can this failure category be eliminated by structure rather than rules?" If yes, aim for ladder level 3.
 
-## Sub-Agent Invocation — Tactical Mechanism
+## Sub-Agent Invocation — Applied Runtime Extension
 
-Meta-Harness is the **policy layer** (when to isolate, when to learn). Sub-agents are the **tactical mechanism** (how to isolate). The two are orthogonal: invoking sub-agents does not violate the single-agent principle as long as no persistent multi-persona orchestrators are created. Sub-agents are tools, not teammates.
+The core Meta-Harness loop is a single coding-agent proposer using filesystem
+evidence, scores, and traces. Sub-agents, external reviewers, sequential
+checklists, and fixed evaluator scripts are **applied runtime mechanisms** for
+isolation and independent judgment; they are not the paper's core claim.
+
+Using an isolation mechanism does not violate the single-agent principle as long
+as the project does not create persistent multi-persona orchestrators.
+Sub-agents are tools, not teammates, and adapters decide which isolation
+mechanisms their runtime can support.
 
 ### Trigger categories
 
-Two triggers map to adapter-defined mechanisms. Generic sub-agent uses
-(parallel exploration, context firewall) are runtime tool patterns, not harness
-policy — invoke them at your own judgment without a trigger table.
+Two triggers justify adapter-defined isolation mechanisms. Generic sub-agent
+uses (parallel exploration, context firewall) are runtime tool patterns, not
+harness policy — invoke them at your own judgment without a trigger table.
 
 | Trigger | Mechanism | When |
 |---------|-----------|------|
-| **Qualitative multi-perspective judgment** | Parallel critics with role separation | Hard-to-reverse decisions, regressions with suspected confounders, domains where single-perspective evaluation has failed before |
-| **Evaluator independence** | Dedicated evaluator context OR fixed immutable evaluator | High-stakes generation where self-evaluation bias is the primary risk; the generator must not score its own output. A fixed evaluator is the cheapest and strongest form when a binary verdict is viable; a dedicated context is the alternative when judgment cannot be scripted |
+| **Qualitative multi-perspective judgment** | Parallel critics, external review, or separated sequential checklist | Hard-to-reverse decisions, regressions with suspected confounders, domains where single-perspective evaluation has failed before |
+| **Evaluator independence** | Fixed immutable evaluator, dedicated evaluator context, or external scorer | High-stakes generation where self-evaluation bias is the primary risk; the generator must not score its own output. A fixed evaluator is the cheapest and strongest form when a binary verdict is viable; a dedicated context or external scorer is the alternative when judgment cannot be scripted |
 
-This is why Meta-Harness can absorb multi-agent benefits without abandoning the single-agent paradigm: each benefit has a tactical mechanism that does not require persistent agent definitions or multi-persona orchestration.
+This is why Meta-Harness can absorb isolation benefits without abandoning the
+single-agent paradigm: each benefit has a tactical mechanism that does not
+require persistent agent definitions or multi-persona orchestration.
 
 ### Rules
-- **Independence**: parallel sub-agents must not share intermediate results — independence is the source of value, contamination kills it
+- **Independence**: isolated reviewers or evaluator contexts must not share intermediate results — independence is the source of value, contamination kills it
 - **No orchestrator persistence**: sub-agents are spawned per-task and discarded. Do not create persistent agent-team definitions
-- **Conclusion-only return**: sub-agents return distilled findings, not raw transcripts — the firewall is the point
+- **Conclusion-only return**: isolated reviewers return distilled findings, not raw transcripts — the firewall is the point
 - **Trigger threshold**: prefer over-invoking these mechanisms to under-invoking them. The cost of an unnecessary sub-agent call is small; the cost of a contaminated decision or context-rotted parent is large
 
 ### Model routing
