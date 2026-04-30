@@ -67,9 +67,12 @@ Use this workflow for backlog work:
 7. Run the relevant checks before review.
 8. Use multi-review for adapter behavior, release gates, hook semantics, or
    anything that can steer future work in the wrong direction.
-9. Treat reviewer scores below 9 as VETO. Iterate until every required critic
-   scores at least 9, or stop and record that the item is not accepted.
-10. Record actionable residual risk as follow-up work.
+9. Treat reviewer scores below 9 as VETO. Fix the blocking findings and rerun
+   the affected critics until every required critic scores at least 9, or stop
+   and record that the item is not accepted.
+10. For every score of 9, identify why the score was not 10. Record the
+   residual risk, and add a backlog follow-up when it is actionable.
+11. Record actionable residual risk as follow-up work.
 
 When a backlog item becomes implemented foundation, keep it in place but change
 the wording from "Potential improvement" to "Decision implemented" plus
@@ -108,7 +111,8 @@ follow this maintenance process.
    release gates, hook semantics, core methodology boundaries, or another
    durable contract.
 8. Treat every reviewer score below 9 as VETO, even if the session had marked
-   the work accepted. Iterate or leave the branch `보류`.
+   the work accepted. Fix the blocking findings and rerun the affected critics,
+   or leave the branch `보류`.
 9. Move the item to `리뷰대기` only after the reconstructed record shows scope,
    verification, search-set status, review status, residual risk, and merge
    eligibility.
@@ -156,13 +160,15 @@ Completion Gate:
 - Search-set verification status, or skipped reason
 - Multi-review result, or reason not required
 - Reviewer scores and VETO handling
+- For each score 9: why not 10, and whether that reason created a backlog item
 - Residual risk or follow-up
 - Merge eligible: yes/no
 
 A branch is merge-eligible only when the backlog item is `리뷰대기`, relevant
 verification is recorded, required multi-review is recorded, every required
-critic score is at least 9, scope overlaps are resolved, and residual risk is
-either accepted or split into follow-up work.
+critic score is at least 9, every score of 9 has a recorded "why not 10" reason,
+scope overlaps are resolved, and residual risk is either accepted or split into
+follow-up work.
 
 Before editing, each session must reserve exactly one concrete backlog item.
 Record the reservation in the item itself, above the implementation notes:
@@ -349,10 +355,22 @@ Reviewer scores below 9 are VETO. Scores of 9 mean the change is acceptable
 with remaining risk tracked. Scores of 10 should be rare and reserved for cases
 where there is no meaningful known follow-up.
 
+When a critic returns VETO, the next iteration must fix or explicitly reject the
+blocking findings, rerun the affected critic, and record the rerun score before
+the work can be accepted. Do not treat an earlier PASS from another critic as
+covering the changed area after a VETO fix unless that critic's scope is still
+unchanged.
+
+When a critic returns score 9, record why the score was not 10. If the reason is
+an actionable repository improvement, add it to the relevant backlog file before
+marking the current item accepted. If the reason is residual risk rather than
+actionable work, record why it is accepted without a new backlog item.
+
 Review summaries for multi-review items must record:
 
 - critic name or scope
 - score
+- for score 9, why not 10 and whether a backlog item was added
 - verdict
 - blocking findings or "none"
 - follow-up or residual risk
