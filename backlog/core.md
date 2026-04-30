@@ -207,6 +207,14 @@ Remaining follow-up work:
 
 ### 11. Add maintenance review summary checker
 
+Status: 완료
+Owner: Codex session maintenance-review-standard-verify worktree
+Branch: codex/maintenance-review-standard-verify
+Started: 2026-05-01
+Scope:
+- MAINTENANCE.md
+- backlog/core.md
+
 `MAINTENANCE.md` now requires multi-review summaries to record critic scope,
 score, verdict, blocking findings, follow-up/residual risk, score handling,
 rerun status, and final acceptance. It also treats reviewer scores below 9 as
@@ -225,15 +233,55 @@ Decision implemented:
   or review-outcome section.
 - Tests cover accepted score 9, rejected score 8, pending review status, and
   missing required fields.
+- `MAINTENANCE.md` now includes
+  `python3 scripts/check-maintenance-review.py` in the documented standard
+  verification command set.
+- The release checklist now requires maintenance review summaries to pass the
+  checker so score, VETO, rerun, residual-risk, and final-acceptance handling
+  stay explicit.
 
 Remaining follow-up work:
 
-- Start as a standard verification command; add to pre-commit only after the
-  format is stable enough not to create noisy local failures.
-- Add `python3 scripts/check-maintenance-review.py` to the documented standard
-  verification set before relying on review-summary enforcement as a release
-  gate. Add it to pre-commit only after the summary format is stable enough to
+- Add to pre-commit only after the review-summary format is stable enough to
   avoid noisy local failures.
+
+Verification:
+
+- PASS: `python3 scripts/check-maintenance-review.py`
+- PASS: `python3 scripts/check-compat-mirrors.py`
+- PASS: `python3 scripts/check-claude-adapter-paths.py`
+- PASS: `python3 scripts/sync-codex-plugin.py --check`
+- PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+- PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+- PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+- PASS: `python3 -m unittest discover -s tests`
+- PASS: `python3 -m unittest discover -s adapters/claude/tests`
+- PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- PASS: `rg -n "python3 scripts/check-maintenance-review.py|Maintenance review summaries pass|Add maintenance review summary checker|Remaining follow-up work" MAINTENANCE.md backlog/core.md`
+- PASS: `git diff --check`
+- Search-set verification: SKIPPED; no `search-set.md` exists in this
+  repository worktree.
+
+Review outcome:
+
+- Multi-review mode: `FALLBACK_NONINDEPENDENT` sequential review; no independent
+  sub-agents were requested for this worktree session.
+- Release-gate contract critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the checker is now both in the standard
+  verification command block and named in the release checklist.
+- Verification completeness critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the full standard verification set plus
+  focused search and whitespace checks passed.
+- Backlog/process compliance critic: score 10, verdict PASS, Blocking findings:
+  none. Follow-up/residual risk: none; the item has the required worktree
+  reservation, verification, skipped search-set reason, review handling, and
+  final review-ready status.
+- Score handling: no critic scored below 9; no VETO triggered. No score was 9,
+  so no why-not-10 residual-risk item was required.
+- Rerun status: all sequential fallback critics reviewed the final scoped diff
+  after verification passed.
+- Final acceptance: accepted and merged to `main` in commit
+  `cbf44e9 merge: add maintenance review checker to standard verification`.
 
 ### 12. Clarify prompt-as-code search boundary
 

@@ -277,6 +277,7 @@ python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 scripts/check-maintenance-review.py
 python3 -m unittest discover -s tests
 python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
@@ -308,6 +309,8 @@ handoff point:
   intentionally re-verify `adapters/codex/hook-schema.md`.
 - Codex autoresearch hook smoke passes against the real checker and protected
   path template.
+- Maintenance review summaries pass the review-summary checker so score,
+  VETO, rerun, residual-risk, and final-acceptance handling stay explicit.
 - Unit and integration tests pass for root, Claude adapter, and Codex adapter
   test suites.
 - Harness-affecting changes ran relevant Active search-set verify commands
