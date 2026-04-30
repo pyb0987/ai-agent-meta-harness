@@ -298,7 +298,7 @@ Review outcome:
 
 ### 13. Label sub-agent guidance as an applied extension
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex session prompt-contract worktree
 Branch: codex/prompt-as-code-contract
 Started: 2026-05-01
@@ -363,7 +363,8 @@ Review outcome:
   so no why-not-10 residual-risk item was required.
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed.
-- Final acceptance: ready for merge coordination.
+- Final acceptance: accepted and merged to `main` in commit
+  `ae81589 merge: label sub-agent guidance as runtime extension`.
 
 ### 14. Calibrate README evidence-level claims
 
