@@ -418,6 +418,13 @@ Review outcome:
 
 ### 18. Add local plugin artifact smoke test
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- backlog/codex-adapter.md
+
 The local plugin bundle cannot be considered ready until the artifact can be checked mechanically. This item intentionally validates the generated plugin artifact, not Codex runtime activation.
 
 Decision implemented: ship a local plugin artifact smoke test that validates the generated bundle before Codex dogfooding.
@@ -432,9 +439,34 @@ Implemented foundation:
 - Unit tests cover the passing bundle and missing-manifest, invalid-manifest, wrong-skills-path, runtime-hooks, missing-skill, missing-asset, and missing-warning failures.
 - The tracked pre-commit hook runs the smoke test after the generated plugin sync check.
 
+Decision implemented for release checklist:
+
+- `MAINTENANCE.md` now includes "Codex local plugin artifact smoke test passes"
+  in the formal release checklist.
+- The standard verification set also runs
+  `python3 adapters/codex/scripts/smoke-local-plugin.py`.
+
 Remaining follow-up work:
 
-- Add the local plugin artifact smoke test to the formal release checklist when that checklist is introduced.
+- none for the local plugin artifact smoke test.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `rg -n "Codex local plugin artifact smoke test passes|smoke-local-plugin.py" MAINTENANCE.md backlog/codex-adapter.md`, `python3 scripts/check-maintenance-review.py`, and `git diff --check`.
+- Search-set verification: SKIPPED; backlog-only reconciliation does not change
+  harness behavior, and this repository worktree has no `search-set.md`.
+- Multi-review required: no, because this only reconciles stale backlog wording
+  with an already implemented release checklist item.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no critics ran and no VETO
+  handling was needed.
+- For each score 9, why not 10: not applicable.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 19. Add true Codex local plugin activation smoke test
 
