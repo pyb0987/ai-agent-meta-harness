@@ -216,7 +216,7 @@ exit 0
 ```bash
 #!/bin/bash
 # protect-files-bash.sh — block write commands targeting protected files via Bash.
-# Catches cp, mv, sed -i, tee, python -c "open(...,'w')", echo > redirects.
+# Catches cp, mv, sed -i, tee, redirects, and common Python open/pathlib writes.
 
 command -v jq >/dev/null || { echo "BLOCKED: jq required for protect-files-bash.sh" >&2; exit 1; }
 
@@ -229,8 +229,9 @@ PROTECTED_PATTERNS=(
 COMMAND=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.command // empty')
 [ -z "$COMMAND" ] && exit 0
 
-# Detect write-intent verbs targeting protected patterns
-WRITE_VERBS='(\bcp\b|\bmv\b|sed -i|\btee\b|>|>>|python.* -c .*open\([^)]*,[^)]*["\x27]w)'
+# Detect write-intent verbs targeting protected patterns. This is a heuristic
+# Bash guard, not a parser; keep pre-commit/CI diff protection as the hard layer.
+WRITE_VERBS="((^|[^[:alnum:]_])(cp|mv|tee)($|[^[:alnum:]_])|sed[[:space:]]+-i|>|>>|python.*-c.*(open\([^)]*,[[:space:]]*[\"'][^\"']*[wax+][^\"']*[\"']|open\([^)]*mode[[:space:]]*=[[:space:]]*[\"'][^\"']*[wax+][^\"']*[\"']|Path\([^)]*\)\.(write_text|write_bytes|open\([^)]*([\"'][^\"']*[wax+][^\"']*[\"']|mode[[:space:]]*=[[:space:]]*[\"'][^\"']*[wax+][^\"']*[\"']))))"
 for pattern in "${PROTECTED_PATTERNS[@]}"; do
   if echo "$COMMAND" | grep -qE "$WRITE_VERBS" && echo "$COMMAND" | grep -qE "$pattern"; then
     echo "BLOCKED: write command targets protected evaluator file ($pattern)." >&2
@@ -240,7 +241,16 @@ done
 exit 0
 ```
 
-Install both hooks (`chmod +x` after writing) and register in `.claude/settings.local.json`. Verify protection with a smoke test before enabling: run `CLAUDE_TOOL_INPUT='{"command":"echo \"x\" > evaluate.py"}' bash .claude/hooks/protect-files-bash.sh; echo $?` and confirm exit 1 (BLOCKED).
+Install both hooks (`chmod +x` after writing) and register in `.claude/settings.local.json`. Verify protection with smoke tests before enabling:
+
+```bash
+CLAUDE_TOOL_INPUT='{"command":"echo \"x\" > evaluate.py"}' bash .claude/hooks/protect-files-bash.sh; echo $?
+CLAUDE_TOOL_INPUT='{"command":"python -c \"from pathlib import Path; Path('\''evaluate.py'\'').open('\''r+'\'').write('\''x'\'')\""}' bash .claude/hooks/protect-files-bash.sh; echo $?
+CLAUDE_TOOL_INPUT='{"command":"python -c \"open(file='\''evaluate.py'\'', mode='\''w'\'').write('\''x'\'')\""}' bash .claude/hooks/protect-files-bash.sh; echo $?
+```
+
+Each command must exit 1 with a `BLOCKED` message. Also verify one read-only
+case such as `python -c "open('evaluate.py', mode='r').read()"` exits 0.
 
 **Idempotency rules** (re-entry on already-harnessed projects like chain-army):
 - **`.claude/hooks/protect-files.sh` already exists**: read it, compare against the canonical template above. If identical (modulo PROTECTED_FILES customization), skip. If differs structurally, show the diff and prompt the user before any change. Never silently overwrite.

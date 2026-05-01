@@ -401,16 +401,84 @@ Completion Gate:
 
 ### 6. P2 harden Claude autoresearch protected-file hooks
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- adapters/claude/skills/autoresearch/SKILL.md
+- skills/autoresearch/SKILL.md
+- tests/test_claude_autoresearch_hook_guidance.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 The Claude autoresearch Bash hook guidance appears easier to bypass than the
 Codex checker, especially for pathlib/open variants and less obvious mutating
 modes. This leaves the fixed-evaluator boundary uneven across adapters.
 
-Potential improvement:
+Original improvement:
 
 - Strengthen `adapters/claude/skills/autoresearch/SKILL.md` hook guidance or
   templates to cover pathlib/open write variants and write-capable modes.
 - Add focused smoke or unit coverage for representative bypass patterns.
 - Keep mirrored `skills/autoresearch/SKILL.md` synchronized through
   compatibility mirror checks.
+
+Decision implemented:
+
+- `adapters/claude/skills/autoresearch/SKILL.md` now broadens the
+  `protect-files-bash.sh` write-intent heuristic beyond simple
+  `open(..., 'w')`.
+- The documented Bash guard now covers common Python `open(..., mode=...)`,
+  positional write modes, pathlib `Path(...).open(...)` write-capable modes,
+  and pathlib `write_text` / `write_bytes` calls, while still treating the
+  Bash hook as a heuristic layer rather than a parser.
+- The guidance now explicitly keeps pre-commit/CI protected-file diff checks as
+  the hard protection layer.
+- The smoke guidance now includes redirect, pathlib `open('r+')`, keyword
+  `open(file=..., mode='w')`, and read-only `mode='r'` examples with expected
+  outcomes.
+- `skills/autoresearch/SKILL.md` was synchronized as the compatibility mirror.
+- `tests/test_claude_autoresearch_hook_guidance.py` extracts the documented
+  `WRITE_VERBS` regex and checks representative bypass/read-only patterns
+  against `grep -E`, plus verifies canonical/mirror guidance alignment.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/skills/autoresearch/SKILL.md`,
+  `skills/autoresearch/SKILL.md`,
+  `tests/test_claude_autoresearch_hook_guidance.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_autoresearch_hook_guidance.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes fixed-evaluator protection
+  guidance for the Claude adapter.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Bypass-pattern coverage critic score 9,
+  verdict PASS, Blocking findings: none. Heuristic-boundary clarity critic
+  score 10, verdict PASS, Blocking findings: none. Compatibility mirror and
+  focused-test critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Bypass-pattern coverage critic was 9 because
+  the Claude Bash hook remains a documented heuristic, not a shell/Python
+  parser; no backlog item added because the guidance explicitly keeps
+  pre-commit/CI diff protection as the hard layer and no repository runtime
+  parser exists for Claude hooks yet. Maintenance compliance critic was 9
+  because review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: Claude Bash hook detection remains heuristic by
+  design; hard fixed-evaluator protection still depends on pre-commit/CI diff
+  checks and runtime hook activation coverage remains future work from item 3.
+- Accepted: yes; accepted by maintainer review and ready for commit.
