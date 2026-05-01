@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import importlib.util
+import contextlib
+import io
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -17,6 +20,33 @@ spec.loader.exec_module(claude_adapter_paths)
 
 
 class ClaudeAdapterPathTests(unittest.TestCase):
+    def make_temp_git_repo(self) -> Path:
+        tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(tempdir.cleanup)
+        root = Path(tempdir.name)
+        subprocess.run(
+            ["git", "init"],
+            cwd=root,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        (root / "adapters/claude/commands").mkdir(parents=True)
+        return root
+
+    def run_checker_with_root(self, root: Path) -> tuple[int, str, str]:
+        original_root = claude_adapter_paths.ROOT
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        try:
+            claude_adapter_paths.ROOT = root
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                returncode = claude_adapter_paths.main()
+        finally:
+            claude_adapter_paths.ROOT = original_root
+        return returncode, stdout.getvalue(), stderr.getvalue()
+
     def test_repo_claude_adapter_paths_pass(self):
         result = subprocess.run(
             ["python3", str(SCRIPT)],
@@ -135,6 +165,67 @@ class ClaudeAdapterPathTests(unittest.TestCase):
 
         errors = claude_adapter_paths.validate_text(indexed_path, text)
         self.assertTrue(any("bare hooks path" in error for error in errors))
+
+    def test_temp_git_checks_staged_content_not_unstaged_worktree(self):
+        root = self.make_temp_git_repo()
+        path = root / "adapters/claude/commands/init-harness.md"
+        path.write_text("Write .claude/traces/evolution/001.md\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        path.write_text("Write traces/evolution/001.md\n", encoding="utf-8")
+
+        returncode, stdout, stderr = self.run_checker_with_root(root)
+
+        self.assertEqual(returncode, 0, stderr)
+        self.assertIn("Claude adapter lexical path docs are consistent", stdout)
+
+    def test_temp_git_flags_staged_added_bare_path(self):
+        root = self.make_temp_git_repo()
+        path = root / "adapters/claude/commands/init-harness.md"
+        path.write_text("Write hooks/tsc-check.sh\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", path.relative_to(root).as_posix()],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        returncode, _stdout, stderr = self.run_checker_with_root(root)
+
+        self.assertEqual(returncode, 1)
+        self.assertIn("bare hooks path", stderr)
+
+    def test_temp_git_ignores_index_deleted_path(self):
+        root = self.make_temp_git_repo()
+        path = root / "adapters/claude/commands/init-harness.md"
+        relative = path.relative_to(root).as_posix()
+        path.write_text("Write .claude/hooks/tsc-check.sh\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", relative],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        path.unlink()
+        subprocess.run(
+            ["git", "rm", "--cached", relative],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        returncode, stdout, stderr = self.run_checker_with_root(root)
+
+        self.assertEqual(returncode, 0, stderr)
+        self.assertIn("Claude adapter lexical path docs are consistent", stdout)
 
 
 if __name__ == "__main__":
