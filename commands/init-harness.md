@@ -57,9 +57,9 @@ Update last_updated when adding/removing items.
 ```
 
 **Seed entry creation rule**: write the most frequent or critical failure scenario from Step 2 analysis as SS-001. The verify field must be an auto-executable shell command. Examples by project type:
-- TypeScript: `tsc --noEmit 2>&1 | tail -5; echo "EXIT: $?"`
-- Python: `pytest -x -q 2>&1 | tail -5; echo "EXIT: $?"`
-- Godot: `godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/ -glog=1 -gexit 2>&1 | tail -10`
+- TypeScript: `tmp="${TMPDIR:-/tmp}/harness-verify.$$"; tsc --noEmit >"$tmp" 2>&1; status=$?; tail -5 "$tmp"; rm -f "$tmp"; echo "EXIT: $status"; exit $status`
+- Python: `tmp="${TMPDIR:-/tmp}/harness-verify.$$"; pytest -x -q >"$tmp" 2>&1; status=$?; tail -5 "$tmp"; rm -f "$tmp"; echo "EXIT: $status"; exit $status`
+- Godot: `tmp="${TMPDIR:-/tmp}/harness-verify.$$"; godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/ -glog=1 -gexit >"$tmp" 2>&1; status=$?; tail -10 "$tmp"; rm -f "$tmp"; echo "EXIT: $status"; exit $status`
 
 **Evolution log is written in Step 7** (recorded after all components are confirmed).
 

@@ -239,6 +239,16 @@ Completion Gate:
 
 ### 4. P1 preserve verifier exit status in init-harness examples
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_verify_examples.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 The `/init-harness` seeded `search-set.md` examples pipe verifier output through
@@ -246,7 +256,7 @@ The `/init-harness` seeded `search-set.md` examples pipe verifier output through
 of `tail` or `echo` rather than the actual verifier, allowing failing commands
 to look successful in the regression loop.
 
-Potential improvement:
+Original improvement:
 
 - Rewrite the TypeScript, Python, and Godot verify examples in
   `adapters/claude/commands/init-harness.md` so they preserve the verifier exit
@@ -255,6 +265,53 @@ Potential improvement:
   non-zero after output truncation.
 - Keep `commands/init-harness.md` synchronized through compatibility mirror
   checks.
+
+Decision implemented:
+
+- The TypeScript, Python, and Godot seed verify examples now redirect verifier
+  output to a temporary file, save the verifier status, print only the tail of
+  the captured output, print `EXIT: <status>`, and exit with the saved status.
+- `commands/init-harness.md` was updated with the same examples as the
+  compatibility mirror.
+- `tests/test_claude_init_harness_verify_examples.py` extracts the documented
+  examples, runs them with failing fake `tsc`, `pytest`, and `godot`
+  executables, and asserts the shell command exits with the verifier's failing
+  status after output truncation.
+- The focused test also asserts the canonical command and compatibility mirror
+  contain the same seed verify examples.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/commands/init-harness.md`,
+  `commands/init-harness.md`,
+  `tests/test_claude_init_harness_verify_examples.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_init_harness_verify_examples.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes seeded verifier examples
+  that future harness search-set entries may rely on.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Exit-status preservation critic score 10,
+  verdict PASS, Blocking findings: none. Output-truncation behavior critic
+  score 10, verdict PASS, Blocking findings: none. Compatibility mirror and
+  focused-test critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 5. P2 add Claude trace-root evidence selection for migrated projects
 
