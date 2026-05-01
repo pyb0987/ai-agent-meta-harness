@@ -236,3 +236,57 @@ Completion Gate:
 - Residual risk/follow-up: true Claude Code slash-command execution and hook
   runtime activation remain future work.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 4. P1 preserve verifier exit status in init-harness examples
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The `/init-harness` seeded `search-set.md` examples pipe verifier output through
+`tail` and then print `$?`. In common shell behavior this can report the status
+of `tail` or `echo` rather than the actual verifier, allowing failing commands
+to look successful in the regression loop.
+
+Potential improvement:
+
+- Rewrite the TypeScript, Python, and Godot verify examples in
+  `adapters/claude/commands/init-harness.md` so they preserve the verifier exit
+  status while still limiting output.
+- Add a small test or fixture that proves failing verifier examples exit
+  non-zero after output truncation.
+- Keep `commands/init-harness.md` synchronized through compatibility mirror
+  checks.
+
+### 5. P2 add Claude trace-root evidence selection for migrated projects
+
+Source review: 2026-05-02 multi-review MIXED.
+
+Claude `/init-harness` currently creates and orients around `.claude/traces/`.
+When a migrated project already has meaningful `.harness/traces/` history, this
+can split trace history and hide previous failures, search-set cases, or
+experiment episodes.
+
+Potential improvement:
+
+- Add evidence-based trace-root selection or migration guidance to
+  `adapters/claude/commands/init-harness.md` for projects that already contain
+  meaningful `.harness/traces/` history.
+- Define when Claude should reuse, migrate, or explicitly report uncertainty
+  instead of blindly initializing a separate `.claude/traces/` root.
+- Keep `commands/init-harness.md` synchronized through compatibility mirror
+  checks.
+
+### 6. P2 harden Claude autoresearch protected-file hooks
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The Claude autoresearch Bash hook guidance appears easier to bypass than the
+Codex checker, especially for pathlib/open variants and less obvious mutating
+modes. This leaves the fixed-evaluator boundary uneven across adapters.
+
+Potential improvement:
+
+- Strengthen `adapters/claude/skills/autoresearch/SKILL.md` hook guidance or
+  templates to cover pathlib/open write variants and write-capable modes.
+- Add focused smoke or unit coverage for representative bypass patterns.
+- Keep mirrored `skills/autoresearch/SKILL.md` synchronized through
+  compatibility mirror checks.

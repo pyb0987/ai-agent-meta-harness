@@ -615,6 +615,95 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 20. P1 harden low-score maintenance review validation
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The maintenance review checker currently accepts a low-score record when broad
+tokens such as `VETO`, `MIXED`, `FAIL`, or `not accepted` appear anywhere in
+the record. A record can therefore say `No VETO` or otherwise mention the token
+without concretely resolving the below-9 score.
+
+Potential improvement:
+
+- Tighten `scripts/check-maintenance-review.py` so scores below 9 require an
+  explicit blocking disposition such as `VETO triggered`, `not accepted`, or a
+  recorded rerun score at least 9.
+- Reject negated or merely descriptive forms such as `No VETO` for below-9
+  scores.
+- Add tests proving low-score PASS with negated VETO language fails.
+- Re-run `python3 scripts/check-maintenance-review.py` and
+  `sh .githooks/pre-commit`.
+
+### 21. P2 frame structural hardening as repository practice
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The P5 structural-impossibility ladder and Single Source + Codegen + Protect
+model are useful applied repository patterns, but they can read as first-class
+Meta-Harness paper methodology beside P3/P4. The core should more clearly
+separate paper-backed method claims from this repository's applied hardening
+practice.
+
+Potential improvement:
+
+- Reframe the P5 escalation ladder and Single Source + Codegen + Protect
+  section in `core/methodology.md` as an applied repository hardening pattern.
+- Preserve the practical guidance while labeling what is paper core versus
+  repository implementation discipline.
+- Keep `docs/methodology.md` synchronized through compatibility mirror checks.
+
+### 22. P2 subordinate sub-agent routing to the paper core
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The sub-agent section is labeled as an applied runtime extension, but the
+detailed routing rules can still make parallel critics feel like core
+methodology. The paper core is the proposer/evaluator/trace loop; parallel
+critics should remain clearly subordinate runtime tactics.
+
+Potential improvement:
+
+- Shorten or reframe detailed sub-agent routing in `core/methodology.md` so it
+  is explicitly subordinate to the proposer/evaluator/trace loop.
+- Move runtime-specific routing detail to adapters when it is not core
+  methodology.
+- Keep `docs/methodology.md` synchronized through compatibility mirror checks.
+
+### 23. P3 label maintenance review policy as local release discipline
+
+Source review: 2026-05-02 multi-review MIXED.
+
+The score-9 explanation and below-9 VETO workflow are sensible governance for
+this repository, but they are stronger than what the Meta-Harness paper itself
+establishes. The docs should label this as local release discipline rather than
+paper-derived methodology.
+
+Potential improvement:
+
+- Update `MAINTENANCE.md` review policy wording to frame score thresholds,
+  score-9 explanations, VETO handling, and rerun requirements as repository
+  governance/release discipline.
+- Avoid implying those exact thresholds are paper claims.
+- Keep the maintenance review checker behavior unchanged unless item 20 changes
+  its enforcement semantics.
+
+### 24. P3 reconcile stale accepted backlog statuses
+
+Source review: 2026-05-02 multi-review MIXED.
+
+Some previously accepted maintenance entries can remain marked `리뷰대기`, which
+weakens handoff quality and regression memory even when implementation and
+verification are already accepted.
+
+Potential improvement:
+
+- Audit backlog entries with `Status: 리뷰대기` whose Completion Gate already
+  records accepted work.
+- Move accepted entries to `완료` when the maintainer has accepted them, without
+  changing unrelated implementation history.
+- Add or adjust a lightweight maintenance check only if stale statuses recur.
+
 ### 19. Add prompt-as-code search example
 
 Status: 완료

@@ -20,7 +20,7 @@ Use this skill when the user asks for multi-review, several independent perspect
 4. Spawn critics as independent Codex sub-agents only when sub-agent use is available and appropriate for the task.
 5. If sub-agents are unavailable, run a sequential fallback: evaluate each critic in a fresh, clearly separated section, do not revise earlier critic outputs after seeing later ones, and label the result `FALLBACK_NONINDEPENDENT` in the final report.
 6. Do not share intermediate critic results between critics when true sub-agents are available.
-7. Synthesize results with PASS, VETO, MIXED, or FAIL.
+7. Synthesize results with PASS, VETO, MIXED, FAIL, or ADVISORY PASS.
 
 ## Critic Prompt Shape
 
@@ -42,11 +42,24 @@ Use Codex's available model controls rather than Claude model names:
 
 ## Verdict Rules
 
-- PASS: all critics score at least 7 and no veto
-- VETO: any critic finds a fatal flaw
-- MIXED: mean score at least 7 but one or more critics score below 7
-- FAIL: mean score below 7
+- Repository maintenance, harness-affecting changes, release gates, hooks,
+  protected-file semantics, adapter behavior, and durable install/distribution
+  contracts use governance mode:
+  - PASS: all required critics score at least 9 and no veto
+  - VETO: any required critic scores below 9, finds a fatal flaw, or leaves a
+    blocking finding unresolved
+  - Score 9 is acceptable only with why-not-10 handling and either backlog
+    follow-up or explicit residual-risk acceptance
+  - After a VETO fix, rerun affected critics and record the rerun score before
+    accepting the work
+- Non-governance exploratory reviews may use advisory mode only when clearly
+  labeled as non-acceptance review:
+  - ADVISORY PASS: all critics score at least 7 and no veto
+  - MIXED: mean score at least 7 but one or more critics score below 7
+  - FAIL: mean score below 7
+- Do not use advisory mode to accept repository maintenance or harness-affecting
+  work.
 
 ## Output
 
-Present a compact table with critic, score, verdict, and key finding, followed by the integrated recommendation. If sequential fallback was used, disclose that independence was weaker. The user retains final decision authority.
+Present a compact table with critic, score, verdict, and key finding, followed by the integrated recommendation. If sequential fallback was used, disclose that independence was weaker. For governance-mode reviews, include VETO handling, rerun status, and score-9 why-not-10 handling. The user retains final decision authority.

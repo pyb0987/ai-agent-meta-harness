@@ -632,6 +632,96 @@ Completion Gate:
   non-GitHub CI provider becomes a supported target.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 23. P1 align Codex multi-review threshold with maintenance VETO policy
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- adapters/codex/skills/multi-review/SKILL.md
+- plugins/ai-agent-meta-harness/skills/multi-review/SKILL.md
+- adapters/codex/tests/test_multi_review_skill.py
+- backlog/codex-adapter.md
+- backlog/core.md
+- backlog/claude-adapter.md
+
+Source review: 2026-05-02 multi-review MIXED.
+
+`MAINTENANCE.md` treats reviewer scores below 9 as blocking VETO unless the
+finding is resolved and rerun, but the Codex `multi-review` skill can still
+allow PASS when all reviewers score at least 7. That lets adapter or harness
+decisions pass under a weaker local rule than the repository governance gate.
+
+Original improvement:
+
+- Update `adapters/codex/skills/multi-review/SKILL.md` so repository
+  maintenance and harness-affecting decisions use the same below-9 VETO
+  threshold as `MAINTENANCE.md`.
+- Preserve any lower-score advisory mode only when clearly labeled as
+  non-governance/non-acceptance review.
+- Sync the generated plugin skill copy and add or update tests/checks if a
+  mechanical skill-content assertion exists.
+
+Decision implemented:
+
+- `adapters/codex/skills/multi-review/SKILL.md` now separates governance mode
+  from advisory mode.
+- Governance mode covers repository maintenance, harness-affecting changes,
+  release gates, hooks, protected-file semantics, adapter behavior, and durable
+  install/distribution contracts.
+- Governance PASS now requires every required critic to score at least 9 with
+  no veto; any required critic below 9 is VETO until resolved and rerun.
+- Score 9 requires why-not-10 handling plus backlog follow-up or explicit
+  residual-risk acceptance.
+- The old 7-point threshold survives only as `ADVISORY PASS` for
+  non-governance, non-acceptance exploratory review.
+- `plugins/ai-agent-meta-harness/skills/multi-review/SKILL.md` is synchronized
+  from the canonical adapter skill.
+- `adapters/codex/tests/test_multi_review_skill.py` asserts the governance
+  threshold and generated plugin sync.
+- The source review follow-up findings are recorded as new backlog items in
+  `backlog/core.md`, `backlog/claude-adapter.md`, and this file so the
+  threshold-alignment review does not lose actionable residual risks.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/codex/skills/multi-review/SKILL.md`,
+  `plugins/ai-agent-meta-harness/skills/multi-review/SKILL.md`,
+  `adapters/codex/tests/test_multi_review_skill.py`, and
+  `backlog/codex-adapter.md`, plus source-review follow-up backlog additions in
+  `backlog/core.md` and `backlog/claude-adapter.md`.
+- Scope deviations: source-review follow-up backlog additions were recorded
+  outside the Codex adapter backlog so cross-cutting and Claude-specific
+  residual risks remain discoverable in their owning backlog files.
+- Verification results: PASS; `python3 scripts/sync-codex-plugin.py --write`, `python3 -m unittest adapters/codex/tests/test_multi_review_skill.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 -m unittest discover -s adapters/codex/tests`, `python3 scripts/check-maintenance-review.py`, `git diff --check`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Codex adapter review-gate
+  semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Governance-threshold critic score 10,
+  verdict PASS, Blocking findings: none. Advisory-mode boundary critic score
+  10, verdict PASS, Blocking findings: none. Generated-plugin/test critic score
+  10, verdict PASS, Blocking findings: none. Maintenance compliance critic
+  score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Backlog items added from source review: `backlog/core.md` items 20-24,
+  `backlog/claude-adapter.md` items 4-6, and this `backlog/codex-adapter.md`
+  item 23.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
 ## Current Status
 
 - Source reviews: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md` and `adapters/codex/skills/autoresearch/SKILL.md`.
