@@ -615,6 +615,70 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 19. Add prompt-as-code search example
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- backlog/core.md
+
+The prompt-as-code boundary now allows prompt templates, prompt-construction
+code, generated candidates, and project instructions as search surfaces when
+they are isolated, diffable, and evaluated. A short concrete example would help
+maintainers distinguish evaluated prompt-as-code changes from vague prompt
+tweaking.
+
+Original improvement:
+
+- Add a compact example of an acceptable evaluated prompt-as-code search
+  surface.
+- Add a contrasting non-example for vague natural-language exhortation.
+- Keep the compatibility mirror synchronized with the canonical core
+  methodology.
+
+Decision implemented:
+
+- `core/methodology.md` now includes a prompt-as-code example where candidate
+  prompt templates live under an isolated path, run through the same fixed
+  evaluator, and preserve raw output plus candidate diffs before promotion.
+- The example contrasts that with vague prompt exhortation such as changing a
+  prompt to "try harder" without evaluator execution, candidate isolation, or a
+  raw diff/output trail.
+- `docs/methodology.md` is synchronized as the temporary compatibility mirror.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `core/methodology.md`, `docs/methodology.md`, and
+  `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `rg -n "Prompt-as-code example|prompts/candidates|try harder|raw diff/output trail|isolated, diffable|generated candidates" core/methodology.md docs/methodology.md backlog/core.md`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-maintenance-review.py`, `git diff --check`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this clarifies core methodology and
+  fixed-evaluator search-surface semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Prompt-as-code boundary critic score 10,
+  verdict PASS, Blocking findings: none. Compatibility mirror critic score 10,
+  verdict PASS, Blocking findings: none. Maintenance compliance critic score
+  9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
 ### 16. Enforce score-9 why-not-10 review handling
 
 Status: 완료

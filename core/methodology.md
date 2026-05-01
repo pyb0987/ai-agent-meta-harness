@@ -136,6 +136,16 @@ Why this sits next to Additive Modification: both stem from the same finding —
   explore performance. Prompt-as-code changes are allowed only when they are
   part of that mutable surface and judged by the immutable evaluator boundary
 
+Prompt-as-code example:
+
+- Acceptable search surface: generate candidate prompt templates under
+  `prompts/candidates/`, run each candidate through the same fixed evaluator,
+  preserve the raw output plus the candidate diff, then promote only the
+  candidate that improves the measured verdict.
+- Not search: edit `AGENTS.md` or a prompt paragraph from "be careful" to
+  "try harder and be more careful" without an evaluator run, candidate
+  isolation, or raw diff/output trail.
+
 ### P5: Recurring failures are absorbed by structure, not rules
 
 > "Don't do this" fails. "Can't do this" succeeds.
