@@ -762,3 +762,72 @@ Completion Gate:
 - Residual risk/follow-up: update external prompts/playbooks before launching
   new routine maintenance sessions.
 - Accepted: yes, ready for maintainer review and commit.
+
+### 18. Add maintenance review checker to pre-commit
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- .githooks/pre-commit
+- README.md
+- MAINTENANCE.md
+- tests/test_pre_commit_hook.py
+- backlog/core.md
+
+The maintenance review checker is now stable enough to validate embedded
+backlog review outcomes and score-9 handling by default. It should move from
+standard verification only into the tracked pre-commit hook so review-summary
+policy drift is caught before commit.
+
+Original improvement:
+
+- Run `python3 scripts/check-maintenance-review.py` from `.githooks/pre-commit`.
+- Update repository docs that enumerate pre-commit checks.
+- Add a lightweight test so the tracked hook does not silently drop the
+  maintenance review checker.
+
+Decision implemented:
+
+- `.githooks/pre-commit` now runs
+  `python3 scripts/check-maintenance-review.py` after the drift and smoke
+  checks.
+- README and `MAINTENANCE.md` now describe the tracked hook as running the
+  maintenance review checker in addition to drift and smoke checks.
+- `tests/test_pre_commit_hook.py` asserts the tracked hook continues to invoke
+  the maintenance review checker.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `.githooks/pre-commit`, `README.md`, `MAINTENANCE.md`,
+  `tests/test_pre_commit_hook.py`, and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 scripts/check-maintenance-review.py`, `sh .githooks/pre-commit`, `python3 -m unittest tests/test_pre_commit_hook.py`, `git diff --check`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and `python3 -m unittest discover -s adapters/codex/tests`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes tracked pre-commit/release
+  gate behavior.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Pre-commit gate critic score 10, verdict
+  PASS, Blocking findings: none. Review-checker noise critic score 9, verdict
+  PASS, Blocking findings: none. Documentation sync critic score 10, verdict
+  PASS, Blocking findings: none. Maintenance compliance critic score 9, verdict
+  PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Review-checker noise critic was 9 because
+  pre-commit now validates all embedded review outcomes and could block commits
+  when future backlog records are incomplete; no backlog item added because
+  that stricter behavior is the intended repository protection and the checker
+  has passed on current records. Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.

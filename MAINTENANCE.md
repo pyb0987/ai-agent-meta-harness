@@ -260,8 +260,8 @@ python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
-The tracked pre-commit hook runs the drift and smoke checks, but not the full
-unit test suites:
+The tracked pre-commit hook runs the drift, smoke, and maintenance review
+checks, but not the full unit test suites:
 
 ```bash
 git config core.hooksPath .githooks

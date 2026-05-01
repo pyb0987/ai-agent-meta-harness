@@ -153,7 +153,7 @@ Compatibility mirror mapping:
 | `skills/*` | `adapters/claude/skills/*` |
 | `adapters/codex/templates/AGENTS.md.template` | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` |
 
-Run `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` before committing changes that touch mirrored paths or adapters.
+Run `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, and `python3 scripts/check-maintenance-review.py` before committing changes that touch mirrored paths, adapters, or backlog review records.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.
@@ -166,7 +166,7 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, and `python3 adapters/codex/scripts/smoke-local-plugin.py` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, and the generated Codex plugin cannot silently drift.
+The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, and `python3 scripts/check-maintenance-review.py` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, and maintenance review records cannot silently drift.
 
 ## How It Works
 
