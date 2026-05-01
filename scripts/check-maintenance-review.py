@@ -14,7 +14,12 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_GLOB = "backlog/review-*.md"
+DEFAULT_REVIEW_GLOB = "backlog/review-*.md"
+DEFAULT_BACKLOG_FILES = (
+    "backlog/core.md",
+    "backlog/claude-adapter.md",
+    "backlog/codex-adapter.md",
+)
 
 SCORE_RE = re.compile(r"\b(?:normalized\s+)?score(?:d)?(?:\s*[:=]|\s+)(\d+(?:\.\d+)?)\b", re.IGNORECASE)
 REVIEW_MARKER_RE = re.compile(r"^\s*(?:Multi-review|Review outcome):\s*$", re.MULTILINE)
@@ -178,7 +183,9 @@ def validate_paths(paths: list[Path]) -> list[str]:
 
 
 def default_paths() -> list[Path]:
-    return sorted(ROOT.glob(DEFAULT_GLOB))
+    paths = set(ROOT.glob(DEFAULT_REVIEW_GLOB))
+    paths.update(path for relative in DEFAULT_BACKLOG_FILES if (path := ROOT / relative).exists())
+    return sorted(paths)
 
 
 def main(argv: list[str] | None = None) -> int:

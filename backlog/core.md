@@ -546,13 +546,23 @@ Review outcome:
 
 ### 15. Validate embedded backlog review outcomes
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+- backlog/codex-adapter.md
+
 The maintenance review checker currently validates `backlog/review-*.md` by
 default, but accepted review outcomes are now also recorded directly inside
 `backlog/core.md` and `backlog/codex-adapter.md`. This lets standard
 verification pass while embedded `Review outcome:` sections can miss required
 fields such as follow-up/residual risk, score handling, or rerun status.
 
-Potential improvement:
+Original improvement:
 
 - Extend `scripts/check-maintenance-review.py` default paths to include backlog
   ownership files that contain embedded review outcomes.
@@ -561,6 +571,49 @@ Potential improvement:
 - Fix existing embedded review records that fail the checker when checked
   explicitly.
 - Keep the checker focused on review-result structure, not prose style.
+
+Decision implemented:
+
+- `scripts/check-maintenance-review.py` now validates
+  `backlog/core.md`, `backlog/claude-adapter.md`, and
+  `backlog/codex-adapter.md` by default alongside `backlog/review-*.md`.
+- The default path list only includes existing ownership files, so missing
+  adapter backlog files in reduced fixtures do not fail path discovery.
+- `tests/test_check_maintenance_review.py` now proves default path discovery
+  includes review summaries and backlog ownership files.
+- Existing embedded review outcomes in `backlog/core.md` and
+  `backlog/codex-adapter.md` pass the stricter default checker without further
+  backfill.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, and `backlog/core.md`.
+- Scope deviations: none; `backlog/codex-adapter.md` was in scope for
+  validation/backfill but did not require edits.
+- Verification results: PASS; `python3 -m unittest tests/test_check_maintenance_review.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-maintenance-review.py backlog/core.md backlog/codex-adapter.md`, `git diff --check`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and `python3 -m unittest discover -s adapters/codex/tests`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes release-gate/review-checker
+  default semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Default-path coverage critic score 10,
+  verdict PASS, Blocking findings: none. Embedded-record compatibility critic
+  score 10, verdict PASS, Blocking findings: none. Maintenance compliance
+  critic score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 16. Enforce score-9 why-not-10 review handling
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -184,6 +185,34 @@ Potential improvement:
 """
 
         self.assertEqual(check_maintenance_review.validate_text(text), [])
+
+    def test_default_paths_include_backlog_ownership_files(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            backlog = root / "backlog"
+            backlog.mkdir()
+            review = backlog / "review-example.md"
+            core = backlog / "core.md"
+            claude = backlog / "claude-adapter.md"
+            codex = backlog / "codex-adapter.md"
+            for path in (review, core, claude, codex):
+                path.write_text("", encoding="utf-8")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+
+            paths = {path.relative_to(root).as_posix() for path in check_maintenance_review.default_paths()}
+
+        self.assertEqual(
+            paths,
+            {
+                "backlog/review-example.md",
+                "backlog/core.md",
+                "backlog/claude-adapter.md",
+                "backlog/codex-adapter.md",
+            },
+        )
 
 
 if __name__ == "__main__":
