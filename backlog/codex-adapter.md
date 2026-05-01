@@ -535,6 +535,71 @@ Completion Gate:
   local plugin activation and tool-event smoke coverage.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 22. Document non-GitHub CI BASE_REF setup
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/README.md
+- backlog/codex-adapter.md
+
+The autoresearch protected-path checker supports CI mode outside GitHub
+Actions, but the adapter docs only ship a GitHub Actions template. Other CI
+systems need explicit guidance for choosing `BASE_REF` or passing `--base-ref`
+so the checker compares `HEAD` against the intended merge base.
+
+Original improvement:
+
+- Document `BASE_REF`, `GITHUB_BASE_REF`, and `--base-ref` precedence.
+- Give non-GitHub CI examples that fetch the base branch and run the checker.
+- Keep the generated plugin README synchronized with the canonical adapter
+  README.
+
+Decision implemented:
+
+- `adapters/codex/README.md` now documents CI comparison-base precedence:
+  `--base-ref`, `BASE_REF`, `GITHUB_BASE_REF`, then `origin/main`.
+- The docs explain how plain branch names are expanded to `origin/<branch>` and
+  that CI must fetch the selected base ref before running the checker.
+- The docs include environment-variable, explicit `--base-ref`, and generic
+  merge-request examples for non-GitHub CI.
+- The generated plugin README is synchronized with the canonical adapter README.
+
+Remaining follow-up work:
+
+- Add a concrete CI provider template only if a non-GitHub CI surface becomes a
+  supported distribution target.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `adapters/codex/README.md`,
+  `plugins/ai-agent-meta-harness/README.md`, and `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 scripts/sync-codex-plugin.py --write`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 scripts/check-maintenance-review.py`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 -m unittest discover -s adapters/codex/tests`, and `git diff --check`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes CI guardrail setup guidance
+  for autoresearch protection.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: CI base-ref correctness critic score 10,
+  verdict PASS, Blocking findings: none. Install-doc clarity critic score 10,
+  verdict PASS, Blocking findings: none. Generated-plugin sync critic score 10,
+  verdict PASS, Blocking findings: none. Maintenance compliance critic score 9,
+  verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: add provider-specific CI templates only after a
+  non-GitHub CI provider becomes a supported target.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
 ## Current Status
 
 - Source reviews: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md` and `adapters/codex/skills/autoresearch/SKILL.md`.

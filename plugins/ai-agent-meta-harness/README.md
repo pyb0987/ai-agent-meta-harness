@@ -91,6 +91,45 @@ This proves the copied checker still emits the expected Codex hook deny shapes.
 It does not prove that Codex has registered plugin runtime hooks. Runtime hook
 registration remains gated on local plugin activation and tool-event coverage.
 
+### CI Base Reference Outside GitHub Actions
+
+The CI checker compares changed paths between `HEAD` and a merge base. It picks
+the comparison base in this order:
+
+1. `--base-ref <ref>` command-line argument.
+2. `BASE_REF` environment variable.
+3. `GITHUB_BASE_REF` environment variable.
+4. `origin/main`.
+
+Values such as `main` or `release/next` are expanded to `origin/main` or
+`origin/release/next`. Values already starting with `origin/` or `refs/` are
+used as provided. CI jobs must fetch the selected base ref before running the
+checker.
+
+Non-GitHub CI jobs can use either environment or CLI form:
+
+```bash
+git fetch origin main
+BASE_REF=main python3 scripts/check-autoresearch-protected.py --ci
+```
+
+```bash
+git fetch origin release/next
+python3 scripts/check-autoresearch-protected.py --ci --base-ref origin/release/next
+```
+
+If your CI exposes a target branch variable, map it to `BASE_REF` before
+running the checker. For example, a generic merge-request job can run:
+
+```bash
+git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+BASE_REF="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" python3 scripts/check-autoresearch-protected.py --ci
+```
+
+The job should fail closed if the fetch fails or the base ref cannot be resolved.
+That means the checker could not prove protected evaluator paths stayed
+unchanged.
+
 ## Sub-Agent Capability Matrix
 
 Codex sub-agent support is surface-dependent. Treat sub-agents as an optional
