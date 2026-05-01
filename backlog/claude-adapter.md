@@ -315,6 +315,16 @@ Completion Gate:
 
 ### 5. P2 add Claude trace-root evidence selection for migrated projects
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_fixture.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 Claude `/init-harness` currently creates and orients around `.claude/traces/`.
@@ -322,7 +332,7 @@ When a migrated project already has meaningful `.harness/traces/` history, this
 can split trace history and hide previous failures, search-set cases, or
 experiment episodes.
 
-Potential improvement:
+Original improvement:
 
 - Add evidence-based trace-root selection or migration guidance to
   `adapters/claude/commands/init-harness.md` for projects that already contain
@@ -331,6 +341,63 @@ Potential improvement:
   instead of blindly initializing a separate `.claude/traces/` root.
 - Keep `commands/init-harness.md` synchronized through compatibility mirror
   checks.
+
+Decision implemented:
+
+- `adapters/claude/commands/init-harness.md` now requires Step 3 to select the
+  active trace root before writing new traces.
+- Claude defaults to `.claude/traces/`, but must also inspect existing
+  `.harness/traces/` for meaningful migrated history.
+- Meaningful history is defined as Active search-set cases, unresolved
+  failures, non-template evolution entries, experiment episodes, or recent
+  project-specific trace content; empty directories, `.keep` files, and
+  untouched templates do not count.
+- If `.harness/traces/` has meaningful history and `.claude/traces/` is absent,
+  empty, or template-only, `/init-harness` must reuse that history as the
+  source of truth by migrating/copying it into `.claude/traces/` or explicitly
+  recording `.harness/traces/` as the temporary active root.
+- If both roots have divergent meaningful history, `/init-harness` must stop
+  and report uncertainty with a migration plan before writing new traces.
+- The completion checklist now requires evidence-based active-root selection.
+- `commands/init-harness.md` was synchronized as the compatibility mirror.
+- `tests/test_claude_init_harness_fixture.py` now asserts the migrated
+  trace-root selection guidance exists in the canonical command and mirror.
+
+Remaining follow-up work:
+
+- True Claude Code slash-command execution and hook runtime activation remain
+  future work from item 3; this item only locks the documented output contract.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/commands/init-harness.md`,
+  `commands/init-harness.md`, `tests/test_claude_init_harness_fixture.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_init_harness_fixture.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Claude init trace-root and
+  migration behavior that affects future trace reuse.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Trace-root selection semantics critic
+  score 10, verdict PASS, Blocking findings: none. Compatibility mirror critic
+  score 10, verdict PASS, Blocking findings: none. Fixture coverage critic
+  score 9, verdict PASS, Blocking findings: none. Maintenance compliance critic
+  score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Fixture coverage critic was 9 because the test
+  validates documented command policy rather than executing Claude Code
+  `/init-harness`; no backlog item added because true slash-command execution
+  remains listed in item 3 follow-up work. Maintenance compliance critic was 9
+  because review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: true Claude Code slash-command execution and hook
+  runtime activation remain future work.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 6. P2 harden Claude autoresearch protected-file hooks
 

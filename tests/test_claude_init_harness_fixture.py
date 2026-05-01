@@ -7,6 +7,11 @@ import tempfile
 import unittest
 
 
+ROOT = Path(__file__).resolve().parents[1]
+INIT_HARNESS = ROOT / "adapters" / "claude" / "commands" / "init-harness.md"
+MIRROR_INIT_HARNESS = ROOT / "commands" / "init-harness.md"
+
+
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -164,6 +169,33 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
         errors = smoke_validate_init_harness_output(project)
 
         self.assertTrue(any("SEARCH SET MISSING: ### SS-001:" == error for error in errors))
+
+    def test_init_harness_documents_migrated_trace_root_selection(self):
+        text = INIT_HARNESS.read_text(encoding="utf-8")
+
+        for marker in (
+            "Select the active trace root before writing new trace files",
+            ".harness/traces/",
+            "Meaningful history includes `search-set.md` with Active cases",
+            "migrate/copy it into `.claude/traces/`",
+            "Do not split future trace history silently",
+            "Active trace root selected by evidence",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+    def test_compatibility_mirror_has_migrated_trace_root_selection(self):
+        canonical = INIT_HARNESS.read_text(encoding="utf-8")
+        mirror = MIRROR_INIT_HARNESS.read_text(encoding="utf-8")
+
+        for marker in (
+            "Select the active trace root before writing new trace files",
+            "migrate/copy it into `.claude/traces/`",
+            "Active trace root selected by evidence",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, mirror)
+                self.assertEqual(canonical.count(marker), mirror.count(marker))
 
 
 if __name__ == "__main__":

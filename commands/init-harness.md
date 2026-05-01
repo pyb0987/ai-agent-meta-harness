@@ -28,7 +28,26 @@ Determine components based on analysis results per Section 3 Decision criteria.
 
 ### Step 3: Initialize Trace Filesystem
 
-Create `.claude/traces/` directory and empty search-set template:
+Select the active trace root before writing new trace files:
+
+- Default Claude root: `.claude/traces/`.
+- Also inspect `.harness/traces/` when it already exists, because migrated
+  projects may contain meaningful Codex or shared harness history there.
+- Meaningful history includes `search-set.md` with Active cases, unresolved
+  failures, non-template evolution entries, experiment episodes, or recent
+  project-specific trace content.
+- Empty directories, `.keep` files, or untouched templates are not meaningful
+  history.
+- If `.harness/traces/` has meaningful history and `.claude/traces/` is absent,
+  empty, or template-only, reuse that history as the source of truth: either
+  migrate/copy it into `.claude/traces/` before writing new Claude traces, or
+  explicitly record `.harness/traces/` as the temporary active root in
+  `CLAUDE.md` and the initial evolution log.
+- If both `.harness/traces/` and `.claude/traces/` have divergent meaningful
+  history, stop and report uncertainty with a migration plan before writing new
+  traces. Do not split future trace history silently.
+
+For the normal Claude root, create `.claude/traces/` directory and empty search-set template:
 ```
 mkdir -p .claude/traces/{evolution,failures,experiments}
 ```
@@ -194,6 +213,7 @@ After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial
 
 All items below must pass for init-harness to be complete:
 
+- [ ] Active trace root selected by evidence; existing meaningful `.harness/traces/` history was reused, migrated, or explicitly reported as an uncertainty before new traces were written
 - [ ] `.claude/traces/{evolution,failures,experiments}/` directories exist
 - [ ] `.claude/traces/search-set.md` template created
 - [ ] `.claude/traces/evolution/001-initial-harness.md` written (Step 7)
