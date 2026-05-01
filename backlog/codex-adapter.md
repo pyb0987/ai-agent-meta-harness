@@ -463,6 +463,78 @@ Potential improvement:
 - Confirm the metadata source remains generated from canonical adapter files
   rather than manually dual-edited plugin metadata.
 
+### 21. Document Codex hook template install paths
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/README.md
+- backlog/codex-adapter.md
+
+The Codex adapter ships checker, hook, pre-commit, CI, protected-path, and
+AGENTS reminder templates, but target-project setup docs do not yet say exactly
+where each template should be copied or which smoke command confirms the copied
+assets still produce the expected deny JSON.
+
+Original improvement:
+
+- Document target-project destination paths for each Codex autoresearch
+  protection asset.
+- Distinguish active local project guardrails from plugin runtime hook
+  registration, which remains gated on activation smoke coverage.
+- Keep the generated plugin README synchronized with the canonical adapter
+  README.
+
+Decision implemented:
+
+- `adapters/codex/README.md` now maps every shipped autoresearch protection
+  asset to a concrete target-project path.
+- The install docs include the copied-project smoke command that checks Codex
+  hook deny JSON using the target project's copied checker and protected-path
+  file.
+- The docs explicitly distinguish project-local copied guardrails from Codex
+  plugin runtime hook registration, which remains gated on local plugin
+  activation and tool-event coverage.
+- `plugins/ai-agent-meta-harness/README.md` is synchronized from the canonical
+  adapter README.
+
+Remaining follow-up work:
+
+- Add runtime hook config under `adapters/codex/hooks/` and manifest `hooks`
+  only after local plugin activation and tool-event coverage are smoke-tested.
+- Revisit templates when Codex hook interception semantics change, especially
+  whether file-edit tools emit `PreToolUse`.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `adapters/codex/README.md`,
+  `plugins/ai-agent-meta-harness/README.md`, and `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 scripts/sync-codex-plugin.py --write`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 -m unittest discover -s adapters/codex/tests`, and `git diff --check`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Codex install/distribution
+  guidance and hook/protection setup instructions.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Install-path clarity critic score 10,
+  verdict PASS, Blocking findings: none. Hook-registration boundary critic
+  score 10, verdict PASS, Blocking findings: none. Generated-plugin sync critic
+  score 10, verdict PASS, Blocking findings: none. Maintenance compliance
+  critic score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: runtime hook registration remains gated on Codex
+  local plugin activation and tool-event smoke coverage.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
 ## Current Status
 
 - Source reviews: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md` and `adapters/codex/skills/autoresearch/SKILL.md`.

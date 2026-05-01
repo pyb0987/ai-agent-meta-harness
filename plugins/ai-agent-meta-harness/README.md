@@ -63,6 +63,34 @@ The generated plugin now carries a reference checker at `scripts/check-autoresea
 
 Hook schema drift is tracked in `hook-schema.md`. Before changing Codex hook templates, checker hook output, or autoresearch hook instructions, re-check the official Codex hooks documentation and run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.
 
+### Target-Project Protection Install
+
+When a project adopts autoresearch, copy the protection assets from the
+generated plugin bundle, or from `adapters/codex/` while developing this repo,
+into the target project:
+
+| Source in plugin bundle | Target project path | Purpose |
+|-------------------------|---------------------|---------|
+| `scripts/check-autoresearch-protected.py` | `scripts/check-autoresearch-protected.py` | Shared checker used by Codex hooks, pre-commit, and CI |
+| `scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Local smoke assertion for Codex hook deny JSON |
+| `templates/autoresearch-protected.txt` | `.harness/autoresearch-protected.txt` | Protected evaluator or benchmark path list |
+| `templates/hooks/codex-hooks.json.template` | `.codex/hooks.json` or the active Codex hook config layer | Codex hook config template for project-local experimentation |
+| `templates/hooks/pre-commit-autoresearch-protected.sh` | `.githooks/pre-commit-autoresearch-protected.sh` | Local Git hard-block guardrail |
+| `templates/hooks/github-actions-autoresearch-protected.yml` | `.github/workflows/autoresearch-protected.yml` | Pull-request CI guardrail |
+| `templates/hooks/agents-autoresearch-protection.md` | A project `AGENTS.md` autoresearch protection section | Instruction-level reminder layer |
+
+After copying, make the scripts executable if the target filesystem did not
+preserve modes, wire the pre-commit wrapper from the project's tracked hook, and
+run:
+
+```bash
+python3 scripts/smoke-autoresearch-hooks.py --checker scripts/check-autoresearch-protected.py --protected-file .harness/autoresearch-protected.txt
+```
+
+This proves the copied checker still emits the expected Codex hook deny shapes.
+It does not prove that Codex has registered plugin runtime hooks. Runtime hook
+registration remains gated on local plugin activation and tool-event coverage.
+
 ## Sub-Agent Capability Matrix
 
 Codex sub-agent support is surface-dependent. Treat sub-agents as an optional
