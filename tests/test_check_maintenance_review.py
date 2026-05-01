@@ -57,6 +57,78 @@ class CheckMaintenanceReviewTests(unittest.TestCase):
 
         self.assertTrue(any("score below 9" in error for error in errors))
 
+    def test_rejects_score_8_pass_with_negated_veto_language(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 8, PASS. Blocking findings: none. No VETO triggered.
+- Score handling: all critic scores were treated as accepted.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: none recorded.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertTrue(any("score below 9" in error for error in errors))
+
+    def test_rejects_score_8_veto_without_rerun_or_not_accepted(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 8, VETO triggered. Blocking findings: missing checker coverage.
+- Score handling: score 8 triggered VETO recovery.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: none recorded.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertTrue(any("score below 9" in error for error in errors))
+
+    def test_accepts_score_8_veto_with_successful_rerun(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 8, VETO triggered. Blocking findings: missing checker coverage.
+- Re-review: test scope critic score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is intentionally narrow. Follow-up/residual risk: accepted.
+- Score handling: score 8 triggered VETO recovery; affected critic rerun reached score 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: affected critic rerun after fixes; final score 9.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_rejects_score_8_veto_with_only_unrelated_successful_rerun(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 8, VETO triggered. Blocking findings: missing checker coverage.
+- Re-review: release-gate critic score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is intentionally narrow. Follow-up/residual risk: accepted.
+- Score handling: score 8 triggered VETO recovery; a different critic rerun reached score 9.
+- Rerun status: release-gate critic rerun after fixes; final score 9.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertTrue(any("score below 9" in error for error in errors))
+
+    def test_accepts_score_8_not_accepted_without_rerun(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 8, VETO. Blocking findings: missing checker coverage. Not accepted.
+- Score handling: score 8 triggered VETO; work is not accepted.
+- Rerun status: no rerun was performed because the item is not accepted.
+- Follow-up/residual risk: blocking finding remains.
+- Final acceptance: not accepted.
+"""
+            )
+        )
+
+        self.assertEqual(errors, [])
+
     def test_rejects_pending_review_status(self):
         errors = check_maintenance_review.validate_text(
             summary(

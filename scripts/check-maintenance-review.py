@@ -39,10 +39,31 @@ REQUIRED_FIELDS = {
 }
 SECTION_RE = re.compile(r"^(#{2,3})\s+(.+)$", re.MULTILINE)
 PENDING_RE = re.compile(r"\b(?:pending|active re-review|not accepted yet)\b", re.IGNORECASE)
-HANDLED_LOW_SCORE_RE = re.compile(
-    r"\b(?:VETO|MIXED|FAIL|not accepted|below .*threshold|restored policy)\b",
+NEGATED_VETO_RE = re.compile(r"\b(?:no|not|without)\s+VETO\b|\bVETO\s+(?:was\s+)?not\s+triggered\b", re.IGNORECASE)
+LOW_SCORE_BLOCKING_RE = re.compile(
+    r"\b(?:VETO|"
+    r"(?:triggered|treated as|marked|is|are)\s+VETO|"
+    r"MIXED/VETO|"
+    r"FAIL|"
+    r"below\s+\d+(?:\.\d+)?\s+(?:is|are)\s+VETO|"
+    r"below .*threshold|"
+    r"restored policy)\b",
     re.IGNORECASE,
 )
+NOT_ACCEPTED_RE = re.compile(r"\bnot accepted\b|\baccepted:\s*no\b", re.IGNORECASE)
+RERUN_RECORD_RE = re.compile(r"\b(?:rerun|re-review)\b", re.IGNORECASE)
+METADATA_RECORD_PREFIXES = (
+    "- score handling:",
+    "- rerun status:",
+    "- follow-up/residual risk:",
+    "- final acceptance:",
+)
+GENERIC_SCORE_SCOPES = {
+    "initial review",
+    "historical re-review",
+    "re-review",
+    "review",
+}
 
 
 @dataclass(frozen=True)
@@ -107,6 +128,46 @@ def has_score_scope(record: str) -> bool:
     return bool(prefix) and "score" not in prefix
 
 
+def score_scope(record: str) -> str:
+    if not has_score_scope(record):
+        return ""
+    scope = record[2:].split(":", 1)[0].strip().lower()
+    if scope in GENERIC_SCORE_SCOPES:
+        return ""
+    return scope
+
+
+def record_scores(record: str) -> list[float]:
+    return [normalize_score(match.group(1)) for match in SCORE_RE.finditer(record)]
+
+
+def has_successful_rerun(records: list[str], low_score_record: str) -> bool:
+    scope = score_scope(low_score_record)
+    for record in records:
+        if not RERUN_RECORD_RE.search(record):
+            continue
+        if scope and scope not in record.lower():
+            continue
+        if any(score >= 9 for score in record_scores(record)):
+            return True
+    return False
+
+
+def is_metadata_record(record: str) -> bool:
+    lower = record.lower()
+    return lower.startswith(METADATA_RECORD_PREFIXES)
+
+
+def low_score_has_blocking_disposition(record: str, *, rerun_reached_threshold: bool) -> bool:
+    if NOT_ACCEPTED_RE.search(record):
+        return True
+    if NEGATED_VETO_RE.search(record):
+        return False
+    if LOW_SCORE_BLOCKING_RE.search(record):
+        return rerun_reached_threshold
+    return False
+
+
 def validate_text(text: str, *, source: str = "<text>") -> list[str]:
     errors: list[str] = []
     sections = review_sections(text)
@@ -130,7 +191,7 @@ def validate_text(text: str, *, source: str = "<text>") -> list[str]:
         score_records = [
             record
             for record in records
-            if not record.lower().startswith("- score handling:") and SCORE_RE.search(record)
+            if not is_metadata_record(record) and SCORE_RE.search(record)
         ]
         if not score_records:
             errors.append(f"{label}: missing required review field: score")
@@ -162,9 +223,18 @@ def validate_text(text: str, *, source: str = "<text>") -> list[str]:
                         errors.append(f"{label}: score 9 lacks backlog/residual-risk disposition: {record}")
                 if score >= 9:
                     continue
-                if not HANDLED_LOW_SCORE_RE.search(record):
-                    errors.append(f"{label}: score below 9 lacks VETO/not-accepted handling: {record}")
-                if "PASS" in record and not HANDLED_LOW_SCORE_RE.search(record):
+                rerun_reached_threshold = has_successful_rerun(records, record)
+                if not low_score_has_blocking_disposition(
+                    record,
+                    rerun_reached_threshold=rerun_reached_threshold,
+                ):
+                    errors.append(
+                        f"{label}: score below 9 lacks concrete VETO/not-accepted/rerun handling: {record}"
+                    )
+                if "PASS" in record and not low_score_has_blocking_disposition(
+                    record,
+                    rerun_reached_threshold=rerun_reached_threshold,
+                ):
                     errors.append(f"{label}: score below 9 is marked PASS without VETO handling: {record}")
 
     return errors

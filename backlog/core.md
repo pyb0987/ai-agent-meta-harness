@@ -617,6 +617,15 @@ Completion Gate:
 
 ### 20. P1 harden low-score maintenance review validation
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 The maintenance review checker currently accepts a low-score record when broad
@@ -624,7 +633,7 @@ tokens such as `VETO`, `MIXED`, `FAIL`, or `not accepted` appear anywhere in
 the record. A record can therefore say `No VETO` or otherwise mention the token
 without concretely resolving the below-9 score.
 
-Potential improvement:
+Original improvement:
 
 - Tighten `scripts/check-maintenance-review.py` so scores below 9 require an
   explicit blocking disposition such as `VETO triggered`, `not accepted`, or a
@@ -634,6 +643,53 @@ Potential improvement:
 - Add tests proving low-score PASS with negated VETO language fails.
 - Re-run `python3 scripts/check-maintenance-review.py` and
   `sh .githooks/pre-commit`.
+
+Decision implemented:
+
+- `scripts/check-maintenance-review.py` now rejects below-9 score records that
+  only contain negated or descriptive VETO language such as `No VETO`.
+- Below-9 records now need concrete handling: explicit not-accepted disposition,
+  or a blocking VETO/FAIL disposition plus a recorded rerun/re-review score of
+  at least 9 in the same review section.
+- When a low-score record names a critic scope, the successful rerun must name
+  the same scope; older generic `Initial review` records still use section-level
+  rerun handling for historical compatibility.
+- Review metadata records such as `Rerun status:` and `Final acceptance:` are
+  no longer mistaken for critic score records just because they mention a
+  score.
+- `tests/test_check_maintenance_review.py` now covers negated VETO language,
+  VETO without rerun, accepted VETO after successful rerun, unrelated rerun
+  rejection, and not-accepted low-score outcomes.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_check_maintenance_review.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-maintenance-review.py backlog/core.md backlog/codex-adapter.md backlog/claude-adapter.md`, `python3 -m unittest discover -s tests`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes the repository maintenance
+  review gate used by release/pre-commit validation.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Low-score enforcement critic score 10,
+  verdict PASS, Blocking findings: none. Historical-record compatibility
+  critic score 10, verdict PASS, Blocking findings: none. Test coverage critic
+  score 10, verdict PASS, Blocking findings: none. Maintenance compliance
+  critic score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 21. P2 frame structural hardening as repository practice
 
