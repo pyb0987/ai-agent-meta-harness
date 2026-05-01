@@ -88,3 +88,77 @@ Completion Gate:
 
 - Source review: external session found Claude adapter trace/hook path drift as
   the largest remaining operability issue.
+
+### 2. Add old Claude compatibility install smoke test
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- tests/test_claude_compat_install_smoke.py
+- backlog/claude-adapter.md
+
+Compatibility mirrors stay until old mirrored install commands and canonical
+Claude install commands both have smoke coverage. The old top-level
+`docs/`, `commands/`, and `skills/` paths should be mechanically checked so
+existing user scripts can still install working Claude Code assets during the
+transition window.
+
+Original improvement:
+
+- Add a temp-directory smoke test for the old compatibility install source
+  paths.
+- Verify old mirrored paths install the same core Claude global files as the
+  canonical adapter paths.
+- Keep the smoke test local-only; it should not write to the real
+  `~/.claude/` directory.
+
+Decision implemented:
+
+- `tests/test_claude_compat_install_smoke.py` now installs the old top-level
+  compatibility mirrors into a temporary fake Claude home.
+- The smoke test installs the canonical `core/` and `adapters/claude/` sources
+  into a second fake Claude home and compares the expected global Claude files.
+- Docs, command, and skill comparisons reuse the compatibility mirror
+  normalizer so allowed mirror banners and install wording do not create false
+  failures.
+- The smoke test asserts the old install source still provides methodology,
+  reference, `/init-harness`, `autoresearch`, `harness-engineer`, and
+  `multi-review` assets without writing to the real `~/.claude/`.
+
+Remaining follow-up work:
+
+- Add a project-fixture smoke test that runs `/init-harness` output expectations
+  against a minimal target project once command execution can be tested
+  mechanically.
+- Add Claude hook settings schema/runtime activation smoke coverage when it can
+  be tested mechanically.
+- Track repo-wide staged-content semantics for compatibility mirror checks in
+  `backlog/core.md`.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `tests/test_claude_compat_install_smoke.py` and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_compat_install_smoke.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py`, `git diff --check`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, and `python3 -m unittest discover -s adapters/codex/tests`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this affects Claude install/distribution
+  compatibility and mirror-removal readiness.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Install compatibility critic score 10,
+  verdict PASS, Blocking findings: none. Mirror-normalization critic score 10,
+  verdict PASS, Blocking findings: none. Maintenance compliance critic score
+  9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: remaining Claude project-fixture and hook/runtime
+  smoke follow-ups stay listed above.
+- Accepted: yes; accepted by maintainer review and ready for commit.
