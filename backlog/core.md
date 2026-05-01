@@ -693,6 +693,16 @@ Completion Gate:
 
 ### 21. P2 frame structural hardening as repository practice
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-02
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- tests/test_core_methodology_boundaries.py
+- backlog/core.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 The P5 structural-impossibility ladder and Single Source + Codegen + Protect
@@ -701,13 +711,64 @@ Meta-Harness paper methodology beside P3/P4. The core should more clearly
 separate paper-backed method claims from this repository's applied hardening
 practice.
 
-Potential improvement:
+Original improvement:
 
 - Reframe the P5 escalation ladder and Single Source + Codegen + Protect
   section in `core/methodology.md` as an applied repository hardening pattern.
 - Preserve the practical guidance while labeling what is paper core versus
   repository implementation discipline.
 - Keep `docs/methodology.md` synchronized through compatibility mirror checks.
+
+Decision implemented:
+
+- `core/methodology.md` now frames the former P5 section as `Applied Repository
+  Hardening`, not as another first-class paper methodology claim.
+- The section explicitly identifies the paper core as the proposer/evaluator/
+  trace loop: preserving the feedback signal, searching in mutable code space,
+  isolating confounding variables, and reusing trace evidence.
+- The structural ladder is now labeled as this repository's applied engineering
+  discipline for turning repeated trace/review evidence into durable
+  guardrails.
+- The level-3 wording changed from absolute structural impossibility and
+  impossible drift to structural hardening where drift is mechanically
+  prevented or detected.
+- The feedback-loop checklist now refers to an applied hardening check instead
+  of a P5 structural-elimination principle, keeping the repository-practice
+  framing consistent outside the renamed section.
+- `docs/methodology.md` was synchronized as the compatibility mirror.
+- `tests/test_core_methodology_boundaries.py` asserts the repository-practice
+  framing and compatibility mirror alignment.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `core/methodology.md`, `docs/methodology.md`,
+  `tests/test_core_methodology_boundaries.py`, and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_core_methodology_boundaries.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes shared methodology framing
+  that can steer future harness work.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Paper-claim boundary critic score 10,
+  verdict PASS, Blocking findings: none. Practical-guidance preservation
+  critic score 10, verdict PASS, Blocking findings: none. Compatibility mirror
+  and focused-test critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 22. P2 subordinate sub-agent routing to the paper core
 

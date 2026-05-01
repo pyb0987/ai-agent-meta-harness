@@ -146,22 +146,31 @@ Prompt-as-code example:
   "try harder and be more careful" without an evaluator run, candidate
   isolation, or raw diff/output trail.
 
-### P5: Recurring failures are absorbed by structure, not rules
+### Applied Repository Hardening: recurring failures are absorbed by structure
 
 > "Don't do this" fails. "Can't do this" succeeds.
 
-When the same failure category repeats, move beyond telling the agent what not to do — make **violation structurally impossible**.
+The Meta-Harness paper core is the proposer/evaluator/trace loop: preserve the
+feedback signal, search in mutable code space, isolate confounding variables,
+and reuse trace evidence. The structural hardening pattern below is this
+repository's applied engineering discipline for turning repeated trace evidence
+into durable guardrails; it is not a separate paper claim.
 
-**Escalation ladder** (stronger going down):
+When the same failure category repeats in traces or review evidence, move beyond
+telling the agent what not to do. In this repository, prefer changes that make
+the violation structurally difficult or impossible while keeping the evaluator
+boundary intact.
+
+**Repository hardening ladder** (stronger going down):
 
 | Level | Mechanism | Enforcement | Limitation |
 |-------|-----------|-------------|------------|
 | 0. Rule | Project instruction constraint | Voluntary compliance | Leaks via context rot |
 | 1. Warning | Runtime hook or explicit verification warning | Reminder | Can be ignored |
 | 2. Block | Runtime hook, CI, git hook, or protected command path | Direct modification blocked | Bypass routes may exist |
-| 3. **Structural impossibility** | Single Source + Codegen + Protect | **Drift itself is impossible** | Initial setup cost |
+| 3. **Structural hardening** | Single Source + Codegen + Protect | Drift is mechanically prevented or detected | Initial setup cost |
 
-**Single Source + Generated Derivatives pattern**:
+**Repository Single Source + Generated Derivatives pattern**:
 ```
 Human-editable truth (YAML / schema / config)
     → Generator (codegen / template / build script)
@@ -174,7 +183,10 @@ Human-editable truth (YAML / schema / config)
 - Truth source exists in 2+ places → apply Single Source + Codegen + Protect pattern
 - Only judgment-dependent domains (aesthetics, trade-offs) should remain as rules
 
-**Self-check**: "Can this failure category be eliminated by structure rather than rules?" If yes, aim for ladder level 3.
+**Self-check**: "Can this repository failure category be reduced by a generated
+source of truth, hook, checker, or protected artifact rather than another rule?"
+If yes, consider the ladder above as applied hardening after the trace evidence
+justifies it.
 
 ## Sub-Agent Invocation — Applied Runtime Extension
 
@@ -232,8 +244,8 @@ Use the runtime's available model routing when spawning sub-agents:
 ### Failure → Trace Recording → Rule Addition Loop
 1. Agent fails or repeats the same fix
 2. **Record in traces**: preserve raw context in `{trace_root}/failures/NNN-{name}.md`
-3. **Structural elimination check** (P5): "Can this category be eliminated by structure, not rules?"
-4. Respond: add knowledge to docs, add constraint to project instructions, add tooling/hooks, or **apply Single Source + Codegen + Protect** (P5 ladder level 3) as appropriate
+3. **Applied hardening check**: "Can this repository failure category be reduced by structure, not another rule?"
+4. Respond: add knowledge to docs, add constraint to project instructions, add tooling/hooks, or **apply Single Source + Codegen + Protect** as repository hardening when trace evidence justifies it
 4. **Record change in evolution log**: `{trace_root}/evolution/NNN-{name}.md`
 5. **Verify with search-set**: confirm past failures in `{trace_root}/search-set.md` don't recur
 6. Add new failure to search-set if it has verification value
