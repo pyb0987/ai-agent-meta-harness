@@ -162,3 +162,77 @@ Completion Gate:
 - Residual risk/follow-up: remaining Claude project-fixture and hook/runtime
   smoke follow-ups stay listed above.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 3. Add Claude init-harness project-fixture smoke test
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- tests/test_claude_init_harness_fixture.py
+- backlog/claude-adapter.md
+
+The Claude `/init-harness` command documents completion verification for a
+target project, but the repository does not yet have a mechanical smoke test
+that applies those output expectations to a minimal project fixture.
+
+Original improvement:
+
+- Add a temp-project fixture smoke test for the documented `/init-harness`
+  output contract.
+- Validate trace directories, `search-set.md`, initial evolution trace,
+  `CLAUDE.md` harness section, hook settings, and the absence of
+  `.claude/agents/`.
+- Keep actual Claude Code slash-command execution out of scope until it can be
+  exercised mechanically.
+
+Decision implemented:
+
+- `tests/test_claude_init_harness_fixture.py` now builds a minimal temporary
+  target project fixture and validates the documented `/init-harness`
+  completion outputs.
+- The smoke validator checks `.claude/traces/{evolution,failures,experiments}/`,
+  `.claude/hooks/`, `.claude/traces/search-set.md`, initial evolution trace,
+  `CLAUDE.md` harness markers, `.claude/settings.local.json` hook structure,
+  and the absence of `.claude/agents/`.
+- Negative tests reject forbidden `.claude/agents/` creation and missing
+  `SS-001` Active search-set coverage.
+- Actual Claude Code slash-command execution remains out of scope until this
+  repository can exercise it mechanically.
+
+Remaining follow-up work:
+
+- Add true Claude Code slash-command execution coverage when the runtime can be
+  exercised mechanically.
+- Add Claude hook settings schema/runtime activation smoke coverage when it can
+  be tested mechanically.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `tests/test_claude_init_harness_fixture.py` and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_init_harness_fixture.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-claude-adapter-paths.py`, `git diff --check`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and `python3 -m unittest discover -s adapters/codex/tests`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this validates Claude adapter init output
+  expectations that future release gates may rely on.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Fixture contract critic score 10, verdict
+  PASS, Blocking findings: none. Runtime-boundary critic score 9, verdict PASS,
+  Blocking findings: none. Maintenance compliance critic score 9, verdict PASS,
+  Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Runtime-boundary critic was 9 because the smoke
+  validates a fixture contract rather than executing Claude Code `/init-harness`;
+  no backlog item added because the runtime execution follow-up remains listed
+  above. Maintenance compliance critic was 9 because review used documented
+  sequential fallback rather than independent sub-agents; no backlog item added
+  because the residual risk is process-level review independence in this
+  session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: true Claude Code slash-command execution and hook
+  runtime activation remain future work.
+- Accepted: yes; accepted by maintainer review and ready for commit.
