@@ -7,12 +7,12 @@ policy live in `../MAINTENANCE.md`. This folder tracks future work; the
 maintenance plan describes how that work should be selected, reviewed, and
 verified.
 
-When multiple sessions work in parallel worktrees, check each candidate item's
-status block before starting. Reserve one concrete item with the
-`Status`/`Owner`/`Branch`/`Started`/`Scope` fields described in
-`../MAINTENANCE.md`, pass the Start Gate before implementation edits, and avoid
-overlapping another active scope. Worktree branches that skipped these gates
-must go through the recovery procedure before they can become merge-eligible.
+Routine maintenance should run through one active session at a time. Reserve
+one concrete item with the `Status`/`Owner`/`Branch`/`Started`/`Scope` fields
+described in `../MAINTENANCE.md`, pass the Start Gate before implementation
+edits, and complete the item before starting another one. Parallel worktrees are
+exceptional recovery or explicitly requested split-work tools, not the default
+backlog workflow.
 
 Use this folder by ownership, not by where an issue was discovered:
 
@@ -38,6 +38,7 @@ the adapter behavior truly differs.
 | Trace lifecycle and migration | Trace-root selection, partial initialization, history tie-breakers, archive restore, and `.claude/traces` to `.harness/traces` migration | `core.md` 2, 4-5; `claude-adapter.md` 1 path contract; `codex-adapter.md` 2 |
 | Autoresearch semantics | Detecting autoresearch projects, preserving evaluator boundaries, experiment episode traces, rejection history, and local-only protection states | `core.md` 1, 6; `codex-adapter.md` 12, 15 |
 | Codex execution model | Codex sandbox, permissions, sub-agent availability, MCP/tool policy, browser/web usage, and skipped verification reporting | `codex-adapter.md` 1, 7-9 |
+| Maintenance process control | Review-summary enforcement, score handling, and whether backlog work runs in one session or parallel worktrees | `core.md` 11, 15-17 |
 | Documentation boundary and examples | Keeping core as what/why, adapters as runtime how, and adding realistic examples without duplicating methodology | `core.md` 7; `codex-adapter.md` 10-11; adapter README/example follow-ups |
 
 ## Consolidation Notes
@@ -51,6 +52,12 @@ the adapter behavior truly differs.
 - `core.md` 9-10 plus adapter smoke items are one release-gate epic. Keep
   adapter-specific smoke tests in adapter backlogs, but keep the checklist and
   staged/index policy in core.
+- `core.md` 11 and 15-16 are one review-checker epic: summary structure,
+  embedded backlog review outcomes, VETO handling, and score-9 why-not-10
+  enforcement should stay aligned.
+- `core.md` 17 supersedes the experimental parallel-worktree operating model
+  for routine maintenance; keep only the parts that improve single-session
+  discipline.
 - `core.md` 2, 4, and 5 plus `codex-adapter.md` 2 are one trace-lifecycle epic.
   Core should define the general trace-history rules; Codex should only define
   how `.claude/traces` and `.harness/traces` interact in that runtime.

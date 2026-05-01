@@ -51,8 +51,7 @@ Backlog items are grouped by ownership in `backlog/` and by theme in
 Use this workflow for backlog work:
 
 1. Pick a theme and one concrete item.
-2. Mark the item before editing. In a single-session pass this can be a simple
-   `Status: 진행중`; in parallel worktree mode use the coordination fields below.
+2. Mark the item before editing with the session gate fields below.
 3. Implement the smallest useful contract, document, smoke test, or adapter
    change.
 4. Keep one functional harness change per iteration. Batch only independent
@@ -79,10 +78,72 @@ the wording from "Potential improvement" to "Decision implemented" plus
 "Remaining follow-up work". This preserves history without making completed
 work look unstarted.
 
-## Parallel Worktree Coordination
+## Single-Session Maintenance
 
-Use this mode when more than one session may work from separate Git worktrees or
-branches before merging back to `main`.
+Routine maintenance should run through one active session at a time. The active
+session may edit every file required by the selected item, but should still keep
+one functional harness change per iteration. This keeps ownership clear, avoids
+under-scoped edits caused by file-count anxiety, and gives review enough shared
+context to apply this maintenance policy consistently.
+
+Before implementation edits, the active session must record or report a Start
+Gate:
+
+- Selected item
+- Status block added or updated
+- Harness-affecting: yes/no
+- Multi-review required: yes/no, with reason
+- Minimum verification commands
+- Expected scope
+
+Before marking an item accepted, the active session must record a Completion
+Gate:
+
+- Backlog status
+- Changed files
+- Scope deviations, or `none`
+- Verification results
+- Search-set verification status, or skipped reason
+- Multi-review result, or reason not required
+- Reviewer scores and VETO handling
+- For each score 9: why not 10, and whether that reason created a backlog item
+- Residual risk or follow-up
+- Accepted: yes/no
+
+An item is accepted only when relevant verification is recorded, required
+multi-review is recorded, every required critic score is at least 9, every
+score of 9 has a recorded "why not 10" reason, and residual risk is either
+accepted or split into follow-up work.
+
+Record the active item reservation above the implementation notes:
+
+```md
+Status: 진행중
+Owner: <session name>
+Branch: <current branch>
+Started: YYYY-MM-DD
+Scope:
+- path/or/directory
+```
+
+Use these status values:
+
+- `대기`: available and not currently owned.
+- `진행중`: editing, verification, or review is active.
+- `리뷰대기`: implementation is ready for review or merge coordination.
+- `완료`: merged or otherwise accepted; keep decision and follow-up notes.
+- `보류`: intentionally paused, blocked, or superseded; record the reason.
+
+If the work must expand beyond the recorded scope, update the backlog item
+before touching the new area. If a session abandons an item, it must change
+`진행중` to `보류` or back to `대기` and record what happened.
+
+## Exceptional Parallel Worktree Recovery
+
+Parallel worktree maintenance is discouraged for routine backlog work. It should
+be used only when explicitly requested for an exceptional split, and the owner
+must ensure the sessions share enough context to satisfy the same review,
+verification, VETO, and score-9 follow-up rules as a single session.
 
 If a worktree session skips reservation, scope control, verification,
 multi-review, or review-score handling, do not merge the branch as normal
@@ -134,90 +195,6 @@ Recovery note:
 Recovered work remains blocked if the intended backlog item cannot be
 identified, if active scopes conflict, if required verification cannot be
 reconstructed, or if any required critic remains below score 9.
-
-## Worktree Session Gates
-
-Parallel worktree sessions must pass these gates in order. A session should not
-edit implementation files before the Start Gate is recorded in the backlog item
-or reported to the maintainer.
-
-Start Gate:
-
-- Selected item
-- Status block added or updated
-- Harness-affecting: yes/no
-- Multi-review required: yes/no, with reason
-- Minimum verification commands
-- Expected scope
-- Overlap check against active `예약됨`, `진행중`, and `리뷰대기` items
-
-Completion Gate:
-
-- Backlog status
-- Changed files
-- Scope deviations, or `none`
-- Verification results
-- Search-set verification status, or skipped reason
-- Multi-review result, or reason not required
-- Reviewer scores and VETO handling
-- For each score 9: why not 10, and whether that reason created a backlog item
-- Residual risk or follow-up
-- Merge eligible: yes/no
-
-A branch is merge-eligible only when the backlog item is `리뷰대기`, relevant
-verification is recorded, required multi-review is recorded, every required
-critic score is at least 9, every score of 9 has a recorded "why not 10" reason,
-scope overlaps are resolved, and residual risk is either accepted or split into
-follow-up work.
-
-Before editing, each session must reserve exactly one concrete backlog item.
-Record the reservation in the item itself, above the implementation notes:
-
-```md
-Status: 진행중
-Owner: <session or worktree name>
-Branch: codex/<topic>
-Started: YYYY-MM-DD
-Scope:
-- path/or/directory
-```
-
-Use these status values:
-
-- `대기`: available and not currently owned.
-- `예약됨`: branch or worktree is prepared, but editing has not started.
-- `진행중`: editing, verification, or review is active.
-- `리뷰대기`: implementation is ready for review or merge coordination.
-- `완료`: merged or otherwise accepted; keep decision and follow-up notes.
-- `보류`: intentionally paused, blocked, or superseded; record the reason.
-
-The `Scope` list is a coordination contract, not a full diff prediction. List
-the files, directories, generated surfaces, or test areas the session expects to
-touch. Do not reserve an item whose `Scope` overlaps another `예약됨`,
-`진행중`, or `리뷰대기` item unless the owners explicitly split the work and
-update both scopes first.
-
-Worktree sessions should follow this sequence:
-
-1. Start from the current accepted `main`, create a topic branch or worktree,
-   and use the repository branch naming convention unless the user asks
-   otherwise.
-2. Reserve one backlog item with status, owner, branch, started date, and scope
-   before editing files.
-3. Keep edits inside the recorded scope. If the work must expand, update the
-   backlog reservation before touching the new area.
-4. Rebase, merge, or otherwise refresh from `main` before review when another
-   worktree lands first. Rerun the checks relevant to any refreshed files.
-5. Move the item to `리뷰대기` when the branch is ready to merge. Do not mark it
-   `완료` until the accepted change is on the shared integration branch.
-6. After merge, update the backlog item to `완료`, `보류`, or a new follow-up
-   state. Remove stale ownership fields only when the remaining item is again
-   available for another session.
-
-If a session abandons a branch, it must change `진행중` or `예약됨` to `보류`
-or back to `대기` and record what happened. Stale reservations should be
-treated as blockers until a maintainer decides whether to resume, release, or
-supersede them.
 
 ## Test Policy
 

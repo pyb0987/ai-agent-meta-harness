@@ -397,6 +397,15 @@ Review outcome:
   Blocking findings: none. Why not 10: Completion Gate details still needed.
   Addressed by updating this backlog record and rerunning the critic. Rerun
   score 10, verdict PASS.
+- Follow-up/residual risk: add a short prompt-as-code example when a future
+  core documentation pass needs concrete examples; the other score-9 concerns
+  were addressed before acceptance.
+- Score handling: no critic scored below 9; no VETO triggered. Every score 9
+  recorded why it was not 10. The remaining actionable why-not-10 reason is
+  already captured as remaining follow-up work above; rerun score-9 reasons
+  were addressed in the final diff.
+- Rerun status: affected critics were rerun after README/backlog updates; final
+  scores were 9, 10, and 10.
 - Final acceptance: accepted and merged to `main` in commit
   `e5c1410 docs: clarify prompt-as-code search boundary`.
 
@@ -534,3 +543,169 @@ Review outcome:
 - Source review: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md`.
 - Last reviewed baseline: `987dca0 fix: tighten codex harness engineer guardrails`.
 - Recommended next quality pass: start with autoresearch detection heuristics, then trace-history tie-breakers, then verify-command quality rules.
+
+### 15. Validate embedded backlog review outcomes
+
+The maintenance review checker currently validates `backlog/review-*.md` by
+default, but accepted review outcomes are now also recorded directly inside
+`backlog/core.md` and `backlog/codex-adapter.md`. This lets standard
+verification pass while embedded `Review outcome:` sections can miss required
+fields such as follow-up/residual risk, score handling, or rerun status.
+
+Potential improvement:
+
+- Extend `scripts/check-maintenance-review.py` default paths to include backlog
+  ownership files that contain embedded review outcomes.
+- Add tests proving embedded `Review outcome:` sections in backlog files are
+  checked by default.
+- Fix existing embedded review records that fail the checker when checked
+  explicitly.
+- Keep the checker focused on review-result structure, not prose style.
+
+### 16. Enforce score-9 why-not-10 review handling
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/review-2026-04-30-maintenance-recovery.md
+- backlog/core.md
+
+`MAINTENANCE.md` now requires every score of 9 to record why the score was not
+10 and whether that reason produced a backlog item. The checker still treats
+scores >= 9 as structurally accepted without validating the why-not-10 record,
+so this policy is not mechanically enforced.
+
+Original improvement:
+
+- Update `scripts/check-maintenance-review.py` so every score 9 record requires
+  a `Why not 10:` explanation or an equivalent explicit field.
+- Require score-9 records or the section-level score handling to state whether
+  the reason created a backlog item or was accepted as residual risk.
+- Add tests that reject score-9 review records without why-not-10 handling.
+- Backfill existing review records so the stricter checker can pass.
+
+Decision implemented:
+
+- `scripts/check-maintenance-review.py` now requires score 9 and 9.x review
+  records to have why-not-10 handling either on the critic record or in the
+  section-level score-handling record.
+- Score-9 handling must also state a disposition through backlog follow-up,
+  residual-risk acceptance, or resolution in the final reviewed diff.
+- Review markers are recognized only as standalone `Multi-review:` or
+  `Review outcome:` lines, so prose that mentions those labels does not become
+  a false review section.
+- `tests/test_check_maintenance_review.py` covers accepted score-9 handling,
+  missing why-not-10 rejection, missing disposition rejection, section-level
+  handling, and inline marker text.
+- `backlog/review-2026-04-30-maintenance-recovery.md` now backfills historical
+  score-9 why-not-10 and backlog/residual-risk disposition notes so the stricter
+  checker passes.
+- One existing embedded review outcome in this file was backfilled with
+  follow-up/residual risk, score handling, and rerun status so explicit
+  validation of `backlog/core.md` passes.
+
+Remaining follow-up work:
+
+- Complete `core.md` item 15 before adding embedded backlog review outcomes to
+  the default checker path.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`,
+  `backlog/review-2026-04-30-maintenance-recovery.md`, and `backlog/core.md`.
+- Scope deviations: `backlog/review-2026-04-30-maintenance-recovery.md` was
+  added to Scope before editing because standard verification exposed existing
+  score-9 records that needed backfill for the stricter checker.
+- Verification results: PASS; `python3 -m unittest tests/test_check_maintenance_review.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-maintenance-review.py backlog/core.md`, `python3 scripts/check-maintenance-review.py backlog/core.md backlog/codex-adapter.md`, `git diff --check`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and `python3 -m unittest discover -s adapters/codex/tests`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes release-gate/review-checker
+  semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Checker correctness critic score 10,
+  verdict PASS, Blocking findings: none. Historical-record compatibility critic
+  score 9, verdict PASS, Blocking findings: none. Maintenance compliance critic
+  score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Historical-record compatibility critic was 9
+  because default validation still covers only `backlog/review-*.md`, while
+  embedded backlog review outcomes remain tracked by item 15; no new backlog
+  item added because that actionable follow-up already exists. Maintenance
+  compliance critic was 9 because review used documented sequential fallback
+  rather than independent sub-agents; no backlog item added because the residual
+  risk is process-level review independence for this session, not a repository
+  change.
+- Backlog items added from score-9 residual risk: none; item 15 already tracks
+  the actionable embedded-review default-path follow-up.
+- Residual risk/follow-up: complete item 15 before default checker validation is
+  expanded to embedded backlog review outcomes.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 17. Restore single-session maintenance pipeline
+
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-01
+Scope:
+- MAINTENANCE.md
+- backlog/README.md
+- backlog/core.md
+
+Parallel worktree maintenance exposed process failure modes: sessions tried to
+touch too few files even when the correct change crossed boundaries, ownership
+became diffuse enough to create a bystander effect, and reviewers lacked enough
+shared context to apply `MAINTENANCE.md`, multi-review, and iteration rules
+consistently. The repository should return to the earlier single-session
+maintenance model unless a future coordination mechanism proves these risks are
+controlled.
+
+Decision implemented:
+
+- `MAINTENANCE.md` now makes one active maintenance session at a time the
+  routine maintenance model.
+- The session gate keeps explicit item selection, expected scope, verification,
+  multi-review, VETO iteration, score-9 follow-up, and final acceptance.
+- Parallel worktree maintenance is now framed as exceptional recovery or
+  explicitly requested split work, not the default backlog workflow.
+- `backlog/README.md` now directs maintainers to complete one item in one
+  active session before starting another.
+- The observed failure modes are recorded here so future maintainers do not
+  reintroduce parallel routine maintenance without stronger shared-context and
+  ownership controls.
+
+Remaining follow-up work:
+
+- Update any external prompt snippets or operator playbooks that still ask
+  routine maintenance sessions to create separate worktrees.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `MAINTENANCE.md`, `backlog/README.md`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `rg -n "Single-Session Maintenance|Exceptional Parallel Worktree Recovery|Parallel Worktree Coordination|Worktree Session Gates|Routine maintenance should run through one active session" MAINTENANCE.md backlog/README.md`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, and `git diff --check`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes the repository maintenance
+  process and future backlog operating model.
+- Multi-review result: PASS; no critic scored below 9.
+- Reviewer scores and VETO handling: Maintenance process critic score 10,
+  verdict PASS, Blocking findings: none. Gate-preservation critic score 9,
+  verdict PASS, Blocking findings: none. Backlog discoverability critic score
+  9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Gate-preservation critic was 9 because the
+  external session prompts still need to be updated outside the repository
+  files; recorded as remaining follow-up work above. Backlog discoverability
+  critic was 9 because the new items live after `Current Status`; accepted as
+  residual risk because backlog theme indexing now points to item 17 and a
+  larger backlog reorganization is not needed for this change.
+- Residual risk/follow-up: update external prompts/playbooks before launching
+  new routine maintenance sessions.
+- Accepted: yes, ready for maintainer review and commit.

@@ -30,9 +30,9 @@ class CheckMaintenanceReviewTests(unittest.TestCase):
     def test_accepts_score_9_review_summary(self):
         errors = check_maintenance_review.validate_text(
             summary(
-                """- Test scope critic: score 9, PASS. Blocking findings: none.
-- Release-gate critic: score 9, PASS. Blocking findings: none.
-- Score handling: all required critics scored at least 9, so no VETO iteration was needed.
+                """- Test scope critic: score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is intentionally narrow. Follow-up/residual risk: accepted for this test-only review.
+- Release-gate critic: score 9, PASS. Blocking findings: none. Why not 10: no release-like diff was present. No backlog item added because this is test fixture scope.
+- Score handling: all required critics scored at least 9, so no VETO iteration was needed. Every score 9 records why not 10 and either backlog follow-up or residual-risk disposition.
 - Rerun status: no fixes were needed, so no rerun was required.
 - Follow-up/residual risk: none for this follow-up iteration.
 - Final acceptance: accepted for this follow-up iteration.
@@ -60,7 +60,7 @@ class CheckMaintenanceReviewTests(unittest.TestCase):
         errors = check_maintenance_review.validate_text(
             summary(
                 """- Test scope critic: score 9, PASS. Blocking findings: none.
-- Score handling: all required critics scored at least 9.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
 - Rerun status: pending critic rerun after fixes.
 - Follow-up/residual risk: rerun is still pending.
 - Final acceptance: accepted after rerun.
@@ -106,7 +106,7 @@ Multi-review:
         errors = check_maintenance_review.validate_text(
             summary(
                 """- score 9, PASS. Blocking findings: none.
-- Score handling: all required critics scored at least 9.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
 - Rerun status: no fixes were needed, so no rerun was required.
 - Follow-up/residual risk: none.
 - Final acceptance: accepted for this follow-up iteration.
@@ -120,8 +120,8 @@ Multi-review:
         errors = check_maintenance_review.validate_text(
             summary(
                 """- Test scope critic: score 9, PASS.
-- Release-gate critic: score 9, PASS. Blocking findings: none.
-- Score handling: all required critics scored at least 9.
+- Release-gate critic: score 9, PASS. Blocking findings: none. Why not 10: fixture scope only. Follow-up/residual risk: accepted.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
 - Rerun status: no fixes were needed, so no rerun was required.
 - Follow-up/residual risk: none.
 - Final acceptance: accepted for this follow-up iteration.
@@ -130,6 +130,60 @@ Multi-review:
         )
 
         self.assertTrue(any("score record lacks blocking findings" in error for error in errors))
+
+    def test_rejects_score_9_without_why_not_10(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 9, PASS. Blocking findings: none. Follow-up/residual risk: accepted.
+- Score handling: all required critics scored at least 9.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: none.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertTrue(any("score 9 lacks why-not-10 handling" in error for error in errors))
+
+    def test_rejects_score_9_without_disposition(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is narrow.
+- Score handling: all required critics scored at least 9.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: none.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertTrue(any("score 9 lacks backlog/residual-risk disposition" in error for error in errors))
+
+    def test_accepts_section_level_score_9_handling(self):
+        errors = check_maintenance_review.validate_text(
+            summary(
+                """- Test scope critic: score 9, PASS. Blocking findings: none.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10; the only score 9 produced no backlog item and is accepted as residual risk.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_ignores_inline_review_outcome_text(self):
+        text = """# Backlog
+
+## Candidate
+
+Potential improvement:
+
+- Fix existing embedded `Review outcome:` sections when this item is selected.
+"""
+
+        self.assertEqual(check_maintenance_review.validate_text(text), [])
 
 
 if __name__ == "__main__":

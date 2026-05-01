@@ -17,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GLOB = "backlog/review-*.md"
 
 SCORE_RE = re.compile(r"\b(?:normalized\s+)?score(?:d)?(?:\s*[:=]|\s+)(\d+(?:\.\d+)?)\b", re.IGNORECASE)
+REVIEW_MARKER_RE = re.compile(r"^\s*(?:Multi-review|Review outcome):\s*$", re.MULTILINE)
+WHY_NOT_10_RE = re.compile(r"\b(?:why\s+not\s+10|not\s+10)\b", re.IGNORECASE)
+SCORE_9_DISPOSITION_RE = re.compile(
+    r"\b(?:backlog|follow-up|residual risk|remaining follow-up|addressed|fixed|resolved|accepted)\b",
+    re.IGNORECASE,
+)
 
 REQUIRED_FIELDS = {
     "verdict": re.compile(r"\b(?:PASS|VETO|MIXED|FAIL)\b"),
@@ -55,7 +61,7 @@ def review_sections(text: str) -> list[ReviewSection]:
         start = match.start()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         body = text[start:end]
-        if "Multi-review:" not in body and "Review outcome:" not in body:
+        if not REVIEW_MARKER_RE.search(body):
             continue
         sections.append(
             ReviewSection(
@@ -83,14 +89,10 @@ def bullet_records(section_text: str) -> list[str]:
 
 
 def review_block(section_text: str) -> str:
-    starts = [
-        index
-        for marker in ("Multi-review:", "Review outcome:")
-        if (index := section_text.find(marker)) != -1
-    ]
-    if not starts:
+    match = REVIEW_MARKER_RE.search(section_text)
+    if not match:
         return ""
-    return section_text[min(starts):]
+    return section_text[match.start():]
 
 
 def has_score_scope(record: str) -> bool:
@@ -114,6 +116,12 @@ def validate_text(text: str, *, source: str = "<text>") -> list[str]:
                 errors.append(f"{label}: missing required review field: {field}")
 
         records = bullet_records(block)
+        score_handling_records = [
+            record
+            for record in records
+            if record.lower().startswith("- score handling:")
+        ]
+        score_9_handling_text = " ".join(score_handling_records)
         score_records = [
             record
             for record in records
@@ -141,6 +149,12 @@ def validate_text(text: str, *, source: str = "<text>") -> list[str]:
                 if not REQUIRED_FIELDS["blocking findings"].search(record):
                     errors.append(f"{label}: score record lacks blocking findings: {record}")
             for score in scores:
+                if 9 <= score < 10:
+                    why_context = f"{record} {score_9_handling_text}"
+                    if not WHY_NOT_10_RE.search(why_context):
+                        errors.append(f"{label}: score 9 lacks why-not-10 handling: {record}")
+                    if not SCORE_9_DISPOSITION_RE.search(why_context):
+                        errors.append(f"{label}: score 9 lacks backlog/residual-risk disposition: {record}")
                 if score >= 9:
                     continue
                 if not HANDLED_LOW_SCORE_RE.search(record):

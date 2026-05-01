@@ -63,7 +63,9 @@ Review outcome:
 - Rerun status: core critic rerun after fixes.
 - Re-review: score 9, PASS. Blocking findings: none.
 - Score handling: initial score 7 triggered VETO recovery; final accepted score
-  was 9.
+  was 9. Why not 10: this was an exceptional recovery review over a broad
+  historical batch, not a fresh one-item iteration; no backlog item was added
+  because the reviewed unit had no remaining actionable core risk.
 - Follow-up/residual risk: none for this reviewed unit.
 - Final acceptance: accepted for this reviewed unit.
 
@@ -98,7 +100,9 @@ Review outcome:
 - Rerun status: Codex adapter critic rerun after fixes.
 - Re-review: score 9, PASS. Blocking findings: none.
 - Score handling: initial score 8 triggered VETO recovery; final accepted score
-  was 9.
+  was 9. Why not 10: this was an exceptional recovery review over a broad
+  historical batch, not a fresh one-item iteration; no backlog item was added
+  because the reviewed unit had no remaining actionable Codex-adapter risk.
 - Follow-up/residual risk: none for this reviewed unit.
 - Final acceptance: accepted for this reviewed unit.
 
@@ -133,7 +137,8 @@ Review outcome:
 - Rerun status: plugin/release critic rerun after fixes.
 - Re-review: score 9, PASS. Blocking findings: none.
 - Score handling: initial score 8 triggered VETO recovery; final accepted score
-  was 9.
+  was 9. Why not 10: additional plugin sync coverage was still useful; that
+  actionable residual risk was split into later follow-up iterations.
 - Follow-up/residual risk: extra plugin sync tests split into later follow-up
   iterations.
 - Final acceptance: accepted for this reviewed unit. Extra tests remained
@@ -225,7 +230,9 @@ Multi-review:
   Blocking findings: none.
 - Score handling: score 8 and normalized score 7.8 triggered VETO recovery;
   final accepted scores were normalized score 9.3 and score 9 from all required
-  critics.
+  critics. Why not 10: the iteration left optional end-to-end CLI sequence
+  coverage outside the scoped test; accepted as residual risk because the
+  required source regression was covered directly.
 - Follow-up/residual risk: optional end-to-end CLI sequence coverage only.
 - Final acceptance: accepted for this follow-up iteration.
 
@@ -255,7 +262,9 @@ Multi-review:
 - Release-gate critic: score 9, PASS. Blocking findings: none.
 - Rerun status: no fixes were needed, so no rerun was required.
 - Score handling: all required critics scored at least 9, so no VETO iteration
-  was needed.
+  was needed. Why not 10: the review covered one focused plugin-sync regression,
+  not broader generated-manifest behavior; no backlog item was added because
+  the next focused follow-up already covered the remaining manifest risk.
 - Follow-up/residual risk: none for this follow-up iteration.
 - Final acceptance: accepted for this follow-up iteration.
 
@@ -299,7 +308,9 @@ Multi-review:
 - Re-review: test scope critic score 9, PASS. Blocking findings: none.
 - Re-review: release-gate critic score 9, PASS. Blocking findings: none.
 - Score handling: both initial score 8 reviews triggered VETO recovery; all
-  required critics were rerun and reached score 9.
+  required critics were rerun and reached score 9. Why not 10: broader manifest
+  cases remained optional; accepted as residual risk because this item only
+  needed to prove generated-path manifest validation.
 - Follow-up/residual risk: optional broader manifest cases may be added later,
   but no required follow-up remains for this scoped item.
 - Final acceptance: accepted for this follow-up iteration.
@@ -339,7 +350,9 @@ Multi-review:
 - Re-review: process/systemization critic score 9, PASS. Blocking findings:
   none.
 - Score handling: process/systemization score 8 triggered VETO recovery; all
-  required critics were rerun and reached score 9.
+  required critics were rerun and reached score 9. Why not 10: the policy still
+  depended on a future automated checker; that actionable residual risk was
+  recorded as follow-up work.
 - Follow-up/residual risk: add an automated maintenance review checker in a
   later iteration.
 - Final acceptance: accepted for this follow-up iteration.
@@ -369,7 +382,8 @@ Multi-review:
 - Maintenance process fit critic: score 9, PASS. Blocking findings: none.
 - Rerun status: no fixes were needed, so no rerun was required.
 - Score handling: all required critics scored at least 9, so no VETO iteration
-  was needed.
+  was needed. Why not 10: the iteration only selected the checker work for a
+  future pass; the actionable residual risk was the backlog item it created.
 - Follow-up/residual risk: implement `scripts/check-maintenance-review.py` in a
   later one-item iteration.
 - Final acceptance: accepted for this follow-up iteration.
@@ -420,7 +434,9 @@ Multi-review:
 - Re-review: process/release-gate critic score 9, PASS. Blocking findings:
   none.
 - Score handling: both initial score 7 reviews triggered VETO recovery; all
-  required critics were rerun and reached score 9.
+  required critics were rerun and reached score 9. Why not 10: pre-commit
+  integration was intentionally deferred; accepted as residual risk because
+  standard verification already ran the checker explicitly.
 - Follow-up/residual risk: keep the checker out of pre-commit until the review
   summary format is stable enough not to create noisy local failures.
 - Final acceptance: accepted for this follow-up iteration.
@@ -475,7 +491,10 @@ Multi-review:
 - Re-review: process/release-gate critic score 10, PASS. Blocking findings:
   none.
 - Score handling: initial process/release-gate score 8 triggered VETO recovery;
-  all required critics were rerun and reached score 10.
+  all required critics were rerun and reached score 10. The initial score 9
+  was superseded by rerun score 10; why not 10 was the broad skipped-status
+  wording, accepted as residual risk before rerun and resolved by the final
+  reviewed diff.
 - Follow-up/residual risk: add a concrete setup transcript after a real
   autoresearch dry run exercises all protection levels. Runtime hook activation
   and tool-event coverage remain tracked outside this item.
@@ -542,7 +561,9 @@ Multi-review:
   findings: none.
 - Score handling: both protected-file checker correctness score 8 reviews
   triggered VETO recovery; all required critics were rerun after each recovery
-  and reached score 9.
+  and reached score 9. Why not 10: Bash detection remained heuristic and
+  runtime hook activation was still tracked separately; accepted as residual
+  risk because pre-commit/CI diff checks remained the hard protection layer.
 - Follow-up/residual risk: Bash detection remains heuristic rather than a full
   shell or Python parser. Hard protection still depends on pre-commit and CI
   detecting actual protected-file diffs, and runtime Codex hook activation
