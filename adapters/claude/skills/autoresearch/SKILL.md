@@ -87,7 +87,7 @@ Requirements:
 - Timeout guard (prevent infinite loops)
 - Binary verdict: ADOPT / REJECT_GUARD / REJECT_THRESHOLD / ERROR
 - Immutable: state "do not modify" in program.md
-- **SSOT for baseline**: evaluate.py writes `best_score.txt` on ADOPT. This file is the **single source of truth** for the current baseline. Do NOT duplicate the baseline value in program.md, handoff.md, or anywhere else — duplication creates cadence-conflict drift (see `.claude/traces/failures/` for the diagnosed failure mode).
+- **SSOT for baseline**: evaluate.py writes `best_score.txt` on ADOPT. This file is the **single source of truth** for the current baseline. Do NOT duplicate the baseline value in program.md, handoff.md, or anywhere else — duplication creates cadence-conflict drift (see `{trace_root}/failures/` for the diagnosed failure mode).
 
 #### Step 3: Write program.md
 ```markdown
@@ -150,9 +150,30 @@ fi
 #### Step 5: Initialize experiments.jsonl
 Create empty file. First experiment is n=1.
 
+#### Step 5.5: Select Active Trace Root
+
+Select the active trace root before writing experiment episodes, failure
+diagnoses, or escalation records.
+
+- Default Claude root: `.claude/traces/`.
+- Also inspect `.harness/traces/` when it already exists, because migrated
+  projects may contain meaningful shared harness history there.
+- Meaningful history includes `search-set.md` with Active cases, unresolved
+  failures, non-template evolution entries, experiment episodes, or recent
+  project-specific trace content.
+- If `.harness/traces/` has meaningful history and `.claude/traces/` is absent,
+  empty, or template-only, reuse `.harness/traces/` as `{trace_root}` and record
+  the temporary reuse in CLAUDE.md or `docs/autoresearch.md`.
+- If both `.harness/traces/` and `.claude/traces/` have divergent meaningful
+  history, stop and propose a migration/merge plan before writing new
+  autoresearch traces.
+- Do not split future experiment or failure history across roots silently.
+
+Treat the selected root as `{trace_root}` for all steps below.
+
 **Raw output preservation**: evaluate.py's JSON stdout is critical diagnostic material. Preserve originals, not summaries:
 - `experiments.jsonl`: record each experiment's full JSON output as 1 line (machine parseable)
-- `.claude/traces/experiments/NNN-*.md`: include representative experiments' raw output in episode traces
+- `{trace_root}/experiments/NNN-*.md`: include representative experiments' raw output in episode traces
 - Preserve verdict, score, gates, metrics in full — no selective field omission
 
 #### Step 6: Install Evaluator Protection Hooks
@@ -359,13 +380,13 @@ Append (or merge into existing) an Autoresearch section to the project CLAUDE.md
 - **Mutable/immutable file boundary**: evaluator + dependencies = IMMUTABLE, genome = MUTABLE
 - **Trace recording timing**: record immediately on ADOPT, axis exhaustion, every 10 experiments, termination
 - **Trace YAML frontmatter required fields**: session, date, experiment_range, adopts, rejects, metric_start, metric_end
-- **Reject code preservation**: before reverting on REJECT, capture `git diff HEAD~1` into the `.claude/traces/failures/` trace when recording triggers apply (see methodology.md)
+- **Reject code preservation**: before reverting on REJECT, capture `git diff HEAD~1` into the `{trace_root}/failures/` trace when recording triggers apply (see methodology.md)
 
 **Idempotency**: if CLAUDE.md already contains an "Autoresearch" heading, merge new bullets only. Do not duplicate. If the 100-line CLAUDE.md cap is exceeded, split the autoresearch section to `docs/autoresearch.md` and leave a one-line reference in CLAUDE.md.
 
 #### Step 8: Document Episode Format
 
-Ensure `.claude/traces/experiments/` exists (created by `/init-harness`; create now if missing) and verify that the episode format from `~/.claude/docs/harness-reference.md` "Experiment Episode Format" section is referenced from CLAUDE.md or a project doc. The agent must know where to find the format when writing episodes.
+Ensure `{trace_root}/experiments/` exists (created by `/init-harness`; create now if missing) and verify that the episode format from `~/.claude/docs/harness-reference.md` "Experiment Episode Format" section is referenced from CLAUDE.md or a project doc. The agent must know where to find the format when writing episodes.
 
 #### Setup Completion Checklist
 
@@ -377,7 +398,8 @@ Before exiting Setup Mode, verify:
 - [ ] `.claude/hooks/protect-files.sh` and `protect-files-bash.sh` installed
 - [ ] `.claude/settings.local.json` has both hooks registered (PreToolUse Edit|Write + PreToolUse Bash)
 - [ ] CLAUDE.md has Autoresearch section (output schema, mutable/immutable boundary, trace timing, frontmatter fields, reject preservation)
-- [ ] `.claude/traces/experiments/` exists and episode format is referenced
+- [ ] Active `{trace_root}` selected by evidence and recorded when it is not `.claude/traces/`
+- [ ] `{trace_root}/experiments/` exists and episode format is referenced
 
 #### Reference
 See the examples/ directory for a reference implementation.
@@ -405,8 +427,8 @@ The loop the agent executes when program.md already exists.
 
 #### Termination Conditions
 - `n >= MAX_EXPERIMENTS` (default: 100)
-- `consecutive_rejects >= 20` → record as blocked in handoff.md + **escalate**: record in `.claude/traces/failures/` with diagnosis of the structural cause, then escalate to harness-engineer. No simple retries — structural cause diagnosis required
-- Context window exhausted → record as in_progress in handoff.md (not recorded in `.claude/traces/failures/` — exhaustion is a budget/session limit, not a harness diagnosis target)
+- `consecutive_rejects >= 20` → record as blocked in handoff.md + **escalate**: record in `{trace_root}/failures/` with diagnosis of the structural cause, then escalate to harness-engineer. No simple retries — structural cause diagnosis required
+- Context window exhausted → record as in_progress in handoff.md (not recorded in `{trace_root}/failures/` — exhaustion is a budget/session limit, not a harness diagnosis target)
 - ERROR verdict → revert + try different approach (not stop)
 
 #### Episode Trace — Immediate Recording (do NOT wait for session end)
@@ -420,12 +442,12 @@ Episode traces are written **immediately at milestones**. Do not batch-write at 
 3. **On termination**: record full session experiment summary
 4. **Every 10 experiments**: interim summary (even without ADOPTs)
 
-Episode file: `.claude/traces/experiments/NNN-{name}.md`
+Episode file: `{trace_root}/experiments/NNN-{name}.md`
 - experiments.jsonl is a machine-readable 1-line log; episodes provide diagnostic context ("why?")
 - Format: see reference.md "Experiment Episode Format" section
-- Numbering: next sequence number within `.claude/traces/experiments/`
+- Numbering: next sequence number within `{trace_root}/experiments/`
 - Multiple episodes possible per session (e.g., one per ADOPT)
-- **harness-engineer integration**: experiment episodes are a different layer from `.claude/traces/failures/` — harness-engineer reads Exhausted Axes / Lesson sections directly
+- **harness-engineer integration**: experiment episodes are a different layer from `{trace_root}/failures/` — harness-engineer reads Exhausted Axes / Lesson sections directly
 
 #### Session Continuity
 
@@ -440,14 +462,14 @@ On termination, update `.claude/handoff.md`:
 ## Next entry point: <suggested next hypothesis>
 ## Git state: clean | dirty
 ```
-Next session reads handoff.md + latest episode traces to maintain continuity.
+Next session reads handoff.md + latest episode traces from `{trace_root}/experiments/` to maintain continuity.
 
 ---
 
 ## Evaluator Problem Detection → Harness Feedback Loop
 
 When structural problems with evaluate.py itself are suspected (gradient dead zone, guard malfunction, metric distortion, etc.):
-1. Record in `.claude/traces/failures/NNN-{name}.md` (include symptoms + supporting data)
+1. Record in `{trace_root}/failures/NNN-{name}.md` (include symptoms + supporting data)
 2. Escalate to harness-engineer for diagnosis
 3. evaluate.py is immutable, so **the agent does not modify it directly** — redesign after user confirmation
 

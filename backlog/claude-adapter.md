@@ -148,6 +148,16 @@ Completion Gate:
 
 ### 11. P2 make Claude autoresearch honor the active trace root
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/skills/autoresearch/SKILL.md
+- skills/autoresearch/SKILL.md
+- tests/test_claude_autoresearch_trace_root.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 The Claude `autoresearch` skill still hardcodes `.claude/traces/` for reject
@@ -167,6 +177,70 @@ Potential improvement:
   `.harness/traces/` reuse for migrated projects.
 - Add focused coverage that rejects hardcoded trace writes where active-root
   selection is required.
+
+Decision:
+
+- Added a Claude autoresearch Setup Mode step to select the active trace root
+  before writing experiment episodes, failure diagnoses, or escalation records.
+- Kept `.claude/traces/` as the default Claude root while allowing meaningful
+  `.harness/traces/` migrated history to be reused as `{trace_root}` when
+  `.claude/traces/` is absent, empty, or template-only.
+- Reworded reject preservation, episode paths, numbering, escalation failures,
+  and continuity references to use `{trace_root}`.
+- Updated the root `skills/autoresearch` compatibility mirror.
+- Added focused lexical coverage proving post-selection trace writes use
+  `{trace_root}` and that canonical/mirror skill copies match.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `adapters/claude/skills/autoresearch/SKILL.md`
+  - `skills/autoresearch/SKILL.md`
+  - `tests/test_claude_autoresearch_trace_root.py`
+  - `backlog/claude-adapter.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_trace_root.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; no repository `search-set.md` exists
+  (`rg --files -g 'search-set.md'` returned no files).
+- Multi-review required: yes; this changes Claude autoresearch trace-writing
+  behavior and migration semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Active trace-root contract critic: 10/10 PASS; Setup Mode now selects
+    `{trace_root}` before writing traces and uses it for later trace writes.
+  - Migrated history safety critic: 10/10 PASS; meaningful `.harness/traces/`
+    history can be reused without silently splitting experiment/failure traces.
+  - Compatibility mirror critic: 10/10 PASS; root skill mirror matches the
+    canonical Claude adapter skill and compatibility mirror checks pass.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope update,
+    verification, search-set SKIPPED reason, and Completion Gate are recorded,
+    with nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review was sequential
+    fallback in the parent context, not independent parallel critics. No
+    backlog item added because this is session-surface residual risk, not
+    repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 12. P2 require Claude autoresearch hard-layer protection before setup completion
 
