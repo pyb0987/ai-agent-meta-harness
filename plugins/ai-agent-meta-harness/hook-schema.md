@@ -12,6 +12,10 @@ This drift check validates documented output-shape assumptions only. It does not
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
+- Re-verification note: 2026-05-03 item 27 defined direct-copy degraded
+  reporting only; official Codex hooks/config docs were re-checked, and
+  `PreToolUse`, `PermissionRequest`, `hookSpecificOutput`, and
+  `features.codex_hooks` output/config assumptions remain unchanged.
 - Re-verification note: 2026-04-30 item 15 changed autoresearch protection
   reporting only; `PreToolUse`, `PermissionRequest`, and `features.codex_hooks`
   output/config assumptions were re-checked and remain unchanged.

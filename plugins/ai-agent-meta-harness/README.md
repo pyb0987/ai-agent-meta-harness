@@ -203,6 +203,14 @@ cp -r adapters/codex/skills/* ~/.codex/skills/
 
 This fallback does not install Codex hooks, checker scripts, templates outside bundled skill assets, or plugin metadata. Do not treat it as the full autoresearch safety path.
 
+When a skill-only direct-copy install reaches autoresearch setup and cannot
+read the bundled protection assets, it must report
+`DEGRADED_DIRECT_COPY_PROTECTION`, list the missing checker, smoke, protected
+path, hook, pre-commit, CI, and AGENTS reminder assets, and keep
+`Protection level: incomplete`. It must not claim Codex hooks, checker scripts,
+pre-commit, or CI protection were installed until those assets are copied from
+the generated plugin bundle and smoke-tested.
+
 Then ask Codex:
 
 ```text

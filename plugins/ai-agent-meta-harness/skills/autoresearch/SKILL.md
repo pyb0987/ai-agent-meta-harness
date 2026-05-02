@@ -256,6 +256,35 @@ Bundled Codex adapter assets provide starting templates for this bundle:
 - `templates/hooks/github-actions-autoresearch-protected.yml` -> a pull-request workflow or job in `.github/workflows/`
 - `templates/hooks/agents-autoresearch-protection.md` -> the Autoresearch section of `AGENTS.md` or linked project docs
 
+Direct-copy fallback reporting:
+
+If this skill was installed by copying only `adapters/codex/skills/*` or
+`plugins/ai-agent-meta-harness/skills/*`, assume the protection assets above
+are not locally available unless you can read them from the current repository
+or generated plugin bundle. Do not claim hook, checker, pre-commit, or CI protection from a skill-only copy.
+
+When protection assets are missing because the install is skill-only, report
+the degraded state with this stable marker before any setup completion claim:
+
+```text
+DEGRADED_DIRECT_COPY_PROTECTION
+Missing assets:
+- scripts/check-autoresearch-protected.py
+- scripts/smoke-autoresearch-hooks.py
+- templates/autoresearch-protected.txt
+- templates/hooks/codex-hooks.json.template
+- templates/hooks/pre-commit-autoresearch-protected.sh
+- templates/hooks/github-actions-autoresearch-protected.yml
+- templates/hooks/agents-autoresearch-protection.md
+Protection level: incomplete
+Next step: install or reference the generated local plugin bundle, then copy and smoke-test the protection assets.
+```
+
+If some assets are present, list only the missing assets and keep
+`Protection level: incomplete` until the local Codex hook smoke, pre-commit
+check, and CI/shared-repo status are PASS or explicitly skipped with a reason.
+The direct-copy fallback may be used for skill text iteration, but it is not a valid protection install path by itself.
+
 Codex hook policy:
 
 - Enable hooks with `[features] codex_hooks = true` in `.codex/config.toml` or the active Codex config layer.
