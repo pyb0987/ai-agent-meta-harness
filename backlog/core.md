@@ -124,10 +124,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has no unstarted core-owned item after the archive
-  structure work completed.
+- Active core backlog has one standard-verification follow-up, item 29.
 - Remaining unstarted work is currently adapter-owned:
-  `backlog/codex-adapter.md` items 11 and 19.
+  `backlog/claude-adapter.md` items 10-12.
 
 ### 28. P2 archive completed backlog items without losing review records
 
@@ -222,3 +221,24 @@ Archived: `backlog/archive/core.md#17-restore-single-session-maintenance-pipelin
 
 Status: 완료
 Archived: `backlog/archive/core.md#18-add-maintenance-review-checker-to-pre-commit`
+
+### 29. P2 add marketplace metadata checker to standard verification
+
+Source review: 2026-05-03 feedback triage.
+
+The tracked pre-commit hook now runs
+`python3 scripts/check-codex-marketplace-metadata.py`, and the release checklist
+mentions Codex marketplace metadata readiness. However, the Standard
+verification command block in `MAINTENANCE.md` still omits this checker, so
+maintainers following the documented full command set can miss a release-surface
+gate.
+
+Potential improvement:
+
+- Add `python3 scripts/check-codex-marketplace-metadata.py` to the Standard
+  verification command block in `MAINTENANCE.md`.
+- Keep the checker's deferred-state wording clear: it passes while no
+  publication manifest exists and fails if marketplace metadata appears before
+  publication readiness evidence is recorded.
+- Verify that `.githooks/pre-commit`, the release checklist, and Standard
+  verification all name the same marketplace metadata readiness gate.

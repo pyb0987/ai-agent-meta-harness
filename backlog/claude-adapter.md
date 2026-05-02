@@ -49,3 +49,71 @@ Archived: `backlog/archive/claude-adapter.md#8-p2-respect-migrated-active-trace-
 
 Status: 완료
 Archived: `backlog/archive/claude-adapter.md#9-p2-add-hard-layer-protection-guidance-for-claude-evaluator-files`
+
+### 10. P2 align init-harness completion checklist with active trace root
+
+Source review: 2026-05-03 feedback triage.
+
+Claude `/init-harness` can select or temporarily reuse meaningful
+`.harness/traces/` history, but the completion verification checklist still
+requires `.claude/traces/*`, `.claude/traces/search-set.md`,
+`.claude/traces/evolution/001-initial-harness.md`, and
+`.claude/traces/failures/*.md`. In a migrated project where `.harness/traces/`
+is intentionally active, this can recreate a second trace tree and split future
+history.
+
+Potential improvement:
+
+- Reword `adapters/claude/commands/init-harness.md` completion checks to use
+  the selected active trace root instead of hardcoding `.claude/traces/` for
+  trace infrastructure.
+- Preserve `.claude/traces/` as the normal Claude default, but allow
+  evidence-selected `.harness/traces/` completion when reuse is explicitly
+  recorded.
+- Add focused lexical or fixture coverage proving the completion checklist does
+  not force `.claude/traces/` after intentional `.harness/traces/` reuse.
+
+### 11. P2 make Claude autoresearch honor the active trace root
+
+Source review: 2026-05-03 feedback triage.
+
+The Claude `autoresearch` skill still hardcodes `.claude/traces/` for reject
+preservation, experiment episodes, escalation failures, and numbering. That
+conflicts with the newer trace-root rule that migrated projects may temporarily
+keep `.harness/traces/` active, so raw experiment and failure history can still
+split across roots.
+
+Potential improvement:
+
+- Update `adapters/claude/skills/autoresearch/SKILL.md` so Setup and Run Mode
+  select an active trace root before writing failures, experiments, or
+  escalation records.
+- Use `{trace_root}` or equivalent wording for reject preservation, experiment
+  episode timing, failure escalation, and numbering.
+- Keep `.claude/traces/` as the Claude default, but respect documented
+  `.harness/traces/` reuse for migrated projects.
+- Add focused coverage that rejects hardcoded trace writes where active-root
+  selection is required.
+
+### 12. P2 require Claude autoresearch hard-layer protection before setup completion
+
+Source review: 2026-05-03 feedback triage.
+
+The Claude `autoresearch` skill documents pre-commit/CI diff protection as the
+hard evaluator-protection layer, but the Setup Completion Checklist only
+requires the two Claude hooks and settings registration. A maintainer can
+therefore mark Setup Mode complete while fixed-evaluator protection remains
+heuristic-only.
+
+Potential improvement:
+
+- Update the Setup Completion Checklist in
+  `adapters/claude/skills/autoresearch/SKILL.md` to require the documented
+  hard-layer protected-file diff check, or an explicit skipped reason when the
+  project cannot install it yet.
+- Require a smoke result showing protected evaluator edits fail and mutable
+  genome edits pass before Setup Mode is considered complete.
+- Keep the two Claude hooks as fast local protection, but make clear they do
+  not replace the hard pre-commit/CI layer.
+- Add focused documentation tests so future edits do not remove this setup
+  completion requirement.
