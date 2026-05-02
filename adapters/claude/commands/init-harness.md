@@ -109,9 +109,9 @@ PostToolUse (Edit|Write) hooks — auto-verification on code changes:
 
 | Project Type | Hook Target Pattern | Command | Enforcement | Purpose |
 |-------------|-------------------|---------|-------------|---------|
-| TypeScript | `*.ts\|*.tsx` | `tsc --noEmit 2>&1 \| tail -20` | **Blocking** (exit 1) | Catch type errors immediately |
-| Python (typed) | `*.py` | `mypy {changed_file} 2>&1 \| tail -10` | **Blocking** (exit 1) | Type hint verification |
-| Python (sim/test) | `sim/*.py\|test/*.py` | `pytest -x -q 2>&1 \| tail -15` | **Blocking** (exit 1) | Test break detection |
+| TypeScript | `*.ts\|*.tsx` | `tmp="${TMPDIR:-/tmp}/harness-hook.$$"; tsc --noEmit >"$tmp" 2>&1; status=$?; tail -20 "$tmp"; rm -f "$tmp"; exit $status` | **Blocking** (exit 1) | Catch type errors immediately |
+| Python (typed) | `*.py` | `tmp="${TMPDIR:-/tmp}/harness-hook.$$"; mypy "{changed_file}" >"$tmp" 2>&1; status=$?; tail -10 "$tmp"; rm -f "$tmp"; exit $status` | **Blocking** (exit 1) | Type hint verification |
+| Python (sim/test) | `sim/*.py\|test/*.py` | `tmp="${TMPDIR:-/tmp}/harness-hook.$$"; pytest -x -q >"$tmp" 2>&1; status=$?; tail -15 "$tmp"; rm -f "$tmp"; exit $status` | **Blocking** (exit 1) | Test break detection |
 | Monorepo | Per-package | Run only changed package's build/test | **Blocking** (exit 1) | Prevent full build |
 | Doc-code sync | Design doc related code | echo warning message | **Warning** (echo only) | Design doc cross-reference reminder |
 

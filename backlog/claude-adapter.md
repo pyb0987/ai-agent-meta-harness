@@ -485,6 +485,16 @@ Completion Gate:
 
 ### 7. P1 preserve verifier exit status in Claude hook recipes
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_verify_examples.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 candidate triage.
 
 The seeded `search-set.md` verify examples preserve verifier exit status, but
@@ -493,15 +503,47 @@ the Claude `/init-harness` hook recipe still recommends commands such as
 `pipefail` or explicit status capture, the hook can observe `tail` success
 instead of verifier failure, allowing a failing blocking hook to pass.
 
-Potential improvement:
+Decision implemented:
 
-- Rewrite the TypeScript, Python typed, and Python test hook recipe commands in
-  `adapters/claude/commands/init-harness.md` so output truncation preserves the
-  verifier exit status.
-- Keep `commands/init-harness.md` synchronized through compatibility mirror
-  checks.
-- Add focused coverage proving representative hook recipe commands fail when
-  the underlying verifier fails.
+- The TypeScript, Python typed, and Python test hook recipe commands in
+  `adapters/claude/commands/init-harness.md` now write verifier output to a
+  temporary file, capture the verifier status, print the configured tail, and
+  exit with the captured status.
+- `commands/init-harness.md` stays synchronized as the compatibility mirror.
+- `tests/test_claude_init_harness_verify_examples.py` now proves the hook
+  recipe commands fail with the underlying verifier status and no longer use
+  direct `2>&1 | tail` truncation.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/commands/init-harness.md`,
+  `commands/init-harness.md`,
+  `tests/test_claude_init_harness_verify_examples.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_init_harness_verify_examples.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Claude adapter hook
+  verification semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Hook exit-status preservation critic
+  score 10, verdict PASS, Blocking findings: none. Output truncation and hook
+  usability critic score 10, verdict PASS, Blocking findings: none.
+  Compatibility mirror and focused-test critic score 10, verdict PASS,
+  Blocking findings: none. Maintenance compliance critic score 9, verdict
+  PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: actual Claude Code runtime hook activation remains
+  covered by the existing future runtime smoke follow-up; this item only proves
+  the documented shell recipes preserve verifier status.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 8. P2 respect migrated active trace roots in Claude harness-engineer
 
