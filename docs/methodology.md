@@ -192,49 +192,47 @@ justifies it.
 
 ## Sub-Agent Invocation — Applied Runtime Extension
 
-The core Meta-Harness loop is a single coding-agent proposer using filesystem
-evidence, scores, and traces. Sub-agents, external reviewers, sequential
-checklists, and fixed evaluator scripts are **applied runtime mechanisms** for
-isolation and independent judgment; they are not the paper's core claim.
+The paper-core Meta-Harness loop is proposer -> evaluator -> trace reuse. A
+single coding-agent proposer changes the mutable harness or search surface,
+the evaluator preserves the feedback signal, and traces carry evidence into
+the next iteration.
 
-Using an isolation mechanism does not violate the single-agent principle as long
-as the project does not create persistent multi-persona orchestrators.
-Sub-agents are tools, not teammates, and adapters decide which isolation
-mechanisms their runtime can support.
+Sub-agents, external reviewers, separated sequential checklists, and dedicated
+evaluator contexts are **applied runtime tactics** for preserving isolation or
+independent judgment when the runtime supports them. They are subordinate to the
+proposer/evaluator/trace loop, not an additional paper-core methodology.
 
-### Trigger categories
+Using an isolation tactic does not violate the single-agent principle as long as
+the project does not create persistent multi-persona orchestrators. Treat these
+mechanisms as temporary tools, not teammates, and keep their outputs tied to the
+same trace and verification contracts as the parent workflow.
 
-Two triggers justify adapter-defined isolation mechanisms. Generic sub-agent
-uses (parallel exploration, context firewall) are runtime tool patterns, not
-harness policy — invoke them at your own judgment without a trigger table.
+### Core Isolation Triggers
 
-| Trigger | Mechanism | When |
-|---------|-----------|------|
-| **Qualitative multi-perspective judgment** | Parallel critics, external review, or separated sequential checklist | Hard-to-reverse decisions, regressions with suspected confounders, domains where single-perspective evaluation has failed before |
-| **Evaluator independence** | Fixed immutable evaluator, dedicated evaluator context, or external scorer | High-stakes generation where self-evaluation bias is the primary risk; the generator must not score its own output. A fixed evaluator is the cheapest and strongest form when a binary verdict is viable; a dedicated context or external scorer is the alternative when judgment cannot be scripted |
+Only two methodology-level triggers belong in the shared core:
 
-This is why Meta-Harness can absorb isolation benefits without abandoning the
-single-agent paradigm: each benefit has a tactical mechanism that does not
-require persistent agent definitions or multi-persona orchestration.
+- **Qualitative multi-perspective judgment**: use an adapter-supported
+  isolation tactic for hard-to-reverse decisions, regressions with suspected
+  confounders, or domains where one perspective has failed before.
+- **Evaluator independence**: use a fixed immutable evaluator, dedicated
+  evaluator context, or external scorer when self-evaluation bias threatens the
+  feedback signal. A fixed evaluator is preferred when a binary or thresholded
+  verdict is viable.
+
+Generic parallel exploration, context firewalls, model routing, and exact
+sub-agent invocation thresholds are runtime tool policy. Adapters may document
+those details for their surface, but the core methodology should not make them
+look like paper claims.
 
 ### Rules
-- **Independence**: isolated reviewers or evaluator contexts must not share intermediate results — independence is the source of value, contamination kills it
-- **No orchestrator persistence**: sub-agents are spawned per-task and discarded. Do not create persistent agent-team definitions
-- **Conclusion-only return**: isolated reviewers return distilled findings, not raw transcripts — the firewall is the point
-- **Trigger threshold**: prefer over-invoking these mechanisms to under-invoking them. The cost of an unnecessary sub-agent call is small; the cost of a contaminated decision or context-rotted parent is large
-
-### Model routing
-Use the runtime's available model routing when spawning sub-agents:
-
-| Task type | Model | Examples |
-|-----------|-------|---------|
-| Complex judgment, architecture, irreversible decisions | Strongest reasoning model available | High-stakes multi-review critics, design validation, strategy decisions |
-| Standard analysis, exploration, implementation | Default capable coding model | Explore agents, code review, standard evaluators, routine critics |
-| Mechanical verification (no judgment needed) | Small/fast model if available | Binary pass/fail checks, format validation, file existence checks |
-
-- Use small models only for judgment-free mechanical checks
-- When uncertain, choose the more capable model; slight cost increase beats quality loss
-- Adapters may define concrete model names for their runtime
+- **Independence**: isolated reviewers or evaluator contexts must not share
+  intermediate results; contamination defeats the tactic.
+- **No orchestrator persistence**: do not create persistent agent-team
+  definitions.
+- **Traceable conclusions**: isolated reviewers return distilled findings tied
+  to files, commands, scores, and residual risk. Raw transcripts are secondary.
+- **Adapter ownership**: concrete routing, model choice, and tool availability
+  belong in adapter docs because they vary by runtime.
 
 ### Anti-patterns
 - Spawning sub-agents for trivial tasks (3-line edits, single-file reads)

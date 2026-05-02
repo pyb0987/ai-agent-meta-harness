@@ -53,6 +53,43 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
 
+    def test_sub_agent_guidance_is_subordinate_runtime_tactic(self) -> None:
+        methodology = text()
+
+        for marker in (
+            "paper-core Meta-Harness loop is proposer -> evaluator -> trace reuse",
+            "applied runtime tactics",
+            "subordinate to the",
+            "not an additional paper-core methodology",
+            "Only two methodology-level triggers belong in the shared core",
+            "**Adapter ownership**",
+            "runtime tool policy",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, methodology)
+
+    def test_sub_agent_guidance_leaves_routing_to_adapters(self) -> None:
+        methodology = text()
+
+        self.assertNotIn("### Model routing", methodology)
+        self.assertNotIn("Trigger threshold", methodology)
+        self.assertNotIn("prefer over-invoking", methodology)
+
+    def test_compatibility_mirror_has_same_sub_agent_boundary_language(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+
+        for marker in (
+            "paper-core Meta-Harness loop is proposer -> evaluator -> trace reuse",
+            "applied runtime tactics",
+            "Only two methodology-level triggers belong in the shared core",
+            "**Adapter ownership**",
+            "runtime tool policy",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, mirror)
+                self.assertEqual(canonical.count(marker), mirror.count(marker))
+
 
 if __name__ == "__main__":
     unittest.main()
