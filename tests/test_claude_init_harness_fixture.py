@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
@@ -17,12 +18,12 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def smoke_validate_init_harness_output(project: Path) -> list[str]:
+def smoke_validate_init_harness_output(project: Path, trace_root: str = ".claude/traces") -> list[str]:
     errors: list[str] = []
     required_dirs = (
-        ".claude/traces/evolution",
-        ".claude/traces/failures",
-        ".claude/traces/experiments",
+        f"{trace_root}/evolution",
+        f"{trace_root}/failures",
+        f"{trace_root}/experiments",
         ".claude/hooks",
     )
     for relative in required_dirs:
@@ -32,17 +33,17 @@ def smoke_validate_init_harness_output(project: Path) -> list[str]:
     if (project / ".claude/agents").exists():
         errors.append("FORBIDDEN DIR: .claude/agents")
 
-    search_set = project / ".claude/traces/search-set.md"
+    search_set = project / trace_root / "search-set.md"
     if not search_set.is_file():
-        errors.append("MISSING FILE: .claude/traces/search-set.md")
+        errors.append(f"MISSING FILE: {trace_root}/search-set.md")
     else:
         text = search_set.read_text(encoding="utf-8")
         for marker in ("## Active", "### SS-001:", "- **verify**: `"):
             if marker not in text:
                 errors.append(f"SEARCH SET MISSING: {marker}")
 
-    if not (project / ".claude/traces/evolution/001-initial-harness.md").is_file():
-        errors.append("MISSING FILE: .claude/traces/evolution/001-initial-harness.md")
+    if not (project / trace_root / "evolution/001-initial-harness.md").is_file():
+        errors.append(f"MISSING FILE: {trace_root}/evolution/001-initial-harness.md")
 
     claude_md = project / "CLAUDE.md"
     if not claude_md.is_file():
@@ -54,7 +55,7 @@ def smoke_validate_init_harness_output(project: Path) -> list[str]:
         for marker in (
             "## Harness",
             ".claude/hooks",
-            ".claude/traces",
+            trace_root,
             "Change Strategy",
             "Sub-agent",
         ):
@@ -156,6 +157,61 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
 
         self.assertEqual(smoke_validate_init_harness_output(project), [])
 
+    def test_migrated_harness_trace_root_satisfies_init_harness_output_contract(self):
+        project = self.make_project()
+        trace_root = ".harness/traces"
+        shutil.rmtree(project / ".claude/traces")
+        write(
+            project / f"{trace_root}/search-set.md",
+            """# Harness Search Set
+
+## Active
+### SS-001: Preserve migrated shared history
+- **Symptom**: Migrated projects can split trace history across roots.
+- **verify**: `npm run typecheck`
+- **ref**: none
+""",
+        )
+        write(
+            project / f"{trace_root}/evolution/001-initial-harness.md",
+            """---
+iteration: 1
+type: additive
+verdict: neutral
+---
+
+# Initial Harness
+""",
+        )
+        for relative in (
+            f"{trace_root}/failures/.keep",
+            f"{trace_root}/experiments/.keep",
+        ):
+            write(project / relative, "")
+        write(
+            project / "CLAUDE.md",
+            """# Project Instructions
+
+## Harness
+
+### Hooks (`.claude/settings.local.json`)
+- `.claude/hooks/typecheck.sh` blocks typecheck failures.
+
+### Traces
+- Active trace root: `.harness/traces`
+- Reusing meaningful migrated history; do not create a second trace root.
+
+### Change Strategy
+Additive first -> Subtractive -> Structural.
+
+### Sub-agent triggers
+Use multi-review for qualitative judgment and evaluator isolation for fixed evaluators.
+""",
+        )
+
+        self.assertEqual(smoke_validate_init_harness_output(project, trace_root), [])
+        self.assertFalse((project / ".claude/traces").exists())
+
     def test_fixture_rejects_forbidden_agent_directory(self):
         project = self.make_project()
         (project / ".claude/agents").mkdir()
@@ -180,6 +236,9 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
             "migrate/copy it into `.claude/traces/`",
             "Do not split future trace history silently",
             "Active trace root selected by evidence",
+            "`{trace_root}/search-set.md` template or reused Active search-set exists",
+            "`{trace_root}/evolution/001-initial-harness.md` written",
+            "CLAUDE.md includes Harness section (.claude/hooks/, selected trace root",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
@@ -192,6 +251,7 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
             "Select the active trace root before writing new trace files",
             "migrate/copy it into `.claude/traces/`",
             "Active trace root selected by evidence",
+            "`{trace_root}/search-set.md` template or reused Active search-set exists",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, mirror)

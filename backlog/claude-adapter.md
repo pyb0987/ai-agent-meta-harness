@@ -52,6 +52,16 @@ Archived: `backlog/archive/claude-adapter.md#9-p2-add-hard-layer-protection-guid
 
 ### 10. P2 align init-harness completion checklist with active trace root
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_fixture.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 Claude `/init-harness` can select or temporarily reuse meaningful
@@ -72,6 +82,69 @@ Potential improvement:
   recorded.
 - Add focused lexical or fixture coverage proving the completion checklist does
   not force `.claude/traces/` after intentional `.harness/traces/` reuse.
+
+Decision:
+
+- Updated `/init-harness` Step 7 and Completion Verification to use the
+  selected `{trace_root}` for search-set, evolution, failures, and experiments
+  checks instead of hardcoding `.claude/traces/`.
+- Preserved `.claude/traces/` as the normal Claude default while allowing
+  explicitly reused meaningful `.harness/traces/` history to satisfy completion.
+- Updated the compatibility mirror `commands/init-harness.md`.
+- Extended fixture coverage so the normal `.claude/traces/` project and a
+  migrated `.harness/traces/` project both satisfy the init-harness output
+  contract.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `adapters/claude/commands/init-harness.md`
+  - `commands/init-harness.md`
+  - `tests/test_claude_init_harness_fixture.py`
+  - `backlog/claude-adapter.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_claude_init_harness_fixture.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; no repository `search-set.md` exists
+  (`rg --files -g 'search-set.md'` returned no files).
+- Multi-review required: yes; this changes Claude adapter initialization
+  behavior and trace-root semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Active trace-root contract critic: 10/10 PASS; completion checks now use
+    `{trace_root}` and preserve `.claude/traces/` as the default.
+  - Migrated history safety critic: 10/10 PASS; fixture coverage proves
+    intentionally reused `.harness/traces/` can complete without forcing a
+    second `.claude/traces/` history.
+  - Compatibility mirror critic: 10/10 PASS; mirror sync and path checks pass.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope update,
+    verification, search-set SKIPPED reason, and Completion Gate are recorded,
+    with nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review was sequential
+    fallback in the parent context, not independent parallel critics. No
+    backlog item added because this is session-surface residual risk, not
+    repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 11. P2 make Claude autoresearch honor the active trace root
 

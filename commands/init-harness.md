@@ -2,8 +2,6 @@
 description: Analyze project and generate a Meta-Harness (traces + CLAUDE.md + hooks + domain skills)
 ---
 
-<!-- Compatibility mirror of `adapters/claude/commands/init-harness.md`. Edit the canonical source, not this file. -->
-
 # /init-harness
 
 Analyze a project and configure its Meta-Harness.
@@ -204,7 +202,7 @@ Rationale: multi-review is the tactical mechanism for the "qualitative multi-per
 
 After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial evolution log:
 
-`.claude/traces/evolution/001-initial-harness.md`:
+`{trace_root}/evolution/001-initial-harness.md`:
 - iteration 1, date, type: additive, verdict: neutral
 - Record actually added hooks, rules, tests, and their rationale
 - Format: see reference.md Section 1
@@ -214,18 +212,18 @@ After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial
 All items below must pass for init-harness to be complete:
 
 - [ ] Active trace root selected by evidence; existing meaningful `.harness/traces/` history was reused, migrated, or explicitly reported as an uncertainty before new traces were written
-- [ ] `.claude/traces/{evolution,failures,experiments}/` directories exist
-- [ ] `.claude/traces/search-set.md` template created
-- [ ] `.claude/traces/evolution/001-initial-harness.md` written (Step 7)
-- [ ] CLAUDE.md includes Harness section (.claude/hooks/, .claude/traces/, change strategy, sub-agent triggers)
+- [ ] `{trace_root}/{evolution,failures,experiments}/` directories exist, where `{trace_root}` is normally `.claude/traces/` unless meaningful migrated history was explicitly reused from `.harness/traces/`
+- [ ] `{trace_root}/search-set.md` template or reused Active search-set exists
+- [ ] `{trace_root}/evolution/001-initial-harness.md` written (Step 7)
+- [ ] CLAUDE.md includes Harness section (.claude/hooks/, selected trace root, change strategy, sub-agent triggers)
 - [ ] Multi-review skill availability verified (`~/.claude/skills/multi-review/SKILL.md` exists, or user instructed to install from `{repo}/adapters/claude/skills/multi-review/`)
 - [ ] CLAUDE.md within 100 lines (split to docs/ complete if exceeded)
 - [ ] Hooks registered in `.claude/settings.local.json`
 - [ ] `.claude/agents/` directory was NOT created
 - [ ] (if skill created in Step 6) `.claude/skills/{name}/SKILL.md` exists + Anti-patterns section included + domain rules migrated from CLAUDE.md
 - [ ] No duplicates between global rules (~/.claude/rules/common/) and CLAUDE.md
-- [ ] Every `resolved: true` entry in `.claude/traces/failures/*.md` has a non-empty `escalated_to` or is linked to an active search-set guard (exception: `classification: false_alarm` does not require escalation)
-- [ ] `.claude/traces/search-set.md` has at least 1 Active entry (if 0, restore an Archived item or register an unresolved failure)
+- [ ] Every `resolved: true` entry in `{trace_root}/failures/*.md` has a non-empty `escalated_to` or is linked to an active search-set guard (exception: `classification: false_alarm` does not require escalation)
+- [ ] `{trace_root}/search-set.md` has at least 1 Active entry (if 0, restore an Archived item or register an unresolved failure)
 
 ## Important
 
