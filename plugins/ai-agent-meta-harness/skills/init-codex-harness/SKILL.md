@@ -29,7 +29,10 @@ Create the minimal project-local structure Codex needs to work reliably:
 AGENTS.md
 ```
 
-Prefer `.harness/traces/` for runtime-neutral projects. If the project already has `.claude/traces/`, keep it temporarily when it contains meaningful history so Codex does not split evidence across roots.
+Prefer `.harness/traces/` for runtime-neutral projects when history evidence is
+absent or equivalent. If the project already has `.claude/traces/`, keep it
+temporarily when it contains meaningful history so Codex does not split
+evidence across roots.
 
 ## Workflow
 
@@ -47,18 +50,25 @@ Use `rg --files` first. Keep inspection targeted.
 
 ### Step 2: Choose Trace Root
 
-Use this order:
+Choose by meaningful history before path preference:
 
-1. Existing `.harness/traces/`
-2. Existing `.claude/traces/` with meaningful history
-3. New `.harness/traces/`
+1. Inspect both `.harness/traces/` and `.claude/traces/` when either exists.
+2. Use `.harness/traces/` when it is the only root with meaningful history.
+3. Use `.claude/traces/` temporarily when it has meaningful history and
+   `.harness/traces/` is missing, empty, or template-only.
+4. If both roots have meaningful but divergent history, stop and propose a
+   migration/merge plan before writing new traces.
+5. If neither root exists, or neither existing root has meaningful history,
+   initialize `.harness/traces/`.
 
 Do not create both `.claude/traces/` and `.harness/traces/` in the same project unless the user explicitly asks for split histories.
 
 Meaningful history means `search-set.md` has Active cases, `failures/` has
 diagnoses, `evolution/` has prior harness changes, or `experiments/` has
-episodes relevant to current work. If `.claude/traces/` exists but is empty or
-template-only, initialize `.harness/traces/` instead.
+episodes relevant to current work. Empty directories, `.keep` files, and
+untouched `search-set.md` templates are not meaningful history and must not
+outrank real history in the other root. If `.claude/traces/` exists but is
+empty or template-only, initialize `.harness/traces/` instead.
 
 Propose migration from `.claude/traces/` to `.harness/traces/` when Codex is now
 the primary runtime, the Claude history is stable enough to preserve, and the

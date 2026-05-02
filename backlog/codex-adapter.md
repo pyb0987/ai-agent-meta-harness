@@ -806,6 +806,16 @@ Completion Gate:
 
 ### 24. P2 prefer meaningful Claude history over empty Codex trace roots
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/skills/init-codex-harness/SKILL.md
+- plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+- tests/test_codex_init_trace_root_selection.py
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 candidate triage.
 
 The Codex init workflow currently chooses existing `.harness/traces/` before
@@ -814,15 +824,54 @@ empty or template-only `.harness/traces/` over meaningful Claude history,
 recreating the split-history risk that active trace-root selection is meant to
 avoid.
 
-Potential improvement:
+Decision implemented:
 
-- Update `adapters/codex/skills/init-codex-harness/SKILL.md` so trace-root
-  selection compares meaningful history before choosing a root.
-- Treat empty directories, `.keep` files, and untouched templates as
-  non-meaningful for `.harness/traces/`, just as the Claude init guidance does
-  for migrated projects.
-- Add focused coverage or lexical checks proving meaningful Claude history is
-  not ignored merely because an empty `.harness/traces/` directory exists.
+- `init-codex-harness` now chooses trace roots by meaningful history before
+  path preference.
+- `.harness/traces/` remains preferred when history evidence is absent or
+  equivalent, but meaningful `.claude/traces/` history is reused temporarily
+  when `.harness/traces/` is missing, empty, or template-only.
+- Empty directories, `.keep` files, and untouched `search-set.md` templates are
+  explicitly non-meaningful and must not outrank real history in the other
+  root.
+- Both roots with meaningful but divergent history now require a migration or
+  merge plan before new traces are written.
+- The generated local plugin copy is synchronized with the canonical adapter
+  skill.
+- `tests/test_codex_init_trace_root_selection.py` locks the meaningful-history
+  selection contract and checks that the generated plugin carries the same
+  markers.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/codex/skills/init-codex-harness/SKILL.md`,
+  `plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md`,
+  `tests/test_codex_init_trace_root_selection.py`, and
+  `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_codex_init_trace_root_selection.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Codex init trace-root
+  selection semantics for migrated projects.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Trace-root selection semantics critic
+  score 10, verdict PASS, Blocking findings: none. Migration-safety critic
+  score 10, verdict PASS, Blocking findings: none. Generated plugin and
+  regression coverage critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: coverage is lexical skill-contract validation rather
+  than actual Codex skill execution on a migrated project fixture; real project
+  dry-run work remains tracked by item 11.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 25. P2 connect marketplace metadata checker to publication gates when ready
 
