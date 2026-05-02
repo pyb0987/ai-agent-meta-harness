@@ -1070,6 +1070,15 @@ Completion Gate:
 
 ### 26. P3 label README autoresearch filenames as repository conventions
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- README.md
+- tests/test_readme_methodology_boundaries.py
+- backlog/core.md
+
 Source review: 2026-05-03 candidate triage.
 
 The README autoresearch flow names `program.md`, `evaluate.py`, and `genome`
@@ -1077,13 +1086,44 @@ without clearly marking them as repository or adapter conventions. The
 paper-level requirement is a fixed evaluator plus mutable search surface, not
 those exact filenames.
 
-Potential improvement:
+Decision implemented:
 
-- Reword the README autoresearch flow so the filenames are examples or local
-  conventions rather than paper-level requirements.
-- Preserve the fixed-evaluator and mutable-search-surface explanation.
-- Add or update a focused documentation-boundary test if one already covers
-  paper claims versus repository practice.
+- README autoresearch flow now names the paper-level structure as a direction
+  file, immutable evaluator, and mutable search surface.
+- `program.md`, `evaluate.py`, and `genome` are explicitly labeled as this
+  repository's example filenames rather than paper-level requirements.
+- The design-decision text now explains that `evaluate.py` is this repository's
+  common filename convention and adapters choose the runtime-appropriate
+  evaluator file, command, and enforcement mechanism.
+- `tests/test_readme_methodology_boundaries.py` locks the distinction between
+  paper principle and repository naming convention.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `README.md`, `tests/test_readme_methodology_boundaries.py`,
+  and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_readme_methodology_boundaries.py`, `python3 scripts/check-maintenance-review.py backlog/core.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes README methodology boundary
+  wording that can steer future harness design decisions.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Paper-boundary critic score 10, verdict
+  PASS, Blocking findings: none. Autoresearch principle preservation critic
+  score 10, verdict PASS, Blocking findings: none. Focused documentation-test
+  critic score 10, verdict PASS, Blocking findings: none. Maintenance
+  compliance critic score 9, verdict PASS, Blocking findings: none. No VETO
+  triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 27. P3 refresh core backlog Current Status guidance
 

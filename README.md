@@ -194,7 +194,8 @@ The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scr
 ### Autoresearch flow
 
 ```text
-1. Set up program.md (direction) + evaluate.py (immutable judge) + genome (mutable code)
+1. Set up a direction file + immutable evaluator + mutable search surface
+   (this repository's examples usually call them program.md, evaluate.py, and genome)
 2. Agent runs autonomous experiment loop: hypothesis → implement → evaluate → ADOPT or REJECT
 3. Results logged to experiments.jsonl + episode traces
 4. After 100 experiments or 20 consecutive rejects → escalate
@@ -238,7 +239,7 @@ The project harness now makes typecheck failures visible before completion.
 
 **Why concise project instructions?** Every token loaded every session competes with task context. Detailed docs go in project documentation or adapter references; project instructions are the table of contents.
 
-**Why immutable evaluate.py?** The paper principle: if the agent can modify its own evaluator, it contaminates the feedback signal. Adapters choose the runtime-appropriate enforcement mechanism.
+**Why an immutable evaluator?** The paper principle: if the agent can modify its own evaluator, it contaminates the feedback signal. `evaluate.py` is this repository's common filename convention, not a paper-level requirement. Adapters choose the runtime-appropriate evaluator file, command, and enforcement mechanism.
 
 **Why transfer rules to tooling?** Rules enforceable by linters/CI should live in tooling, not agent instructions. Project instruction files should contain only intent and judgment criteria that tools cannot enforce.
 
