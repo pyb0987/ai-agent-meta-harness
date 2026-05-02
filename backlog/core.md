@@ -540,9 +540,15 @@ Review outcome:
 
 ## Current Status
 
-- Source review: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md`.
-- Last reviewed baseline: `987dca0 fix: tighten codex harness engineer guardrails`.
-- Recommended next quality pass: start with autoresearch detection heuristics, then trace-history tie-breakers, then verify-command quality rules.
+- Source reviews: strict multi-review of Codex harness/autoresearch surfaces and
+  2026-05-03 candidate triage have been converted into implemented decisions
+  or concrete follow-up items below.
+- Last reviewed baselines are recorded in the relevant item notes and
+  Completion Gates; avoid treating one stale commit as the active review
+  baseline for all future maintenance.
+- Remaining open core candidate: item 28, archive completed backlog records
+  without losing Completion Gate, review-score, VETO, search-set, or
+  residual-risk history.
 
 ### 15. Validate embedded backlog review outcomes
 
@@ -1127,6 +1133,13 @@ Completion Gate:
 
 ### 27. P3 refresh core backlog Current Status guidance
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/core.md
+
 Source review: 2026-05-03 candidate triage.
 
 The `backlog/core.md` Current Status block still recommends starting with
@@ -1135,14 +1148,35 @@ verify-command quality rules, although those areas are already recorded as
 implemented decisions above. This weakens backlog-as-regression-memory quality
 even though it is not a runtime bug.
 
-Potential improvement:
+Decision implemented:
 
-- Refresh the core backlog Current Status block so it points at the actual
-  remaining open core candidates.
-- Avoid duplicating completed item recommendations that already have completion
-  records.
-- Keep the change backlog-only unless recurring stale status guidance warrants
-  a lightweight checker.
+- The core backlog Current Status block no longer recommends completed
+  autoresearch detection, trace-history tie-breaker, or verify-command quality
+  work.
+- The block now records that recent source reviews and candidate triage have
+  been converted into implemented decisions or concrete follow-up items.
+- The block points at the remaining open core candidate, item 28, for backlog
+  archive structure without losing review records.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 scripts/check-maintenance-review.py backlog/core.md`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: not required for this backlog-only status guidance
+  refresh; repository search-set discovery was also SKIPPED because this
+  worktree has no `search-set.md`.
+- Multi-review required: no, because this is backlog-only stale status cleanup
+  and does not change adapter behavior, hook semantics, release gates, checker
+  behavior, or methodology contracts.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not applicable; no required critic, no
+  score below 9, and no VETO.
+- For each score 9, why not 10: not applicable.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 28. P2 archive completed backlog items without losing review records
 
