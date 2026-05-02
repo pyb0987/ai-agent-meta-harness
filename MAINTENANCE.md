@@ -66,11 +66,13 @@ Use this workflow for backlog work:
 7. Run the relevant checks before review.
 8. Use multi-review for adapter behavior, release gates, hook semantics, or
    anything that can steer future work in the wrong direction.
-9. Treat reviewer scores below 9 as VETO. Fix the blocking findings and rerun
-   the affected critics until every required critic scores at least 9, or stop
-   and record that the item is not accepted.
-10. For every score of 9, identify why the score was not 10. Record the
-   residual risk, and add a backlog follow-up when it is actionable.
+9. Apply this repository's local release discipline for review scores: treat
+   reviewer scores below 9 as VETO. Fix the blocking findings and rerun the
+   affected critics until every required critic scores at least 9, or stop and
+   record that the item is not accepted.
+10. Under the same local governance rule, identify why every score of 9 was not
+   10. Record the residual risk, and add a backlog follow-up when it is
+   actionable.
 11. Record actionable residual risk as follow-up work.
 
 When a backlog item becomes implemented foundation, keep it in place but change
@@ -321,6 +323,13 @@ Before removing mirrors:
 
 ## Multi-Review Use
 
+The score thresholds in this section are repository governance and release
+discipline for this maintainable harness artifact. They are intentionally
+stricter than the Meta-Harness paper's methodological claims: the paper
+motivates evaluator boundaries, trace reuse, and harness design, while this
+repository chooses numeric review gates to keep local maintenance decisions
+auditable.
+
 Use multi-review when a change affects:
 
 - Adapter direction or install/distribution UX.
@@ -331,20 +340,21 @@ Use multi-review when a change affects:
   on, such as trace schemas, evaluator-boundary rules, install behavior, or
   runtime enforcement semantics.
 
-Reviewer scores below 9 are VETO. Scores of 9 mean the change is acceptable
-with remaining risk tracked. Scores of 10 should be rare and reserved for cases
-where there is no meaningful known follow-up.
+As local release policy, reviewer scores below 9 are VETO. Scores of 9 mean the
+change is acceptable with remaining risk tracked. Scores of 10 should be rare
+and reserved for cases where there is no meaningful known follow-up.
 
-When a critic returns VETO, the next iteration must fix or explicitly reject the
-blocking findings, rerun the affected critic, and record the rerun score before
-the work can be accepted. Do not treat an earlier PASS from another critic as
-covering the changed area after a VETO fix unless that critic's scope is still
-unchanged.
+When a critic returns VETO, local release discipline requires the next
+iteration to fix or explicitly reject the blocking findings, rerun the affected
+critic, and record the rerun score before the work can be accepted. Do not
+treat an earlier PASS from another critic as covering the changed area after a
+VETO fix unless that critic's scope is still unchanged.
 
-When a critic returns score 9, record why the score was not 10. If the reason is
-an actionable repository improvement, add it to the relevant backlog file before
-marking the current item accepted. If the reason is residual risk rather than
-actionable work, record why it is accepted without a new backlog item.
+When a critic returns score 9, local governance requires recording why the
+score was not 10. If the reason is an actionable repository improvement, add it
+to the relevant backlog file before marking the current item accepted. If the
+reason is residual risk rather than actionable work, record why it is accepted
+without a new backlog item.
 
 Review summaries for multi-review items must record:
 

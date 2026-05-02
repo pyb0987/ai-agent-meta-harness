@@ -853,6 +853,15 @@ Completion Gate:
 
 ### 23. P3 label maintenance review policy as local release discipline
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- MAINTENANCE.md
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 The score-9 explanation and below-9 VETO workflow are sensible governance for
@@ -860,7 +869,7 @@ this repository, but they are stronger than what the Meta-Harness paper itself
 establishes. The docs should label this as local release discipline rather than
 paper-derived methodology.
 
-Potential improvement:
+Original improvement:
 
 - Update `MAINTENANCE.md` review policy wording to frame score thresholds,
   score-9 explanations, VETO handling, and rerun requirements as repository
@@ -868,6 +877,52 @@ Potential improvement:
 - Avoid implying those exact thresholds are paper claims.
 - Keep the maintenance review checker behavior unchanged unless item 20 changes
   its enforcement semantics.
+
+Decision implemented:
+
+- `MAINTENANCE.md` now labels the backlog workflow score handling as this
+  repository's local release discipline and local governance rule.
+- The `Multi-Review Use` section now explicitly says the numeric score
+  thresholds are repository governance/release discipline for this maintainable
+  harness artifact.
+- The policy now separates the paper's methodological motivation
+  (evaluator boundaries, trace reuse, and harness design) from this
+  repository's chosen numeric review gates.
+- VETO reruns and score-9 why-not-10 handling are now framed as local release
+  discipline/governance rather than paper-derived thresholds.
+- `tests/test_maintenance_policy_boundaries.py` asserts the local-governance
+  framing and paper-claim separation.
+- The maintenance review checker behavior was intentionally unchanged.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `MAINTENANCE.md`,
+  `tests/test_maintenance_policy_boundaries.py`, and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_maintenance_policy_boundaries.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes repository governance
+  language for review acceptance and release discipline.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Paper-claim separation critic score 10,
+  verdict PASS, Blocking findings: none. Governance-policy preservation critic
+  score 10, verdict PASS, Blocking findings: none. Focused-test critic score
+  10, verdict PASS, Blocking findings: none. Maintenance compliance critic
+  score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 24. P3 reconcile stale accepted backlog statuses
 
