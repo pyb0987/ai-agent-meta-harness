@@ -591,7 +591,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `scripts/check-maintenance-review.py`,
   `tests/test_check_maintenance_review.py`, and `backlog/core.md`.
 - Scope deviations: none; `backlog/codex-adapter.md` was in scope for
@@ -926,19 +926,71 @@ Completion Gate:
 
 ### 24. P3 reconcile stale accepted backlog statuses
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/core.md
+- backlog/claude-adapter.md
+- backlog/codex-adapter.md
+
 Source review: 2026-05-02 multi-review MIXED.
 
 Some previously accepted maintenance entries can remain marked `리뷰대기`, which
 weakens handoff quality and regression memory even when implementation and
 verification are already accepted.
 
-Potential improvement:
+Original improvement:
 
 - Audit backlog entries with `Status: 리뷰대기` whose Completion Gate already
   records accepted work.
 - Move accepted entries to `완료` when the maintainer has accepted them, without
   changing unrelated implementation history.
 - Add or adjust a lightweight maintenance check only if stale statuses recur.
+
+Decision implemented:
+
+- Audited `backlog/core.md`, `backlog/claude-adapter.md`, and
+  `backlog/codex-adapter.md` for `Status: 리뷰대기` entries whose Completion
+  Gate already recorded accepted work.
+- Found one stale accepted item status: `backlog/core.md` item 17, `Restore
+  single-session maintenance pipeline`.
+- Moved item 17 from `리뷰대기` to `완료` and aligned its Completion Gate status
+  because it records maintainer acceptance.
+- Also aligned stale accepted Completion Gate statuses in `backlog/core.md`
+  item 15, `backlog/claude-adapter.md` items 1-3, and
+  `backlog/codex-adapter.md` items 18, 21, and 22.
+- No lightweight checker was added because the audit found a one-off stale
+  status rather than recurring drift.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `backlog/core.md`.
+- Scope deviations: none; `backlog/claude-adapter.md` and
+  `backlog/codex-adapter.md` were audited but did not require edits.
+- Verification results: PASS; `python3 scripts/check-maintenance-review.py`,
+  status-line audit over `backlog/core.md`, `backlog/claude-adapter.md`, and
+  `backlog/codex-adapter.md` found no accepted entries whose item status is
+  still `리뷰대기`; Completion Gate status audit found no mismatch with item
+  status; and `git diff --check`.
+- Search-set verification: SKIPPED; backlog-status reconciliation does not
+  change harness behavior, and this repository worktree has no `search-set.md`.
+- Multi-review required: no, because this only reconciles accepted backlog
+  status metadata and does not change adapter behavior, release gates, hook
+  semantics, checker semantics, or shared methodology contracts.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no critics ran and no VETO
+  handling was needed.
+- For each score 9, why not 10: not applicable.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 19. Add prompt-as-code search example
 
@@ -1057,7 +1109,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `scripts/check-maintenance-review.py`,
   `tests/test_check_maintenance_review.py`,
   `backlog/review-2026-04-30-maintenance-recovery.md`, and `backlog/core.md`.
@@ -1091,7 +1143,7 @@ Completion Gate:
 
 ### 17. Restore single-session maintenance pipeline
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-01
@@ -1129,7 +1181,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `MAINTENANCE.md`, `backlog/README.md`, `backlog/core.md`.
 - Scope deviations: none.
 - Verification results: PASS; `rg -n "Single-Session Maintenance|Exceptional Parallel Worktree Recovery|Parallel Worktree Coordination|Worktree Session Gates|Routine maintenance should run through one active session" MAINTENANCE.md backlog/README.md`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, and `git diff --check`.

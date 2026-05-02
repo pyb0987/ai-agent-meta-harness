@@ -60,7 +60,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `adapters/claude/tests/test_claude_adapter_paths.py` and
   `backlog/claude-adapter.md`.
 - Scope deviations: none.
@@ -139,7 +139,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `tests/test_claude_compat_install_smoke.py` and
   `backlog/claude-adapter.md`.
 - Scope deviations: none.
@@ -210,7 +210,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `tests/test_claude_init_harness_fixture.py` and
   `backlog/claude-adapter.md`.
 - Scope deviations: none.

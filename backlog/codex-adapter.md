@@ -452,7 +452,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `backlog/codex-adapter.md`.
 - Scope deviations: none.
 - Verification results: PASS; `rg -n "Codex local plugin artifact smoke test passes|smoke-local-plugin.py" MAINTENANCE.md backlog/codex-adapter.md`, `python3 scripts/check-maintenance-review.py`, and `git diff --check`.
@@ -542,7 +542,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `adapters/codex/README.md`,
   `plugins/ai-agent-meta-harness/README.md`, and `backlog/codex-adapter.md`.
 - Scope deviations: none.
@@ -607,7 +607,7 @@ Remaining follow-up work:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `adapters/codex/README.md`,
   `plugins/ai-agent-meta-harness/README.md`, and `backlog/codex-adapter.md`.
 - Scope deviations: none.
