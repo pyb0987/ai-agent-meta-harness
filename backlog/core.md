@@ -224,6 +224,16 @@ Archived: `backlog/archive/core.md#18-add-maintenance-review-checker-to-pre-comm
 
 ### 29. P2 add marketplace metadata checker to standard verification
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- MAINTENANCE.md
+- README.md
+- tests/test_pre_commit_hook.py
+- backlog/core.md
+
 Source review: 2026-05-03 feedback triage.
 
 The tracked pre-commit hook now runs
@@ -242,3 +252,64 @@ Potential improvement:
   publication readiness evidence is recorded.
 - Verify that `.githooks/pre-commit`, the release checklist, and Standard
   verification all name the same marketplace metadata readiness gate.
+
+Decision:
+
+- Added `python3 scripts/check-codex-marketplace-metadata.py` to the Standard
+  verification command block in `MAINTENANCE.md`.
+- Aligned README pre-commit and pre-commit-adjacent command guidance so it names
+  the marketplace metadata readiness gate.
+- Added focused tests proving Standard verification, README docs, and the
+  tracked pre-commit hook name the marketplace metadata checker.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `MAINTENANCE.md`
+  - `README.md`
+  - `tests/test_pre_commit_hook.py`
+  - `backlog/core.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification: SKIPPED; no repository `search-set.md` exists
+  (`rg --files -g 'search-set.md'` returned no files).
+- Multi-review required: yes; this changes documented release/verification
+  gate coverage.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Standard verification parity critic: 10/10 PASS; Standard verification now
+    names the marketplace metadata checker.
+  - Release-gate consistency critic: 10/10 PASS; README, pre-commit, release
+    checklist, and Standard verification all name the same readiness gate.
+  - Deferred-state clarity critic: 10/10 PASS; the checker output and release
+    checklist still say validation is deferred while no publication manifest
+    exists and fails before readiness evidence is recorded.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, verification,
+    search-set SKIPPED reason, and Completion Gate are recorded, with
+    nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review was sequential
+    fallback in the parent context, not independent parallel critics. No
+    backlog item added because this is session-surface residual risk, not
+    repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
