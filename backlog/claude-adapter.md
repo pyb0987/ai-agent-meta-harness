@@ -482,3 +482,61 @@ Completion Gate:
   design; hard fixed-evaluator protection still depends on pre-commit/CI diff
   checks and runtime hook activation coverage remains future work from item 3.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 7. P1 preserve verifier exit status in Claude hook recipes
+
+Source review: 2026-05-03 candidate triage.
+
+The seeded `search-set.md` verify examples preserve verifier exit status, but
+the Claude `/init-harness` hook recipe still recommends commands such as
+`tsc --noEmit 2>&1 | tail -20` and `pytest -x -q 2>&1 | tail -15`. Without
+`pipefail` or explicit status capture, the hook can observe `tail` success
+instead of verifier failure, allowing a failing blocking hook to pass.
+
+Potential improvement:
+
+- Rewrite the TypeScript, Python typed, and Python test hook recipe commands in
+  `adapters/claude/commands/init-harness.md` so output truncation preserves the
+  verifier exit status.
+- Keep `commands/init-harness.md` synchronized through compatibility mirror
+  checks.
+- Add focused coverage proving representative hook recipe commands fail when
+  the underlying verifier fails.
+
+### 8. P2 respect migrated active trace roots in Claude harness-engineer
+
+Source review: 2026-05-03 candidate triage.
+
+Claude `/init-harness` can now reuse or explicitly select meaningful
+`.harness/traces/` history, but `adapters/claude/skills/harness-engineer/SKILL.md`
+still hardcodes `.claude/traces/` for diagnosis, search-set verification,
+Active-zero recovery, and trace recording. Migrated projects can still split or
+ignore prior trace history during later harness evolution.
+
+Potential improvement:
+
+- Update the Claude `harness-engineer` skill to discover the active trace root
+  from project guidance or existing evidence before reading/writing traces.
+- Preserve `.claude/traces/` as the default for normal Claude projects, while
+  respecting an explicitly selected `.harness/traces/` root.
+- Add focused coverage or lexical checks so future edits do not reintroduce
+  hardcoded Claude-only trace-root assumptions where active-root selection is
+  required.
+
+### 9. P2 add hard-layer protection guidance for Claude evaluator files
+
+Source review: 2026-05-03 candidate triage.
+
+The Claude autoresearch Bash guard is documented as heuristic and points to
+pre-commit/CI diff protection as the hard layer, but setup guidance still only
+installs Claude hooks and smoke-tests examples. Fixed-evaluator protection is
+therefore weaker than the Codex adapter's checker-plus-gate pattern.
+
+Potential improvement:
+
+- Add Claude autoresearch setup guidance for installing or generating a
+  project-local protected-file diff check suitable for pre-commit/CI.
+- Define how that hard layer complements the heuristic Claude Bash hook without
+  overclaiming runtime hook completeness.
+- Add a focused smoke or fixture test proving the documented hard-layer command
+  rejects protected evaluator file edits.

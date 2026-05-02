@@ -803,3 +803,44 @@ Completion Gate:
 - Source reviews: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md` and `adapters/codex/skills/autoresearch/SKILL.md`.
 - Last reviewed baselines are the commits linked from the relevant review notes or release notes; avoid keeping a single stale baseline here.
 - Core follow-ups have been moved to `backlog/core.md` to avoid duplicating methodology work across adapters.
+
+### 24. P2 prefer meaningful Claude history over empty Codex trace roots
+
+Source review: 2026-05-03 candidate triage.
+
+The Codex init workflow currently chooses existing `.harness/traces/` before
+checking existing `.claude/traces/` with meaningful history. That can prefer an
+empty or template-only `.harness/traces/` over meaningful Claude history,
+recreating the split-history risk that active trace-root selection is meant to
+avoid.
+
+Potential improvement:
+
+- Update `adapters/codex/skills/init-codex-harness/SKILL.md` so trace-root
+  selection compares meaningful history before choosing a root.
+- Treat empty directories, `.keep` files, and untouched templates as
+  non-meaningful for `.harness/traces/`, just as the Claude init guidance does
+  for migrated projects.
+- Add focused coverage or lexical checks proving meaningful Claude history is
+  not ignored merely because an empty `.harness/traces/` directory exists.
+
+### 25. P2 connect marketplace metadata checker to publication gates when ready
+
+Source review: 2026-05-03 candidate triage.
+
+`scripts/check-codex-marketplace-metadata.py` protects publication readiness,
+but it is intentionally not part of current pre-commit or standard verification
+while no marketplace publication manifest exists. Once a publication manifest
+or ready marker is introduced, relying on manual invocation could let metadata
+bypass the intended release guard.
+
+Potential improvement:
+
+- Define the trigger that moves `python3 scripts/check-codex-marketplace-metadata.py`
+  from publication-prep documentation into the release checklist and relevant
+  automated gate.
+- When `.agents/plugins/marketplace.json` or an equivalent publication manifest
+  exists, include the checker in the appropriate release/pre-commit path or add
+  an explicit release validation command that cannot be skipped silently.
+- Keep the current deferred state unchanged until official schema/taxonomy
+  evidence and publication readiness are recorded.

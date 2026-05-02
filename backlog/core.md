@@ -992,6 +992,61 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 25. P1 make maintenance review checker staged-content aware
+
+Source review: 2026-05-03 candidate triage.
+
+The maintenance review checker is wired into pre-commit and rejects negated
+low-score handling, but `validate_paths()` reads review files from the working
+tree. In a partial-stage commit, invalid staged backlog or review content can
+be hidden by a fixed but unstaged working-tree copy, letting the commit bypass
+the intended review contract.
+
+Potential improvement:
+
+- Make `scripts/check-maintenance-review.py` validate staged content when it is
+  running in a Git pre-commit context.
+- Preserve normal working-tree validation for explicit command-line use outside
+  staged commit checks.
+- Add temp-git tests proving staged invalid review content fails even when the
+  working-tree copy has already been fixed.
+
+### 26. P3 label README autoresearch filenames as repository conventions
+
+Source review: 2026-05-03 candidate triage.
+
+The README autoresearch flow names `program.md`, `evaluate.py`, and `genome`
+without clearly marking them as repository or adapter conventions. The
+paper-level requirement is a fixed evaluator plus mutable search surface, not
+those exact filenames.
+
+Potential improvement:
+
+- Reword the README autoresearch flow so the filenames are examples or local
+  conventions rather than paper-level requirements.
+- Preserve the fixed-evaluator and mutable-search-surface explanation.
+- Add or update a focused documentation-boundary test if one already covers
+  paper claims versus repository practice.
+
+### 27. P3 refresh core backlog Current Status guidance
+
+Source review: 2026-05-03 candidate triage.
+
+The `backlog/core.md` Current Status block still recommends starting with
+autoresearch detection heuristics, trace-history tie-breakers, and
+verify-command quality rules, although those areas are already recorded as
+implemented decisions above. This weakens backlog-as-regression-memory quality
+even though it is not a runtime bug.
+
+Potential improvement:
+
+- Refresh the core backlog Current Status block so it points at the actual
+  remaining open core candidates.
+- Avoid duplicating completed item recommendations that already have completion
+  records.
+- Keep the change backlog-only unless recurring stale status guidance warrants
+  a lightweight checker.
+
 ### 19. Add prompt-as-code search example
 
 Status: 완료
