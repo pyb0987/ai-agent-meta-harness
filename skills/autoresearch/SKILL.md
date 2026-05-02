@@ -397,6 +397,9 @@ Before exiting Setup Mode, verify:
 - [ ] experiments.jsonl initialized (empty)
 - [ ] `.claude/hooks/protect-files.sh` and `protect-files-bash.sh` installed
 - [ ] `.claude/settings.local.json` has both hooks registered (PreToolUse Edit|Write + PreToolUse Bash)
+- [ ] Hard-layer diff protection (pre-commit/CI) installed, or an explicit skipped reason recorded when the project cannot install it yet
+- [ ] Hard-layer smoke result recorded: protected evaluator edit fails with `BLOCKED`, and a staged mutable genome edit not listed in `.claude/autoresearch-protected.txt` passes
+- [ ] Claude hooks are documented as fast local protection, not a replacement for the hard pre-commit/CI layer
 - [ ] CLAUDE.md has Autoresearch section (output schema, mutable/immutable boundary, trace timing, frontmatter fields, reject preservation)
 - [ ] Active `{trace_root}` selected by evidence and recorded when it is not `.claude/traces/`
 - [ ] `{trace_root}/experiments/` exists and episode format is referenced

@@ -105,6 +105,19 @@ class ClaudeAutoresearchHardLayerGuidanceTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
 
+    def test_setup_completion_requires_hard_layer_install_and_smoke(self) -> None:
+        for path in (SKILL, MIRROR_SKILL):
+            text = skill_text(path)
+            for marker in (
+                "Hard-layer diff protection (pre-commit/CI) installed, or an explicit skipped reason recorded",
+                "Hard-layer smoke result recorded",
+                "protected evaluator edit fails with `BLOCKED`",
+                "staged mutable genome edit not listed in `.claude/autoresearch-protected.txt` passes",
+                "fast local protection, not a replacement for the hard pre-commit/CI layer",
+            ):
+                with self.subTest(path=path, marker=marker):
+                    self.assertIn(marker, text)
+
     def test_compatibility_mirror_has_same_hard_layer_guidance(self) -> None:
         canonical = skill_text(SKILL)
         mirror = skill_text(MIRROR_SKILL)

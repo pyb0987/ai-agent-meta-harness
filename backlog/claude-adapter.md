@@ -244,6 +244,16 @@ Completion Gate:
 
 ### 12. P2 require Claude autoresearch hard-layer protection before setup completion
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/skills/autoresearch/SKILL.md
+- skills/autoresearch/SKILL.md
+- tests/test_claude_autoresearch_hard_layer_guidance.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 The Claude `autoresearch` skill documents pre-commit/CI diff protection as the
@@ -264,3 +274,41 @@ Potential improvement:
   not replace the hard pre-commit/CI layer.
 - Add focused documentation tests so future edits do not remove this setup
   completion requirement.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - adapters/claude/skills/autoresearch/SKILL.md
+  - skills/autoresearch/SKILL.md
+  - tests/test_claude_autoresearch_hard_layer_guidance.py
+  - backlog/claude-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_hard_layer_guidance.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; `rg --files -g 'search-set.md'` found no repository search-set file, so there is no defined search-set target to run.
+- Multi-review required: yes; Claude autoresearch setup/protection semantics changed.
+- Multi-review result: PASS by sequential `FALLBACK_NONINDEPENDENT` review.
+- Reviewer scores and VETO handling:
+  - Setup completion contract critic: 10/10 PASS; checklist now requires hard-layer install or explicit skipped reason plus smoke evidence before setup completion.
+  - Hard-layer protection honesty critic: 10/10 PASS; Claude hooks are explicitly framed as fast local protection, not a replacement for the pre-commit/CI layer.
+  - Compatibility mirror/test critic: 10/10 PASS; canonical and mirror skills carry the same new completion requirements and focused tests cover both paths.
+  - Maintenance compliance critic: 9/10 PASS; no VETO. Reservation, Start Gate, scoped edits, verification, search-set skipped reason, and Completion Gate are present.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used the required sequential `FALLBACK_NONINDEPENDENT` form in this single-session run instead of independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the residual is procedural review independence, not an actionable repository defect for this item.
+- Residual risk/follow-up: future externally reviewed passes may provide stronger independent critique, but no known implementation risk remains.
+- Accepted: yes; accepted by maintainer review and ready for commit.
