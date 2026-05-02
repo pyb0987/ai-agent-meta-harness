@@ -37,6 +37,7 @@ EXPECTED_ASSETS = (
     "examples/AGENTS.md.example",
     "scripts/check-autoresearch-protected.py",
     "scripts/check-codex-hook-schema-drift.py",
+    "scripts/smoke-init-codex-project-fixtures.py",
     "scripts/smoke-autoresearch-hooks.py",
     "scripts/smoke-local-plugin-activation.py",
     "scripts/smoke-local-plugin.py",
@@ -44,6 +45,7 @@ EXPECTED_ASSETS = (
 
 EXPECTED_EXECUTABLE_ASSETS = (
     "scripts/check-autoresearch-protected.py",
+    "scripts/smoke-init-codex-project-fixtures.py",
     "scripts/smoke-local-plugin-activation.py",
     "scripts/smoke-autoresearch-hooks.py",
     "templates/hooks/pre-commit-autoresearch-protected.sh",

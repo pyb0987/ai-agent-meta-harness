@@ -76,6 +76,21 @@ Archived: `backlog/archive/codex-adapter.md#10-add-codex-examples`
 
 ### 11. Test Codex adapter on real project types
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/scripts/smoke-init-codex-project-fixtures.py
+- adapters/codex/tests/test_init_codex_project_fixtures.py
+- adapters/codex/README.md
+- adapters/codex/scripts/smoke-local-plugin.py
+- plugins/ai-agent-meta-harness/scripts/smoke-init-codex-project-fixtures.py
+- plugins/ai-agent-meta-harness/README.md
+- plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py
+- scripts/sync-codex-plugin.py
+- backlog/codex-adapter.md
+
 The Codex skills should be exercised on representative projects and refined from traces.
 
 Potential improvement:
@@ -84,6 +99,62 @@ Potential improvement:
 - Apply it to a Python research repo.
 - Apply it to an existing project with `.claude/traces/` history.
 - Review the generated traces and search-set entries, then update skill docs based on observed failures.
+
+Decision:
+
+- Added `smoke-init-codex-project-fixtures.py`, which creates representative TypeScript, Python, and migrated-Claude-history project fixtures and validates the expected `init-codex-harness` output contract.
+- The smoke checks trace-root selection, Active executable search-set verifier, AGENTS.md harness policy, initial evolution trace shape, exit-status masking guardrails, and no Claude-only hook assumptions.
+- Added focused unit tests for passing fixtures and rejection cases: missing expected verifier, masked verifier exit status, split migrated trace roots, stale fixture replacement, and missing migrated-history guidance.
+- Bundled the smoke into the generated local Codex plugin and made `smoke-local-plugin.py` require it as an executable asset.
+- Documented the fixture smoke command and its boundary in the Codex adapter README.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `adapters/codex/README.md`
+  - `adapters/codex/scripts/smoke-init-codex-project-fixtures.py`
+  - `adapters/codex/scripts/smoke-local-plugin.py`
+  - `adapters/codex/tests/test_init_codex_project_fixtures.py`
+  - `plugins/ai-agent-meta-harness/README.md`
+  - `plugins/ai-agent-meta-harness/scripts/smoke-init-codex-project-fixtures.py`
+  - `plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py`
+  - `scripts/sync-codex-plugin.py`
+  - `backlog/codex-adapter.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_init_codex_project_fixtures.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py`
+  - PASS: `python3 plugins/ai-agent-meta-harness/scripts/smoke-init-codex-project-fixtures.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; no repository `search-set.md` exists (`rg --files -g 'search-set.md'` returned no files). The new fixture smoke itself validates generated fixture search-set entries.
+- Multi-review required: yes; this adds Codex adapter smoke coverage that can affect release confidence and future initialization behavior.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Fixture coverage critic: 10/10 PASS; TypeScript, Python, and migrated Claude-history fixtures cover the concrete project-type branches named by the item.
+  - Generated plugin/sync critic: 10/10 PASS; the smoke is included in sync requirements, generated into the plugin bundle, executable in the generated bundle, and required by the local plugin artifact smoke.
+  - Runtime realism critic: 9/10 PASS; the smoke validates deterministic project-fixture outputs but does not run a live Codex model against external repositories.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, focused verification, standard verification, search-set SKIPPED reason, and Completion Gate are recorded, with nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Runtime realism critic: not 10 because this is a deterministic fixture smoke, not live model dogfooding on externally maintained repositories. No backlog item added because the missing piece is a runtime/product-surface and sample-repo availability issue rather than a concrete repo-local fix for this pass.
+  - Maintenance compliance critic: not 10 because multi-review was sequential fallback in the parent context, not independent parallel critics. No backlog item added because this is session-surface residual risk, not repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: live Codex model dogfooding on external representative projects would still provide stronger evidence if a stable noninteractive skill runner or approved sample-repo workflow becomes available.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 12. Provide a Codex autoresearch protection checker reference implementation
 

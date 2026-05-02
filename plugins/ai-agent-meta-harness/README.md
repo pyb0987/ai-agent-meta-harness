@@ -178,11 +178,19 @@ python3 scripts/sync-codex-plugin.py --write
 python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
+python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 ```
 
 The generated plugin lives at `plugins/ai-agent-meta-harness/`. The artifact smoke test validates the bundle artifact: manifest, expected skills, checker/hook/template assets, and degraded fallback warnings.
+
+The init project fixture smoke creates representative TypeScript, Python, and
+migrated-Claude-history project fixtures and validates the expected
+`init-codex-harness` contract: trace-root selection, Active executable
+search-set verifier, AGENTS.md harness policy, initial evolution trace, and no
+Claude-only hook assumptions. It does not run a live Codex model against an
+external project.
 
 The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
 
