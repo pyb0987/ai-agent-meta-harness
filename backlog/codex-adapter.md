@@ -25,7 +25,7 @@ Decision: use a **local Codex plugin bundle** as the primary distribution path.
 
 Status of paths:
 
-- Local plugin bundle: primary bundle target for normal local development and dogfooding; activation smoke test still pending.
+- Local plugin bundle: primary bundle target for normal local development and dogfooding; artifact, fixture, and isolated activation smokes are implemented.
 - Direct skill copy: development fallback for fast skill text iteration only.
 - Marketplace/plugin bundle: future release path after local plugin layout stabilizes.
 - `skill-installer`: compatibility investigation for skill-only degraded installs.
@@ -36,13 +36,16 @@ Implemented foundation:
 - `scripts/sync-codex-plugin.py --write` materializes the local plugin bundle from `adapters/codex/`.
 - `scripts/sync-codex-plugin.py --check` fails on missing, stale, extra, invalid, binary-different, or semantically empty required plugin surfaces.
 - `.githooks/pre-commit` runs the plugin drift check alongside compatibility mirror checks.
-- README install guidance now points to the generated local plugin bundle first, with direct skill copy as a degraded fallback.
+- README install guidance points to the generated local plugin bundle first, with direct skill copy as a degraded fallback.
+- `smoke-local-plugin.py`, `smoke-local-plugin-activation.py`, and
+  `smoke-init-codex-project-fixtures.py` cover generated artifact integrity,
+  isolated CLI marketplace activation, and representative init fixture output.
 
 Remaining follow-up work:
 
-- Add a real local plugin install smoke test once the exact Codex local-plugin activation workflow is documented.
 - Decide how the fallback direct-copy path reports missing hooks/checker assets at runtime.
-- Keep README install instructions aligned as hook/checker assets are added to the plugin bundle.
+- Keep runtime hook manifest fields gated until Codex plugin tool-event delivery
+  can be smoke-tested, not just local marketplace activation.
 
 ### 5. Define Codex plugin bundle scope
 
@@ -299,3 +302,52 @@ Archived: `backlog/archive/codex-adapter.md#24-p2-prefer-meaningful-claude-histo
 
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#25-p2-connect-marketplace-metadata-checker-to-publication-gates-when-ready`
+
+### 26. Reconcile Codex distribution epic follow-up text
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/codex-adapter.md
+
+The Codex distribution epic retained stale follow-up wording after local plugin
+activation and project-fixture smoke coverage landed.
+
+Potential improvement:
+
+- Update item 4 so it no longer says activation smoke is pending.
+- Keep only real remaining follow-up work, such as direct-copy fallback
+  limitations and runtime hook/tool-event gating.
+
+Decision:
+
+- Updated item 4 to say the local plugin bundle now has artifact, fixture, and
+  isolated activation smoke coverage.
+- Removed the stale "real local plugin install smoke test" follow-up because
+  item 19 added isolated CLI marketplace activation coverage.
+- Kept the real remaining follow-ups around direct-copy fallback limitations
+  and runtime hook/tool-event gating.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `backlog/codex-adapter.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting and no repository
+  `search-set.md` exists.
+- Multi-review required: no; backlog text reconciliation only, with no adapter
+  behavior, hook semantics, release gate, or checker policy change.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no
+  VETO path.
+- For each score 9, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: remaining item 4 follow-ups are now current:
+  direct-copy fallback limitation reporting and runtime hook/tool-event gating.
+- Accepted: yes; accepted by maintainer review and ready for commit.
