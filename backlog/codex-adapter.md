@@ -452,3 +452,103 @@ Completion Gate:
 - Residual risk/follow-up: runtime hook manifest fields remain gated until
   Codex plugin tool-event delivery can be smoke-tested.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 28. Gate runtime hook manifest fields on tool-event coverage
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/README.md
+- adapters/codex/plugin-scope.md
+- adapters/codex/scripts/smoke-local-plugin.py
+- adapters/codex/tests/test_local_plugin_smoke.py
+- adapters/codex/tests/test_hook_templates.py
+- plugins/ai-agent-meta-harness/README.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py
+- backlog/codex-adapter.md
+
+The plugin bundle ships hook templates but must not advertise active runtime
+hook manifest fields until Codex plugin tool-event delivery is mechanically
+smoke-tested.
+
+Potential improvement:
+
+- Update manifest rules so `hooks` requires both isolated activation coverage
+  and tool-event delivery coverage.
+- Make the local plugin smoke rejection message and tests enforce the
+  activation-plus-tool-event gate.
+
+Decision:
+
+- Updated plugin scope manifest rules so runtime `hooks` fields require both
+  isolated local activation and Codex plugin tool-event delivery smoke coverage.
+- Updated README wording so bundled hook templates are not described as active
+  plugin runtime hooks until both coverage conditions are met.
+- Updated `smoke-local-plugin.py` to reject manifest `hooks` with an
+  activation-plus-tool-event gate message.
+- Added tests that pin the plugin-scope gate and the local plugin smoke
+  rejection message.
+- Fixed the runtime-hooks rejection test so the temporary copied plugin remains
+  alive while the smoke command runs.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `adapters/codex/README.md`
+  - `adapters/codex/plugin-scope.md`
+  - `adapters/codex/scripts/smoke-local-plugin.py`
+  - `adapters/codex/tests/test_local_plugin_smoke.py`
+  - `adapters/codex/tests/test_hook_templates.py`
+  - `plugins/ai-agent-meta-harness/README.md`
+  - `plugins/ai-agent-meta-harness/plugin-scope.md`
+  - `plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py`
+  - `backlog/codex-adapter.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_local_plugin_smoke.py adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; no repository `search-set.md` exists
+  (`rg --files -g 'search-set.md'` returned no files).
+- Multi-review required: yes; this tightens plugin manifest/release gating for
+  runtime hook semantics.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Manifest gate critic: 10/10 PASS; runtime `hooks` exposure is gated on
+    both isolated activation and plugin tool-event delivery coverage.
+  - Smoke enforcement critic: 10/10 PASS; the local plugin smoke rejects
+    manifest `hooks` and the test pins the new gate reason.
+  - Generated plugin sync critic: 10/10 PASS; plugin README, scope doc, and
+    smoke script are synchronized with canonical adapter sources.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope update,
+    verification, search-set SKIPPED reason, and Completion Gate are recorded,
+    with nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review was sequential
+    fallback in the parent context, not independent parallel critics. No
+    backlog item added because this is session-surface residual risk, not
+    repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: runtime hook manifest fields remain gated until a
+  future Codex surface supports mechanical plugin tool-event delivery smoke
+  coverage.
+- Accepted: yes; accepted by maintainer review and ready for commit.

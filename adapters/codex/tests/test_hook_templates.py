@@ -107,6 +107,15 @@ class HookTemplateTests(unittest.TestCase):
         self.assertNotIn("hooks", manifest)
         self.assertEqual(manifest["skills"], "./skills/")
 
+    def test_plugin_scope_gates_runtime_hooks_on_tool_event_delivery(self):
+        text = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        for marker in (
+            "Only after isolated local activation and Codex plugin tool-event delivery smoke tests pass",
+            "smoke-tested through both the isolated local plugin activation path and a Codex\nplugin tool-event delivery path",
+            "Template-only files under `templates/hooks/`\nshould not be advertised as active runtime hooks",
+        ):
+            self.assertIn(marker, text)
+
 
 if __name__ == "__main__":
     unittest.main()

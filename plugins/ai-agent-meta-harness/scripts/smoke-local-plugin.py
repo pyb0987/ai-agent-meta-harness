@@ -100,7 +100,9 @@ def validate_manifest(plugin_root: Path, manifest: dict[str, object]) -> list[st
     if manifest.get("skills") != "./skills/":
         errors.append("plugin.json skills must point to ./skills/")
     if "hooks" in manifest:
-        errors.append("plugin.json must not advertise runtime hooks until activation coverage is smoke-tested")
+        errors.append(
+            "plugin.json must not advertise runtime hooks until isolated activation and tool-event delivery coverage are smoke-tested"
+        )
     skills_dir = plugin_root / "skills"
     if not skills_dir.is_dir():
         errors.append(f"MISSING SKILLS DIR: {rel(skills_dir)}")

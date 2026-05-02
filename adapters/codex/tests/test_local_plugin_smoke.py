@@ -70,6 +70,7 @@ class LocalPluginSmokeTests(unittest.TestCase):
             result = self.run_smoke(plugin)
         self.assertEqual(result.returncode, 1)
         self.assertIn("must not advertise runtime hooks", result.stderr)
+        self.assertIn("isolated activation and tool-event delivery coverage", result.stderr)
 
     def test_rejects_missing_expected_skill(self):
         with tempfile.TemporaryDirectory() as tmp:

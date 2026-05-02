@@ -66,11 +66,11 @@ Do not include:
 
 | Asset class | Canonical source | Generated plugin path | Notes |
 |-------------|------------------|-----------------------|-------|
-| Codex hook templates | `adapters/codex/templates/hooks/codex-hooks.json.template` | `templates/hooks/codex-hooks.json.template` | Template-only guardrail; hard enforcement stays in pre-commit/CI until activation and tool coverage are smoke-tested |
+| Codex hook templates | `adapters/codex/templates/hooks/codex-hooks.json.template` | `templates/hooks/codex-hooks.json.template` | Template-only guardrail; hard enforcement stays in pre-commit/CI until activation and tool-event delivery coverage are smoke-tested |
 | Pre-commit template | `adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh` | `templates/hooks/pre-commit-autoresearch-protected.sh` | Hard local guardrail using the shared checker |
 | CI template | `adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml` | `templates/hooks/github-actions-autoresearch-protected.yml` | Pull-request guardrail using the shared checker |
 | AGENTS reminder snippet | `adapters/codex/templates/hooks/agents-autoresearch-protection.md` | `templates/hooks/agents-autoresearch-protection.md` | Level 1 instruction layer for target projects |
-| Runtime Codex hook config | `adapters/codex/hooks/` | `hooks/` plus manifest `hooks` field | Only after local activation smoke test passes |
+| Runtime Codex hook config | `adapters/codex/hooks/` | `hooks/` plus manifest `hooks` field | Only after isolated local activation and Codex plugin tool-event delivery smoke tests pass |
 | Autoresearch checker reference | `adapters/codex/scripts/check-autoresearch-protected.py` | `scripts/check-autoresearch-protected.py` | Shared by Codex hooks, pre-commit, and CI templates |
 | Hook schema drift reference | `adapters/codex/hook-schema.md` | `hook-schema.md` | Records verified Codex hook output assumptions and official source URLs |
 | Hook schema drift checker | `adapters/codex/scripts/check-codex-hook-schema-drift.py` | `scripts/check-codex-hook-schema-drift.py` | Fails when hook-sensitive staged changes omit schema re-verification |
@@ -84,8 +84,9 @@ Do not include:
 The manifest exposes only `skills` in v0 because the plugin currently ships
 skills and static templates. Add manifest fields such as `hooks` only when the
 repo has an executable hook config under `adapters/codex/hooks/` that is
-smoke-tested through the local plugin activation path. Template-only files under
-`templates/hooks/` should not be advertised as active runtime hooks.
+smoke-tested through both the isolated local plugin activation path and a Codex
+plugin tool-event delivery path. Template-only files under `templates/hooks/`
+should not be advertised as active runtime hooks.
 
 ## Marketplace Metadata Policy
 
