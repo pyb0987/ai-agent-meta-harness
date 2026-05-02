@@ -616,6 +616,16 @@ Completion Gate:
 
 ### 9. P2 add hard-layer protection guidance for Claude evaluator files
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/skills/autoresearch/SKILL.md
+- skills/autoresearch/SKILL.md
+- tests/test_claude_autoresearch_hard_layer_guidance.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 candidate triage.
 
 The Claude autoresearch Bash guard is documented as heuristic and points to
@@ -623,11 +633,49 @@ pre-commit/CI diff protection as the hard layer, but setup guidance still only
 installs Claude hooks and smoke-tests examples. Fixed-evaluator protection is
 therefore weaker than the Codex adapter's checker-plus-gate pattern.
 
-Potential improvement:
+Decision implemented:
 
-- Add Claude autoresearch setup guidance for installing or generating a
-  project-local protected-file diff check suitable for pre-commit/CI.
-- Define how that hard layer complements the heuristic Claude Bash hook without
-  overclaiming runtime hook completeness.
-- Add a focused smoke or fixture test proving the documented hard-layer command
-  rejects protected evaluator file edits.
+- Claude autoresearch setup now documents a project-local hard-layer Git diff
+  check for protected evaluator files and dependencies.
+- The guidance distinguishes Claude tool hooks as fast local warning/blocking
+  layers from the pre-commit/CI diff check as the hard protection layer.
+- The documented script reads `.claude/autoresearch-protected.txt`, rejects
+  staged protected-path edits in pre-commit mode, and supports CI range checks
+  through `BASE_REF`.
+- The guidance includes pre-commit wiring, CI base-ref expectations, and smoke
+  expectations for protected evaluator edits versus mutable genome edits.
+- `tests/test_claude_autoresearch_hard_layer_guidance.py` extracts the
+  documented shell template and verifies it blocks a staged `evaluate.py` edit
+  while allowing a staged mutable `genome.py` edit.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/skills/autoresearch/SKILL.md`,
+  `skills/autoresearch/SKILL.md`,
+  `tests/test_claude_autoresearch_hard_layer_guidance.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_autoresearch_hard_layer_guidance.py`, `python3 -m unittest tests/test_claude_autoresearch_hook_guidance.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Claude fixed-evaluator
+  protection guidance and release-gate expectations for autoresearch projects.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Hard-layer protection semantics critic
+  score 10, verdict PASS, Blocking findings: none. Runtime-overclaim boundary
+  critic score 10, verdict PASS, Blocking findings: none. Documented-template
+  smoke coverage critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: the hard-layer script is documented as a
+  project-local template rather than installed by this repository into target
+  projects; true Claude Code runtime hook activation coverage remains a
+  separate future smoke concern.
+- Accepted: yes; accepted by maintainer review and ready for commit.

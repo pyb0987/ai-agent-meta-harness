@@ -252,6 +252,84 @@ CLAUDE_TOOL_INPUT='{"command":"python -c \"open(file='\''evaluate.py'\'', mode='
 Each command must exit 1 with a `BLOCKED` message. Also verify one read-only
 case such as `python -c "open('evaluate.py', mode='r').read()"` exits 0.
 
+**Hard-layer diff protection (pre-commit/CI)**:
+
+Claude tool hooks are a fast local warning/blocking layer, but the Bash hook is
+still a heuristic command matcher. Treat a project-local Git diff check as the
+hard protection layer for evaluator files and dependencies. Install it in
+pre-commit and CI so protected evaluator edits are rejected even if a runtime
+hook is bypassed, disabled, or unavailable.
+
+Create `.claude/autoresearch-protected.txt` with one exact project-relative
+protected path per line:
+
+```text
+evaluate.py
+# lib/metric.py
+# data/baseline.json
+```
+
+Install this project-local script as `.githooks/protect-autoresearch-evaluator.sh`
+or the equivalent CI step:
+
+```bash
+#!/bin/sh
+# protect-autoresearch-evaluator-diff.sh — hard pre-commit/CI diff check.
+set -eu
+
+PROTECTED_FILE_LIST="${PROTECTED_FILE_LIST:-.claude/autoresearch-protected.txt}"
+[ -f "$PROTECTED_FILE_LIST" ] || {
+  echo "BLOCKED: missing $PROTECTED_FILE_LIST" >&2
+  exit 1
+}
+
+if [ -n "${BASE_REF:-}" ]; then
+  CHANGED_FILES=$(git diff --name-only "$BASE_REF"...HEAD)
+else
+  CHANGED_FILES=$(git diff --cached --name-only)
+fi
+
+VIOLATIONS=""
+while IFS= read -r protected_path || [ -n "$protected_path" ]; do
+  case "$protected_path" in
+    ""|\#*) continue ;;
+  esac
+  if printf '%s\n' "$CHANGED_FILES" | grep -Fx -- "$protected_path" >/dev/null; then
+    VIOLATIONS="${VIOLATIONS}${protected_path}
+"
+  fi
+done < "$PROTECTED_FILE_LIST"
+
+if [ -n "$VIOLATIONS" ]; then
+  printf 'BLOCKED: protected evaluator files changed:\n%s' "$VIOLATIONS" >&2
+  exit 1
+fi
+exit 0
+```
+
+Pre-commit wiring:
+
+```bash
+sh .githooks/protect-autoresearch-evaluator.sh
+```
+
+CI wiring should set `BASE_REF` to the protected merge base or target branch
+before running the same script. If no reliable CI base ref is available, fail
+closed or run the check against an explicit reviewed base commit; do not treat
+the heuristic Claude hooks as sufficient hard protection.
+
+Smoke-test the hard layer before enabling:
+
+```bash
+printf '%s\n' evaluate.py > .claude/autoresearch-protected.txt
+git add evaluate.py
+sh .githooks/protect-autoresearch-evaluator.sh; echo $?
+```
+
+The protected evaluator edit must exit 1 with a `BLOCKED` message. A staged
+mutable genome edit not listed in `.claude/autoresearch-protected.txt` must
+exit 0.
+
 **Idempotency rules** (re-entry on already-harnessed projects like chain-army):
 - **`.claude/hooks/protect-files.sh` already exists**: read it, compare against the canonical template above. If identical (modulo PROTECTED_FILES customization), skip. If differs structurally, show the diff and prompt the user before any change. Never silently overwrite.
 - **`.claude/hooks/protect-files-bash.sh` already exists**: same rule.
