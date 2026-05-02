@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 
@@ -25,6 +26,37 @@ def summary(multi_review: str) -> str:
 Multi-review:
 {multi_review}
 """
+
+
+VALID_REVIEW = summary(
+    """- Test scope critic: score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is intentionally narrow. Follow-up/residual risk: accepted.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+)
+
+INVALID_LOW_SCORE_REVIEW = summary(
+    """- Test scope critic: score 8, PASS. Blocking findings: none. No VETO triggered.
+- Score handling: all critic scores were treated as accepted.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: none recorded.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+)
+
+
+def git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
 
 
 class CheckMaintenanceReviewTests(unittest.TestCase):
@@ -285,6 +317,48 @@ Potential improvement:
                 "backlog/codex-adapter.md",
             },
         )
+
+    def test_default_git_validation_reads_staged_content(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            backlog = root / "backlog"
+            backlog.mkdir()
+            core = backlog / "core.md"
+            claude = backlog / "claude-adapter.md"
+            codex = backlog / "codex-adapter.md"
+            core.write_text(INVALID_LOW_SCORE_REVIEW, encoding="utf-8")
+            claude.write_text("", encoding="utf-8")
+            codex.write_text("", encoding="utf-8")
+            git(root, "add", "backlog/core.md", "backlog/claude-adapter.md", "backlog/codex-adapter.md")
+            core.write_text(VALID_REVIEW, encoding="utf-8")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+
+            index_errors = check_maintenance_review.validate_default_paths(use_index=True)
+            worktree_errors = check_maintenance_review.validate_paths([core])
+
+        self.assertTrue(any("score below 9" in error for error in index_errors))
+        self.assertEqual(worktree_errors, [])
+
+    def test_index_default_paths_include_staged_review_files(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            review = root / "backlog" / "review-example.md"
+            review.parent.mkdir()
+            review.write_text("", encoding="utf-8")
+            git(root, "add", "backlog/review-example.md")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+
+            paths = {path.relative_to(root).as_posix() for path in check_maintenance_review.default_paths(use_index=True)}
+
+        self.assertEqual(paths, {"backlog/review-example.md"})
 
 
 if __name__ == "__main__":

@@ -994,6 +994,15 @@ Completion Gate:
 
 ### 25. P1 make maintenance review checker staged-content aware
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+
 Source review: 2026-05-03 candidate triage.
 
 The maintenance review checker is wired into pre-commit and rejects negated
@@ -1002,7 +1011,7 @@ tree. In a partial-stage commit, invalid staged backlog or review content can
 be hidden by a fixed but unstaged working-tree copy, letting the commit bypass
 the intended review contract.
 
-Potential improvement:
+Original improvement:
 
 - Make `scripts/check-maintenance-review.py` validate staged content when it is
   running in a Git pre-commit context.
@@ -1010,6 +1019,54 @@ Potential improvement:
   staged commit checks.
 - Add temp-git tests proving staged invalid review content fails even when the
   working-tree copy has already been fixed.
+
+Decision implemented:
+
+- `scripts/check-maintenance-review.py` now validates Git index content for its
+  default no-argument path set when running inside a Git worktree. This matches
+  the pre-commit use case, where the gate must validate what will actually be
+  committed.
+- Default indexed validation discovers staged `backlog/review-*.md` files plus
+  the three embedded backlog ownership files from the index, then reads content
+  with `git show :path`.
+- Explicit path validation still reads the working tree, so manual checks such
+  as `python3 scripts/check-maintenance-review.py backlog/core.md` preserve the
+  previous direct-file behavior.
+- `tests/test_check_maintenance_review.py` now includes temp-git coverage
+  proving invalid staged review content fails even after the working-tree copy
+  has been fixed.
+- Tests also cover staged `backlog/review-*.md` discovery from the Git index.
+
+Remaining follow-up work:
+
+- none.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, and `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_check_maintenance_review.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-maintenance-review.py backlog/core.md backlog/claude-adapter.md backlog/codex-adapter.md`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes pre-commit/release-gate
+  semantics for maintenance review validation.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Staged-content gate critic score 10,
+  verdict PASS, Blocking findings: none. Explicit working-tree validation
+  preservation critic score 10, verdict PASS, Blocking findings: none.
+  Temp-git coverage critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 26. P3 label README autoresearch filenames as repository conventions
 

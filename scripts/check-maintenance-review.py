@@ -9,8 +9,10 @@ and enforces the fields required by MAINTENANCE.md.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import fnmatch
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -252,16 +254,76 @@ def validate_paths(paths: list[Path]) -> list[str]:
     return errors
 
 
-def default_paths() -> list[Path]:
+def _git(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=check,
+    )
+
+
+def _inside_git_worktree() -> bool:
+    result = _git(["rev-parse", "--is-inside-work-tree"], check=False)
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def _read_index_text(path: Path) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    result = _git(["show", f":{relative}"], check=False)
+    if result.returncode != 0:
+        raise OSError(result.stderr.strip() or f"git show :{relative} failed")
+    return result.stdout
+
+
+def indexed_default_paths() -> list[Path]:
+    result = _git(["ls-files", "-z", "--", "backlog"], check=False)
+    if result.returncode != 0:
+        return []
+    indexed = [path for path in result.stdout.split("\0") if path]
+    wanted = set(DEFAULT_BACKLOG_FILES)
+    for path in indexed:
+        if fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB):
+            wanted.add(path)
+    return sorted(ROOT / path for path in wanted if path in indexed)
+
+
+def validate_index_paths(paths: list[Path]) -> list[str]:
+    errors: list[str] = []
+    for path in paths:
+        try:
+            text = _read_index_text(path)
+        except OSError as exc:
+            errors.append(f"{path}: unreadable staged review summary: {exc}")
+            continue
+        errors.extend(validate_text(text, source=path.as_posix()))
+    return errors
+
+
+def default_paths(*, use_index: bool = False) -> list[Path]:
+    if use_index:
+        return indexed_default_paths()
     paths = set(ROOT.glob(DEFAULT_REVIEW_GLOB))
     paths.update(path for relative in DEFAULT_BACKLOG_FILES if (path := ROOT / relative).exists())
     return sorted(paths)
 
 
+def validate_default_paths(*, use_index: bool = False) -> list[str]:
+    paths = default_paths(use_index=use_index)
+    if use_index:
+        return validate_index_paths(paths)
+    return validate_paths(paths)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    paths = [Path(arg) for arg in args] if args else default_paths()
-    errors = validate_paths(paths)
+    if args:
+        errors = validate_paths([Path(arg) for arg in args])
+    else:
+        errors = validate_default_paths(use_index=_inside_git_worktree())
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
