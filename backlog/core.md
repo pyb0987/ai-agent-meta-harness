@@ -1047,6 +1047,33 @@ Potential improvement:
 - Keep the change backlog-only unless recurring stale status guidance warrants
   a lightweight checker.
 
+### 28. P2 archive completed backlog items without losing review records
+
+Source discussion: 2026-05-03 maintainer request.
+
+The backlog files now carry both active work candidates and completed
+decision/review records. Keeping all completed Completion Gates inline preserves
+regression memory, but it also makes the active backlog long and harder to
+scan. Deleting completed records would lose review evidence, score handling,
+and residual-risk history.
+
+Potential improvement:
+
+- Create an archive structure such as `backlog/archive/core.md`,
+  `backlog/archive/claude-adapter.md`, and
+  `backlog/archive/codex-adapter.md`.
+- Move completed, committed items to the owning archive file while preserving
+  full Completion Gate, review score, VETO, search-set, and residual-risk
+  records.
+- Leave a short archive pointer or completed-item index in each active backlog
+  file so maintainers can find historical decisions without scanning every
+  completed record inline.
+- Decide whether `scripts/check-maintenance-review.py` should validate archived
+  records by default, and update tests/default paths accordingly if archived
+  records remain part of the release contract.
+- Keep active backlog files focused on unstarted, in-progress, review-pending,
+  or explicitly deferred work.
+
 ### 19. Add prompt-as-code search example
 
 Status: 완료
