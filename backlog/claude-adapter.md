@@ -547,6 +547,16 @@ Completion Gate:
 
 ### 8. P2 respect migrated active trace roots in Claude harness-engineer
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/claude/skills/harness-engineer/SKILL.md
+- skills/harness-engineer/SKILL.md
+- tests/test_claude_harness_engineer_trace_root.py
+- backlog/claude-adapter.md
+
 Source review: 2026-05-03 candidate triage.
 
 Claude `/init-harness` can now reuse or explicitly select meaningful
@@ -555,15 +565,54 @@ still hardcodes `.claude/traces/` for diagnosis, search-set verification,
 Active-zero recovery, and trace recording. Migrated projects can still split or
 ignore prior trace history during later harness evolution.
 
-Potential improvement:
+Decision implemented:
 
-- Update the Claude `harness-engineer` skill to discover the active trace root
-  from project guidance or existing evidence before reading/writing traces.
-- Preserve `.claude/traces/` as the default for normal Claude projects, while
-  respecting an explicitly selected `.harness/traces/` root.
-- Add focused coverage or lexical checks so future edits do not reintroduce
-  hardcoded Claude-only trace-root assumptions where active-root selection is
-  required.
+- Claude `harness-engineer` now selects the active trace root before trace
+  reads or writes.
+- `.claude/traces/` remains the default for normal Claude projects, while
+  explicitly documented or evidence-selected `.harness/traces/` roots are
+  respected for migrated projects.
+- The skill defines evidence for active-root selection, including project
+  guidance, Active search-set cases, unresolved failures, recent evolution
+  entries, meaningful experiment episodes, and `/init-harness` migration notes.
+- Divergent meaningful `.claude/traces/` and `.harness/traces/` histories now
+  require stopping and reporting uncertainty with a migration plan before new
+  traces are written.
+- Procedural diagnosis, search-set, Active-zero, recording, and periodic review
+  paths now use `{trace_root}` after selection.
+- `tests/test_claude_harness_engineer_trace_root.py` locks the active-root
+  contract and verifies the compatibility mirror carries the same markers.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/skills/harness-engineer/SKILL.md`,
+  `skills/harness-engineer/SKILL.md`,
+  `tests/test_claude_harness_engineer_trace_root.py`, and
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_claude_harness_engineer_trace_root.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/check-maintenance-review.py backlog/claude-adapter.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Claude adapter trace
+  selection semantics for later harness evolution.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Active trace-root semantics critic score
+  10, verdict PASS, Blocking findings: none. Migration-safety critic score 10,
+  verdict PASS, Blocking findings: none. Compatibility mirror and lexical
+  regression coverage critic score 10, verdict PASS, Blocking findings: none.
+  Maintenance compliance critic score 9, verdict PASS, Blocking findings:
+  none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: this is lexical skill-contract coverage, not actual
+  Claude Code skill execution in a migrated fixture; future true runtime
+  execution coverage remains out of scope until mechanically available.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 9. P2 add hard-layer protection guidance for Claude evaluator files
 
