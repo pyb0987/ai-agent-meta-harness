@@ -14,6 +14,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-maintenance-review.py", text)
 
+    def test_hook_runs_codex_marketplace_metadata_checker(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-codex-marketplace-metadata.py", text)
+
 
 if __name__ == "__main__":
     unittest.main()

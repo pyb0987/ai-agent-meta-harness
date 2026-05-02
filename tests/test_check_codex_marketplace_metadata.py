@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,6 +38,18 @@ Official marketplace schema: https://example.invalid/schema
 Official marketplace taxonomy: https://example.invalid/taxonomy
 Generated metadata source: adapters/codex/plugin-scope.md
 """
+
+
+def git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
 
 
 class CodexMarketplaceMetadataCheckTests(unittest.TestCase):
@@ -84,6 +97,26 @@ class CodexMarketplaceMetadataCheckTests(unittest.TestCase):
         errors = check_marketplace.validate()
 
         self.assertTrue(any("MISSING POLICY MARKER" in error for error in errors))
+
+    def test_index_validation_rejects_staged_manifest_hidden_by_worktree(self) -> None:
+        root = check_marketplace.ROOT
+        git(root, "init")
+        git(root, "config", "user.email", "test@example.com")
+        git(root, "config", "user.name", "Test User")
+        git(root, "add", "adapters/codex/plugin-scope.md")
+        git(root, "commit", "-m", "initial")
+
+        manifest = check_marketplace.PUBLICATION_MANIFESTS[0]
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text("{}", encoding="utf-8")
+        git(root, "add", ".agents/plugins/marketplace.json")
+        manifest.unlink()
+
+        worktree_errors = check_marketplace.validate()
+        index_errors = check_marketplace.validate(use_index=True)
+
+        self.assertEqual(worktree_errors, [])
+        self.assertTrue(any("MARKETPLACE METADATA NOT READY" in error for error in index_errors))
 
 
 if __name__ == "__main__":

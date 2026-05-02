@@ -288,6 +288,10 @@ handoff point:
   intentionally re-verify `adapters/codex/hook-schema.md`.
 - Codex autoresearch hook smoke passes against the real checker and protected
   path template.
+- Codex marketplace metadata readiness check passes. This check is deferred
+  while no publication manifest exists, and fails if marketplace metadata
+  appears before publication readiness, official schema/taxonomy evidence, and
+  generated metadata source are recorded.
 - Maintenance review summaries pass the review-summary checker so score,
   VETO, rerun, residual-risk, and final-acceptance handling stay explicit.
 - Unit and integration tests pass for root, Claude adapter, and Codex adapter

@@ -875,6 +875,18 @@ Completion Gate:
 
 ### 25. P2 connect marketplace metadata checker to publication gates when ready
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- .githooks/pre-commit
+- MAINTENANCE.md
+- scripts/check-codex-marketplace-metadata.py
+- tests/test_pre_commit_hook.py
+- tests/test_check_codex_marketplace_metadata.py
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 candidate triage.
 
 `scripts/check-codex-marketplace-metadata.py` protects publication readiness,
@@ -883,13 +895,53 @@ while no marketplace publication manifest exists. Once a publication manifest
 or ready marker is introduced, relying on manual invocation could let metadata
 bypass the intended release guard.
 
-Potential improvement:
+Decision implemented:
 
-- Define the trigger that moves `python3 scripts/check-codex-marketplace-metadata.py`
-  from publication-prep documentation into the release checklist and relevant
-  automated gate.
-- When `.agents/plugins/marketplace.json` or an equivalent publication manifest
-  exists, include the checker in the appropriate release/pre-commit path or add
-  an explicit release validation command that cannot be skipped silently.
-- Keep the current deferred state unchanged until official schema/taxonomy
-  evidence and publication readiness are recorded.
+- `.githooks/pre-commit` now runs
+  `python3 scripts/check-codex-marketplace-metadata.py`.
+- The release checklist in `MAINTENANCE.md` now requires the Codex marketplace
+  metadata readiness check to pass.
+- The current deferred state remains unchanged: the checker passes while no
+  publication manifest exists and fails if marketplace metadata appears before
+  publication readiness, official schema/taxonomy evidence, and generated
+  metadata source are recorded.
+- In a Git worktree, the checker validates the staged policy and staged
+  publication manifest state so pre-commit cannot be bypassed by partial-stage
+  working-tree edits.
+- `tests/test_pre_commit_hook.py` now verifies the pre-commit hook includes the
+  marketplace metadata checker.
+- `tests/test_check_codex_marketplace_metadata.py` now covers a staged
+  publication manifest hidden by a cleaned working-tree copy.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `.githooks/pre-commit`, `MAINTENANCE.md`,
+  `scripts/check-codex-marketplace-metadata.py`,
+  `tests/test_pre_commit_hook.py`,
+  `tests/test_check_codex_marketplace_metadata.py`, and
+  `backlog/codex-adapter.md`.
+- Scope deviations: expanded to make the newly automated pre-commit gate
+  staged-content aware before acceptance.
+- Verification results: PASS; `python3 scripts/check-codex-marketplace-metadata.py`, `python3 -m unittest tests/test_pre_commit_hook.py tests/test_check_codex_marketplace_metadata.py`, `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`, `git diff --check`, `python3 scripts/check-maintenance-review.py`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes release/pre-commit gate
+  coverage for Codex marketplace publication readiness.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential
+  review; no critic scored below 9.
+- Reviewer scores and VETO handling: Gate-trigger critic score 10, verdict
+  PASS, Blocking findings: none. Deferred-publication policy critic score 10,
+  verdict PASS, Blocking findings: none. Pre-commit coverage critic score 10,
+  verdict PASS, Blocking findings: none. Maintenance compliance critic score 9,
+  verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Maintenance compliance critic was 9 because
+  review used documented sequential fallback rather than independent
+  sub-agents; no backlog item added because the residual risk is process-level
+  review independence in this session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: marketplace publication is still deferred until
+  official schema/taxonomy evidence, publication readiness, and generated
+  metadata source are recorded; the checker now protects that deferred boundary
+  through pre-commit and release checklist paths.
+- Accepted: yes; accepted by maintainer review and ready for commit.

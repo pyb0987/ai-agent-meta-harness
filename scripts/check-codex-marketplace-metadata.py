@@ -9,6 +9,7 @@ policy records a ready state with official schema/taxonomy evidence.
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import sys
 
 
@@ -33,7 +34,43 @@ READY_POLICY_MARKERS = (
 )
 
 
-def read_policy() -> tuple[str, list[str]]:
+def _git(args: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=check,
+    )
+
+
+def _inside_git_worktree() -> bool:
+    result = _git(["rev-parse", "--is-inside-work-tree"])
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def _relative(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
+
+
+def _read_index_text(path: Path) -> tuple[str, list[str]]:
+    relative = _relative(path)
+    result = _git(["show", f":{relative}"])
+    if result.returncode != 0:
+        return "", [f"UNREADABLE STAGED POLICY: {relative}: {result.stderr.strip()}"]
+    return result.stdout, []
+
+
+def _index_contains(path: Path) -> bool:
+    result = _git(["ls-files", "--error-unmatch", "--", _relative(path)])
+    return result.returncode == 0
+
+
+def read_policy(*, use_index: bool = False) -> tuple[str, list[str]]:
+    if use_index:
+        return _read_index_text(POLICY_PATH)
     try:
         return POLICY_PATH.read_text(encoding="utf-8"), []
     except OSError as exc:
@@ -45,19 +82,22 @@ def missing_markers(text: str, markers: tuple[str, ...]) -> list[str]:
     return [marker for marker in markers if marker not in normalized]
 
 
-def existing_publication_manifests() -> list[Path]:
-    return [path for path in PUBLICATION_MANIFESTS if path.exists()]
+def existing_publication_manifests(*, use_index: bool = False) -> list[Path]:
+    manifests = {path for path in PUBLICATION_MANIFESTS if path.exists()}
+    if use_index:
+        manifests.update(path for path in PUBLICATION_MANIFESTS if _index_contains(path))
+    return sorted(manifests)
 
 
-def validate() -> list[str]:
-    text, errors = read_policy()
+def validate(*, use_index: bool = False) -> list[str]:
+    text, errors = read_policy(use_index=use_index)
     if errors:
         return errors
 
     for marker in missing_markers(text, REQUIRED_DEFERRED_POLICY_MARKERS):
         errors.append(f"MISSING POLICY MARKER: {marker}")
 
-    manifests = existing_publication_manifests()
+    manifests = existing_publication_manifests(use_index=use_index)
     if not manifests:
         return errors
 
@@ -77,12 +117,13 @@ def validate() -> list[str]:
 
 
 def main() -> int:
-    errors = validate()
+    use_index = _inside_git_worktree()
+    errors = validate(use_index=use_index)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    if existing_publication_manifests():
+    if existing_publication_manifests(use_index=use_index):
         print("Codex marketplace metadata publication markers are present.")
     else:
         print("Codex marketplace metadata validation deferred: no publication manifest exists.")
