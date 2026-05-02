@@ -39,6 +39,7 @@ REQUIRED_TEMPLATE_FILES = (
 REQUIRED_SCRIPT_FILES = (
     "check-autoresearch-protected.py",
     "check-codex-hook-schema-drift.py",
+    "smoke-local-plugin-activation.py",
     "smoke-autoresearch-hooks.py",
     "smoke-local-plugin.py",
 )

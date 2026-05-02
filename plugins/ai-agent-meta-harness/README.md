@@ -40,7 +40,7 @@ Supported paths:
 
 | Path | Status | Use |
 |------|--------|-----|
-| Local plugin bundle | Primary bundle artifact, scaffolded | Generated at `plugins/ai-agent-meta-harness/`; activation smoke test still pending |
+| Local plugin bundle | Primary bundle artifact with isolated activation smoke | Generated at `plugins/ai-agent-meta-harness/`; activation smoke registers a temp local marketplace and enables the plugin in an isolated `CODEX_HOME` |
 | Direct skill copy | Development fallback | Fast iteration on skill text only |
 | Marketplace/plugin bundle | Future release path | Published distribution after plugin layout stabilizes |
 | `skill-installer` | Compatibility investigation | Skill-only install if safe degraded behavior is documented |
@@ -179,11 +179,14 @@ python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 ```
 
-The generated plugin lives at `plugins/ai-agent-meta-harness/`. The smoke test validates the bundle artifact: manifest, expected skills, checker/hook/template assets, and degraded fallback warnings. The exact Codex local-plugin activation command is intentionally not documented here until Codex activation can be exercised mechanically; track that in `backlog/codex-adapter.md`.
+The generated plugin lives at `plugins/ai-agent-meta-harness/`. The artifact smoke test validates the bundle artifact: manifest, expected skills, checker/hook/template assets, and degraded fallback warnings.
 
-Until the activation workflow is validated, use the degraded direct-copy fallback for executable local skill iteration:
+The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
+
+For executable local skill iteration without plugin registration, use the degraded direct-copy fallback:
 
 ```bash
 mkdir -p ~/.codex/skills

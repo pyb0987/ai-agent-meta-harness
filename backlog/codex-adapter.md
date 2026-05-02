@@ -122,6 +122,22 @@ Archived: `backlog/archive/codex-adapter.md#18-add-local-plugin-artifact-smoke-t
 
 ### 19. Add true Codex local plugin activation smoke test
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/scripts/smoke-local-plugin-activation.py
+- adapters/codex/scripts/smoke-local-plugin.py
+- adapters/codex/tests/test_local_plugin_activation_smoke.py
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/scripts/smoke-local-plugin-activation.py
+- plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py
+- plugins/ai-agent-meta-harness/README.md
+- scripts/sync-codex-plugin.py
+- tests/test_sync_codex_plugin.py
+- backlog/codex-adapter.md
+
 The artifact smoke test proves the generated plugin bundle is internally coherent, but it does not prove Codex has loaded the plugin in a running session.
 
 Potential improvement:
@@ -129,6 +145,59 @@ Potential improvement:
 - Identify the exact local Codex plugin activation command or manifest registration path for the supported Codex surface.
 - Add an automated smoke test that installs or activates `plugins/ai-agent-meta-harness/` in an isolated Codex home and verifies the expected skills are discoverable through Codex.
 - Keep runtime hook manifest fields gated until activation and tool-event coverage are both smoke-tested.
+
+Decision:
+
+- Added `smoke-local-plugin-activation.py`, which creates an isolated `CODEX_HOME`, builds a temporary local marketplace, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and validates the activated marketplace copy exposes the expected skill files.
+- Generated the activation smoke into the local plugin bundle and made the artifact smoke require the activation smoke as an executable bundled asset.
+- Documented the activation smoke command and its boundary: it proves CLI marketplace registration plus enabled-plugin config shape, but not a running Codex Desktop session surfacing the skills to the model or delivering runtime hook events.
+- Added focused tests for marketplace metadata generation, enabled-plugin config validation, missing activated skills, successful fake Codex CLI activation, and Codex CLI failure reporting.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - `adapters/codex/README.md`
+  - `adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - `adapters/codex/scripts/smoke-local-plugin.py`
+  - `adapters/codex/tests/test_local_plugin_activation_smoke.py`
+  - `plugins/ai-agent-meta-harness/README.md`
+  - `plugins/ai-agent-meta-harness/scripts/smoke-local-plugin-activation.py`
+  - `plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py`
+  - `scripts/sync-codex-plugin.py`
+  - `backlog/codex-adapter.md`
+- Scope deviations: none. `tests/test_sync_codex_plugin.py` was inspected as planned but did not need edits because it derives required script fixtures from `REQUIRED_SCRIPT_FILES`.
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_local_plugin_activation_smoke.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; no `search-set.md` exists in this repository (`rg --files -g 'search-set.md'` returned no files). Standard verification and focused plugin activation smoke passed.
+- Multi-review required: yes; Codex local plugin activation/install behavior affects the adapter distribution gate.
+- Multi-review result: PASS with sequential `FALLBACK_NONINDEPENDENT` review because this single-session maintenance pass did not use parallel sub-agents.
+- Reviewer scores and VETO handling:
+  - Activation CLI path critic: 10/10 PASS; the smoke exercises `codex plugin marketplace add` in isolated `CODEX_HOME`, enables the expected plugin key, and validates the activated marketplace copy.
+  - Generated plugin/sync critic: 10/10 PASS; the activation smoke is required by the sync source list, generated into the plugin bundle, and required as an executable artifact by the local plugin artifact smoke.
+  - Runtime-boundary honesty critic: 9/10 PASS; docs and script comments explicitly avoid claiming model-visible Desktop session activation or runtime hook delivery.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope update, focused verification, standard verification, search-set SKIPPED reason, and Completion Gate are recorded, with nonindependent multi-review fallback called out.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Runtime-boundary honesty critic: not 10 because Codex CLI currently exposes `plugin marketplace add/remove/upgrade` but no noninteractive `plugin list` or session-inspection command to prove model-visible skill discovery in a running Desktop session. This is accepted as product-surface residual risk rather than a repository follow-up for this item.
+  - Maintenance compliance critic: not 10 because multi-review was sequential fallback in the parent context, not independent parallel critics. This is accepted as session-surface residual risk.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: runtime plugin hook manifest fields remain gated until separate tool-event coverage exists; the activation smoke proves local CLI marketplace registration and enabled config, not runtime hook delivery.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 20. Add Codex marketplace metadata release validation
 
