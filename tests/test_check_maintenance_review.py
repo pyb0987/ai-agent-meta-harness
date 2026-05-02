@@ -300,7 +300,12 @@ Potential improvement:
             core = backlog / "core.md"
             claude = backlog / "claude-adapter.md"
             codex = backlog / "codex-adapter.md"
-            for path in (review, core, claude, codex):
+            archive = backlog / "archive"
+            archive.mkdir()
+            archive_core = archive / "core.md"
+            archive_claude = archive / "claude-adapter.md"
+            archive_codex = archive / "codex-adapter.md"
+            for path in (review, core, claude, codex, archive_core, archive_claude, archive_codex):
                 path.write_text("", encoding="utf-8")
 
             check_maintenance_review.ROOT = root
@@ -315,6 +320,9 @@ Potential improvement:
                 "backlog/core.md",
                 "backlog/claude-adapter.md",
                 "backlog/codex-adapter.md",
+                "backlog/archive/core.md",
+                "backlog/archive/claude-adapter.md",
+                "backlog/archive/codex-adapter.md",
             },
         )
 
@@ -328,20 +336,61 @@ Potential improvement:
             core = backlog / "core.md"
             claude = backlog / "claude-adapter.md"
             codex = backlog / "codex-adapter.md"
+            archive = backlog / "archive"
+            archive.mkdir()
+            archive_core = archive / "core.md"
+            archive_claude = archive / "claude-adapter.md"
+            archive_codex = archive / "codex-adapter.md"
             core.write_text(INVALID_LOW_SCORE_REVIEW, encoding="utf-8")
             claude.write_text("", encoding="utf-8")
             codex.write_text("", encoding="utf-8")
-            git(root, "add", "backlog/core.md", "backlog/claude-adapter.md", "backlog/codex-adapter.md")
+            archive_core.write_text(VALID_REVIEW, encoding="utf-8")
+            archive_claude.write_text("", encoding="utf-8")
+            archive_codex.write_text("", encoding="utf-8")
+            git(
+                root,
+                "add",
+                "backlog/core.md",
+                "backlog/claude-adapter.md",
+                "backlog/codex-adapter.md",
+                "backlog/archive/core.md",
+                "backlog/archive/claude-adapter.md",
+                "backlog/archive/codex-adapter.md",
+            )
             core.write_text(VALID_REVIEW, encoding="utf-8")
+            archive_core.write_text("", encoding="utf-8")
 
             check_maintenance_review.ROOT = root
             self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
 
             index_errors = check_maintenance_review.validate_default_paths(use_index=True)
-            worktree_errors = check_maintenance_review.validate_paths([core])
+            worktree_errors = check_maintenance_review.validate_paths([core, archive_core])
 
         self.assertTrue(any("score below 9" in error for error in index_errors))
         self.assertEqual(worktree_errors, [])
+
+    def test_index_default_paths_include_staged_archive_files(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            archive = root / "backlog" / "archive"
+            archive.mkdir(parents=True)
+            archive_core = archive / "core.md"
+            archive_core.write_text(VALID_REVIEW, encoding="utf-8")
+            git(root, "add", "backlog/archive/core.md")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+
+            paths = {
+                path.relative_to(root).as_posix()
+                for path in check_maintenance_review.default_paths(use_index=True)
+            }
+            errors = check_maintenance_review.validate_default_paths(use_index=True)
+
+        self.assertEqual(paths, {"backlog/archive/core.md"})
+        self.assertEqual(errors, [])
 
     def test_index_default_paths_include_staged_review_files(self):
         original_root = check_maintenance_review.ROOT

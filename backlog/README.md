@@ -21,8 +21,22 @@ Use this folder by ownership, not by where an issue was discovered:
 | Core methodology | `core.md` | Agent-agnostic harness rules, trace formats, verification policy |
 | Claude adapter | `claude-adapter.md` | Claude Code-specific trace roots, project hooks, slash commands, global skill install surfaces |
 | Codex adapter | `codex-adapter.md` | Codex-specific runtime surfaces, sandbox behavior, AGENTS.md/plugin/git-hook integration |
+| Completed records | `archive/*.md` | Full completed-item records moved out of active backlog files without losing Completion Gate or review history |
 
 Adapter reviews may uncover core work. Put those items in `core.md` so Claude, Codex, and future adapters do not solve the same problem separately.
+
+## Archive Policy
+
+Keep active backlog files focused on available, in-progress, review-pending,
+and short follow-up pointers. Move completed records to the matching
+`backlog/archive/` file only after the item has a complete Completion Gate. The
+archive must preserve the full record, including verification, search-set
+status, multi-review scores, VETO handling, score-9 why-not-10 notes, residual
+risk, and acceptance status.
+
+The active backlog should retain a compact pointer for each archived completed
+item. `scripts/check-maintenance-review.py` validates archive files by default,
+so moving a record must not remove it from review-gate coverage.
 
 ## Theme Index
 

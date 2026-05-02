@@ -21,6 +21,9 @@ DEFAULT_BACKLOG_FILES = (
     "backlog/core.md",
     "backlog/claude-adapter.md",
     "backlog/codex-adapter.md",
+    "backlog/archive/core.md",
+    "backlog/archive/claude-adapter.md",
+    "backlog/archive/codex-adapter.md",
 )
 
 SCORE_RE = re.compile(r"\b(?:normalized\s+)?score(?:d)?(?:\s*[:=]|\s+)(\d+(?:\.\d+)?)\b", re.IGNORECASE)
