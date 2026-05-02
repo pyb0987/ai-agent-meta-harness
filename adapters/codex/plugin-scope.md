@@ -94,6 +94,12 @@ path. Keep `.codex-plugin/plugin.json` limited to metadata required for local
 plugin loading until local activation, install, and hook-event coverage have
 mechanical smoke tests.
 
+Official source check (2026-05-03): public OpenAI Codex help/release-note pages
+describe plugins and a curated plugins directory, but this repository has not
+found a published canonical marketplace metadata schema or category taxonomy to
+validate against. Keep the category below provisional until an official schema
+or taxonomy is cited in this document.
+
 Use these stable identity values when a marketplace path is introduced:
 
 - Package name: `ai-agent-meta-harness`
@@ -117,6 +123,12 @@ plugin development. Add that file only when all of these are true:
 If Codex UI ordering eventually needs local marketplace-like metadata before
 publication, keep it explicitly local-only and smoke-test that it does not
 change plugin activation, skill discovery, or hook registration semantics.
+
+Run `python3 scripts/check-codex-marketplace-metadata.py` before any publication
+prep. In the current deferred state, it passes only when no publication manifest
+exists. If marketplace metadata appears before the readiness conditions above
+are documented, the check fails instead of guessing a taxonomy or allowing
+manual dual-edited metadata to become a release surface.
 
 ## Methodology Boundary
 

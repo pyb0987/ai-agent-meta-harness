@@ -480,11 +480,22 @@ Potential improvement:
 
 ### 20. Add Codex marketplace metadata release validation
 
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- scripts/check-codex-marketplace-metadata.py
+- tests/test_check_codex_marketplace_metadata.py
+- backlog/codex-adapter.md
+
 Marketplace metadata is intentionally deferred, but before publication the
 repository should mechanically validate that published metadata matches the
 adapter policy and official Codex marketplace expectations.
 
-Potential improvement:
+Original improvement:
 
 - Re-check the official Codex marketplace taxonomy and replace the provisional
   `developer tools / agent harnessing` category if a canonical category exists.
@@ -494,6 +505,71 @@ Potential improvement:
   the marketplace distribution path is ready to publish.
 - Confirm the metadata source remains generated from canonical adapter files
   rather than manually dual-edited plugin metadata.
+
+Decision implemented:
+
+- Re-checked public official OpenAI Codex sources on 2026-05-03. The available
+  help/release-note pages describe Codex plugins and a curated plugins
+  directory, but did not expose a canonical marketplace metadata schema or
+  category taxonomy usable by this repository.
+- `adapters/codex/plugin-scope.md` now records that official-source check and
+  keeps `developer tools / agent harnessing` provisional until an official
+  taxonomy/schema is cited.
+- `scripts/check-codex-marketplace-metadata.py` now validates the current
+  deferred release state: it passes when no publication manifest exists, and
+  fails if `.agents/plugins/marketplace.json` appears before the policy records
+  publication readiness, official schema/taxonomy evidence, and a generated
+  metadata source.
+- `tests/test_check_codex_marketplace_metadata.py` covers the accepted deferred
+  state, fail-fast behavior when a publication manifest appears too early,
+  ready-policy markers, and missing policy markers.
+- `plugins/ai-agent-meta-harness/plugin-scope.md` was synchronized with the
+  canonical adapter policy.
+- The release checklist remains unchanged because marketplace publication is
+  still not release-ready; this validator is a publication-prep guard, not part
+  of the standard pre-commit path yet.
+
+Remaining follow-up work:
+
+- Add full marketplace metadata validation to the release checklist only after
+  an official schema/taxonomy is cited and the marketplace publication path is
+  ready to publish.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/codex/plugin-scope.md`,
+  `plugins/ai-agent-meta-harness/plugin-scope.md`,
+  `scripts/check-codex-marketplace-metadata.py`,
+  `tests/test_check_codex_marketplace_metadata.py`, and
+  `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS; `python3 -m unittest tests/test_check_codex_marketplace_metadata.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 -m unittest discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, `python3 -m unittest discover -s adapters/codex/tests`, `git diff --check`, and `sh .githooks/pre-commit`.
+- Search-set verification: SKIPPED; this repository worktree has no
+  `search-set.md`.
+- Multi-review required: yes, because this changes Codex distribution/release
+  validation policy and generated plugin policy surface.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review;
+  no critic scored below 9.
+- Reviewer scores and VETO handling: Deferred-state guard critic score 10,
+  verdict PASS, Blocking findings: none. Official-source boundary critic score
+  9, verdict PASS, Blocking findings: none. Generated-plugin policy sync critic
+  score 10, verdict PASS, Blocking findings: none. Maintenance compliance
+  critic score 9, verdict PASS, Blocking findings: none. No VETO triggered.
+- For each score 9, why not 10: Official-source boundary critic was 9 because
+  public official Codex pages currently mention plugins but do not expose a
+  canonical marketplace taxonomy/schema to validate against; no backlog item
+  added because the remaining action is already captured above as future
+  release-checklist validation once official publication metadata exists.
+  Maintenance compliance critic was 9 because review used documented
+  sequential fallback rather than independent sub-agents; no backlog item added
+  because the residual risk is process-level review independence in this
+  session, not an actionable repository change.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: marketplace taxonomy/category remains provisional
+  until an official schema or taxonomy is cited; the new checker fails if
+  publication metadata appears before that readiness evidence is recorded.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 21. Document Codex hook template install paths
 
