@@ -8,10 +8,14 @@ This drift check validates documented output-shape assumptions only. It does not
 
 ## Verification Metadata
 
-- Verified date: 2026-04-30
+- Verified date: 2026-05-04
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
+- Freshness convention: `Verified date` tracks the most recent official
+  hooks/config documentation re-check that this adapter depends on. If the
+  output/config contract is unchanged, keep the behavior contract stable and add
+  a dated re-verification note explaining the non-behavior change.
 - Re-verification note: 2026-05-04 item 36 added bounded command hook
   `timeout` values for protected-file checks; official Codex hooks docs were
   re-checked, and `timeout` remains a per-command-hook value in seconds with a
@@ -101,8 +105,9 @@ Python startup and git-root resolution.
 When a hook-sensitive adapter file changes:
 
 1. Re-check the official Codex hooks and config documentation.
-2. Update `Verified date` and `Codex CLI checked` above if the schema was
-   re-verified.
+2. Update `Verified date` and `Codex CLI checked` above when the official
+   hooks/config docs are re-verified; add a dated re-verification note even
+   when the output/config contract remains unchanged.
 3. Re-run `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py` in a
    target-project fixture with `.harness/autoresearch-protected.txt`.
 4. Re-run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.

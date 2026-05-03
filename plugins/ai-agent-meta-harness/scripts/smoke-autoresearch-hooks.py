@@ -21,7 +21,7 @@ ROOT = Path.cwd()
 DEFAULT_CHECKER = Path("scripts/check-autoresearch-protected.py")
 DEFAULT_PROTECTED = Path(".harness/autoresearch-protected.txt")
 HOOK_SCHEMA_REFERENCE = "adapters/codex/hook-schema.md"
-HOOK_SCHEMA_VERIFIED_DATE = "2026-04-30"
+HOOK_SCHEMA_VERIFIED_DATE = "2026-05-04"
 HOOK_SCHEMA_CODEX_CLI_VERSION = "0.126.0-alpha.8"
 
 

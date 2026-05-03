@@ -17,7 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 REFERENCE_PATH = Path("adapters/codex/hook-schema.md")
-VERIFIED_DATE = "2026-04-30"
+VERIFIED_DATE = "2026-05-04"
 CODEX_CLI_VERSION = "0.126.0-alpha.8"
 PRIMARY_SOURCE = "https://developers.openai.com/codex/hooks"
 CONFIG_SOURCE = "https://developers.openai.com/codex/config-reference"
@@ -39,6 +39,8 @@ REQUIRED_REFERENCE_MARKERS = (
     f"Codex CLI checked: {CODEX_CLI_VERSION}",
     PRIMARY_SOURCE,
     CONFIG_SOURCE,
+    "Freshness convention: `Verified date` tracks the most recent official",
+    "add a dated re-verification note",
     '"hookEventName": "PreToolUse"',
     '"permissionDecision": "deny"',
     '"permissionDecisionReason"',

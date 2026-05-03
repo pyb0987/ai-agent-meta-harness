@@ -807,7 +807,19 @@ Completion Gate:
 
 ### 37. P3 refresh Codex hook schema freshness signaling
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/hook-schema.md
+- adapters/codex/scripts/check-codex-hook-schema-drift.py
+- adapters/codex/scripts/smoke-autoresearch-hooks.py
+- adapters/codex/tests/test_hook_schema_drift.py
+- plugins/ai-agent-meta-harness/hook-schema.md
+- plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+- plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+- backlog/codex-adapter.md
 
 Source discussion: 2026-05-04 multi-review of whether local `main` implements
 the Meta-Harness methodology well.
@@ -836,6 +848,98 @@ Done when:
 - Canonical hook schema docs, drift checker markers, and generated plugin copies
   agree.
 - Hook schema drift tests cover the chosen freshness convention.
+
+Decision implemented:
+
+- Defined the hook-schema freshness convention in
+  `adapters/codex/hook-schema.md`: `Verified date` tracks the most recent
+  official hooks/config documentation re-check that the adapter depends on, and
+  unchanged output/config contracts should be recorded with dated
+  re-verification notes.
+- Updated the enforced drift marker from `2026-04-30` to `2026-05-04`, matching
+  the existing item 36 re-verification note for bounded command hook timeouts.
+- Updated `adapters/codex/scripts/check-codex-hook-schema-drift.py` and
+  `adapters/codex/scripts/smoke-autoresearch-hooks.py` metadata markers.
+- Synced generated plugin copies with `python3 scripts/sync-codex-plugin.py --write`.
+- Extended `adapters/codex/tests/test_hook_schema_drift.py` to require the
+  freshness convention wording.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Freshness-convention critic: PASS, score 10/10. Blocking findings: none. The
+  reference now states what `Verified date` means and how to record unchanged
+  output/config contracts after re-checking official docs.
+- Drift-marker critic: PASS, score 10/10. Blocking findings: none. Canonical
+  hook schema docs, drift checker constants, smoke metadata, and generated
+  plugin copies all agree on `2026-05-04`.
+- Scope critic: PASS, score 10/10. Blocking findings: none. The change is
+  metadata/freshness only and does not imply new hook output semantics or plugin
+  runtime hook-event coverage.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/hook-schema.md
+  - adapters/codex/scripts/check-codex-hook-schema-drift.py
+  - adapters/codex/scripts/smoke-autoresearch-hooks.py
+  - adapters/codex/tests/test_hook_schema_drift.py
+  - plugins/ai-agent-meta-harness/hook-schema.md
+  - plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+  - plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_schema_drift.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 -m unittest tests/test_repository_search_set.py`
+- Multi-review required: yes; this changes Codex hook schema drift/freshness
+  contract.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 freshness-convention critic, 10/10
+  drift-marker critic, 10/10 scope critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 32. P2 add activation smoke to release checklist
 
