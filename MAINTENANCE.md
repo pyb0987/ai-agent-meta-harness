@@ -258,6 +258,7 @@ python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-maintenance-review.py
 python3 -m unittest discover -s tests
@@ -265,8 +266,9 @@ python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
-The tracked pre-commit hook runs the drift, smoke, and maintenance review
-checks, but not the full unit test suites:
+The tracked pre-commit hook runs the drift, artifact smoke, and maintenance
+review checks, but not the full unit test suites or the heavier Codex local
+plugin activation smoke:
 
 ```bash
 git config core.hooksPath .githooks

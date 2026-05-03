@@ -126,9 +126,10 @@ python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 ```
 
-The generated plugin bundle lives at `plugins/ai-agent-meta-harness/`. The local smoke test validates the plugin artifact, not Codex runtime activation. The exact Codex local-plugin activation command is pending an activation smoke test, so direct skill copy remains the executable degraded fallback for fast skill text iteration:
+The generated plugin bundle lives at `plugins/ai-agent-meta-harness/`. The local smoke test validates the plugin artifact. The activation smoke creates an isolated `CODEX_HOME`, registers a temporary local marketplace, enables the generated plugin, and verifies the activated marketplace copy exposes the expected skills. This proves local CLI marketplace registration and enabled-plugin config shape; it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events. Direct skill copy remains the executable degraded fallback for fast skill text iteration:
 
 ```bash
 mkdir -p ~/.codex/skills
@@ -166,7 +167,7 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, and `python3 scripts/check-maintenance-review.py` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, and maintenance review records cannot silently drift.
+The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, and `python3 scripts/check-maintenance-review.py` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, and maintenance review records cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
 
 ## How It Works
 

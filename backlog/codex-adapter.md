@@ -680,7 +680,16 @@ Completion Gate:
 
 ### 31. P2 align root Codex activation smoke documentation with implementation
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- README.md
+- MAINTENANCE.md
+- tests/test_pre_commit_hook.py
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 multi-review feedback.
 
 Root `README.md` still says the exact Codex local-plugin activation command is
@@ -701,3 +710,57 @@ Potential improvement:
 - Add focused docs/check coverage so root README and adapter README do not
   regress to saying activation smoke is pending after the implementation
   exists.
+
+Decision:
+
+- Updated root `README.md` so Codex local plugin activation smoke is described
+  as implemented, with the exact command listed in the local plugin workflow.
+- Distinguished activation evidence from runtime model-visible skill surfacing
+  and plugin tool-event delivery: the smoke proves local CLI marketplace
+  registration and enabled-plugin config shape only.
+- Added `python3 adapters/codex/scripts/smoke-local-plugin-activation.py` to
+  `MAINTENANCE.md` Standard verification.
+- Left `.githooks/pre-commit` unchanged and documented that the heavier local
+  plugin activation smoke is Standard verification rather than pre-commit.
+- Added focused README/MAINTENANCE assertions so root docs do not regress to
+  saying activation smoke is pending.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - README.md
+  - MAINTENANCE.md
+  - tests/test_pre_commit_hook.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; `rg --files -g 'search-set.md'` found no repository search-set file, so there is no defined search-set target to run.
+- Multi-review required: yes; this changes Codex plugin activation/release verification guidance and documentation contract.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Activation evidence critic: 10/10 PASS; root README now states the activation smoke is implemented and describes exactly what it proves.
+  - Runtime-boundary critic: 10/10 PASS; README preserves the distinction between CLI activation/config evidence and model-visible skill surfacing or plugin tool-event delivery.
+  - Verification placement critic: 10/10 PASS; activation smoke is included in Standard verification while pre-commit remains the lighter artifact/drift gate.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, full verification, search-set SKIPPED reason, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
