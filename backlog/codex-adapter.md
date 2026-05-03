@@ -632,6 +632,68 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 32. P2 add activation smoke to release checklist
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+`MAINTENANCE.md` Standard verification includes
+`python3 adapters/codex/scripts/smoke-local-plugin-activation.py`, and root
+README documents the smoke as part of the Codex plugin workflow. The Release
+Checklist still names only the local plugin artifact smoke, so someone using
+the checklist before treating `main` as stable could skip activation coverage.
+
+Potential improvement:
+
+- Add the Codex local plugin activation smoke to the Release Checklist.
+- Keep the checklist wording clear that this proves isolated CLI marketplace
+  registration and enabled-plugin config shape, not running Desktop skill
+  surfacing or plugin tool-event delivery.
+- Add focused test coverage so Standard verification and Release Checklist do
+  not drift on activation smoke coverage.
+
+### 33. P2 include hard-layer hook templates in hook-sensitive drift policy
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+`check-codex-hook-schema-drift.py` requires hook-schema re-verification for
+changes to the Codex hook template and AGENTS reminder, but it omits
+`adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh` and
+`adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml`.
+Those templates carry hard-layer protected-file semantics, so changing them can
+alter the protection contract without forcing a schema/protection review note.
+
+Potential improvement:
+
+- Add the pre-commit and GitHub Actions autoresearch protection templates to
+  `HOOK_SENSITIVE_PATHS`.
+- Extend hook-schema drift tests so staged changes to either hard-layer
+  template require a staged `adapters/codex/hook-schema.md` update or
+  re-verification.
+- Clarify in the hook schema reference that hard-layer template changes require
+  protection-contract review even when Codex hook JSON output shape is
+  unchanged.
+
+### 34. P2 list activation smoke in Codex plugin-scope generated contents
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+The generated plugin bundle and README know about
+`scripts/smoke-local-plugin-activation.py`, but `adapters/codex/plugin-scope.md`
+and the generated plugin-scope mirror omit it from `Current Generated Contents`
+and the canonical path table. Because plugin-scope defines the generated
+bundle's supported surface, this creates documentation/distribution drift.
+
+Potential improvement:
+
+- Add `scripts/smoke-local-plugin-activation.py` to Current Generated Contents.
+- Add the activation smoke to the canonical path table with its generated
+  plugin path and evidence boundary.
+- Update the generated plugin-scope mirror and focused plugin-scope tests so
+  the activation smoke remains part of the documented generated surface.
+
 ### 30. P3 reconcile active backlog summaries after completed Codex follow-ups
 
 Status: 완료

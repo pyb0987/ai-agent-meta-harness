@@ -316,6 +316,28 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 32. P2 add repository self-application search-set
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+This repository describes and distributes Meta-Harness methodology, but it does
+not currently have a repository `search-set.md`. That is not fatal for using
+the repository as methodology documentation and adapter distribution, but it is
+a self-application gap: raw traces may exist, while Active regression memory for
+this repository's own maintenance loop is incomplete.
+
+Potential improvement:
+
+- Add an Active search-set for this repository under the selected trace root
+  or another documented repository-level location.
+- Seed it with current recurring regression risks, such as backlog status drift,
+  adapter mirror drift, release gate drift, and evaluator-boundary evidence
+  preservation.
+- Update maintenance guidance so future harness-affecting repository changes
+  can run concrete before/after search-set verify commands instead of always
+  recording search-set verification as skipped.
+
 ### 31. P2 narrow backlog workflow multi-review trigger
 
 Status: 완료
