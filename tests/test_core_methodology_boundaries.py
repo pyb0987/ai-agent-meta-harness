@@ -55,6 +55,16 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
 
+    def test_prompt_as_code_example_uses_runtime_neutral_instruction_file(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+
+        for document in (canonical, mirror):
+            with self.subTest(document=document[:20]):
+                self.assertIn("edit a project instruction file or a prompt paragraph", document)
+                self.assertNotIn("`AGENTS.md`", document)
+                self.assertNotIn("`CLAUDE.md`", document)
+
     def test_sub_agent_guidance_is_subordinate_runtime_tactic(self) -> None:
         methodology = text()
 

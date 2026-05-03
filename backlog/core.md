@@ -835,7 +835,15 @@ Completion Gate:
 
 ### 44. P2 remove runtime-specific instruction filenames from core examples
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- tests/test_core_methodology_boundaries.py
+- backlog/core.md
 
 Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
 methodology multi-review.
@@ -862,6 +870,77 @@ Done when:
   specific runtime's project instruction file as the canonical example.
 - Adapter docs remain free to use their concrete filenames.
 - Core/adapters ownership boundaries remain mechanically or review-protected.
+
+Implementation notes:
+
+- Replaced the core prompt-as-code anti-example's concrete `AGENTS.md` filename
+  with runtime-neutral "project instruction file" wording.
+- Mirrored the same wording in `docs/methodology.md`.
+- Added a focused core methodology boundary test that rejects `AGENTS.md` and
+  `CLAUDE.md` leakage in the canonical methodology and compatibility mirror.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/check-maintenance-review.py`.
+- before: PASS `python3 scripts/check-compat-mirrors.py`.
+- before: PASS `sh .githooks/pre-commit`.
+- before: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`.
+- after: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+
+Multi-review:
+
+- Result: PASS; required because this changes a core methodology boundary.
+  Used `FALLBACK_NONINDEPENDENT` sequential review because this single-session
+  maintenance pass was not authorized to spawn independent reviewers.
+- Paper/core-boundary critic: score 10/10; verdict PASS; Blocking findings:
+  none. The change preserves the evaluator/candidate-diff warning while
+  removing a Codex-specific filename from the shared core.
+- Adapter-ownership/mirror critic: score 10/10; verdict PASS; blocking
+  findings: none. Adapter docs remain free to name concrete runtime files, and
+  the compatibility methodology mirror stays synchronized.
+- Verification/release critic: score 10/10; verdict PASS; blocking findings:
+  none. Focused boundary tests, mirror drift check, Active search-set commands,
+  and standard repository tests passed.
+- Score handling: no score below 9, so no VETO; no score 9, so no why-not-10
+  residual risk or follow-up backlog item.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: no VETO, so no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `core/methodology.md`, `docs/methodology.md`,
+  `tests/test_core_methodology_boundaries.py`, `backlog/core.md`.
+- Scope deviations: none in final diff. A transient reservation block was
+  initially placed on item 41, noticed from `git diff`, and corrected before
+  completion.
+- Verification results: PASS `python3 -m unittest
+  tests/test_core_methodology_boundaries.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3 scripts/check-maintenance-review.py`;
+  PASS `python3 -m unittest tests/test_pre_commit_hook.py`; PASS `python3 -m
+  unittest tests/test_claude_autoresearch_reject_evidence.py`; PASS `python3 -m
+  unittest tests/test_repository_search_set.py`; PASS `python3 -m unittest
+  discover -s tests`; PASS `python3 -m unittest discover -s
+  adapters/claude/tests`; PASS `python3 -m unittest discover -s
+  adapters/codex/tests`; PASS `sh .githooks/pre-commit`; PASS `git diff
+  --check`.
+- Search-set verification: PASS before/after for relevant Active commands, as
+  listed above.
+- Multi-review required: yes; core methodology boundary contract.
+- Multi-review result: PASS; `FALLBACK_NONINDEPENDENT` sequential review.
+- Reviewer scores and VETO handling: 10/10 paper/core-boundary critic, 10/10
+  adapter-ownership/mirror critic, 10/10 verification/release critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 45. P2 make the operationalized-toolkit framing explicit in public docs
 

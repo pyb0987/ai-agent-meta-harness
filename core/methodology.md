@@ -147,9 +147,9 @@ Prompt-as-code example:
   `prompts/candidates/`, run each candidate through the same fixed evaluator,
   preserve the raw output plus the candidate diff, then promote only the
   candidate that improves the measured verdict.
-- Not search: edit `AGENTS.md` or a prompt paragraph from "be careful" to
-  "try harder and be more careful" without an evaluator run, candidate
-  isolation, or raw diff/output trail.
+- Not search: edit a project instruction file or a prompt paragraph from "be
+  careful" to "try harder and be more careful" without an evaluator run,
+  candidate isolation, or raw diff/output trail.
 
 ### Applied Repository Hardening: recurring failures are absorbed by structure
 
