@@ -806,7 +806,16 @@ Completion Gate:
 
 ### 34. P2 list activation smoke in Codex plugin-scope generated contents
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 The generated plugin bundle and README know about
@@ -822,6 +831,58 @@ Potential improvement:
   plugin path and evidence boundary.
 - Update the generated plugin-scope mirror and focused plugin-scope tests so
   the activation smoke remains part of the documented generated surface.
+
+Decision:
+
+- Added `scripts/smoke-local-plugin-activation.py` to Current Generated
+  Contents in canonical and generated `plugin-scope.md`.
+- Added the activation smoke to the v1 canonical path table with canonical
+  source, generated plugin path, and evidence-boundary wording.
+- Added focused plugin-scope coverage that checks both canonical and generated
+  plugin-scope docs and asserts they remain identical.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/plugin-scope.md
+  - plugins/ai-agent-meta-harness/plugin-scope.md
+  - adapters/codex/tests/test_hook_templates.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+- Search-set verification:
+  - BEFORE: PASS; relevant Active commands passed before implementation: `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `sh .githooks/pre-commit`, and `python3 -m unittest tests/test_pre_commit_hook.py`.
+  - AFTER: PASS; the same relevant Active commands passed after implementation, plus `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py` was run for full Active coverage.
+- Multi-review required: yes; this changes Codex plugin generated-surface and distribution documentation contract.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Generated-surface critic: 10/10 PASS; activation smoke now appears in Current Generated Contents and the canonical path table.
+  - Mirror sync critic: 10/10 PASS; generated plugin-scope mirror matches canonical and sync check passes.
+  - Runtime-boundary critic: 10/10 PASS; plugin-scope records activation evidence without overclaiming Desktop skill surfacing or plugin tool-event delivery.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, search-set before/after verification, full verification, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes
 
 ### 30. P3 reconcile active backlog summaries after completed Codex follow-ups
 

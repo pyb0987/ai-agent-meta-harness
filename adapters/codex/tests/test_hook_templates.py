@@ -116,6 +116,20 @@ class HookTemplateTests(unittest.TestCase):
         ):
             self.assertIn(marker, text)
 
+    def test_plugin_scope_lists_activation_smoke_generated_surface(self):
+        canonical = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        generated = (ROOT / "plugins" / "ai-agent-meta-harness" / "plugin-scope.md").read_text(encoding="utf-8")
+
+        for text in (canonical, generated):
+            with self.subTest(path="plugin-scope"):
+                self.assertIn("- `scripts/smoke-local-plugin-activation.py`", text)
+                self.assertIn(
+                    "| Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` |",
+                    text,
+                )
+                self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
+        self.assertEqual(canonical, generated)
+
 
 if __name__ == "__main__":
     unittest.main()

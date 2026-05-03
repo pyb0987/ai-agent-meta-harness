@@ -34,6 +34,7 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `scripts/check-autoresearch-protected.py`
 - `scripts/check-codex-hook-schema-drift.py`
 - `scripts/smoke-autoresearch-hooks.py`
+- `scripts/smoke-local-plugin-activation.py`
 - `scripts/smoke-local-plugin.py`
 
 The sync map recursively copies all files under the canonical `skills/`,
@@ -76,6 +77,7 @@ Do not include:
 | Hook schema drift checker | `adapters/codex/scripts/check-codex-hook-schema-drift.py` | `scripts/check-codex-hook-schema-drift.py` | Fails when hook-sensitive staged changes omit schema re-verification |
 | Hook smoke assertions | `adapters/codex/scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Mechanically asserts Codex hook deny JSON shapes |
 | Local plugin artifact smoke test | `adapters/codex/scripts/smoke-local-plugin.py` | `scripts/smoke-local-plugin.py` | Verifies manifest, expected skills, protection assets, and degraded fallback warning |
+| Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` | Proves isolated CLI marketplace registration and enabled-plugin config shape; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
 | Protected-path template | `adapters/codex/templates/autoresearch-protected.txt` | `templates/autoresearch-protected.txt` | Project bootstrap asset copied to `.harness/autoresearch-protected.txt` |
 | Completed Codex example | `adapters/codex/examples/` | `examples/` | Onboarding reference; additional examples should come from real project dry runs |
 
