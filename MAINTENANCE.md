@@ -261,6 +261,7 @@ python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-maintenance-review.py
+python3 scripts/check-search-set-evidence.py
 python3 -m unittest discover -s tests
 python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
@@ -286,6 +287,19 @@ Git index so unrelated unstaged work does not block commit-time checks; the
 release/handoff gate validates that no tracked, staged, or untracked worktree
 state is being hidden outside the checked index. A dirty result is a release
 blocker unless the handoff notes explicitly record the exception.
+
+For harness-affecting repository changes, run the search-set evidence
+compliance checker before stable handoff:
+
+```bash
+python3 scripts/check-search-set-evidence.py
+```
+
+This checker is intentionally lightweight. It detects common harness-affecting
+changed paths and requires a touched backlog, review, or trace record to include
+search-set before/after evidence or an explicit skipped reason. It does not try
+to prove full methodology compliance, and it leaves pre-commit index semantics
+unchanged.
 
 Search-set verification is project-contextual rather than repo-global: use the
 active trace root for the project whose harness behavior is changing. If this
@@ -324,6 +338,8 @@ handoff point:
   generated metadata source are recorded.
 - Maintenance review summaries pass the review-summary checker so score,
   VETO, rerun, residual-risk, and final-acceptance handling stay explicit.
+- Search-set evidence compliance check passes for harness-affecting repository
+  changes, or the release/handoff record explicitly explains why it is skipped.
 - Unit and integration tests pass for root, Claude adapter, and Codex adapter
   test suites.
 - Harness-affecting changes ran relevant Active search-set verify commands

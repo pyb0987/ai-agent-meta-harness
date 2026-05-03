@@ -124,9 +124,13 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one unstarted concrete implementation item: item 37
-  should create a lightweight paper-claim traceability map for claims that go
-  beyond the arXiv abstract. Items 35, 36, 38, and 39 are complete.
+- Active core backlog has newly discovered follow-up items from current-main
+  methodology review: item 41 should refresh this status block, item 42 should
+  audit aphoristic methodology slogans for claim-boundary clarity, item 44
+  should remove runtime-specific instruction filenames from the core, and item
+  45 should make the repository's intended framing explicit across public docs.
+  Item 43 made search-set before/after evidence compliance more mechanically
+  visible and is complete.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -650,6 +654,250 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
+
+### 41. P3 refresh active backlog status after item 37 completion
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of local `main` backlog governance.
+
+The active `Current Status` block says item 37 is the one unstarted concrete core
+implementation item, but item 37 is already marked `Status: 완료`. That does not
+weaken the Meta-Harness methodology implementation, but it can mislead future
+maintenance agents into selecting completed work instead of creating a new
+backlog item for newly discovered work.
+
+Potential improvement:
+
+- Update `Current Status` so it no longer points at completed item 37 as
+  available work.
+- State the actual active backlog state after items 35, 36, 37, 38, and 39 are
+  complete.
+- If a new item is created from fresh review feedback, point to that item
+  explicitly; otherwise say there is no unstarted concrete core implementation
+  item.
+
+Done when:
+
+- `Current Status` does not point future maintainers at completed work.
+- The active core backlog summary matches the statuses of the numbered records
+  below it.
+- `python3 scripts/check-maintenance-review.py backlog/core.md` passes.
+
+### 43. P2 make search-set before/after evidence compliance mechanically visible
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/check-search-set-evidence.py
+- tests/test_search_set_evidence.py
+- MAINTENANCE.md
+- backlog/README.md
+- backlog/codex-adapter.md
+- backlog/core.md
+
+Source review: 2026-05-04 executable-implementation critic in the current-main
+methodology multi-review.
+
+The repository now has an executable self-application search-set under
+`.harness/traces/search-set.md`, and maintenance policy requires relevant Active
+verify commands to run before and after harness-affecting changes. However, the
+current mechanical gates mostly prove that search-set commands exist and that
+fixed pre-commit/release checks pass. They do not detect harness-affecting
+staged paths and require a corresponding recorded before/after search-set
+result, evolution trace, or explicit skipped reason.
+
+Potential improvement:
+
+- Add a lightweight checker or documented release command that identifies
+  harness-affecting staged/changed paths and verifies that the touched backlog,
+  trace, or review record includes search-set before/after evidence or an
+  explicit skipped reason.
+- Keep the rule local and practical; do not try to prove all methodology
+  compliance automatically.
+- Prefer a checker that catches the common omission without blocking ordinary
+  docs/status cleanup that `MAINTENANCE.md` already treats as non
+  harness-affecting.
+
+Done when:
+
+- A harness-affecting change cannot easily be presented as release-ready while
+  omitting all search-set before/after evidence or skipped-reason recording.
+- The checker or release command is covered by focused tests and documented in
+  the relevant verification tier.
+- Existing pre-commit index semantics remain intact unless explicitly changed by
+  the item.
+
+Decision implemented:
+
+- Added `scripts/check-search-set-evidence.py`, a lightweight release/standard
+  checker that inspects changed paths, identifies common harness-affecting
+  repository surfaces, and requires a touched backlog/trace record to contain
+  search-set before/after evidence or an explicit skipped reason.
+- Kept pre-commit index semantics unchanged. The checker is documented in
+  Standard verification and release/stable handoff guidance, not wired into the
+  tracked pre-commit hook.
+- Scoped the checker to practical omission detection rather than full
+  methodology proof. Backlog-only cleanup remains non-harness-affecting, while
+  checker/release-gate/script/core/adapter surfaces are treated as
+  harness-affecting.
+- Made backlog record validation prefer `진행중` item sections over unrelated
+  `리뷰대기` sections so stale or unrelated completed records cannot satisfy the
+  active item's evidence requirement.
+- Added `tests/test_search_set_evidence.py` for missing evidence, before/after
+  evidence, skipped reasons, non-harness backlog cleanup, checker path
+  classification, stale-record rejection, unrelated-review-pending rejection,
+  and MAINTENANCE documentation.
+- Updated backlog overview and Codex adapter backlog with follow-up candidates
+  discovered by the same review pass.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Checker-behavior critic: PASS, score 10/10. Blocking findings: none. The
+  checker catches harness-affecting changed paths without recorded search-set
+  evidence and avoids accepting stale completed records for a current
+  in-progress item.
+- Scope/pre-commit critic: PASS, score 10/10. Blocking findings: none. The
+  checker remains a release/standard command and does not alter pre-commit's
+  index-oriented behavior.
+- Test/documentation critic: PASS, score 10/10. Blocking findings: none.
+  Focused tests cover the common omission and false-positive boundaries, and
+  MAINTENANCE documents where to run the checker and what it proves.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - scripts/check-search-set-evidence.py
+  - tests/test_search_set_evidence.py
+  - MAINTENANCE.md
+  - backlog/README.md
+  - backlog/codex-adapter.md
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_search_set_evidence.py`
+  - EXPECTED FAIL before Completion Gate was recorded: `python3 scripts/check-search-set-evidence.py`
+    reported missing search-set evidence for the active harness-affecting
+    checker/MAINTENANCE changes.
+  - PASS: `python3 scripts/check-search-set-evidence.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 -m unittest tests/test_repository_search_set.py`
+- Multi-review required: yes; this changes repository verification/release-gate
+  behavior.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 checker-behavior critic, 10/10
+  scope/pre-commit critic, 10/10 test/documentation critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
+
+### 44. P2 remove runtime-specific instruction filenames from core examples
+
+Status: 대기
+
+Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
+methodology multi-review.
+
+The core methodology says adapters own runtime-specific instruction files,
+install paths, hook schemas, permission models, and examples. One core example
+still names `AGENTS.md` directly while explaining prompt-as-code boundaries.
+That makes the runtime-neutral core lean toward the Codex surface, even though
+the concept applies equally to `CLAUDE.md`, `AGENTS.md`, or another
+adapter-defined project instruction file.
+
+Potential improvement:
+
+- Replace the core `AGENTS.md` example with runtime-neutral wording such as
+  "project instruction file".
+- If concrete filenames are helpful, move or duplicate them into adapter docs
+  where `AGENTS.md` and `CLAUDE.md` are runtime-specific examples.
+- Add or update a focused boundary test if existing tests do not already guard
+  against runtime-specific filename leakage in core methodology prose.
+
+Done when:
+
+- `core/methodology.md` keeps the prompt-as-code warning without naming a
+  specific runtime's project instruction file as the canonical example.
+- Adapter docs remain free to use their concrete filenames.
+- Core/adapters ownership boundaries remain mechanically or review-protected.
+
+### 45. P2 make the operationalized-toolkit framing explicit in public docs
+
+Status: 대기
+
+Source discussion: 2026-05-04 maintainer framing preference after current-main
+Meta-Harness methodology review.
+
+The desired framing is: this repository is not a paper reproduction package or a
+claim that the local repo has demonstrated Meta-Harness benchmark gains. It is a
+project that operationalizes the paper's core principles into a practical
+harness toolkit, runtime adapters, and verification gates. That sentence should
+become the stable public framing used by README, maintenance docs, and any
+high-level core/backlog guidance that explains what this repository is.
+
+Potential improvement:
+
+- Add or refine a short canonical sentence in README and maintenance docs along
+  these lines: "This project operationalizes Meta-Harness paper principles into
+  a practical harness toolkit, runtime adapters, and verification gates."
+- Use that framing when contrasting paper results, repository-local evidence,
+  adapter operability, and self-application traces.
+- Avoid wording that implies this repo is a full Meta-Harness implementation,
+  a benchmark reproduction, or empirical proof of the paper's performance
+  claims.
+- Keep the phrasing compatible with existing evidence-category and paper-claim
+  traceability tables instead of duplicating them.
+
+Done when:
+
+- README first-viewport wording, `MAINTENANCE.md` opening, and any directly
+  linked core/backlog guidance consistently use the operationalized-toolkit
+  framing.
+- Focused README or methodology-boundary tests protect the framing from drifting
+  back toward reproduction/implementation overclaiming.
+- Multi-review checks the result because this is a public claim-boundary change.
 
 ### 39. P2 add trace-root completeness to the Active search-set
 
@@ -1311,6 +1559,43 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
+
+### 42. P3 audit aphoristic methodology slogans for claim-boundary clarity
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of current local `main` against the
+Meta-Harness methodology.
+
+The review passed overall, but the paper-fidelity critic noted a small residual
+claim-boundary risk: compact slogans such as "The bottleneck is environment
+design, not model intelligence" are useful as methodology cues, yet can read
+broader than the paper's evidence if quoted without the surrounding
+paper-inspired-toolkit framing. The repository already separates paper results
+from local evidence in the README and labels repository-applied conventions in
+core docs. This item is only about tightening high-level wording that may travel
+out of context.
+
+Potential improvement:
+
+- Audit README, `core/methodology.md`, `core/reference.md`, and
+  `MAINTENANCE.md` for aphoristic or absolute methodology slogans that could be
+  mistaken for direct paper claims.
+- Keep useful short cues, but attach local framing where needed: paper-backed
+  motivation, repository practice, or adopter contract.
+- Avoid weakening operational requirements that are intentionally part of this
+  repository's harness contract.
+- Add or extend focused boundary tests only if durable public wording changes.
+
+Done when:
+
+- Top-level and core methodology wording still communicates the harness lesson
+  crisply, but no standalone sentence implies local reproduction or a stronger
+  universal claim than the cited paper supports.
+- Any changed wording preserves the README evidence-category and paper-claim
+  traceability boundaries.
+- Multi-review checks the result if public claim boundaries or core methodology
+  wording change.
 
 ### 33. P2 complete repository self-application trace root
 

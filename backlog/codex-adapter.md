@@ -941,6 +941,82 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
 
+### 38. P2 add end-to-end Codex adoption smoke for generated search-set commands
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of current local `main` against the
+Meta-Harness methodology.
+
+The trace/evaluator critic found that the Codex adapter has strong deterministic
+fixture coverage for representative `init-codex-harness` outputs, but the
+adoption flow remains mostly instruction-and-template driven. Existing
+`smoke-init-codex-project-fixtures.py` validates generated AGENTS policy,
+trace-root selection, initial evolution trace shape, and executable-looking
+Active search-set entries. It does not fully exercise the next adoption step:
+run the seeded search-set verify commands in the generated target projects and
+fail if the initialized harness produces commands that do not actually execute.
+
+Potential improvement:
+
+- Extend the Codex init fixture smoke, or add a focused sibling smoke, that
+  creates representative target projects, applies the expected initialized
+  harness fixture output, parses `.harness/traces/search-set.md`, and runs the
+  Active `verify` commands.
+- Cover at least the current TypeScript, Python research, and migrated
+  `.claude/traces/` fixture shapes unless one is intentionally documented as
+  non-executable.
+- Preserve the existing boundary: this is deterministic repo-local adoption
+  smoke, not proof that a live Codex Desktop session surfaced skills or executed
+  a model-driven init.
+- Generate the smoke into `plugins/ai-agent-meta-harness/` if it becomes part
+  of the supported plugin artifact surface, and update plugin sync/smoke checks
+  accordingly.
+
+Done when:
+
+- The Codex adapter has a repeatable command that initializes representative
+  fixture projects and then executes each generated Active search-set `verify`
+  command successfully.
+- The smoke fails on masked verifier exit status, non-executable verify text, or
+  generated search-set commands that do not run in the target fixture project.
+- README or adapter docs clearly state what this smoke proves and what remains
+  outside its evidence boundary.
+- Multi-review checks the result because it changes adapter release confidence
+  and future initialization evidence.
+
+### 39. P3 list init fixture smoke in Codex plugin-scope generated contents
+
+Status: 대기
+
+Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
+methodology multi-review.
+
+The generated Codex plugin bundle includes
+`scripts/smoke-init-codex-project-fixtures.py`, and the sync/local-plugin smoke
+paths require it as an executable generated asset. However, `plugin-scope.md`
+does not list that script in the current generated contents or canonical path
+table. The artifact and generator are aligned, but the supported-surface
+document is stale.
+
+Potential improvement:
+
+- Add `scripts/smoke-init-codex-project-fixtures.py` to
+  `adapters/codex/plugin-scope.md` Current Generated Contents.
+- Add it to the canonical path table with its generated plugin path and evidence
+  boundary.
+- Sync `plugins/ai-agent-meta-harness/plugin-scope.md` and extend focused tests
+  if needed so the documented plugin scope stays aligned with required generated
+  assets.
+
+Done when:
+
+- Canonical and generated plugin-scope docs both list the init fixture smoke as
+  part of the generated plugin surface.
+- `python3 scripts/sync-codex-plugin.py --check` and the local plugin smoke pass.
+- A reviewer can tell from `plugin-scope.md` that the fixture smoke is a
+  deterministic artifact/adoption check, not live model dogfooding.
+
 ### 32. P2 add activation smoke to release checklist
 
 Status: 완료
