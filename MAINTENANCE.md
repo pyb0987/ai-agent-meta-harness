@@ -275,6 +275,18 @@ git config core.hooksPath .githooks
 sh .githooks/pre-commit
 ```
 
+For release or stable handoff verification, also run the clean-worktree gate:
+
+```bash
+python3 scripts/check-clean-worktree.py
+```
+
+This command is intentionally not part of pre-commit. Pre-commit validates the
+Git index so unrelated unstaged work does not block commit-time checks; the
+release/handoff gate validates that no tracked, staged, or untracked worktree
+state is being hidden outside the checked index. A dirty result is a release
+blocker unless the handoff notes explicitly record the exception.
+
 Search-set verification is project-contextual rather than repo-global: use the
 active trace root for the project whose harness behavior is changing. If this
 repository is the target harnessed project and no trace root exists, record that
@@ -292,6 +304,9 @@ unless explicitly performing a migration or recovery of that history.
 Use this checklist before tagging, publishing, or treating `main` as a stable
 handoff point:
 
+- Clean-worktree release gate passes with `python3 scripts/check-clean-worktree.py`,
+  or the release/handoff record explicitly names the dirty paths and why they
+  are accepted as an exception.
 - Compatibility mirrors pass from the Git index.
 - Claude adapter path contract check passes.
 - Codex plugin sync check passes.

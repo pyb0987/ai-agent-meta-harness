@@ -675,6 +675,71 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes
 
+### 36. P2 pin bounded timeouts in Codex hook templates
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The Codex autoresearch hook templates provide `PreToolUse` and
+`PermissionRequest` guardrails for protected evaluator files, but the JSON hook
+template does not set explicit `timeout` values. Current Codex hook behavior has
+a long default timeout, which is acceptable for rare manual commands but too
+generous for frequent protected-file checks if git resolution, Python startup,
+or the checker stalls. The protection model should fail fast enough to preserve
+interactive agent flow while still allowing normal repository paths to resolve.
+
+Potential improvement:
+
+- Add explicit bounded `timeout` values to
+  `adapters/codex/templates/hooks/codex-hooks.json.template`.
+- Mirror the change into the generated plugin bundle through
+  `scripts/sync-codex-plugin.py --write`.
+- Update hook template tests to assert the timeout is present and intentionally
+  sized for the protected-file checker.
+- Keep timeout guidance adapter-owned; do not move Codex hook timing policy into
+  shared core methodology.
+
+Done when:
+
+- The Codex hook template no longer relies on the runtime default timeout for
+  protected-file checks.
+- Canonical and generated templates are synchronized.
+- Focused tests fail if future template edits drop the timeout.
+
+### 37. P3 refresh Codex hook schema freshness signaling
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The hook schema reference records later re-verification notes, but the enforced
+verified-date marker in the drift checker still points at an older date. This is
+not a behavior failure because the hook schema drift check passes and the
+reference documents the relevant Codex hook output shapes. Still, stale-looking
+freshness metadata weakens reviewer confidence when hook-sensitive changes are
+being evaluated.
+
+Potential improvement:
+
+- Decide whether the enforced verified-date marker should track the most recent
+  official-doc re-check or only the last behavior-affecting schema update.
+- Update `adapters/codex/hook-schema.md` and
+  `adapters/codex/scripts/check-codex-hook-schema-drift.py` so the freshness
+  convention is explicit.
+- Sync generated plugin copies and update tests if the marker changes.
+- Keep this as metadata/freshness work; do not imply hook semantics changed
+  unless official docs or smoke evidence require a behavior update.
+
+Done when:
+
+- A reviewer can tell what the hook schema verified date means.
+- Canonical hook schema docs, drift checker markers, and generated plugin copies
+  agree.
+- Hook schema drift tests cover the chosen freshness convention.
+
 ### 32. P2 add activation smoke to release checklist
 
 Status: 완료

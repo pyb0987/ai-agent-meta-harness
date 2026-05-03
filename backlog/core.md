@@ -124,9 +124,13 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog currently has no unstarted concrete implementation item.
-  Item 32 tightened paper-vs-repository wording around core trace schema
-  requirements and is complete.
+- Active core backlog has four unstarted concrete implementation items:
+  item 35 should separate paper-result claims from this repository's
+  implementation evidence categories, and item 37 should create a lightweight
+  paper-claim traceability map for claims that go beyond the arXiv abstract.
+  Item 38 should clean up duplicate item numbering in this active backlog file,
+  and item 39 should promote trace-root completeness into an Active search-set
+  case. Item 36 added the clean-worktree release gate and is complete.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -173,6 +177,285 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
+
+### 35. P2 separate paper-result claims from repository implementation evidence
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The review agreed that this repository implements many paper-inspired harness
+principles well as a practical toolkit, but identified claim-inflation risk when
+paper benchmark results and this repository's implementation quality appear in
+the same narrative. Existing wording already separates paper-backed principles
+from repository practice in several places, but the README and maintenance
+framing can still be read as implying that this repository has empirically
+demonstrated the paper's end-to-end performance gains.
+
+Potential improvement:
+
+- Add a compact evidence-category map that distinguishes:
+  - paper results and benchmark claims,
+  - repository methodology/documentation correctness,
+  - adapter and generated-artifact operability,
+  - this repository's own self-application evidence.
+- Calibrate top-level wording so it remains clear that the repo is a
+  paper-inspired harness toolkit unless a claim is backed by local end-to-end
+  evaluation evidence.
+- Keep this item scoped to claim/evidence framing. Do not require new
+  self-application traces or external dogfooding as part of this item; those are
+  broader empirical-evidence work and are intentionally deferred at this stage.
+
+Done when:
+
+- README and/or maintenance docs make the evidence categories explicit enough
+  that a reader can tell what the Meta-Harness paper demonstrated versus what
+  this repository has locally verified.
+- Any strong claim about this repository's own implementation is backed by a
+  local artifact, command, trace, or explicitly marked as future evidence.
+- Multi-review checks the resulting wording because this touches core
+  methodology claim boundaries.
+
+### 36. P1 add clean-worktree release verification gate
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/check-clean-worktree.py
+- tests/test_clean_worktree.py
+- MAINTENANCE.md
+- backlog/codex-adapter.md
+- backlog/core.md
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The verification critic identified a release-readiness gap: the tracked
+pre-commit and several drift/review checkers intentionally validate the Git
+index, but the current working tree can still contain unstaged governance drift
+while those checks pass. During the review, `backlog/core.md` was dirty,
+`git diff --cached --name-only` was empty, and `sh .githooks/pre-commit`
+passed. Index-aware pre-commit behavior is correct for commit-time checks, but
+release or stable-handoff verification should make dirty working-tree state
+visible instead of letting it hide outside the checked index.
+
+Potential improvement:
+
+- Add a release-oriented verification command or script that fails or clearly
+  reports when `git status --porcelain` is non-empty.
+- Keep pre-commit index semantics intact; do not make commit-time checks reject
+  unrelated unstaged work unless the repository intentionally changes that
+  policy.
+- Add the clean-worktree check to `MAINTENANCE.md` Standard verification or
+  Release Checklist wording, and make clear whether dirty state is a hard fail
+  or an explicit recorded exception.
+- Cover the new release gate with a focused test or checker assertion so future
+  maintenance cannot silently drop it.
+
+Done when:
+
+- A maintainer treating local `main` as a stable handoff point has one explicit
+  command that reports PASS/FAIL for dirty worktree state.
+- The release guidance distinguishes pre-commit/index validation from
+  release/handoff clean-tree validation.
+- The current dirty-worktree failure mode from the multi-review can no longer be
+  reported as a clean release verification pass without an explicit exception.
+
+Decision implemented:
+
+- Added `scripts/check-clean-worktree.py`, a release/handoff checker that runs
+  `git status --porcelain`, passes on a clean worktree, and fails with listed
+  dirty paths when tracked, staged, or untracked state exists.
+- Documented the command in `MAINTENANCE.md` as a release or stable handoff
+  gate, separate from pre-commit's intentional Git-index validation semantics.
+- Added the clean-worktree gate to the Release Checklist with an explicit
+  dirty-state exception rule for handoff notes.
+- Added `tests/test_clean_worktree.py` coverage for clean Git worktrees, dirty
+  Git worktrees, non-Git directories, and the distinction that the command is
+  documented for release/handoff but not wired into pre-commit.
+- Added the Codex adapter follow-up candidates discovered by the same
+  multi-review to `backlog/codex-adapter.md`.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Release-gate critic: PASS, score 10/10. Blocking findings: none. The new
+  command gives maintainers an explicit PASS/FAIL clean-worktree gate before
+  treating `main` as a stable handoff point.
+- Pre-commit semantics critic: PASS, score 10/10. Blocking findings: none.
+  Pre-commit remains index-oriented and does not reject unrelated unstaged work;
+  the clean-worktree command is documented separately for release/handoff.
+- Verification critic: PASS, score 10/10. Blocking findings: none. Focused
+  tests exercise clean, dirty, and non-Git cases, and the current dirty
+  maintenance worktree produced the expected non-zero release-gate result.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - scripts/check-clean-worktree.py
+  - tests/test_clean_worktree.py
+  - MAINTENANCE.md
+  - backlog/codex-adapter.md
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_clean_worktree.py`
+  - EXPECTED FAIL: `python3 scripts/check-clean-worktree.py` in this active
+    maintenance worktree; it reported dirty paths including `MAINTENANCE.md`,
+    `backlog/core.md`, `backlog/codex-adapter.md`, and the new checker/test
+    files. This confirms the release gate catches the dirty-worktree state that
+    pre-commit intentionally ignores.
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+- Multi-review required: yes; this changes release/handoff gate semantics.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 release-gate critic, 10/10
+  pre-commit semantics critic, 10/10 verification critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
+
+### 37. P3 create paper-claim traceability map for precise citations
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The review agreed that the repository should be framed as inspired by the
+Meta-Harness paper, not as a complete implementation or reproduction of the
+paper. A remaining risk is that README claims with precise numbers or appendix
+references, such as benchmark deltas, Table 3, Appendix A.2, and Appendix D,
+are stronger than the arXiv abstract alone. Those claims may be accurate, but
+future reviewers need a small traceability surface showing which local wording
+is backed by the paper, which is repository practice, and which is not locally
+verified.
+
+Potential improvement:
+
+- Add a compact paper-claim traceability map in `README.md`, `MAINTENANCE.md`, or
+  a linked core document.
+- For each precise paper claim used in top-level docs, record:
+  - local claim text or section,
+  - paper location or citation granularity,
+  - whether the repository has local implementation evidence,
+  - whether the claim is only inspiration/context rather than a local result.
+- Keep the map small enough to maintain; do not copy the paper or turn the
+  repository into a paper reproduction package.
+- Use the map to decide whether strong wording should remain, be softened, or
+  move behind a citation-specific note.
+
+Done when:
+
+- A reviewer can distinguish arXiv abstract-level claims, paper-body/appendix
+  claims, and repository-local verification evidence without rereading every
+  top-level document.
+- README wording that cites precise paper results is either backed by the map or
+  softened to an inspired-by framing.
+- Multi-review checks the resulting map because it touches core methodology
+  claim boundaries.
+
+### 38. P3 remove duplicate core backlog item numbering
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of local `main` backlog governance.
+
+The active backlog now has two `### 32` records: one for repository
+self-application search-set work and one for core trace-schema boundary wording.
+Both are completed, and `Current Status` no longer points to item 32 as active,
+but duplicate numbered headings still weaken backlog governance. Future
+maintenance agents, archive tooling, or review summaries can link to the wrong
+item or treat completed records as ambiguous current work.
+
+Potential improvement:
+
+- Renumber one of the duplicate item 32 records, or move completed records into
+  `backlog/archive/core.md` with stable archive anchors and compact active-file
+  pointers.
+- Update any `Archived:` links, source references, tests, and review records that
+  depend on the affected heading.
+- Add a lightweight backlog hygiene check if practical so active backlog files do
+  not accumulate duplicate `### <number>.` headings again.
+
+Done when:
+
+- `backlog/core.md` has no duplicate numbered backlog headings.
+- Existing completed-record history and archive pointers remain navigable.
+- A future maintenance agent can identify active items without ambiguous item
+  numbers.
+
+### 39. P2 add trace-root completeness to the Active search-set
+
+Status: 대기
+
+Source discussion: 2026-05-04 multi-review of whether local `main` implements
+the Meta-Harness methodology well.
+
+The repository self-application trace root now has the required minimum
+surfaces, and `tests/test_repository_search_set.py` mechanically checks that
+`.harness/traces/` contains `search-set.md`, `evolution/`, `failures/`, and
+`experiments/`. The remaining governance gap is that
+`.harness/traces/search-set.md` does not name this invariant as an Active
+regression case, so a maintainer running only the documented Active cases may
+miss the exact self-application failure that previously caused a multi-review
+VETO.
+
+Potential improvement:
+
+- Add an Active search-set case for repository trace-root completeness.
+- Use the existing focused test command if it remains the narrowest stable
+  verifier: `python3 -m unittest tests/test_repository_search_set.py`.
+- Make the search-set entry's Source/Symptom wording point back to the
+  self-application VETO and item 33 completion record.
+- Keep the case narrow enough that it guards trace-root completeness without
+  turning the Active search-set into the full Standard verification suite.
+
+Done when:
+
+- `.harness/traces/search-set.md` has an Active case that directly covers
+  repository self-application trace-root completeness.
+- The Active verify command fails if the sibling minimum trace surfaces are
+  missing.
+- Maintenance review can no longer pass full Active search-set verification
+  while omitting the trace-root completeness invariant.
 
 ### 28. P2 archive completed backlog items without losing review records
 
