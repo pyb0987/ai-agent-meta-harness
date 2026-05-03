@@ -312,3 +312,25 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the residual is procedural review independence, not an actionable repository defect for this item.
 - Residual risk/follow-up: future externally reviewed passes may provide stronger independent critique, but no known implementation risk remains.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 13. P1 preserve raw evidence before Claude autoresearch REJECT revert
+
+Status: 대기
+Source review: 2026-05-03 multi-review feedback.
+
+`core/reference.md` requires preserving rejected candidate diffs and raw
+evaluator output before revert/cleanup, but Claude autoresearch Run Mode still
+summarizes the reject path as `REJECT -> git reset --hard HEAD~1 + log`. That
+ordering can cause an executor to lose candidate source changes or raw
+evaluator output before they are recorded in `experiments.jsonl` or
+`{trace_root}` traces. The Codex autoresearch guidance states this ordering
+more safely.
+
+Potential improvement:
+
+- Reword Claude autoresearch Run Mode so REJECT handling explicitly captures
+  raw evaluator output and candidate diff before any reset/revert.
+- Ensure the recorded evidence includes enough detail for future proposer
+  search over rejected candidates, consistent with `core/reference.md`.
+- Update the root `skills/autoresearch` mirror and add focused lexical coverage
+  that rejects a revert-before-capture sequence.

@@ -677,3 +677,27 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 31. P2 align root Codex activation smoke documentation with implementation
+
+Status: 대기
+Source review: 2026-05-03 multi-review feedback.
+
+Root `README.md` still says the exact Codex local-plugin activation command is
+pending an activation smoke test, but
+`adapters/codex/scripts/smoke-local-plugin-activation.py` exists and the
+adapter README/backlog describe it as passing. This makes the root README,
+standard verification guidance, release/pre-commit expectations, and adapter
+artifact state look out of sync.
+
+Potential improvement:
+
+- Update root `README.md` to describe the activation smoke as implemented and
+  distinguish it from runtime model-visible skill surfacing and plugin
+  tool-event delivery.
+- Decide whether `MAINTENANCE.md` Standard verification, release checklist, and
+  `.githooks/pre-commit` should include the activation smoke or explicitly
+  leave it as focused/release-only evidence.
+- Add focused docs/check coverage so root README and adapter README do not
+  regress to saying activation smoke is pending after the implementation
+  exists.
