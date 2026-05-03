@@ -21,10 +21,23 @@ class HookTemplateTests(unittest.TestCase):
         permission = hooks["PermissionRequest"][0]["hooks"][0]
         self.assertEqual(pre_tool["type"], "command")
         self.assertEqual(permission["type"], "command")
+        self.assertEqual(pre_tool["timeout"], 5)
+        self.assertEqual(permission["timeout"], 5)
         self.assertIn("check-autoresearch-protected.py", pre_tool["command"])
         self.assertIn("--codex-pre-tool-use", pre_tool["command"])
         self.assertIn("check-autoresearch-protected.py", permission["command"])
         self.assertIn("--codex-permission-request", permission["command"])
+
+    def test_codex_hooks_template_pins_short_checker_timeouts(self):
+        template = json.loads((HOOKS / "codex-hooks.json.template").read_text(encoding="utf-8"))
+
+        for hook_name in ("PreToolUse", "PermissionRequest"):
+            with self.subTest(hook_name=hook_name):
+                command_hook = template["hooks"][hook_name][0]["hooks"][0]
+                self.assertIn("timeout", command_hook)
+                self.assertIsInstance(command_hook["timeout"], int)
+                self.assertGreaterEqual(command_hook["timeout"], 3)
+                self.assertLessEqual(command_hook["timeout"], 10)
 
     def test_codex_hooks_template_is_template_only(self):
         template_text = (HOOKS / "codex-hooks.json.template").read_text(encoding="utf-8")

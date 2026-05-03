@@ -677,7 +677,17 @@ Completion Gate:
 
 ### 36. P2 pin bounded timeouts in Codex hook templates
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/templates/hooks/codex-hooks.json.template
+- adapters/codex/hook-schema.md
+- plugins/ai-agent-meta-harness/templates/hooks/codex-hooks.json.template
+- plugins/ai-agent-meta-harness/hook-schema.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
 
 Source discussion: 2026-05-04 multi-review of whether local `main` implements
 the Meta-Harness methodology well.
@@ -707,6 +717,93 @@ Done when:
   protected-file checks.
 - Canonical and generated templates are synchronized.
 - Focused tests fail if future template edits drop the timeout.
+
+Decision implemented:
+
+- Added explicit `timeout: 5` values to the canonical Codex `PreToolUse` and
+  `PermissionRequest` command hooks in
+  `adapters/codex/templates/hooks/codex-hooks.json.template`.
+- Synced the generated plugin bundle with `python3 scripts/sync-codex-plugin.py --write`,
+  updating `plugins/ai-agent-meta-harness/templates/hooks/codex-hooks.json.template`.
+- Updated the canonical and generated hook schema references with the
+  2026-05-04 timeout re-verification note and the timeout contract:
+  `timeout` is in seconds, omitted timeout defaults to 600 seconds, and this
+  adapter pins protected-file checks to 5 seconds.
+- Extended `adapters/codex/tests/test_hook_templates.py` so focused tests
+  require both hook commands to carry a short integer timeout in the 3-10 second
+  range and assert the current value is 5 seconds.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Hook behavior critic: PASS, score 10/10. Blocking findings: none. Protected
+  file hook checks no longer rely on the runtime default timeout and now fail
+  fast enough for interactive `PreToolUse` and `PermissionRequest` flows.
+- Adapter-boundary critic: PASS, score 10/10. Blocking findings: none. Timeout
+  policy remains Codex-adapter-owned and does not move runtime timing guidance
+  into shared core methodology.
+- Sync/test critic: PASS, score 10/10. Blocking findings: none. Canonical and
+  generated hook templates are synchronized, hook smoke still passes, and
+  focused tests fail if future edits drop or unbound the timeout.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/templates/hooks/codex-hooks.json.template
+  - adapters/codex/hook-schema.md
+  - plugins/ai-agent-meta-harness/templates/hooks/codex-hooks.json.template
+  - plugins/ai-agent-meta-harness/hook-schema.md
+  - adapters/codex/tests/test_hook_templates.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: official Codex hooks documentation check; `timeout` is documented as
+    seconds and omitted timeout defaults to 600 seconds.
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+- Multi-review required: yes; this changes Codex hook semantics for protected
+  file checks.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 hook behavior critic, 10/10
+  adapter-boundary critic, 10/10 sync/test critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 37. P3 refresh Codex hook schema freshness signaling
 

@@ -12,6 +12,10 @@ This drift check validates documented output-shape assumptions only. It does not
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
+- Re-verification note: 2026-05-04 item 36 added bounded command hook
+  `timeout` values for protected-file checks; official Codex hooks docs were
+  re-checked, and `timeout` remains a per-command-hook value in seconds with a
+  600 second default when omitted. Hook output shapes remain unchanged.
 - Re-verification note: 2026-05-03 item 27 defined direct-copy degraded
   reporting only; official Codex hooks/config docs were re-checked, and
   `PreToolUse`, `PermissionRequest`, `hookSpecificOutput`, and
@@ -83,6 +87,14 @@ Expected nested `decision` keys:
 - `message`
 
 Do not use the legacy top-level `{"decision": "block"}` shape for this adapter.
+
+## Hook Command Timeout Contract
+
+Codex command hooks support a `timeout` field in seconds; if omitted, Codex uses
+a 600 second default. This adapter pins protected-file `PreToolUse` and
+`PermissionRequest` hook commands to 5 seconds so evaluator-boundary checks fail
+fast enough for interactive use while still allowing normal repository-local
+Python startup and git-root resolution.
 
 ## Drift Procedure
 
