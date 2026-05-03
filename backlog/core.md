@@ -124,11 +124,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one unstarted process-drag cleanup item, item 31.
-- Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12 and the
-  standard-verification follow-up in item 29 are complete; use new backlog
-  entries for newly discovered work rather than treating these completed items
-  as available candidates.
+- Active core backlog currently has no unstarted concrete implementation item.
+- Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
+  `backlog/codex-adapter.md` items 27-29, and core process item 31 are
+  complete; use new backlog entries for newly discovered work rather than
+  treating these completed items as available candidates.
 
 ### 28. P2 archive completed backlog items without losing review records
 

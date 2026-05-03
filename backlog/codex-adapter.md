@@ -43,9 +43,10 @@ Implemented foundation:
 
 Remaining follow-up work:
 
-- Decide how the fallback direct-copy path reports missing hooks/checker assets at runtime.
-- Keep runtime hook manifest fields gated until Codex plugin tool-event delivery
-  can be smoke-tested, not just local marketplace activation.
+- No active implementation follow-up remains in this epic. Direct-copy fallback
+  limitation reporting is completed in item 27, and runtime hook manifest
+  fields remain intentionally gated by item 28 until Codex exposes a mechanical
+  plugin tool-event delivery smoke surface.
 
 ### 5. Define Codex plugin bundle scope
 
@@ -628,5 +629,51 @@ Completion Gate:
 - For each score 9, why not 10:
   - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 30. P3 reconcile active backlog summaries after completed Codex follow-ups
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/codex-adapter.md
+- backlog/core.md
+
+Source discussion: 2026-05-03 maintainer request to continue with the next
+backlog item after completing the current Codex and core maintenance
+follow-ups.
+
+The active summaries still made completed work look available: the Codex
+distribution epic listed direct-copy fallback reporting as remaining after item
+27 completed it, and `backlog/core.md` still described item 31 as an unstarted
+core cleanup after it was completed.
+
+Decision:
+
+- Updated the Codex distribution epic's `Remaining follow-up work` to state
+  that no active implementation follow-up remains there.
+- Preserved the runtime hook manifest gating note as an intentional product
+  surface wait, not an available backlog implementation item.
+- Updated core `Current Status` so it no longer lists item 31 as unstarted and
+  explicitly treats recent Claude, Codex, and core follow-ups as completed.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - backlog/codex-adapter.md
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md backlog/core.md`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting and no repository `search-set.md` exists.
+- Multi-review required: no; this is active backlog/status summary cleanup only, with no adapter behavior, hook semantics, release gate, checker policy, or durable contract change.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no VETO path.
+- For each score 9, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
