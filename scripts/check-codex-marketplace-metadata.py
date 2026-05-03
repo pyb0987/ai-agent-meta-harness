@@ -83,9 +83,9 @@ def missing_markers(text: str, markers: tuple[str, ...]) -> list[str]:
 
 
 def existing_publication_manifests(*, use_index: bool = False) -> list[Path]:
-    manifests = {path for path in PUBLICATION_MANIFESTS if path.exists()}
     if use_index:
-        manifests.update(path for path in PUBLICATION_MANIFESTS if _index_contains(path))
+        return sorted(path for path in PUBLICATION_MANIFESTS if _index_contains(path))
+    manifests = {path for path in PUBLICATION_MANIFESTS if path.exists()}
     return sorted(manifests)
 
 
@@ -109,6 +109,8 @@ def validate(*, use_index: bool = False) -> list[str]:
                 f"MARKETPLACE METADATA NOT READY: {rel} exists before policy records "
                 "official schema/taxonomy evidence and generated metadata source"
             )
+        elif use_index:
+            continue
         elif path.is_dir():
             errors.append(f"INVALID MARKETPLACE MANIFEST: {rel} is a directory")
         elif not path.is_file():

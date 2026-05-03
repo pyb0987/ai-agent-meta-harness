@@ -118,6 +118,25 @@ class CodexMarketplaceMetadataCheckTests(unittest.TestCase):
         self.assertEqual(worktree_errors, [])
         self.assertTrue(any("MARKETPLACE METADATA NOT READY" in error for error in index_errors))
 
+    def test_index_validation_ignores_worktree_manifest_staged_for_deletion(self) -> None:
+        root = check_marketplace.ROOT
+        git(root, "init")
+        git(root, "config", "user.email", "test@example.com")
+        git(root, "config", "user.name", "Test User")
+
+        manifest = check_marketplace.PUBLICATION_MANIFESTS[0]
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text("{}", encoding="utf-8")
+        git(root, "add", "adapters/codex/plugin-scope.md", ".agents/plugins/marketplace.json")
+        git(root, "commit", "-m", "initial")
+        git(root, "rm", "--cached", ".agents/plugins/marketplace.json")
+
+        worktree_errors = check_marketplace.validate()
+        index_errors = check_marketplace.validate(use_index=True)
+
+        self.assertTrue(any("MARKETPLACE METADATA NOT READY" in error for error in worktree_errors))
+        self.assertEqual(index_errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
