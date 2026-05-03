@@ -180,7 +180,14 @@ Completion Gate:
 
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- README.md
+- tests/test_readme_methodology_boundaries.py
+- backlog/core.md
 
 Source discussion: 2026-05-04 multi-review of whether local `main` implements
 the Meta-Harness methodology well.
@@ -216,6 +223,96 @@ Done when:
   local artifact, command, trace, or explicitly marked as future evidence.
 - Multi-review checks the resulting wording because this touches core
   methodology claim boundaries.
+
+Decision implemented:
+
+- Updated the README opening to describe this repository as a paper-inspired
+  toolkit and to state that local checks do not claim a local reproduction of
+  the paper's end-to-end benchmark gains.
+- Added a compact README evidence-category map distinguishing paper results,
+  repository methodology/documentation correctness, adapter/generated-artifact
+  operability, and repository self-application evidence.
+- Left precise paper-result examples in place as paper context while tying local
+  repository claims to concrete local surfaces such as `core/`, tests,
+  compatibility checks, adapter smoke tests, `.harness/traces/search-set.md`,
+  evolution traces, and backlog Completion Gates.
+- Extended `tests/test_readme_methodology_boundaries.py` so README wording must
+  keep paper benchmark claims separate from local repository evidence and must
+  not drift into local reproduction claims.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Claim-boundary critic: PASS, score 10/10. Blocking findings: none. The README
+  now explicitly separates published paper results from local repository
+  verification and says the repo does not claim a local reproduction of the
+  paper's benchmark gains.
+- Evidence-map critic: PASS, score 10/10. Blocking findings: none. The
+  evidence categories are compact and cover paper results, methodology/docs,
+  adapter/generated artifacts, and repository self-application without adding
+  new empirical obligations.
+- Test-coverage critic: PASS, score 10/10. Blocking findings: none. Focused
+  README boundary tests assert the evidence map, preserve precise paper numbers
+  as paper context, and reject local reproduction wording.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - README.md
+  - tests/test_readme_methodology_boundaries.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_readme_methodology_boundaries.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 -m unittest tests/test_repository_search_set.py`
+- Multi-review required: yes; this changes core methodology claim/evidence
+  boundaries.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 claim-boundary critic, 10/10
+  evidence-map critic, 10/10 test-coverage critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 36. P1 add clean-worktree release verification gate
 

@@ -2,7 +2,7 @@
 
 A practical framework for building reliable AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
 
-Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project combines the paper's experimental findings with engineering guidance from applying those findings to everyday agentic development workflows.
+Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project is a paper-inspired toolkit that combines those published findings with repository-local engineering practices. It has local checks for documentation, adapters, generated assets, and self-application traces, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 
@@ -23,6 +23,15 @@ guidance inferred while applying the methodology to Claude Code, Codex, and
 project-local harnesses. The strongest claims below cite the Meta-Harness paper
 or its ablations directly; adapter and skill guidance should be read as
 repository practice unless a paper source is named.
+
+Evidence categories used in this repository:
+
+| Category | What It Means Here | Local Evidence |
+|----------|--------------------|----------------|
+| Paper results and benchmark claims | Published Meta-Harness findings, such as benchmark deltas, ablations, tables, and appendix observations | Cited as paper context only; not local reproduction evidence |
+| Repository methodology and documentation correctness | This repository's interpretation of runtime-neutral harness principles, trace formats, and claim boundaries | `core/`, `docs/`, README boundary tests, compatibility mirror checks, and multi-review records |
+| Adapter and generated-artifact operability | Claude/Codex adapter instructions, hook templates, generated plugin assets, and smoke-tested local workflows | Adapter unit tests, drift checks, plugin sync checks, hook smoke tests, and local activation smoke |
+| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | `.harness/traces/search-set.md`, `.harness/traces/evolution/`, backlog Completion Gates, and Active search-set verification |
 
 - **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' traces/evolution/` instantly filters regression cases.
 - **Additive modification** — Paper-backed: 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Repository practice: prefer adding evidence or guardrails before restructuring.

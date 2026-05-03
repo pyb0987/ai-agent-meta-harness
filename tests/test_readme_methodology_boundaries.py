@@ -39,6 +39,33 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
         self.assertNotIn("paper requires evaluate.py", lower)
         self.assertNotIn("paper requires genome", lower)
 
+    def test_readme_separates_paper_results_from_local_repository_evidence(self) -> None:
+        text = normalized_readme()
+
+        for marker in (
+            "This project is a paper-inspired toolkit",
+            "does not claim a local reproduction of the paper's end-to-end benchmark gains",
+            "Evidence categories used in this repository",
+            "Paper results and benchmark claims",
+            "Cited as paper context only; not local reproduction evidence",
+            "Repository methodology and documentation correctness",
+            "Adapter and generated-artifact operability",
+            "Repository self-application evidence",
+            ".harness/traces/search-set.md",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+    def test_precise_paper_numbers_remain_labeled_as_paper_context(self) -> None:
+        text = normalized_readme()
+        lower = text.lower()
+
+        self.assertIn("6x performance gap on the same benchmark", text)
+        self.assertIn("full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3)", text)
+        self.assertIn("Paper results and benchmark claims", text)
+        self.assertNotIn("this repository reproduces", lower)
+        self.assertNotIn("locally reproduced the paper", lower)
+
 
 if __name__ == "__main__":
     unittest.main()
