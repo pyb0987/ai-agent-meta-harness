@@ -632,6 +632,49 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 35. P3 refresh active backlog summaries after Codex items 32-34
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/codex-adapter.md
+- backlog/core.md
+
+Source discussion: 2026-05-03 maintainer request to continue after completing
+Codex adapter follow-ups 32-34.
+
+The active backlog had no remaining `Status: 대기` item, but the compact core
+Current Status summary still only named Codex items 27-29 as completed recent
+adapter follow-ups. That can make freshly completed items 32-34 look invisible
+to future handoff scans.
+
+Decision:
+
+- Updated `backlog/core.md` Current Status so recent completed Codex adapter
+  follow-ups cover items 27-34.
+- Left the Codex distribution epic summary unchanged because it already says no
+  active implementation follow-up remains in that epic.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - backlog/codex-adapter.md
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md backlog/core.md`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting status summary cleanup.
+- Multi-review required: no; this is backlog/status summary cleanup only, with no adapter behavior, hook semantics, release gate, checker policy, or durable contract change.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no VETO path.
+- For each score 9, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes
+
 ### 32. P2 add activation smoke to release checklist
 
 Status: 완료

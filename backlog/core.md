@@ -126,7 +126,7 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
   here.
 - Active core backlog currently has no unstarted concrete implementation item.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
-  `backlog/codex-adapter.md` items 27-29, and core process item 31 are
+  `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
   treating these completed items as available candidates.
 
