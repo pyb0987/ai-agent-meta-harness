@@ -552,3 +552,22 @@ Completion Gate:
   future Codex surface supports mechanical plugin tool-event delivery smoke
   coverage.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 29. P2 make marketplace metadata manifest discovery index-only in pre-commit
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+`scripts/check-codex-marketplace-metadata.py` reads policy text from the Git
+index in pre-commit mode, but `existing_publication_manifests(use_index=True)`
+still starts from `path.exists()` before adding indexed paths. If
+`.agents/plugins/marketplace.json` is tracked and staged for deletion while a
+working-tree copy remains, pre-commit can still treat the manifest as present
+even though the staged commit removes it.
+
+Potential improvement:
+
+- Make manifest discovery fully index-based when `use_index=True`.
+- Preserve working-tree manifest validation for non-index/manual runs.
+- Add a staged-deletion fixture test showing pre-commit/index mode ignores a
+  working-tree copy that is absent from the staged commit.

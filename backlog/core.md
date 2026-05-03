@@ -124,7 +124,7 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog currently has no unstarted concrete implementation item.
+- Active core backlog has one unstarted process-drag cleanup item, item 31.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12 and the
   standard-verification follow-up in item 29 are complete; use new backlog
   entries for newly discovered work rather than treating these completed items
@@ -315,6 +315,28 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 31. P2 narrow backlog workflow multi-review trigger
+
+Status: 대기
+Source review: 2026-05-03 feedback triage.
+
+The backlog workflow says to use multi-review for adapter behavior, release
+gates, hook semantics, or "anything that can steer future work in the wrong
+direction." Later `Multi-Review Use` narrows required multi-review to adapter
+direction, hook/protected-file semantics, release gates, core boundaries, and
+durable contracts. The earlier broader sentence can pull routine docs/backlog
+edits into mandatory multi-review and partially reintroduce the process-drag
+risk that the single-session pipeline was meant to remove.
+
+Potential improvement:
+
+- Align the backlog workflow trigger with `Multi-Review Use`.
+- Keep multi-review required for behavior-changing durable contracts, but make
+  routine backlog/status/doc cleanup eligible for focused checks without
+  mandatory multi-review.
+- Add or update a lightweight test/check if the repository has a suitable
+  policy-text assertion for this maintenance rule.
 
 ### 30. P3 refresh active backlog Current Status after adapter follow-ups
 
