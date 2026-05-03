@@ -318,7 +318,16 @@ Completion Gate:
 
 ### 32. P2 add repository self-application search-set
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- .harness/traces/search-set.md
+- MAINTENANCE.md
+- tests/test_repository_search_set.py
+- backlog/core.md
+
 Source review: 2026-05-03 feedback triage.
 
 This repository describes and distributes Meta-Harness methodology, but it does
@@ -337,6 +346,64 @@ Potential improvement:
 - Update maintenance guidance so future harness-affecting repository changes
   can run concrete before/after search-set verify commands instead of always
   recording search-set verification as skipped.
+
+Decision:
+
+- Added tracked repository self-application search-set at
+  `.harness/traces/search-set.md`.
+- Seeded Active cases for enforceable backlog review records, compatibility
+  mirror drift, pre-commit/release gate drift, Claude REJECT evidence
+  preservation, and Codex activation evidence/documentation alignment.
+- Updated `MAINTENANCE.md` so this repository's own harness-maintenance loop
+  uses `.harness/traces/search-set.md` for relevant before/after Active verify
+  commands.
+- Added focused tests that validate the repository search-set exists, has
+  Active entries with executable verify commands, covers the current recurring
+  regression risks, and is referenced by maintenance guidance.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - .harness/traces/search-set.md
+  - MAINTENANCE.md
+  - tests/test_repository_search_set.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE: SKIPPED; no tracked repository self-application `search-set.md` existed before this item, so there were no Active commands to run.
+  - AFTER: PASS; all new Active verify commands in `.harness/traces/search-set.md` passed: `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `sh .githooks/pre-commit`, `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`, and `python3 -m unittest tests/test_pre_commit_hook.py`.
+- Multi-review required: yes; this changes repository trace/search-set contract and future harness-affecting verification workflow.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Search-set schema critic: 10/10 PASS; the new file follows the `core/reference.md` Active/Archived shape and every Active case has an executable verify command.
+  - Regression coverage critic: 10/10 PASS; Active cases cover current recurring maintenance risks around review records, mirrors, release gates, evaluator evidence, and activation evidence.
+  - Maintenance integration critic: 10/10 PASS; `MAINTENANCE.md` now points repository self-application work at the tracked search-set for future before/after checks.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, verification, search-set before/after status, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 31. P2 narrow backlog workflow multi-review trigger
 
