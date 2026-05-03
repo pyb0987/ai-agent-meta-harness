@@ -37,8 +37,8 @@ class RepositorySearchSetTests(unittest.TestCase):
         entries = active_entries(text)
 
         self.assertIn('description: "Repository self-application search-set', text)
-        self.assertIn('last_updated: "2026-05-03"', text)
-        self.assertGreaterEqual(len(entries), 5)
+        self.assertIn('last_updated: "2026-05-04"', text)
+        self.assertGreaterEqual(len(entries), 6)
 
     def test_active_entries_have_executable_verify_commands(self) -> None:
         for entry in active_entries(read_search_set()):
@@ -61,14 +61,30 @@ class RepositorySearchSetTests(unittest.TestCase):
             "Pre-commit release gate remains wired",
             "Claude autoresearch preserves REJECT evidence",
             "Codex activation evidence stays aligned",
+            "Repository trace root keeps minimum self-application surface",
             "python3 scripts/check-maintenance-review.py",
             "python3 scripts/check-compat-mirrors.py",
             "sh .githooks/pre-commit",
             "python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py",
             "python3 -m unittest tests/test_pre_commit_hook.py",
+            "python3 -m unittest tests/test_repository_search_set.py",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
+
+    def test_active_search_set_names_trace_root_completeness_regression(self) -> None:
+        entries = active_entries(read_search_set())
+        matching = [
+            entry for entry in entries
+            if "Repository trace root keeps minimum self-application surface" in entry
+        ]
+
+        self.assertEqual(len(matching), 1)
+        entry = matching[0]
+        self.assertIn("backlog/core.md item 33", entry)
+        self.assertIn("self-application trace-root multi-review VETO", entry)
+        self.assertIn("missing sibling `evolution/`, `failures/`, or `experiments/`", entry)
+        self.assertIn("python3 -m unittest tests/test_repository_search_set.py", entry)
 
     def test_maintenance_points_repo_self_application_to_search_set(self) -> None:
         text = MAINTENANCE.read_text(encoding="utf-8")

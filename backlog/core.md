@@ -424,7 +424,14 @@ Done when:
 
 ### 39. P2 add trace-root completeness to the Active search-set
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .harness/traces/search-set.md
+- tests/test_repository_search_set.py
+- backlog/core.md
 
 Source discussion: 2026-05-04 multi-review of whether local `main` implements
 the Meta-Harness methodology well.
@@ -456,6 +463,90 @@ Done when:
   missing.
 - Maintenance review can no longer pass full Active search-set verification
   while omitting the trace-root completeness invariant.
+
+Decision implemented:
+
+- Added Active search-set case `SS-006: Repository trace root keeps minimum
+  self-application surface` to `.harness/traces/search-set.md`.
+- Pointed the case at `backlog/core.md` item 33 and the 2026-05-04
+  self-application trace-root multi-review VETO.
+- Used the existing focused verifier
+  `python3 -m unittest tests/test_repository_search_set.py` so the Active case
+  fails when `.harness/traces/` has `search-set.md` but lacks `evolution/`,
+  `failures/`, or `experiments/`.
+- Extended `tests/test_repository_search_set.py` to require the new Active case,
+  its source/symptom wording, and its verify command.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Search-set coverage critic: PASS, score 10/10. Blocking findings: none. The
+  Active set now directly names repository trace-root completeness and points
+  to the prior self-application VETO and item 33 completion record.
+- Verifier quality critic: PASS, score 10/10. Blocking findings: none. The
+  verify command is narrow, executable, non-piped, and fails through the focused
+  repository trace-root surface test if sibling minimum surfaces disappear.
+- Scope critic: PASS, score 10/10. Blocking findings: none. The change stays
+  limited to the repository self-application search-set, its focused test, and
+  the backlog record; it does not broaden Active coverage into the full
+  Standard verification suite.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - .harness/traces/search-set.md
+  - tests/test_repository_search_set.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 -m unittest tests/test_repository_search_set.py`
+- Multi-review required: yes; this changes repository search-set coverage and
+  trace-root regression contract.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 search-set coverage critic, 10/10
+  verifier quality critic, 10/10 scope critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 28. P2 archive completed backlog items without losing review records
 

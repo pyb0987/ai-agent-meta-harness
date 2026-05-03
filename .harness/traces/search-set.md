@@ -1,6 +1,6 @@
 ---
 description: "Repository self-application search-set for claude-code-harness maintenance."
-last_updated: "2026-05-03"
+last_updated: "2026-05-04"
 ---
 # Harness Search Set
 
@@ -34,5 +34,10 @@ repository changes when practical.
 - **Source**: backlog/codex-adapter.md item 31.
 - **Symptom**: Root docs and verification policy can again describe local plugin activation as pending or overclaim that CLI activation proves runtime model-visible skill surfacing.
 - **verify**: `python3 -m unittest tests/test_pre_commit_hook.py`
+
+### SS-006: Repository trace root keeps minimum self-application surface
+- **Source**: backlog/core.md item 33 and the 2026-05-04 self-application trace-root multi-review VETO.
+- **Symptom**: Repository maintenance can have `.harness/traces/search-set.md` while missing sibling `evolution/`, `failures/`, or `experiments/` surfaces, so future trace reuse silently becomes incomplete.
+- **verify**: `python3 -m unittest tests/test_repository_search_set.py`
 
 ## Archived
