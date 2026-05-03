@@ -18,6 +18,11 @@ the concrete path for their runtime and must document migration behavior when a
 project already has history in another trace root. Do not split harness history
 across multiple trace roots without an explicit migration plan.
 
+The paper-backed requirement is to preserve raw prior-experience signals for
+reuse. The exact trace-root surface, YAML frontmatter, and search-set schema
+below are this repository's applied convention for making that signal durable
+and executable in projects that adopt this harness.
+
 When more than one candidate trace root exists, choose the active history by
 evidence:
 

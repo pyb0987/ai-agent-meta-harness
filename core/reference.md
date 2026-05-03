@@ -5,6 +5,11 @@ Not auto-loaded every session. Core principles are in core/methodology.md.
 
 ## 1. Trace Filesystem — Structure and Format
 
+These filenames, frontmatter fields, and search-set sections are repository
+contracts for projects adopting this harness. They operationalize the
+Meta-Harness principle of reusable trace evidence, but they are not
+paper-mandated names or schemas.
+
 ### Evolution Log Format (`traces/evolution/NNN-{name}.md`)
 ```markdown
 ---

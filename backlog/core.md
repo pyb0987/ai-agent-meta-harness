@@ -530,7 +530,17 @@ Completion Gate:
 
 ### 32. P3 label core trace schemas as repository-applied conventions
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- core/reference.md
+- docs/reference.md
+- tests/test_core_methodology_boundaries.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review residual risk from the current-main
 Meta-Harness methodology assessment.
@@ -566,6 +576,96 @@ Acceptance criteria:
   `.claude/traces/` versus `.harness/traces/` decisions.
 - Boundary tests or existing methodology-boundary tests cover the new wording
   if the change affects durable methodology interpretation.
+
+Decision implemented:
+
+- Added a concise boundary paragraph in `core/methodology.md` immediately under
+  the trace filesystem requirement: raw prior-experience reuse is the
+  paper-backed principle, while the exact trace-root surface, YAML frontmatter,
+  and search-set schema are this repository's applied convention.
+- Added matching boundary wording in `core/reference.md` so trace filenames,
+  frontmatter fields, and search-set sections read as repository contracts for
+  adopters, not paper-mandated names or schemas.
+- Kept `docs/methodology.md` and `docs/reference.md` compatibility mirrors in
+  sync.
+- Extended `tests/test_core_methodology_boundaries.py` to assert the new
+  methodology/reference boundary wording and mirror presence.
+
+Multi-review:
+
+- Mode: FALLBACK_NONINDEPENDENT sequential review; separate sub-agents were not
+  used in this single-session pass.
+- Verdict: PASS.
+- Methodology critic: PASS, score 10/10. Blocking findings: none. The wording
+  clearly separates the paper-backed principle from repository-applied trace
+  schema conventions without weakening the trace requirement.
+- Scope/adapter critic: PASS, score 10/10. Blocking findings: none. No
+  adapter-specific path decision moved into `core/`; adapters still own
+  concrete runtime path behavior.
+- Verification/mirror critic: PASS, score 10/10. Blocking findings: none.
+  Boundary tests cover the new durable interpretation, docs mirrors were
+  updated, and both official index-based mirror verification plus working-tree
+  mirror verification passed.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Score handling: all required critic scores were 10/10, so there is no
+  why-not-10 handling and no VETO path.
+- Rerun status: no critic rerun required; the only rerun was the corrected
+  boundary-test marker rerun, which passed.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - core/methodology.md
+  - docs/methodology.md
+  - core/reference.md
+  - docs/reference.md
+  - tests/test_core_methodology_boundaries.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_core_methodology_boundaries.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: working-tree mirror check using `scripts/check-compat-mirrors.py`
+    validation helpers with filesystem reads
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `sh .githooks/pre-commit`
+  - Note: an intermediate boundary-test run failed because a test marker crossed
+    a line wrap in the reference text; the test marker was narrowed and the
+    affected test was rerun to PASS.
+- Search-set verification:
+  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE PASS: `python3 scripts/check-compat-mirrors.py`
+  - BEFORE PASS: `sh .githooks/pre-commit`
+  - BEFORE PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - BEFORE PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - AFTER PASS: `python3 scripts/check-compat-mirrors.py`
+  - AFTER PASS: `sh .githooks/pre-commit`
+  - AFTER PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - AFTER PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+- Multi-review required: yes; this changes core methodology boundary wording
+  and durable trace-schema interpretation.
+- Multi-review result: PASS; FALLBACK_NONINDEPENDENT sequential review recorded
+  above.
+- Reviewer scores and VETO handling: 10/10 methodology critic, 10/10
+  scope/adapter critic, 10/10 verification/mirror critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 33. P2 complete repository self-application trace root
 

@@ -7,6 +7,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 CORE = ROOT / "core" / "methodology.md"
 MIRROR = ROOT / "docs" / "methodology.md"
+REFERENCE = ROOT / "core" / "reference.md"
+REFERENCE_MIRROR = ROOT / "docs" / "reference.md"
 
 
 def text(path: Path = CORE) -> str:
@@ -89,6 +91,48 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
+
+    def test_trace_schema_is_framed_as_repository_convention(self) -> None:
+        methodology = text(CORE)
+        reference = text(REFERENCE)
+
+        for marker in (
+            "The paper-backed requirement is to preserve raw prior-experience signals",
+            "this repository's applied convention",
+            "exact trace-root surface, YAML frontmatter, and search-set schema",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, methodology)
+
+        for marker in (
+            "contracts for projects adopting this harness",
+            "paper-mandated",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, reference)
+
+    def test_trace_schema_boundary_language_is_mirrored(self) -> None:
+        methodology = text(CORE)
+        methodology_mirror = text(MIRROR)
+        reference = text(REFERENCE)
+        reference_mirror = text(REFERENCE_MIRROR)
+
+        for marker in (
+            "The paper-backed requirement is to preserve raw prior-experience signals",
+            "this repository's applied convention",
+            "exact trace-root surface, YAML frontmatter, and search-set schema",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, methodology_mirror)
+                self.assertEqual(methodology.count(marker), methodology_mirror.count(marker))
+
+        for marker in (
+            "contracts for projects adopting this harness",
+            "paper-mandated",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, reference_mirror)
+                self.assertEqual(reference.count(marker), reference_mirror.count(marker))
 
 
 if __name__ == "__main__":

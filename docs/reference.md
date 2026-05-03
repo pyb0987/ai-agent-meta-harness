@@ -7,6 +7,11 @@ Not auto-loaded every session. In an installed Claude setup, core principles are
 
 ## 1. Trace Filesystem — Structure and Format
 
+These filenames, frontmatter fields, and search-set sections are repository
+contracts for projects adopting this harness. They operationalize the
+Meta-Harness principle of reusable trace evidence, but they are not
+paper-mandated names or schemas.
+
 ### Evolution Log Format (`traces/evolution/NNN-{name}.md`)
 ```markdown
 ---
