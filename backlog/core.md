@@ -124,13 +124,55 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one unstarted concrete implementation item: item 32
-  should tighten paper-vs-repository wording around core trace schema
-  requirements.
+- Active core backlog currently has no unstarted concrete implementation item.
+  Item 32 tightened paper-vs-repository wording around core trace schema
+  requirements and is complete.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
   treating these completed items as available candidates.
+
+### 34. P3 refresh active backlog status after core trace-schema boundary item
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/core.md
+
+Source discussion: 2026-05-04 maintainer request to continue after completing
+core item 32.
+
+The active `Current Status` block still said item 32 was the one unstarted core
+implementation item, even though item 32 is now complete. That stale summary can
+make future single-session maintenance reselect completed work instead of
+reporting that no concrete unstarted item remains.
+
+Decision implemented:
+
+- Updated `Current Status` to state that active core backlog currently has no
+  unstarted concrete implementation item.
+- Recorded item 32 as complete rather than available for selection.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting status cleanup.
+- Multi-review required: no; this is backlog status-summary cleanup only.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no
+  VETO path.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 28. P2 archive completed backlog items without losing review records
 
