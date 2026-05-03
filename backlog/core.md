@@ -318,7 +318,15 @@ Completion Gate:
 
 ### 31. P2 narrow backlog workflow multi-review trigger
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- MAINTENANCE.md
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+
 Source review: 2026-05-03 feedback triage.
 
 The backlog workflow says to use multi-review for adapter behavior, release
@@ -337,6 +345,54 @@ Potential improvement:
   mandatory multi-review.
 - Add or update a lightweight test/check if the repository has a suitable
   policy-text assertion for this maintenance rule.
+
+Decision:
+
+- Replaced the broad backlog workflow trigger with the concrete categories from
+  `Multi-Review Use`: adapter behavior, release gates, hook semantics, core
+  methodology boundaries, and durable contracts.
+- Explicitly allowed routine backlog/status/doc cleanup to use focused checks
+  without mandatory multi-review when those contracts do not change.
+- Added a focused policy-boundary test that pins the narrowed trigger and
+  rejects the previous broad "anything that can steer future work" wording.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - MAINTENANCE.md
+  - tests/test_maintenance_policy_boundaries.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_maintenance_policy_boundaries.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `sh .githooks/pre-commit`
+- Search-set verification: SKIPPED; `rg --files -g 'search-set.md'` found no repository search-set file, so there is no defined search-set target to run.
+- Multi-review required: yes; this changes maintenance workflow policy and durable review-contract wording.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Required-review coverage critic: 10/10 PASS; the Backlog Policy trigger now points to the same durable contract categories as `Multi-Review Use`.
+  - Process-drag reduction critic: 10/10 PASS; routine backlog/status/doc cleanup is explicitly eligible for focused checks when no durable contract changes.
+  - Policy test critic: 10/10 PASS; the narrowed trigger and removal of the broad wording are pinned by `tests/test_maintenance_policy_boundaries.py`.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, full verification, search-set SKIPPED reason, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 30. P3 refresh active backlog Current Status after adapter follow-ups
 

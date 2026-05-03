@@ -64,8 +64,10 @@ Use this workflow for backlog work:
    is written because the change is repository-only maintenance, state that in
    the review summary, PR description, or backlog entry.
 7. Run the relevant checks before review.
-8. Use multi-review for adapter behavior, release gates, hook semantics, or
-   anything that can steer future work in the wrong direction.
+8. Use multi-review for adapter behavior, release gates, hook semantics, core
+   methodology boundaries, or durable contracts named in `Multi-Review Use`.
+   Routine backlog/status/doc cleanup can use focused checks without mandatory
+   multi-review when it does not change those contracts.
 9. Apply this repository's local release discipline for review scores: treat
    reviewer scores below 9 as VETO. Fix the blocking findings and rerun the
    affected critics until every required critic scores at least 9, or stop and

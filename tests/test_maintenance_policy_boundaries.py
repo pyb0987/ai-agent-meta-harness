@@ -43,6 +43,24 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertNotIn("paper requires reviewer scores below 9", lower)
         self.assertNotIn("paper requires score 9", lower)
 
+    def test_backlog_policy_multi_review_trigger_matches_durable_contracts(self) -> None:
+        text = normalized_text()
+
+        self.assertIn(
+            "Use multi-review for adapter behavior, release gates, hook semantics, "
+            "core methodology boundaries, or durable contracts named in `Multi-Review Use`",
+            text,
+        )
+        self.assertIn(
+            "Routine backlog/status/doc cleanup can use focused checks without mandatory "
+            "multi-review when it does not change those contracts",
+            text,
+        )
+        self.assertNotIn(
+            "anything that can steer future work in the wrong direction",
+            text,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
