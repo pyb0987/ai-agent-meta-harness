@@ -280,9 +280,12 @@ active trace root for the project whose harness behavior is changing. If this
 repository is the target harnessed project and no trace root exists, record that
 there is no project search-set yet instead of marking the check PASS.
 For this repository's own harness-maintenance loop, use the tracked
-`.harness/traces/search-set.md` as the repository self-application search-set
-and run the relevant Active verify commands before and after harness-affecting
-repository changes when practical.
+`.harness/traces/` tree as the active repository self-application trace root
+and run the relevant Active verify commands from
+`.harness/traces/search-set.md` before and after harness-affecting repository
+changes when practical. Historical `.claude/traces/` files are legacy
+Claude-local context; do not write new repository maintenance traces there
+unless explicitly performing a migration or recovery of that history.
 
 ## Release Checklist
 

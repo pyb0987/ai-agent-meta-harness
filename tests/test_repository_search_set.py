@@ -7,6 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+TRACE_ROOT = ROOT / ".harness" / "traces"
 SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
 MAINTENANCE = ROOT / "MAINTENANCE.md"
 
@@ -21,6 +22,16 @@ def active_entries(text: str) -> list[str]:
 
 
 class RepositorySearchSetTests(unittest.TestCase):
+    def test_repository_trace_root_has_minimum_surfaces(self) -> None:
+        for relative in (
+            "search-set.md",
+            "evolution/001-repository-self-application-root.md",
+            "failures/.gitkeep",
+            "experiments/.gitkeep",
+        ):
+            with self.subTest(relative=relative):
+                self.assertTrue((TRACE_ROOT / relative).exists())
+
     def test_repository_search_set_exists_with_active_cases(self) -> None:
         text = read_search_set()
         entries = active_entries(text)
@@ -63,8 +74,18 @@ class RepositorySearchSetTests(unittest.TestCase):
         text = MAINTENANCE.read_text(encoding="utf-8")
 
         self.assertIn("For this repository's own harness-maintenance loop", text)
+        self.assertIn("`.harness/traces/` tree as the active repository self-application trace root", text)
         self.assertIn("`.harness/traces/search-set.md`", text)
-        self.assertIn("repository self-application search-set", text)
+        self.assertIn("Active verify commands", text)
+        self.assertIn("Historical `.claude/traces/` files are legacy\nClaude-local context", text)
+        self.assertIn("do not write new repository maintenance traces there", text)
+
+    def test_evolution_record_documents_legacy_claude_trace_relationship(self) -> None:
+        text = (TRACE_ROOT / "evolution/001-repository-self-application-root.md").read_text(encoding="utf-8")
+
+        self.assertIn("minimum trace surface is present", text)
+        self.assertIn("Legacy Claude-local history remains under `.claude/traces/`", text)
+        self.assertIn("Future repository maintenance traces should be\nwritten under `.harness/traces/`", text)
 
 
 if __name__ == "__main__":

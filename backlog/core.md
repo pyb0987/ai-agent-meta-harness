@@ -124,7 +124,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog currently has no unstarted concrete implementation item.
+- Active core backlog has one unstarted concrete implementation item: item 32
+  should tighten paper-vs-repository wording around core trace schema
+  requirements.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -525,3 +527,151 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 32. P3 label core trace schemas as repository-applied conventions
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review residual risk from the current-main
+Meta-Harness methodology assessment.
+
+The latest multi-review passed, but two critics noted a small clarity risk:
+top-level and core-reference wording such as `AI Agent Meta-Harness`, `Trace
+Filesystem (Required for All Projects)`, and `maintainable Meta-Harness
+artifact` can invite an over-literal reading that this repository implements
+every Meta-Harness paper detail as a reference specification. The surrounding
+README, core methodology, and maintenance policy correctly say this project is
+a practical framework inspired by the paper, with repository-applied
+conventions layered on top. The remaining risk is local to prescriptive trace
+schema sections that do not always repeat that boundary near the requirement.
+
+Potential improvement:
+
+- Add a short boundary sentence near `core/methodology.md` trace filesystem
+  requirements explaining that the exact trace-root directories, YAML
+  frontmatter, and search-set schema are this repository's applied convention
+  for preserving the paper's richer prior-experience signal.
+- Add matching wording near `core/reference.md` trace format sections so the
+  schemas read as repository contracts, not paper-mandated filenames.
+- Keep the wording concise and avoid weakening the operational requirement for
+  projects that adopt this harness.
+- Keep `docs/methodology.md` and `docs/reference.md` compatibility mirrors in
+  sync through the existing mirror check.
+
+Acceptance criteria:
+
+- A reader can distinguish paper-backed principles from repository-specific
+  trace schema conventions without needing to jump back to the README.
+- No adapter-specific path behavior moves into `core/`; adapters still own
+  `.claude/traces/` versus `.harness/traces/` decisions.
+- Boundary tests or existing methodology-boundary tests cover the new wording
+  if the change affects durable methodology interpretation.
+
+### 33. P2 complete repository self-application trace root
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .harness/traces/evolution/
+- .harness/traces/failures/
+- .harness/traces/experiments/
+- MAINTENANCE.md
+- tests/test_repository_search_set.py
+- backlog/core.md
+
+Source review: 2026-05-04 multi-review residual risk from the current-main
+Meta-Harness methodology assessment.
+
+The repository now has `.harness/traces/search-set.md` with Active verify
+commands, so the earlier repository search-set gap is mostly resolved. However,
+`core/methodology.md` defines the minimum trace surface as `evolution/`,
+`failures/`, `experiments/`, and `search-set.md`. The active self-application
+root currently only has `search-set.md`; older history remains under
+`.claude/traces/`. From the methodology's own perspective, repository
+self-application is still split or incomplete.
+
+Potential improvement:
+
+- Create the missing `.harness/traces/evolution/`, `.harness/traces/failures/`,
+  and `.harness/traces/experiments/` surfaces, with tracked placeholders or
+  initial records as appropriate for Git.
+- Record whether existing `.claude/traces/` history is migrated, copied,
+  referenced as legacy Claude history, or intentionally left as temporary
+  historical context.
+- Update maintenance guidance if needed so repository self-application uses one
+  active trace root and does not silently split future trace history.
+- Add a focused check or test that fails when the repository self-application
+  trace root has `search-set.md` but lacks the sibling minimum trace surfaces.
+
+Acceptance criteria:
+
+- `.harness/traces/` has the minimum repository self-application surface:
+  `evolution/`, `failures/`, `experiments/`, and `search-set.md`.
+- The relationship between existing `.claude/traces/` history and the active
+  `.harness/traces/` root is explicitly documented.
+- Repository maintenance guidance and tests agree on the active trace root and
+  fail if the minimum trace surface becomes incomplete again.
+
+Decision:
+
+- Created tracked `.harness/traces/evolution/`,
+  `.harness/traces/failures/`, and `.harness/traces/experiments/` surfaces.
+- Added `.harness/traces/evolution/001-repository-self-application-root.md`
+  to document `.harness/traces/` as the active repository self-application
+  trace root.
+- Left existing `.claude/traces/` history in place as legacy Claude-local
+  context rather than copying or migrating it in this item.
+- Updated `MAINTENANCE.md` to direct future repository maintenance traces to
+  `.harness/traces/` and to avoid writing new repository maintenance traces
+  under `.claude/traces/` unless explicitly migrating or recovering that
+  history.
+- Extended repository trace-root tests so the minimum trace surface and legacy
+  Claude history relationship are checked.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - .harness/traces/evolution/001-repository-self-application-root.md
+  - .harness/traces/failures/.gitkeep
+  - .harness/traces/experiments/.gitkeep
+  - MAINTENANCE.md
+  - tests/test_repository_search_set.py
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_repository_search_set.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+- Search-set verification:
+  - BEFORE: PASS; relevant Active commands passed before implementation: `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `sh .githooks/pre-commit`, and `python3 -m unittest tests/test_pre_commit_hook.py`.
+  - AFTER: PASS; the same relevant Active commands passed after implementation, plus `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py` was run for full Active coverage.
+- Multi-review required: yes; this changes repository self-application trace-root contract and future trace-writing guidance.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Minimum trace surface critic: 10/10 PASS; `.harness/traces/` now has `search-set.md`, `evolution/`, `failures/`, and `experiments/`.
+  - Legacy history critic: 10/10 PASS; `.claude/traces/` is explicitly documented as legacy Claude-local context rather than a second active root.
+  - Test coverage critic: 10/10 PASS; focused tests fail if the repository self-application trace root lacks sibling minimum surfaces or loses the legacy-history note.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, search-set before/after verification, full verification, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes
