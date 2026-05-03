@@ -175,6 +175,10 @@ Treat the selected root as `{trace_root}` for all steps below.
 - `experiments.jsonl`: record each experiment's full JSON output as 1 line (machine parseable)
 - `{trace_root}/experiments/NNN-*.md`: include representative experiments' raw output in episode traces
 - Preserve verdict, score, gates, metrics in full — no selective field omission
+- On every REJECT, capture the candidate diff and raw evaluator JSON into
+  temporary evidence outside the rejected commit before any reset/revert. Future
+  proposer search needs the rejected source delta and the exact evaluator
+  response, not only a summary.
 
 #### Step 6: Install Evaluator Protection Hooks
 
@@ -424,9 +428,21 @@ The loop the agent executes when program.md already exists.
 6. Run evaluate.py → parse JSON
 7. ADOPT → keep + log to experiments.jsonl
      (baseline auto-updated by evaluate.py in best_score.txt — agent does NOT manually update any baseline doc)
-   REJECT → git reset --hard HEAD~1 + log
+   REJECT → preserve raw evaluator JSON + capture candidate diff (`git diff HEAD~1`)
+     → store that evidence outside the rejected commit before cleanup
+     → reset/revert the rejected genome commit
+     → append full evaluator result and rejection metadata to experiments.jsonl from the preserved evidence
+     → write `{trace_root}` episode/failure evidence from the preserved evidence when recording triggers apply
 8. Repeat from 3 (until budget or consecutive reject limit)
 ```
+
+Never run `git reset --hard HEAD~1` or another revert before preserving the
+candidate diff and full evaluator JSON for a REJECT. Do not rely on
+pre-revert appends to tracked files such as `experiments.jsonl`, because a hard
+reset can erase those appends; restore/append them from preserved evidence after
+the rejected commit is removed. If the revert needs user approval or is blocked
+by local policy, stop with the evidence already saved and report the exact
+pending revert command.
 
 #### Termination Conditions
 - `n >= MAX_EXPERIMENTS` (default: 100)
