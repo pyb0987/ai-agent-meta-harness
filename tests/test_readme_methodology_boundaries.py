@@ -66,6 +66,28 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
         self.assertNotIn("this repository reproduces", lower)
         self.assertNotIn("locally reproduced the paper", lower)
 
+    def test_readme_has_compact_paper_claim_traceability_map(self) -> None:
+        text = normalized_readme()
+
+        for marker in (
+            "Paper claim traceability",
+            "README Claim",
+            "Paper Location",
+            "Local Status",
+            "Changing only the harness can produce a 6x performance gap on the same benchmark",
+            "Paper Introduction, citing prior harness sensitivity evidence",
+            "not locally reproduced here",
+            "Meta-Harness improves online text classification by 7.7 points while using 4x fewer context tokens",
+            "Paper Abstract and Section 4.1 comparison against ACE",
+            "Full traces outperform summaries in the online text-classification ablation",
+            "Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison",
+            "Paper result used to motivate this repo's trace discipline",
+            "Paper Appendix A/A.2 qualitative search trajectory and discussion",
+            "Paper Appendix D practical implementation tips",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
 
 if __name__ == "__main__":
     unittest.main()

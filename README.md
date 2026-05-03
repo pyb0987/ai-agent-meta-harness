@@ -33,6 +33,16 @@ Evidence categories used in this repository:
 | Adapter and generated-artifact operability | Claude/Codex adapter instructions, hook templates, generated plugin assets, and smoke-tested local workflows | Adapter unit tests, drift checks, plugin sync checks, hook smoke tests, and local activation smoke |
 | Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | `.harness/traces/search-set.md`, `.harness/traces/evolution/`, backlog Completion Gates, and Active search-set verification |
 
+Paper claim traceability:
+
+| README Claim | Paper Location | Local Status |
+|--------------|----------------|--------------|
+| Changing only the harness can produce a 6x performance gap on the same benchmark | Paper Introduction, citing prior harness sensitivity evidence | Paper context only; not locally reproduced here |
+| Meta-Harness improves online text classification by 7.7 points while using 4x fewer context tokens | Paper Abstract and Section 4.1 comparison against ACE | Paper result only; this repo tests documentation, adapters, generated assets, and self-application traces |
+| Full traces outperform summaries in the online text-classification ablation | Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison | Paper result used to motivate this repo's trace discipline; local evidence is search-set and trace-root verification |
+| Additive modification and confounding-variable isolation are safer change strategies | Paper Appendix A/A.2 qualitative search trajectory and discussion | Repository methodology rule; enforced through maintenance workflow and backlog review records, not a local benchmark reproduction |
+| Skill text quality is a high-leverage implementation detail | Paper Appendix D practical implementation tips | Paper engineering lesson adapted into repository skill-writing guidance |
+
 - **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' traces/evolution/` instantly filters regression cases.
 - **Additive modification** — Paper-backed: 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Repository practice: prefer adding evidence or guardrails before restructuring.
 - **Code-space search** — Paper-backed principle, repository-calibrated surfaces: agents explore by modifying isolated, diffable, executable search surfaces such as source, configuration, prompt templates, or generated candidates that are evaluated by the same verifier. "Try harder" is noise; a 3-line config or prompt-construction change with a fixed evaluator is search.
