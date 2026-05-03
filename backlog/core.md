@@ -124,9 +124,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one standard-verification follow-up, item 29.
-- Remaining unstarted work is currently adapter-owned:
-  `backlog/claude-adapter.md` items 10-12.
+- Active core backlog currently has no unstarted concrete implementation item.
+- Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12 and the
+  standard-verification follow-up in item 29 are complete; use new backlog
+  entries for newly discovered work rather than treating these completed items
+  as available candidates.
 
 ### 28. P2 archive completed backlog items without losing review records
 
@@ -310,6 +312,49 @@ Completion Gate:
     fallback in the parent context, not independent parallel critics. No
     backlog item added because this is session-surface residual risk, not
     repository work.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 30. P3 refresh active backlog Current Status after adapter follow-ups
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- backlog/core.md
+
+Source discussion: 2026-05-03 maintainer request to continue with the next
+backlog item after completing the current Claude adapter follow-ups.
+
+The active `Current Status` block still described item 29 as open and Claude
+adapter items 10-12 as remaining unstarted work, even though those records are
+now complete. That stale status can cause future single-session maintenance to
+reselect already completed work.
+
+Decision:
+
+- Updated `Current Status` to state that there is currently no unstarted
+  concrete core implementation item.
+- Marked item 29 and Claude adapter items 10-12 as completed follow-ups in the
+  status summary.
+- Preserved the guidance that newly discovered work should become new backlog
+  entries instead of reopening completed records as available candidates.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - backlog/core.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting and no repository `search-set.md` exists.
+- Multi-review required: no; this is active backlog status text cleanup only, with no adapter behavior, hook semantics, release gate, or checker policy change.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no VETO path.
+- For each score 9, why not 10: none.
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
