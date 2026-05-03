@@ -27,9 +27,12 @@ This drift check validates documented output-shape assumptions only. It does not
   pathlib evaluator writes; hook output shapes were re-checked and remain
   unchanged.
 
-Before changing Codex hook templates, hook checker output, or autoresearch hook
-instructions, check the official Codex hooks documentation again and update this
-file if the contract changed or was re-verified.
+Before changing Codex hook templates, hard-layer pre-commit/CI protection
+templates, hook checker output, or autoresearch hook instructions, check the
+official Codex hooks documentation again and update this file if the contract
+changed or was re-verified. Hard-layer template changes also require
+protection-contract review even when the Codex hook JSON output shape is
+unchanged.
 
 ## Expected Blocking Output Shapes
 

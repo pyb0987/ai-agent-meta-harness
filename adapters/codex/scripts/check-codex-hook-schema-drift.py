@@ -30,6 +30,8 @@ HOOK_SENSITIVE_PATHS = {
     "adapters/codex/skills/autoresearch/SKILL.md",
     "adapters/codex/templates/hooks/agents-autoresearch-protection.md",
     "adapters/codex/templates/hooks/codex-hooks.json.template",
+    "adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml",
+    "adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh",
 }
 
 REQUIRED_REFERENCE_MARKERS = (

@@ -293,6 +293,9 @@ handoff point:
 - Claude adapter path contract check passes.
 - Codex plugin sync check passes.
 - Codex local plugin artifact smoke test passes.
+- Codex local plugin activation smoke test passes. This proves isolated CLI
+  marketplace registration and enabled-plugin config shape, not running Codex
+  Desktop skill surfacing or plugin tool-event delivery.
 - Codex hook schema drift check passes; hook-sensitive changes update or
   intentionally re-verify `adapters/codex/hook-schema.md`.
 - Codex autoresearch hook smoke passes against the real checker and protected

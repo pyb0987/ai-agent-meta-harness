@@ -74,12 +74,22 @@ class HookSchemaDriftTests(unittest.TestCase):
         for path in [
             "adapters/codex/templates/hooks/agents-autoresearch-protection.md",
             "adapters/codex/templates/hooks/codex-hooks.json.template",
+            "adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml",
+            "adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh",
             "adapters/codex/scripts/check-codex-hook-schema-drift.py",
         ]:
             with self.subTest(path=path):
                 errors = hook_schema_drift.validate_staged_policy([path])
                 self.assertEqual(len(errors), 1)
                 self.assertIn(path, errors[0])
+
+    def test_staged_policy_names_all_hook_sensitive_hard_layer_templates(self):
+        for path in (
+            "adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml",
+            "adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, hook_schema_drift.HOOK_SENSITIVE_PATHS)
 
     def test_staged_policy_allows_reference_update(self):
         errors = hook_schema_drift.validate_staged_policy([

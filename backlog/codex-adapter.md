@@ -634,7 +634,15 @@ Completion Gate:
 
 ### 32. P2 add activation smoke to release checklist
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- MAINTENANCE.md
+- tests/test_pre_commit_hook.py
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 `MAINTENANCE.md` Standard verification includes
@@ -652,9 +660,72 @@ Potential improvement:
 - Add focused test coverage so Standard verification and Release Checklist do
   not drift on activation smoke coverage.
 
+Decision:
+
+- Added Codex local plugin activation smoke to the `MAINTENANCE.md` Release
+  Checklist.
+- Kept the evidence boundary explicit: the activation smoke proves isolated CLI
+  marketplace registration and enabled-plugin config shape, not running Codex
+  Desktop skill surfacing or plugin tool-event delivery.
+- Extended focused verification-policy tests so Standard verification and the
+  Release Checklist both name the activation smoke and its evidence boundary.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - MAINTENANCE.md
+  - tests/test_pre_commit_hook.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+- Search-set verification:
+  - BEFORE: PASS; relevant Active commands passed before implementation: `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `sh .githooks/pre-commit`, and `python3 -m unittest tests/test_pre_commit_hook.py`.
+  - AFTER: PASS; the same relevant Active commands passed after implementation, plus `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py` was run for full Active coverage.
+- Multi-review required: yes; this changes release checklist and verification gate guidance.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Release checklist parity critic: 10/10 PASS; the checklist now includes the activation smoke already present in Standard verification.
+  - Runtime-boundary critic: 10/10 PASS; the checklist states what activation proves and does not overclaim Desktop skill surfacing or tool-event delivery.
+  - Focused coverage critic: 10/10 PASS; tests pin Standard verification, Release Checklist, and root README activation smoke wording.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, search-set before/after verification, full verification, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
+
 ### 33. P2 include hard-layer hook templates in hook-sensitive drift policy
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-03
+Scope:
+- adapters/codex/scripts/check-codex-hook-schema-drift.py
+- adapters/codex/tests/test_hook_schema_drift.py
+- adapters/codex/hook-schema.md
+- plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+- plugins/ai-agent-meta-harness/hook-schema.md
+- backlog/codex-adapter.md
+
 Source review: 2026-05-03 feedback triage.
 
 `check-codex-hook-schema-drift.py` requires hook-schema re-verification for
@@ -674,6 +745,64 @@ Potential improvement:
 - Clarify in the hook schema reference that hard-layer template changes require
   protection-contract review even when Codex hook JSON output shape is
   unchanged.
+
+Decision:
+
+- Added `adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh`
+  and `adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml`
+  to `HOOK_SENSITIVE_PATHS`.
+- Extended hook-schema drift tests so both hard-layer protection templates
+  trigger the staged policy requiring a staged `adapters/codex/hook-schema.md`
+  update or re-verification.
+- Clarified `adapters/codex/hook-schema.md` so hard-layer pre-commit/CI
+  template changes require protection-contract review even when Codex hook JSON
+  output shape is unchanged.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/scripts/check-codex-hook-schema-drift.py
+  - adapters/codex/tests/test_hook_schema_drift.py
+  - adapters/codex/hook-schema.md
+  - plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+  - plugins/ai-agent-meta-harness/hook-schema.md
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_schema_drift.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `git diff --check`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `python3 scripts/check-compat-mirrors.py`
+  - PASS: `sh .githooks/pre-commit`
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`
+  - PASS: `python3 scripts/check-claude-adapter-paths.py`
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-codex-marketplace-metadata.py`
+  - PASS: `python3 -m unittest discover -s adapters/claude/tests`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 -m unittest discover -s tests`
+- Search-set verification:
+  - BEFORE: PASS; relevant Active commands passed before implementation: `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-compat-mirrors.py`, `sh .githooks/pre-commit`, and `python3 -m unittest tests/test_pre_commit_hook.py`.
+  - AFTER: PASS; the same relevant Active commands passed after implementation, plus `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py` was run for full Active coverage.
+- Multi-review required: yes; this changes hook/protected-file hard-layer protection drift policy.
+- Multi-review result: PASS through `FALLBACK_NONINDEPENDENT` sequential review; no critic scored below 9.
+- Reviewer scores and VETO handling:
+  - Hard-layer coverage critic: 10/10 PASS; both pre-commit and GitHub Actions protection templates are now hook-sensitive.
+  - Drift enforcement critic: 10/10 PASS; focused tests prove staged changes to hard-layer templates require schema re-verification.
+  - Contract honesty critic: 10/10 PASS; hook schema guidance distinguishes JSON output shape checks from protection-contract review needs.
+  - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, search-set before/after verification, full verification, multi-review record, and Completion Gate are present.
+  - VETO handling: no reviewer score below 9; no VETO.
+- For each score 9, why not 10:
+  - Maintenance compliance critic: not 10 because multi-review used documented sequential fallback in the parent context rather than independent sub-agent critics.
+- Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
+- Residual risk/follow-up: none.
+- Accepted: yes; accepted by maintainer review and ready for commit.
 
 ### 34. P2 list activation smoke in Codex plugin-scope generated contents
 

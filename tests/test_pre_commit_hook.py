@@ -36,6 +36,9 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 adapters/codex/scripts/smoke-local-plugin-activation.py", text)
         self.assertIn("heavier Codex local\nplugin activation smoke", text)
+        self.assertIn("Codex local plugin activation smoke test passes", text)
+        self.assertIn("isolated CLI\n  marketplace registration and enabled-plugin config shape", text)
+        self.assertIn("not running Codex\n  Desktop skill surfacing or plugin tool-event delivery", text)
 
     def test_root_readme_says_codex_activation_smoke_is_implemented(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
