@@ -124,13 +124,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has four unstarted concrete implementation items:
-  item 35 should separate paper-result claims from this repository's
-  implementation evidence categories, and item 37 should create a lightweight
-  paper-claim traceability map for claims that go beyond the arXiv abstract.
-  Item 38 should clean up duplicate item numbering in this active backlog file,
-  and item 39 should promote trace-root completeness into an Active search-set
-  case. Item 36 added the clean-worktree release gate and is complete.
+- Active core backlog has one unstarted concrete implementation item: item 37
+  should create a lightweight paper-claim traceability map for claims that go
+  beyond the arXiv abstract. Items 35, 36, 38, and 39 are complete.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -491,11 +487,17 @@ Done when:
 
 ### 38. P3 remove duplicate core backlog item numbering
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/core.md
+- tests/test_backlog_heading_uniqueness.py
 
 Source discussion: 2026-05-04 multi-review of local `main` backlog governance.
 
-The active backlog now has two `### 32` records: one for repository
+Before this item, the active backlog had two `### 32` records: one for repository
 self-application search-set work and one for core trace-schema boundary wording.
 Both are completed, and `Current Status` no longer points to item 32 as active,
 but duplicate numbered headings still weaken backlog governance. Future
@@ -518,6 +520,40 @@ Done when:
 - Existing completed-record history and archive pointers remain navigable.
 - A future maintenance agent can identify active items without ambiguous item
   numbers.
+
+Decision implemented:
+
+- Renumbered the completed core trace-schema boundary record from `### 32` to
+  `### 40`, leaving the repository self-application search-set record as
+  `### 32`.
+- Preserved the completed record in place and did not move archive pointers or
+  historical Completion Gates.
+- Added `tests/test_backlog_heading_uniqueness.py`, which fails if any active
+  backlog file has duplicate numbered `### <number>.` headings.
+
+Completion Gate:
+- Backlog status: 완료
+- Changed files:
+  - backlog/core.md
+  - tests/test_backlog_heading_uniqueness.py
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_backlog_heading_uniqueness.py`
+  - PASS: `python3 -m unittest discover -s tests`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `python3 scripts/check-maintenance-review.py`
+  - PASS: `git diff --check`
+- Search-set verification: SKIPPED; not harness-affecting backlog hygiene.
+- Multi-review required: no; this is backlog heading/status hygiene only and
+  does not change adapter behavior, hook semantics, release gates, checker
+  policy, or core methodology contracts.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not required; no reviewer scores and no
+  VETO path.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 39. P2 add trace-root completeness to the Active search-set
 
@@ -1041,7 +1077,7 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
-### 32. P3 label core trace schemas as repository-applied conventions
+### 40. P3 label core trace schemas as repository-applied conventions
 
 Status: 완료
 Owner: Codex single-session maintenance pass
