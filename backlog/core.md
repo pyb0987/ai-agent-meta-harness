@@ -1729,7 +1729,33 @@ Completion Gate:
 
 ### 59. P2 capture future qualifying repository raw traces
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .harness/traces/failures/001-misplaced-start-gate.md
+- tests/test_repository_search_set.py
+- backlog/core.md
+
+Start Gate:
+
+- Selected item: `backlog/core.md` item 59, capture future qualifying
+  repository raw traces.
+- Status block added: yes, item 59 marked `진행중`.
+- Harness-affecting: yes; this updates the repository self-application trace
+  memory.
+- Multi-review required: no; this records a concrete raw failure trace and does
+  not change durable methodology, release, or verification contracts.
+- Minimum verification commands: `python3 scripts/run-search-set.py`; `python3
+  -m unittest tests/test_repository_search_set.py
+  tests/test_backlog_heading_uniqueness.py`; `python3
+  scripts/check-maintenance-review.py backlog/core.md`; `python3
+  scripts/check-search-set-evidence.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: one repository failure trace under
+  `.harness/traces/failures/`, focused repository trace-root schema coverage,
+  and this backlog record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -1769,6 +1795,78 @@ Done when:
   regression case.
 - Multi-review checks the result if the new trace changes durable methodology,
   release, or verification contracts.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 -m unittest tests/test_repository_search_set.py
+  tests/test_backlog_heading_uniqueness.py`, `python3
+  scripts/check-maintenance-review.py backlog/core.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Added `.harness/traces/failures/001-misplaced-start-gate.md` for the real
+  repository maintenance failure where broad backlog reservation patches placed
+  Start Gate/reservation data under the wrong item.
+- Preserved raw evidence from the failing Current Status test and the item 57
+  process VETO class that caught a misplaced Start Gate under item 50.
+- Marked the failure trace `resolved: true` because the current item 59
+  reservation was corrected before implementation continued, and item 57's
+  process VETO had already been fixed and rerun to 10/10 PASS.
+- Did not add a new search-set Active case: the trace is useful process memory,
+  but the durable executable guard is already covered by
+  `tests/test_backlog_heading_uniqueness.py` plus process review rather than a
+  new narrow regression command.
+- Added focused repository trace-root coverage so committed failure traces must
+  keep the required failure frontmatter and sections from `core/reference.md`.
+
+Search-set verification update:
+
+- AFTER: PASS `python3 scripts/run-search-set.py` after adding failure trace
+  schema coverage.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `.harness/traces/failures/001-misplaced-start-gate.md`;
+  `tests/test_repository_search_set.py`; `backlog/core.md`.
+- Scope deviations: `tests/test_repository_search_set.py` was added to Scope
+  before editing so committed repository failure traces have focused schema
+  coverage. Unrelated dirty `backlog/README.md` remains outside item 59 and
+  will not be staged or committed with it.
+- Verification results: PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 -m unittest tests/test_repository_search_set.py
+  tests/test_backlog_heading_uniqueness.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: no; this records a concrete raw failure trace and does
+  not change durable methodology, release, or verification contracts.
+- Multi-review result: not required. Single isolated reviewer initially scored
+  8/10 VETO because the review scope omitted the modified test file and the
+  Completion Gate was not yet recorded; after review scope and Completion Gate
+  fixes, the reviewer rerun also scored 8/10 VETO because final status and
+  pending verification/acceptance wording were not yet updated; final rerun
+  scored 9/10 PASS.
+- Reviewer scores and VETO handling: isolated reviewer 8/10 VETO; the trace
+  itself was accepted as real qualifying process evidence, but the handoff was
+  blocked on scope/review coverage for `tests/test_repository_search_set.py`
+  and missing Completion Gate. The affected reviewer rerun confirmed the
+  substantive work and verification but blocked on final status/pending wording;
+  this record now marks item 59 complete and records final verification.
+- For each score 9, why not 10: the final reviewer score was 9 because the
+  Completion Gate necessarily still said the final reviewer rerun and
+  acceptance were pending at the time of review. This is procedural closure
+  timing, not a repository improvement.
+- Backlog items added from score-9 residual risk: none; procedural finalization
+  is completed in this item.
+- Residual risk/follow-up: none.
+- Accepted: yes.
 
 ### 60. P3 operationalize active backlog archive lifecycle
 

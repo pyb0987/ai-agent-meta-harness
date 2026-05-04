@@ -19,6 +19,12 @@ REQUIRED_EVOLUTION_FIELDS = (
     "files_changed",
     "refs",
 )
+REQUIRED_FAILURE_FIELDS = (
+    "date",
+    "escalated_to",
+    "search_set_id",
+    "resolved",
+)
 
 
 def read_search_set() -> str:
@@ -143,6 +149,18 @@ class RepositorySearchSetTests(unittest.TestCase):
                     self.assertIn(heading, text)
                 self.assertRegex(text, r"- Before: .+")
                 self.assertRegex(text, r"- After: .+")
+
+    def test_repository_failure_records_follow_schema(self) -> None:
+        for path in sorted((TRACE_ROOT / "failures").glob("*.md")):
+            with self.subTest(path=path.relative_to(ROOT).as_posix()):
+                text = path.read_text(encoding="utf-8")
+                fields = frontmatter(text)
+                self.assertEqual([field for field in REQUIRED_FAILURE_FIELDS if field not in fields], [])
+                self.assertIn(fields["resolved"], {"true", "false"})
+                self.assertIn(fields["escalated_to"], {"instructions", "docs", "skill", "hook", "tool", "none"})
+                self.assertIn("## Failure:", text)
+                for heading in ("### Observation", "### Root Cause", "### Fix", "### Prevention"):
+                    self.assertIn(heading, text)
 
     def test_evolution_review_trace_records_self_application_evidence_boundary(self) -> None:
         text = (TRACE_ROOT / "evolution/002-self-application-evidence-review.md").read_text(encoding="utf-8")
