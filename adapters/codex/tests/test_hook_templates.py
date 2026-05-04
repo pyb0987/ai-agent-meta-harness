@@ -10,6 +10,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 HOOKS = ROOT / "adapters" / "codex" / "templates" / "hooks"
+AUTORESEARCH_SKILL = ROOT / "adapters" / "codex" / "skills" / "autoresearch" / "SKILL.md"
 
 
 class HookTemplateTests(unittest.TestCase):
@@ -38,6 +39,17 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIsInstance(command_hook["timeout"], int)
                 self.assertGreaterEqual(command_hook["timeout"], 3)
                 self.assertLessEqual(command_hook["timeout"], 10)
+
+    def test_autoresearch_skill_embedded_hooks_example_pins_short_checker_timeouts(self):
+        text = AUTORESEARCH_SKILL.read_text(encoding="utf-8")
+        for command in ("--codex-pre-tool-use", "--codex-permission-request"):
+            marker = (
+                f'"command": "python3 \\"$(git rev-parse --show-toplevel)/scripts/'
+                f'check-autoresearch-protected.py\\" {command}",\n'
+                '            "timeout": 5,'
+            )
+            with self.subTest(command=command):
+                self.assertIn(marker, text)
 
     def test_codex_hooks_template_is_template_only(self):
         template_text = (HOOKS / "codex-hooks.json.template").read_text(encoding="utf-8")

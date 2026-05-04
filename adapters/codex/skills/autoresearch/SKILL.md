@@ -305,6 +305,7 @@ Minimal `.codex/hooks.json` shape:
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/check-autoresearch-protected.py\" --codex-pre-tool-use",
+            "timeout": 5,
             "statusMessage": "Checking autoresearch protected files"
           }
         ]
@@ -317,6 +318,7 @@ Minimal `.codex/hooks.json` shape:
           {
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/check-autoresearch-protected.py\" --codex-permission-request",
+            "timeout": 5,
             "statusMessage": "Checking autoresearch escalation request"
           }
         ]

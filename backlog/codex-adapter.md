@@ -204,3 +204,8 @@ Archived: `backlog/archive/codex-adapter.md#30-p3-reconcile-active-backlog-summa
 
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#31-p2-align-root-codex-activation-smoke-documentation-with-implementation`
+
+### 45. P3 keep embedded Codex hook examples bounded
+
+Status: 완료
+Archived: `backlog/archive/codex-adapter.md#45-p3-keep-embedded-codex-hook-examples-bounded`

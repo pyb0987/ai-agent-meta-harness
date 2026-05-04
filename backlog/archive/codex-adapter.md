@@ -3072,3 +3072,149 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 45. P3 keep embedded Codex hook examples bounded
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/skills/autoresearch/SKILL.md
+- plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md
+- adapters/codex/hook-schema.md
+- plugins/ai-agent-meta-harness/hook-schema.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
+- backlog/archive/codex-adapter.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+Item 36 pinned bounded timeouts in the canonical Codex hook template, and the
+template tests cover that surface. The Codex `autoresearch` skill also embeds a
+minimal `.codex/hooks.json` example for users who follow the skill text directly
+instead of copying the template. That embedded example should carry the same
+bounded-timeout expectation so project-local hook setup does not accidentally
+depend on runtime defaults.
+
+Potential improvement:
+
+- Add explicit short `timeout` values to the embedded `.codex/hooks.json`
+  example in `adapters/codex/skills/autoresearch/SKILL.md`.
+- Update the generated plugin skill mirror through `scripts/sync-codex-plugin.py
+  --write`.
+- Add or extend focused tests so canonical templates and embedded examples both
+  preserve bounded checker timeouts.
+
+Done when:
+
+- Users following either the template path or the embedded skill example install
+  bounded Codex hook commands.
+- `python3 scripts/sync-codex-plugin.py --check` and focused Codex hook tests
+  pass.
+
+Decision implemented:
+
+- The embedded `.codex/hooks.json` example in
+  `adapters/codex/skills/autoresearch/SKILL.md` now pins `timeout: 5` on both
+  the `PreToolUse` and `PermissionRequest` checker hooks.
+- The generated plugin skill mirror was refreshed with
+  `python3 scripts/sync-codex-plugin.py --write`.
+- `adapters/codex/tests/test_hook_templates.py` now checks that the embedded
+  skill example preserves short checker timeouts, matching the canonical hook
+  template expectation.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py` from the previous stable
+  handoff before item 45 implementation.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/codex-adapter.md`
+  after process/scope VETO recovery re-review passed.
+- Changed files: `adapters/codex/skills/autoresearch/SKILL.md`,
+  `plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md`,
+  `adapters/codex/hook-schema.md`,
+  `plugins/ai-agent-meta-harness/hook-schema.md`,
+  `adapters/codex/tests/test_hook_templates.py`,
+  `backlog/codex-adapter.md`, `backlog/archive/codex-adapter.md`.
+- Scope deviations: none for item 45. Dirty out-of-scope `backlog/README.md`
+  remains unstaged. User-added `backlog/codex-adapter.md` items 44 and 46 are
+  unrelated backlog additions in the same file; final staging must include only
+  the selected item 45 record/hunks plus implementation files.
+- Verification results: BEFORE PASS `python3 scripts/run-search-set.py` from
+  the previous stable handoff before item 45 implementation; AFTER PASS
+  `python3 -m unittest adapters/codex/tests/test_hook_templates.py`; AFTER PASS
+  `python3 scripts/sync-codex-plugin.py --check`; AFTER PASS
+  `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`; AFTER PASS
+  `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker
+  adapters/codex/scripts/check-autoresearch-protected.py --protected-file
+  adapters/codex/templates/autoresearch-protected.txt`; AFTER PASS
+  `python3 scripts/run-search-set.py`; AFTER PASS
+  `python3 scripts/check-maintenance-review.py`; AFTER PASS
+  `python3 scripts/check-search-set-evidence.py`; AFTER PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py` from the previous stable
+    handoff before item 45 implementation.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Codex adapter hook guidance and the
+  generated plugin skill surface.
+- Multi-review result: PASS after process/scope VETO recovery re-review.
+- Reviewer scores and VETO handling: hook/example semantics critic 9 PASS;
+  generated artifact/test coverage critic 9 PASS; process/scope critic 8 VETO
+  because Completion Gate and multi-review outcome were not yet recorded, dirty
+  out-of-scope `backlog/README.md` needed explicit handling, and same-file
+  user-added items 44/46 needed final staging discipline. This gate addresses
+  those blockers; affected process/scope re-review scored 9 PASS.
+- For each score 9, why not 10: hook/example semantics critic noted the
+  embedded-example test is string-based rather than parsing the Markdown JSON
+  block, accepted because it directly checks the narrow user-facing snippet;
+  generated artifact/test coverage critic noted the focused test checks the
+  adapter source and relies on plugin sync for the generated mirror, accepted
+  because `sync-codex-plugin.py --check` covers generated copy drift;
+  process/scope critic noted same-file staging discipline still depends on
+  careful partial staging or equivalent index construction, accepted because
+  this final handoff stages only item 45 files/hunks.
+- Backlog items added from score-9 residual risk: none; score-9 residuals
+  are accepted as narrow doc-snippet, generated-mirror test design, or
+  final-staging discipline tradeoffs.
+- Residual risk/follow-up: no follow-up. The embedded example now matches
+  canonical bounded timeout guidance, and final staging excludes unrelated
+  same-file backlog additions.
+- Accepted: yes.
+
+Multi-review:
+
+- Hook/example semantics critic: score 9, PASS. Blocking findings: none. Why
+  not 10: the embedded-example test is string-based rather than parsing the JSON
+  block out of Markdown. Follow-up/residual risk: accepted because this is a
+  narrow documentation/example guard that directly checks the user-facing
+  snippet.
+- Generated artifact/test coverage critic: score 9, PASS. Blocking findings:
+  none. Why not 10: the focused test checks the adapter skill source directly
+  and relies on plugin sync to guard the generated mirror, rather than asserting
+  both copies in the same focused test. Follow-up/residual risk: accepted
+  because `python3 scripts/sync-codex-plugin.py --check` covers the generated
+  mirror.
+- Process/scope critic: score 8, VETO. Blocking findings: Completion Gate and
+  multi-review outcome were not yet recorded; dirty out-of-scope
+  `backlog/README.md` needed explicit handling; same-file user-added items 44
+  and 46 must not be unintentionally committed with item 45. Not accepted until
+  affected re-review reaches score 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  same-file staging discipline for items 44/46 still depends on careful partial
+  staging or equivalent index construction. Follow-up/residual risk: accepted
+  because final staging excludes unrelated same-file backlog additions.
+- Score handling: score 8 triggered VETO recovery; affected process/scope
+  critic re-review reached score 9. Every score 9 records why not 10 and
+  residual-risk disposition.
+- Rerun status: process/scope affected critic re-review after Completion Gate;
+  final score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
+  closure is complete in this record.
+- Final acceptance: yes.
