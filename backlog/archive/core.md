@@ -6427,6 +6427,158 @@ Multi-review:
   before commit.
 - Final acceptance: yes.
 
+### 71. P3 tighten residual paper-claim wording and citation granularity
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- README.md
+- core/methodology.md
+- docs/methodology.md
+- tests/test_core_methodology_boundaries.py
+- tests/test_readme_methodology_boundaries.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Items 37, 42, and 67 substantially improved paper-claim boundaries: README now
+has a traceability table, core slogans are framed as paper-backed motivation for
+an applied toolkit, and the 6x harness-sensitivity attribution is constrained.
+The current-main review still found small residual wording risk:
+`core/methodology.md` said summary loss was "proven by ablation" in a way that
+could read universal, while README correctly scoped the numeric ablation to the
+paper's online text-classification setting. The same review also noted that
+README labeled code-space search and minimal outer loop as paper-backed
+principles without giving those bullets the same citation granularity as the
+traceability table's numeric and appendix claims.
+
+Decision implemented:
+
+- Reword core methodology and the docs mirror so the raw-trace preference is
+  motivated by the paper's online text-classification ablation without
+  universalizing that result to every LLM summary in every task.
+- Add README traceability rows for the proposer/filesystem code-space search
+  design and the proposer/evaluator/filesystem outer-loop design.
+- Reword README bullets so code-space search and minimal outer loop are
+  paper-backed by named system-design mechanisms, while the repository's
+  anti-orchestration and fixed-evaluator hygiene are explicitly
+  repository-calibrated rules.
+- Mark item 42's active pointer complete again because item 71 closes the
+  residual claim-boundary recheck reason.
+- Extend focused README/core boundary tests for the scoped ablation wording,
+  traceability rows, and removal of the broader "Paper-backed principle"
+  phrasing.
+
+Done when:
+
+- Core wording no longer reads broader than the paper evidence while preserving
+  the raw-over-summary diagnosis rule.
+- README paper-backed bullets either have citation granularity comparable to the
+  traceability table or are softened to repository-practice wording.
+- Future methodology reviewers do not have to reopen items 37 or 42 to track
+  this narrower residual claim-boundary cleanup.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `README.md`, `core/methodology.md`, `docs/methodology.md`,
+  `tests/test_core_methodology_boundaries.py`,
+  `tests/test_readme_methodology_boundaries.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none. Dirty out-of-scope backlog files
+  `backlog/README.md` and `backlog/codex-adapter.md` remain outside item 71.
+- Verification results: BEFORE PASS `python3 scripts/check-maintenance-review.py`;
+  AFTER PASS `python3 -m unittest tests/test_core_methodology_boundaries.py
+  tests/test_readme_methodology_boundaries.py`; AFTER PASS
+  `python3 scripts/check-compat-mirrors.py`; AFTER PASS
+  `python3 scripts/run-search-set.py`; AFTER PASS
+  `python3 scripts/check-search-set-evidence.py --base-ref origin/main`; AFTER
+  PASS `python3 scripts/check-backlog-archive-lifecycle.py`; PASS
+  `git diff --check`; INITIAL AFTER `python3 -m unittest discover -s tests`
+  failed only because item 71 was still `진행중` before archive/status update;
+  AFTER PASS `python3 -m unittest discover -s tests`; final release
+  verification PASS `python3 scripts/verify-release.py --skip-clean-worktree
+  --base-ref origin/main`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py` as the active
+    SS-001 maintenance-review command.
+  - AFTER: PASS `python3 scripts/run-search-set.py` with 6 Active cases.
+- Multi-review required: yes; this changes durable public README/core
+  methodology paper-claim boundaries.
+- Multi-review result: PASS after tests/verification and process/scope VETO
+  recovery re-reviews.
+- Reviewer scores and VETO handling: claim-boundary critic scored 9 PASS.
+  Tests/verification critic scored 8 VETO because full release verification
+  failed while item 71 was still `진행중`; affected re-review scored 9 PASS
+  after archive/status update. Process/scope critic scored 8 VETO because
+  Completion Gate, archive/pointer closure, and selective staging proof were
+  missing; affected re-review scored 8 VETO because this record had not yet
+  captured re-review outcomes and still said `Accepted: no`; affected
+  process/scope final re-review scored 9 PASS after this update.
+- For each score 9, why not 10: claim-boundary critic noted the README
+  traceability row for minimal outer loop still compresses the paper-backed
+  proposer/evaluator/filesystem loop and this repository's anti-orchestration
+  discipline into one claim. Accepted as residual because the Local Status
+  column and bullet wording mark anti-orchestration guidance as
+  repository-calibrated. Tests/verification critic noted the Completion Gate
+  still needed to record the re-review result, final release PASS, score-9
+  why-not-10, and acceptance status; accepted as procedural residual covered by
+  final record updates and release checks. Process/scope final re-review noted
+  that final commit readiness still depends on recording the final result,
+  rerunning verification, and proving staged-index isolation; accepted as
+  procedural timing risk covered by final checks before commit.
+- Backlog items added from score-9 residual risk: none; score-9 residuals are
+  wording polish or procedural closure limits accepted for this item.
+- Residual risk/follow-up: final release verification and selective staging
+  remain mechanical commit-readiness checks after this accepted record.
+- Accepted: yes.
+
+Multi-review:
+
+- Claim-boundary critic: score 9, PASS. Blocking findings: none. Why not 10:
+  the README traceability row for minimal outer loop still compresses two ideas:
+  the paper-backed proposer/evaluator/filesystem loop and this repository's
+  anti-orchestration discipline. Follow-up/residual risk: accepted because the
+  table and bullet mark orchestration guidance as repository-calibrated rather
+  than a direct paper result.
+- Tests/verification critic: score 8, VETO. Blocking finding: full release
+  verification failed while item 71 was still `진행중`. Not accepted until
+  archive/status closure makes repository tests pass and affected critic
+  re-review reaches at least 9.
+- Tests/verification re-review: score 9, PASS. Blocking findings: none. Why not
+  10: the Completion Gate still needed to record this re-review result, final
+  release PASS, score-9 why-not-10, and acceptance status. Follow-up/residual
+  risk: no backlog follow-up; accepted as procedural residual covered by final
+  record updates and release checks.
+- Process/scope critic: score 8, VETO. Blocking findings: Completion Gate and
+  archive/pointer closure were missing, and dirty out-of-scope backlog files
+  needed selective staging proof. Not accepted until affected re-review reaches
+  at least 9.
+- Process/scope re-review: score 8, VETO. Blocking findings: item 71 still
+  recorded pending/not-accepted status and did not yet include the re-review
+  result; selective staging remained to be proven. This update records the
+  re-review result and narrows the remaining blocker to final process/scope
+  re-review plus staging proof.
+- Process/scope final re-review: score 9, PASS. Blocking findings: none. Why
+  not 10: final commit readiness still depends on recording this result,
+  rerunning final verification, and proving the staged index contains only item
+  71 scope. Follow-up/residual risk: no backlog follow-up; accepted as
+  procedural timing risk covered by final checks before commit.
+- Score handling: scores below 9 triggered VETO recovery. Tests/verification
+  affected critic rerun reached 9. Process/scope affected critic rerun initially
+  remained below 9, then final process/scope re-review reached 9. Every score 9
+  records why not 10 and residual-risk disposition.
+- Rerun status: tests/verification affected critic rerun complete at score 9;
+  process/scope final affected critic rerun complete at score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals. The
+  remaining procedural risk is covered by final verification and staging checks
+  before commit.
+- Final acceptance: yes.
+
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료

@@ -111,11 +111,32 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
             "Full traces outperform summaries in the online text-classification ablation",
             "Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison",
             "Paper result used to motivate this repo's trace discipline",
+            "Meta-Harness searches over harness code with source, scores, and execution traces available through the filesystem",
+            "Paper Abstract and system design description of the agentic proposer/filesystem interface",
+            "Paper-backed design principle adapted into this repo's code-space search and trace-root conventions",
+            "The outer loop proposes, evaluates, and logs candidates rather than adding persistent multi-agent orchestration",
+            "Paper system design: agentic proposer plus evaluator plus filesystem trace history",
+            "Repository-calibrated workflow rule",
             "Paper Appendix A/A.2 qualitative search trajectory and discussion",
             "Paper Appendix D practical implementation tips",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
+
+    def test_code_space_and_outer_loop_claims_are_source_scoped(self) -> None:
+        text = normalized_readme()
+
+        for marker in (
+            "**Code-space search** — Paper-backed by the Meta-Harness proposer/filesystem design",
+            "Repository-calibrated rule: \"try harder\" is noise",
+            "**Minimal outer loop** — Paper-backed by the system's propose -> evaluate -> log loop over candidate harnesses",
+            "Repository-calibrated rule: avoid orchestration that makes the harness harder to verify",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+        self.assertNotIn("Code-space search — Paper-backed principle, repository-calibrated surfaces", text)
+        self.assertNotIn("Minimal outer loop — Paper-backed principle", text)
 
 
 if __name__ == "__main__":

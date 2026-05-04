@@ -12,7 +12,9 @@ applied harness toolkit, not local benchmark reproduction claims.
 ## Trace-Based Diagnosis — The Core of Diagnosis
 
 ### Principle: Raw Over Summaries, Traces Over Scores
-- LLM summaries compress away details needed for diagnosis (proven by ablation: summary < raw trace)
+- The paper's online text-classification ablation motivates this repository's
+  preference for raw trace access over compressed summaries; do not generalize
+  that result into a universal claim about every LLM summary in every task
 - When diagnosing failures, read **raw execution logs, code, and scores** directly from the filesystem
 - Use `grep`, `cat`, `diff` for selective access — don't dump everything into the prompt
 

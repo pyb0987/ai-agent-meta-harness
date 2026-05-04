@@ -102,11 +102,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has no unstarted core process items from recent
-  current-main methodology reviews.
-  Items 56-67 are complete, so future maintenance should not select them as
-  available implementation candidates.
-  Items 41-55 are complete, so future maintenance should not select them as
+- Active core backlog has no unstarted core items from recent current-main
+  methodology reviews.
+  Items 41-72 are complete, so future maintenance should not select them as
   available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
@@ -216,6 +214,10 @@ Archived: `backlog/archive/core.md#69-p2-make-fallback-threshold-disposition-dis
 
 Status: 완료
 Archived: `backlog/archive/core.md#70-p2-evaluate-preserving-diffs-for-all-fixed-evaluator-rejected-candidates`
+### 71. P3 tighten residual paper-claim wording and citation granularity
+
+Status: 완료
+Archived: `backlog/archive/core.md#71-p3-tighten-residual-paper-claim-wording-and-citation-granularity`
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료
