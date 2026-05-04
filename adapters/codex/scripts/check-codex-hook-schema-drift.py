@@ -17,7 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 REFERENCE_PATH = Path("adapters/codex/hook-schema.md")
-VERIFIED_DATE = "2026-05-04"
+VERIFIED_DATE = "2026-05-05"
 CODEX_CLI_VERSION = "0.126.0-alpha.8"
 PRIMARY_SOURCE = "https://developers.openai.com/codex/hooks"
 CONFIG_SOURCE = "https://developers.openai.com/codex/config-reference"

@@ -59,18 +59,36 @@ The Meta-Harness paper informs the acceptance criteria for this scope, but its m
 
 ## Autoresearch Protection Assets
 
-The generated plugin now carries a reference checker at `scripts/check-autoresearch-protected.py`, hook JSON smoke assertions at `scripts/smoke-autoresearch-hooks.py`, a protected-path template at `templates/autoresearch-protected.txt`, and enforcement templates plus an AGENTS reminder snippet under `templates/hooks/`. These are project assets to copy during autoresearch setup; they are not advertised as active plugin runtime hooks until both isolated local activation and Codex plugin tool-event delivery are smoke-tested.
+The generated plugin now carries a reference checker at `scripts/check-autoresearch-protected.py`, hook JSON smoke assertions at `scripts/smoke-autoresearch-hooks.py`, a target-project installer at `scripts/install-autoresearch-protection.py`, a protected-path template at `templates/autoresearch-protected.txt`, and enforcement templates plus an AGENTS reminder snippet under `templates/hooks/`. These are project assets to install during autoresearch setup; they are not advertised as active plugin runtime hooks until both isolated local activation and Codex plugin tool-event delivery are smoke-tested.
 
 Hook schema drift is tracked in `hook-schema.md`. Before changing Codex hook templates, checker hook output, or autoresearch hook instructions, re-check the official Codex hooks documentation and run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.
 
 ### Target-Project Protection Install
 
-When a project adopts autoresearch, copy the protection assets from the
+When a project adopts autoresearch, install the protection assets from the
 generated plugin bundle, or from `adapters/codex/` while developing this repo,
 into the target project:
 
+```bash
+python3 plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py --target /path/to/project --run-smoke
+```
+
+During adapter development, the equivalent canonical-source command is:
+
+```bash
+python3 adapters/codex/scripts/install-autoresearch-protection.py --source-root adapters/codex --target /path/to/project --run-smoke
+```
+
+The installer creates missing files, appends the AGENTS and tracked pre-commit
+snippets when safe, and leaves existing Codex hook or CI files unchanged with a
+`merge-required` result. A `merge-required` result means `Protection level:
+incomplete` until the project owner reviews the merge and reruns the smoke
+commands. Manual copy remains possible for unusual projects, but it should be
+recorded as a reviewed workflow rather than a silent setup shortcut.
+
 | Source in plugin bundle | Target project path | Purpose |
 |-------------------------|---------------------|---------|
+| `scripts/install-autoresearch-protection.py` | run from plugin or adapter source | Repeatable installer for the assets below |
 | `scripts/check-autoresearch-protected.py` | `scripts/check-autoresearch-protected.py` | Shared checker used by Codex hooks, pre-commit, and CI |
 | `scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Local smoke assertion for Codex hook deny JSON |
 | `templates/autoresearch-protected.txt` | `.harness/autoresearch-protected.txt` | Protected evaluator or benchmark path list |

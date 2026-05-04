@@ -30,7 +30,9 @@ class HookSchemaDriftTests(unittest.TestCase):
 
     def test_reference_text_requires_verified_metadata(self):
         text = (ROOT / hook_schema_drift.REFERENCE_PATH).read_text(encoding="utf-8")
-        errors = hook_schema_drift.validate_reference_text(text.replace("Verified date: 2026-05-04", "Verified date: TODO"))
+        errors = hook_schema_drift.validate_reference_text(
+            text.replace(f"Verified date: {hook_schema_drift.VERIFIED_DATE}", "Verified date: TODO")
+        )
         self.assertTrue(any("Verified date" in error for error in errors))
 
     def test_reference_text_defines_freshness_convention(self):

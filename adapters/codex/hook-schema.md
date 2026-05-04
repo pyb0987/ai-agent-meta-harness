@@ -8,7 +8,7 @@ This drift check validates documented output-shape assumptions only. It does not
 
 ## Verification Metadata
 
-- Verified date: 2026-05-04
+- Verified date: 2026-05-05
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
@@ -16,6 +16,13 @@ This drift check validates documented output-shape assumptions only. It does not
   hooks/config documentation re-check that this adapter depends on. If the
   output/config contract is unchanged, keep the behavior contract stable and add
   a dated re-verification note explaining the non-behavior change.
+- Re-verification note: 2026-05-05 item 49 added a target-project
+  autoresearch protection installer and updated autoresearch setup guidance;
+  official Codex hooks/config docs were re-checked, and `PreToolUse`,
+  `PermissionRequest`, `hookSpecificOutput`, `features.codex_hooks`, and
+  command-hook timeout assumptions remain unchanged. The installer still treats
+  Codex hook files as target-project templates and does not enable plugin
+  runtime hook manifest fields.
 - Re-verification note: 2026-05-04 item 36 added bounded command hook
   `timeout` values for protected-file checks; official Codex hooks docs were
   re-checked, and `timeout` remains a per-command-hook value in seconds with a

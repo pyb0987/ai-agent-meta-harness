@@ -3219,6 +3219,166 @@ Multi-review:
   closure is complete in this record.
 - Final acceptance: yes.
 
+### 49. P2 automate target-project autoresearch protection install
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- adapters/codex/scripts/
+- adapters/codex/skills/autoresearch/SKILL.md
+- adapters/codex/README.md
+- adapters/codex/hook-schema.md
+- adapters/codex/tests/
+- plugins/ai-agent-meta-harness/
+- scripts/sync-codex-plugin.py
+- backlog/codex-adapter.md
+- backlog/archive/codex-adapter.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+The Codex autoresearch protection bundle is well specified: the generated plugin
+contains the checker, hook smoke script, protected-path template, Codex hook
+template, pre-commit template, CI template, and AGENTS reminder snippet. The
+remaining operability gap is that target projects still copy and merge those
+assets manually. That keeps the evidence boundary honest, but makes partial
+installation, stale hook wiring, or skipped smoke tests easier than the
+methodology wants for evaluator-boundary protection.
+
+Potential improvement:
+
+- Provide a target-project install helper, skill-local script, or guided command
+  that copies the protection assets from the generated plugin or canonical
+  adapter source into an adopting project.
+- Merge with existing `.codex/`, `.githooks/`, `.github/workflows/`, and
+  `AGENTS.md` surfaces without silently overwriting project-owned hooks or CI.
+- Run or print the exact smoke commands needed to prove the copied checker,
+  Codex hook deny shapes, pre-commit wrapper, and CI/base-ref behavior.
+- Preserve the existing protection-level honesty: incomplete installs must still
+  report `Protection level: incomplete`, and local-only installs must record the
+  missing shared CI reason.
+
+Done when:
+
+- A target project can install the Codex autoresearch protection assets through a
+  repeatable helper or explicitly reviewed workflow instead of manual copy/paste.
+- The install path has fixture or temp-project coverage for new projects and
+  projects with existing hooks/CI/AGENTS content.
+- Adapter docs and skill output distinguish installed, smoke-tested protection
+  from template-only or direct-copy degraded states.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/codex-adapter.md`.
+- Changed files: `adapters/codex/README.md`,
+  `adapters/codex/hook-schema.md`, `adapters/codex/plugin-scope.md`,
+  `adapters/codex/scripts/check-codex-hook-schema-drift.py`,
+  `adapters/codex/scripts/install-autoresearch-protection.py`,
+  `adapters/codex/scripts/smoke-autoresearch-hooks.py`,
+  `adapters/codex/scripts/smoke-local-plugin.py`,
+  `adapters/codex/skills/autoresearch/SKILL.md`,
+  `adapters/codex/tests/test_direct_copy_fallback_reporting.py`,
+  `adapters/codex/tests/test_hook_schema_drift.py`,
+  `adapters/codex/tests/test_install_autoresearch_protection.py`,
+  `plugins/ai-agent-meta-harness/README.md`,
+  `plugins/ai-agent-meta-harness/hook-schema.md`,
+  `plugins/ai-agent-meta-harness/plugin-scope.md`,
+  `plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py`,
+  `plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py`,
+  `plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py`,
+  `plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py`,
+  `plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md`,
+  `scripts/sync-codex-plugin.py`, `backlog/codex-adapter.md`,
+  `backlog/archive/codex-adapter.md`.
+- Scope deviations: added `adapters/codex/hook-schema.md` and generated
+  `plugins/ai-agent-meta-harness/hook-schema.md` to Scope before editing because
+  the autoresearch skill change is hook-sensitive and required a fresh
+  hook-schema re-verification record. Existing dirty out-of-scope
+  `backlog/README.md` and `backlog/core.md` remain unstaged.
+- Verification results: PASS `python3 -m unittest adapters/codex/tests/test_install_autoresearch_protection.py adapters/codex/tests/test_direct_copy_fallback_reporting.py adapters/codex/tests/test_local_plugin_smoke.py adapters/codex/tests/test_hook_templates.py`; PASS `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3 -m unittest adapters/codex/tests/test_hook_schema_drift.py adapters/codex/tests/test_install_autoresearch_protection.py adapters/codex/tests/test_hook_templates.py`; PASS `python3 scripts/sync-codex-plugin.py --check`; PASS `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`; PASS `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`; PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`; PASS Git-target installer smoke with `core.hooksPath` output `.githooks`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED full Active search-set before implementation because the
+    session proceeded from Start Gate directly into implementation; this
+    sequencing miss is recorded as process residual rather than backfilled.
+  - DURING: FAIL `python3 scripts/run-search-set.py`; SS-003 failed while the
+    new installer source was still untracked and invisible to index-aware
+    plugin sync.
+  - AFTER: PASS `python3 scripts/run-search-set.py` after staging this
+    Completion Gate and selected item files.
+- Multi-review required: yes; this changes Codex adapter install behavior,
+  evaluator-boundary protection assets, hook/pre-commit/CI semantics, and
+  generated plugin distribution surface.
+- Multi-review result: PASS after VETO fixes and affected critic reruns.
+- Reviewer scores and VETO handling: install-behavior critic initially scored 6
+  VETO because Git pre-commit activation was implicit, protected paths were
+  hardcoded instead of copied from the canonical template, `--run-smoke` did not
+  validate pre-commit/CI behavior, and `.codex/config.toml` was not detected;
+  fixed by copying the canonical template, configuring `core.hooksPath` when
+  safe, adding explicit manual/merge-required handling, and expanding smoke
+  behavior. Affected re-review scored 9 PASS. Protection-honesty critic
+  initially scored 7 VETO because the installer reported non-tier `Protection
+  level: template-installed` and only ran hook smoke; fixed by reporting only
+  defined tiers and running/skipping smokes with explicit reasons. Affected
+  re-review scored 9 PASS. Bundle/verification critic initially scored 7 VETO
+  because new installer files were untracked and index-aware sync failed, then
+  scored 8 VETO because hook-sensitive staged changes lacked hook-schema
+  re-verification; fixed by staging the source/generated installer files and
+  updating hook-schema, drift-checker metadata, smoke metadata, and tests.
+  Affected re-review scored 9 PASS.
+- For each score 9, why not 10: install-behavior critic noted that
+  `.codex/config.toml` merge-required reporting is less precise than it could be
+  and that fixture coverage does not directly exercise `.codex/config.toml` or a
+  CI smoke path with an initial commit. Protection-honesty critic noted that
+  pre-commit smoke is a direct checker invocation, not a negative proof that an
+  actual `git commit` hook blocks a protected-path change. Bundle/verification
+  critic noted final Completion Gate and search-set records were pending during
+  the re-review.
+- Backlog items added from score-9 residual risk: added
+  `backlog/codex-adapter.md` item 50 for deeper installer fixture coverage
+  covering `.codex/config.toml`, initial-commit CI smoke, and optional negative
+  git-hook blocking proof. The bundle/verification critic's why-not-10 was final
+  closure timing, not a separate backlog improvement.
+- Residual risk/follow-up: item 50 tracks the remaining actionable fixture
+  precision. BEFORE search-set was skipped because it was not captured before
+  implementation; AFTER search-set passed.
+- Follow-up/residual risk: item 50 tracks the remaining actionable fixture
+  precision; AFTER search-set verification passed before commit.
+- Accepted: yes.
+
+Multi-review:
+
+- Install-behavior critic: score 6, VETO. Blocking findings: missing Git
+  pre-commit activation, hardcoded protected template content, insufficient
+  smoke coverage, and missing `.codex/config.toml` merge detection. Not accepted
+  until fixed and rerun.
+- Install-behavior re-review: score 9, PASS. Blocking findings: none. Why not
+  10: `.codex/config.toml` merge-required reporting and initial-commit CI smoke
+  coverage can be more precise. Follow-up: item 50.
+- Protection-honesty critic: score 7, VETO. Blocking finding: non-tier
+  `Protection level: template-installed` plus hook-only smoke could overstate
+  readiness. Not accepted until fixed and rerun.
+- Protection-honesty re-review: score 9, PASS. Blocking findings: none. Why not
+  10: pre-commit smoke does not prove an actual negative `git commit` hook
+  block. Follow-up: item 50.
+- Bundle/verification critic: score 7, VETO. Blocking finding: index-aware sync
+  failed while new installer files were untracked. Not accepted until fixed and
+  rerun.
+- Bundle/verification re-review: score 8, VETO. Blocking finding:
+  hook-sensitive staged changes lacked a staged hook-schema re-verification
+  record. Not accepted until fixed and rerun.
+- Bundle/verification second re-review: score 9, PASS. Blocking findings: none.
+  Why not 10: Completion Gate and final search-set records were still pending at
+  review time. Follow-up: no backlog item; this final record closes that timing
+  gap.
+- Score handling: all scores below 9 were treated as VETO; affected critics
+  were rerun after fixes until all required scores reached 9.
+- Rerun status: all affected critics rerun; final scores are 9, 9, and 9.
+- Follow-up/residual risk: item 50 tracks actionable fixture precision from the
+  score-9 residuals; final search-set verification must pass before commit.
+- Final acceptance: yes.
+
 ### 44. P2 keep Codex Desktop/runtime delivery smoke open until product surface exists
 
 Status: 완료

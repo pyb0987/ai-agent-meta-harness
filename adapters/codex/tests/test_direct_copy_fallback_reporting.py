@@ -12,6 +12,7 @@ PLUGIN_README = ROOT / "plugins" / "ai-agent-meta-harness" / "README.md"
 
 
 REQUIRED_ASSETS = (
+    "scripts/install-autoresearch-protection.py",
     "scripts/check-autoresearch-protected.py",
     "scripts/smoke-autoresearch-hooks.py",
     "templates/autoresearch-protected.txt",

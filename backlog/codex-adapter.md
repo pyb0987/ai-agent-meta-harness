@@ -53,6 +53,9 @@ Remaining follow-up work:
 - Item 48 tracks a narrower live-init evidence gap: the fixture smoke proves
   expected generated files, but not that a running Codex session can invoke the
   `init-codex-harness` skill end to end.
+- Item 49 tracks target-project protection install automation, because the
+  current guardrail assets are documented and smoke-tested but still copied and
+  merged manually into adopting projects.
 
 ### 5. Define Codex plugin bundle scope
 
@@ -482,3 +485,32 @@ Completion Gate:
   skill installation against an isolated target project, or when a
   product-supported noninteractive smoke exists for live skill execution.
 - Accepted: no.
+
+### 49. P2 automate target-project autoresearch protection install
+
+Status: 완료
+Archived: `backlog/archive/codex-adapter.md#49-p2-automate-target-project-autoresearch-protection-install`
+
+### 50. P3 add deeper installer protection fixture coverage
+
+Status: 대기
+
+Source: item 49 multi-review score-9 residual risk.
+
+The target-project autoresearch protection installer now covers fresh Git
+targets, existing hook/CI/AGENTS/protected-file projects, non-Git manual setup,
+and conflicting `core.hooksPath` cases. The score-9 reviewers accepted the
+current local-only reporting, but noted that fixture coverage can be more exact:
+it does not run an actual negative `git commit` hook block, does not directly
+cover `.codex/config.toml` merge-required behavior, and does not exercise the CI
+smoke path against a target with an initial commit.
+
+Potential improvement:
+
+- Add installer fixture coverage for existing `.codex/config.toml` so the
+  merge-required record names the active config surface precisely.
+- Add a target Git fixture with an initial commit so `--run-smoke` exercises the
+  CI checker path instead of only recording the no-base skipped reason.
+- Consider a negative commit-hook fixture that proves protected-path changes are
+  blocked by the installed `.githooks/pre-commit` hook without leaving target
+  fixtures dirty.

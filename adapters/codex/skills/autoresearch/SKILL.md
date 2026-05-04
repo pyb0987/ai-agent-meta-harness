@@ -248,6 +248,7 @@ Required protection bundle for the minimum local tier:
 
 Bundled Codex adapter assets provide starting templates for this bundle:
 
+- `scripts/install-autoresearch-protection.py` -> repeatable target-project installer
 - `templates/autoresearch-protected.txt` -> `.harness/autoresearch-protected.txt`
 - `scripts/check-autoresearch-protected.py` -> `scripts/check-autoresearch-protected.py`
 - `scripts/smoke-autoresearch-hooks.py` -> `scripts/smoke-autoresearch-hooks.py`
@@ -284,6 +285,26 @@ If some assets are present, list only the missing assets and keep
 `Protection level: incomplete` until the local Codex hook smoke, pre-commit
 check, and CI/shared-repo status are PASS or explicitly skipped with a reason.
 The direct-copy fallback may be used for skill text iteration, but it is not a valid protection install path by itself.
+
+Preferred installer path:
+
+```bash
+python3 plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py --target . --run-smoke
+```
+
+If working from this repository's canonical adapter source instead of an
+installed plugin bundle, run:
+
+```bash
+python3 adapters/codex/scripts/install-autoresearch-protection.py --source-root adapters/codex --target . --run-smoke
+```
+
+The installer creates missing protection assets, appends the AGENTS and tracked
+pre-commit snippets when safe, and prints the hook smoke, pre-commit, and CI
+commands. It does not silently overwrite existing `.codex/hooks.json` or
+`.github/workflows/autoresearch-protected.yml`; those cases are reported as
+`merge-required` and keep `Protection level: incomplete` until reviewed and
+smoke-tested.
 
 Codex hook policy:
 
