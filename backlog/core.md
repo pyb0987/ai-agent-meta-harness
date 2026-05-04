@@ -125,8 +125,8 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
 - Active core backlog currently has no unstarted concrete core implementation
-  item. Items 41-52 are complete or ready for maintainer review, so future
-  maintenance should not select them as available implementation candidates.
+  item. Items 41-54 are complete, so future maintenance should not select them
+  as available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -176,7 +176,7 @@ Completion Gate:
 
 ### 46. P2 add executable repository search-set runner
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -288,7 +288,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `scripts/run-search-set.py`, `tests/test_run_search_set.py`,
   `MAINTENANCE.md`, `backlog/core.md`.
 - Scope deviations: none for item 46 implementation. The worktree also contains
@@ -327,7 +327,7 @@ Completion Gate:
 
 ### 47. P2 thicken repository self-application trace evidence
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -428,7 +428,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files:
   `.harness/traces/evolution/002-self-application-evidence-review.md`,
   `tests/test_repository_search_set.py`, `backlog/core.md`.
@@ -461,7 +461,7 @@ Completion Gate:
 
 ### 48. P2 add one executable release verification gate
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -554,7 +554,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `scripts/verify-release.py`, `tests/test_verify_release.py`,
   `MAINTENANCE.md`, `backlog/core.md`.
 - Scope deviations: none.
@@ -660,7 +660,7 @@ Follow-up Completion Gate:
 
 ### 49. P3 guard against root unittest discovery false greens
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -735,7 +735,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `MAINTENANCE.md`, `test_root_unittest_discovery.py`,
   `backlog/core.md`.
 - Scope deviations: none.
@@ -765,7 +765,7 @@ Completion Gate:
 
 ### 50. P2 harden search-set evidence checker text matching
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -850,7 +850,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `scripts/check-search-set-evidence.py`,
   `tests/test_search_set_evidence.py`, `MAINTENANCE.md`, `backlog/core.md`.
 - Scope deviations: none.
@@ -888,7 +888,7 @@ Completion Gate:
 
 ### 51. P3 keep active core Current Status aligned with completed items
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -959,7 +959,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `tests/test_backlog_heading_uniqueness.py`, `backlog/core.md`.
 - Scope deviations: none.
 - Verification results: PASS `python3 -m unittest
@@ -994,7 +994,7 @@ Completion Gate:
 
 ### 52. P3 schema-check repository self-application evolution traces
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -1071,7 +1071,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files:
   `.harness/traces/evolution/001-repository-self-application-root.md`,
   `tests/test_repository_search_set.py`, `backlog/core.md`.
@@ -1111,7 +1111,7 @@ Completion Gate:
 
 ### 53. P2 document the reviewed commit loop
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -1164,7 +1164,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `MAINTENANCE.md`, `backlog/core.md`.
 - Scope deviations: none.
 - Verification results: PASS `python3 scripts/check-maintenance-review.py`;
@@ -1185,7 +1185,7 @@ Completion Gate:
 
 ### 54. P2 distinguish multi-review skill use from isolated reviewer gate
 
-Status: 리뷰대기
+Status: 완료
 Owner: Codex single-session maintenance pass
 Branch: main
 Started: 2026-05-04
@@ -1281,7 +1281,7 @@ Multi-review:
 
 Completion Gate:
 
-- Backlog status: `리뷰대기`.
+- Backlog status: `완료`.
 - Changed files: `MAINTENANCE.md`,
   `tests/test_maintenance_policy_boundaries.py`, `backlog/core.md`.
 - Scope deviations: `tests/test_maintenance_policy_boundaries.py` was added to
