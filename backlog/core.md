@@ -125,15 +125,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
 - Active core backlog has unstarted concrete items from the 2026-05-04
-  current-main methodology reviews: item 47 should thicken repository self-application trace
-  evidence beyond the initial trace-root scaffold, item 48 should bundle release
-  verification into one executable gate, item 49 should prevent default unittest
-  discovery from looking like a valid release signal, item 50 should harden
-  search-set evidence text matching, item 51 should keep Current Status aligned
-  with completed items, and item 52 should schema-check repository
-  self-application evolution traces. Items 41-46 are complete or ready for
-  maintainer review, so future
-  maintenance should not select them as available implementation candidates.
+  current-main methodology reviews: item 48 should bundle release verification
+  into one executable gate, and item 52 should schema-check repository
+  self-application evolution traces. Items 41-47 and 49-51 are complete or
+  ready for maintainer review, so future maintenance should not select them as
+  available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -735,7 +731,13 @@ Completion Gate:
 
 ### 51. P3 keep active core Current Status aligned with completed items
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- tests/test_backlog_heading_uniqueness.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -760,6 +762,78 @@ Done when:
   a checker or review failure catching it.
 - The `Current Status` block remains useful as handoff guidance without becoming
   another stale source of truth.
+
+Decision implemented:
+
+- Added a focused backlog consistency test that parses `backlog/core.md`
+  `Current Status` active candidate wording of the form `item N should`.
+- Every named active candidate must currently have `Status: 대기`; completed,
+  review-pending, in-progress, or missing items fail the check.
+- The check allows an accurate no-active-candidate state by passing when
+  `Current Status` names no `item N should` candidates.
+- Refreshed `Current Status` so only item 48 and item 52 remain selectable core
+  candidates; items 41-47 and 49-51 are explicitly non-selectable.
+
+Search-set verification:
+
+- SKIPPED: backlog consistency/test-only governance guard; no harness runtime,
+  release gate, adapter behavior, or search-set contract changed.
+
+Multi-review:
+
+- First isolated backlog-consistency reviewer: score 8/10, VETO. Blocking findings:
+  the initial test required `Current Status` to name at least one
+  active candidate, which would fail an accurate no-selectable-items state. Not
+  accepted.
+- Score handling: score below 9 was treated as VETO. Blocking finding fixed by
+  allowing zero active candidates while still rejecting any named candidate that
+  is not `Status: 대기`.
+- Affected reviewer rerun: score 9/10, PASS. Blocking findings: none. Why not
+  10: the guard is intentionally wording-convention based; it protects the
+  current `item N should` active-candidate phrasing, but does not semantically
+  detect every possible future wording for selectable work.
+- Score handling: the score-9 why-not-10 reason is accepted as residual risk
+  because this backlog uses the `item N should` convention in `Current Status`,
+  and broader natural-language inference would make the focused checker brittle.
+- Rerun status: affected reviewer rerun reached score 9/10 PASS.
+- Follow-up/residual risk: accepted wording-convention limitation; no backlog
+  item added.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `tests/test_backlog_heading_uniqueness.py`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_backlog_heading_uniqueness.py`; PASS `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; PASS `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 -m unittest discover -s tests`; PASS `python3 -m unittest discover
+  -s adapters/claude/tests`; PASS `python3 -m unittest discover -s
+  adapters/codex/tests`; PASS `python3 scripts/check-compat-mirrors.py`; PASS
+  `python3 scripts/check-claude-adapter-paths.py`; PASS `python3
+  scripts/sync-codex-plugin.py --check`; PASS `python3
+  scripts/check-codex-marketplace-metadata.py` with deferred publication
+  manifest note; PASS `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`;
+  PASS `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker
+  adapters/codex/scripts/check-autoresearch-protected.py --protected-file
+  adapters/codex/templates/autoresearch-protected.txt`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin.py`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; PASS `git diff
+  --check`.
+- Search-set verification: SKIPPED; backlog consistency/test-only governance
+  guard; no harness runtime, release gate, adapter behavior, or search-set
+  contract changed.
+- Multi-review required: yes; committed stable handoff review loop.
+- Multi-review result: PASS after VETO fix and affected reviewer rerun.
+- Reviewer scores and VETO handling: see Multi-review records above; initial
+  VETO blocking finding was fixed and the affected reviewer rerun passed.
+- For each score-9 result, why not 10: checker is wording-convention based and
+  does not infer every possible future phrasing.
+- Backlog items added from score-9 residual risk: none; accepted as scoped
+  checker behavior for the current `Current Status` convention.
+- Residual risk/follow-up: accepted wording-convention limitation.
+- Accepted: yes; ready for commit.
 
 ### 52. P3 schema-check repository self-application evolution traces
 
