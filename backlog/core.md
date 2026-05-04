@@ -1315,6 +1315,122 @@ Completion Gate:
   search-set process imperfection.
 - Accepted: yes; ready for commit.
 
+### 55. P3 mark accepted completed maintenance items as complete
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+
+Source discussion: 2026-05-04 maintainer clarification that completed
+maintenance items should be moved from `리뷰대기` to `완료`.
+
+The reviewed commit loop still says to complete the Completion Gate and mark
+the item `리뷰대기`, even when the same workflow has accepted, committed, and
+cleanly verified the item. That can leave completed maintenance records in a
+handoff state after acceptance and makes future backlog scans noisier.
+
+Potential improvement:
+
+- Update `MAINTENANCE.md` so accepted items that are completed in the current
+  maintenance session are marked `완료`, not left at `리뷰대기`.
+- Preserve `리뷰대기` for work that is implemented but awaiting external review,
+  merge coordination, or maintainer acceptance.
+- Add a focused policy-boundary test so the reviewed commit loop does not
+  regress to marking accepted completed items `리뷰대기`.
+
+Done when:
+
+- The status definitions and reviewed commit loop distinguish review-pending
+  handoff from completed accepted work.
+- Focused maintenance policy tests pass.
+
+Decision implemented:
+
+- Updated `MAINTENANCE.md` status definitions so `리뷰대기` is reserved for
+  implementation that is still waiting for external review, merge coordination,
+  or maintainer acceptance.
+- Updated the reviewed commit loop so accepted completed items are marked
+  `완료`, while `리뷰대기` remains available for genuinely pending handoffs.
+- Added a focused maintenance policy boundary test that asserts the new
+  completed-item wording and rejects the old `mark the item 리뷰대기` loop.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py --list` confirmed the Active
+  case inventory before edits; focused baseline gates also passed: `python3 -m
+  unittest tests/test_maintenance_policy_boundaries.py`, `python3
+  scripts/check-maintenance-review.py backlog/core.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Multi-review:
+
+- Policy-semantics critic: score 9/10, PASS. Blocking findings: none. Why not
+  10: the first draft of the `완료` definition repeated "accepted" wording; this
+  actionable wording issue was fixed in this item by simplifying the definition.
+- Test/enforceability critic: score 9/10, PASS. Blocking findings: none. Why
+  not 10: the test is intentionally marker-string based rather than a structural
+  parser for all semantically equivalent policy wording.
+- Process-compliance critic: score 7/10, VETO. Blocking findings: missing
+  Completion Gate evidence and item still marked `진행중`; not accepted.
+- Score handling: the score below 9 was treated as VETO. Blocking findings were
+  fixed by adding this Decision implemented section, search-set evidence,
+  multi-review score record, Completion Gate, and by marking the accepted item
+  `완료`.
+- Affected process-compliance critic rerun: score 9/10, PASS. Blocking
+  findings: none. Why not 10: final backlog closure still needed to record the
+  rerun result and switch final acceptance from pending to accepted.
+- Rerun status: all affected critics reran; final scores are 9/10, 9/10, and
+  9/10 PASS.
+- Follow-up/residual risk: accepted marker-test limitation and procedural
+  final-closure timing.
+- Final acceptance: accepted after affected critic rerun.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `MAINTENANCE.md`,
+  `tests/test_maintenance_policy_boundaries.py`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_maintenance_policy_boundaries.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree`; PASS `git
+  diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py --list` confirmed Active
+    case inventory before edits; focused baseline gates passed.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes maintenance workflow/status
+  semantics.
+- Multi-review result: PASS after three-critic multi-review, VETO fix, and
+  affected process-compliance critic rerun.
+- Reviewer scores and VETO handling: policy-semantics critic 9/10 PASS;
+  test/enforceability critic 9/10 PASS; process-compliance critic 7/10 VETO.
+  VETO blocking findings were fixed by completing the backlog evidence and
+  changing status to `완료`; affected process-compliance critic rerun reached
+  9/10 PASS.
+- For each score-9 result, why not 10:
+  - Policy-semantics critic: not 10 because of redundant accepted wording in the
+    `완료` definition; fixed in this item.
+  - Test/enforceability critic: not 10 because marker-string tests remain
+    somewhat brittle; accepted as residual risk for this focused
+    policy-boundary test style.
+  - Process-compliance critic rerun: not 10 because final backlog closure still
+    needed recording at rerun time; addressed by this Completion Gate.
+- Backlog items added from score-9 residual risk: none; the actionable wording
+  issue was fixed here, and the marker-test limitation is accepted residual
+  risk.
+- Residual risk/follow-up: accepted marker-test limitation; procedural
+  final-closure timing addressed by this Completion Gate.
+- Accepted: yes.
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

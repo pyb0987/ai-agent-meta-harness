@@ -136,8 +136,10 @@ Use these status values:
 
 - `대기`: available and not currently owned.
 - `진행중`: editing, verification, or review is active.
-- `리뷰대기`: implementation is ready for review or merge coordination.
-- `완료`: merged or otherwise accepted; keep decision and follow-up notes.
+- `리뷰대기`: implementation is ready but still waiting for external review,
+  merge coordination, or maintainer acceptance.
+- `완료`: accepted and completed in the current maintenance flow or merged;
+  keep decision and follow-up notes.
 - `보류`: intentionally paused, blocked, or superseded; record the reason.
 
 If the work must expand beyond the recorded scope, update the backlog item
@@ -171,8 +173,10 @@ repeatable loop so future sessions can reproduce the handoff discipline:
 10. For every score of 9, record why it was not 10. If the reason is an
    actionable repository improvement, add a follow-up backlog item before
    acceptance; otherwise record why it is accepted as residual risk.
-11. Complete the Completion Gate, mark the item `리뷰대기`, rerun the maintenance
-    review and search-set evidence checkers, and record the results.
+11. Complete the Completion Gate, mark an accepted completed item `완료`, rerun
+    the maintenance review and search-set evidence checkers, and record the
+    results. Use `리뷰대기` only when the implementation is ready but still
+    awaiting external review, merge coordination, or maintainer acceptance.
 12. Stage only the selected item's intended files or hunks. If the worktree has
     unrelated dirty backlog additions or user edits, leave them unstaged and
     mention them in the Completion Gate or final handoff.

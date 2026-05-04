@@ -89,6 +89,24 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             text,
         )
 
+    def test_accepted_completed_items_are_marked_complete(self) -> None:
+        text = normalized_text()
+
+        for marker in (
+            "`리뷰대기`: implementation is ready but still waiting for external review, "
+            "merge coordination, or maintainer acceptance",
+            "`완료`: accepted and completed in the current maintenance flow or merged",
+            "Complete the Completion Gate, mark an accepted completed item `완료`",
+            "Use `리뷰대기` only when the implementation is ready but still awaiting "
+            "external review, merge coordination, or maintainer acceptance",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+        self.assertNotIn(
+            "Complete the Completion Gate, mark the item `리뷰대기`",
+            text,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
