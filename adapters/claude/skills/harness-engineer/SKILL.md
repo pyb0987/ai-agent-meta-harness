@@ -47,7 +47,13 @@ Propose harness changes while freely diagnosing within the following constraints
 - If both `.claude/traces/` and `.harness/traces/` have divergent meaningful
   history, stop and report uncertainty with a migration plan before writing new
   traces. Do not split future trace history silently.
-- **Always check** `{trace_root}` raw traces first (create directory if missing)
+- **Mode boundary**: for diagnosis-only, review-only, or proposal-only work, if
+  the selected trace root or required trace directories are missing, report the
+  missing trace infrastructure and continue without creating directories or
+  files.
+- **Applied change setup**: only when the user asks to apply a harness change,
+  create the missing minimum trace surface before writing new traces.
+- **Always check** existing `{trace_root}` raw traces first
 - Do not rely on summaries/memory — read raw logs, code, and scores directly
 - **Required procedure (Non-Markovian)**: Before starting diagnosis, always run `ls {trace_root}/failures/` to check for similar past failures. If found, Read the file and diagnose why the prior Prevention did not work first. Do not skip this step
 - If a similar failure exists in `{trace_root}/failures/`, diagnose why the prior Prevention failed before anything else

@@ -57,6 +57,22 @@ class ClaudeHarnessEngineerTraceRootTests(unittest.TestCase):
             with self.subTest(legacy=legacy):
                 self.assertNotIn(legacy, text)
 
+    def test_diagnosis_only_reports_missing_trace_infrastructure_without_mutation(self) -> None:
+        text = skill_text(HARNESS_ENGINEER)
+
+        for marker in (
+            "for diagnosis-only, review-only, or proposal-only work",
+            "report the\n  missing trace infrastructure",
+            "without creating directories or\n  files",
+            "only when the user asks to apply a harness change",
+            "create the missing minimum trace surface before writing new traces",
+            "Always check** existing `{trace_root}` raw traces first",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+        self.assertNotIn("(create directory if missing)", text)
+
     def test_compatibility_mirror_has_same_trace_root_contract(self) -> None:
         canonical = skill_text(HARNESS_ENGINEER)
         mirror = skill_text(MIRROR_HARNESS_ENGINEER)
@@ -64,6 +80,8 @@ class ClaudeHarnessEngineerTraceRootTests(unittest.TestCase):
         for marker in (
             "Select active trace root first",
             "Active trace root evidence includes",
+            "for diagnosis-only, review-only, or proposal-only work",
+            "only when the user asks to apply a harness change",
             "`ls {trace_root}/failures/`",
             "`{trace_root}/search-set.md`",
             "`{trace_root}/evolution/NNN-{name}.md`",
@@ -71,6 +89,7 @@ class ClaudeHarnessEngineerTraceRootTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
+        self.assertNotIn("(create directory if missing)", mirror)
 
 
 if __name__ == "__main__":

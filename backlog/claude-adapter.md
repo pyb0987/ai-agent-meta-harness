@@ -777,8 +777,9 @@ Completion Gate:
   backlog/claude-adapter.md`; PASS `python3 scripts/check-search-set-evidence.py`;
   PASS `python3 scripts/run-search-set.py`; PASS `python3 scripts/verify-release.py
   --skip-clean-worktree`; PASS `git diff --check`.
-- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
-  AFTER PASS `python3 scripts/run-search-set.py`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
 - Multi-review required: yes.
 - Multi-review result: schema/trace-root critic VETO resolved and final PASS;
   tests/mirror critic PASS; process critic PASS.
@@ -802,7 +803,35 @@ Completion Gate:
 
 ### 17. P3 keep Claude diagnosis-only reviews from silently creating trace infrastructure
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/claude/skills/harness-engineer/SKILL.md
+- skills/harness-engineer/SKILL.md
+- tests/test_claude_harness_engineer_trace_root.py
+- backlog/claude-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/claude-adapter.md` item 17, keep Claude
+  diagnosis-only reviews from silently creating trace infrastructure.
+- Status block added: yes, item 17 marked `진행중`.
+- Harness-affecting: yes; this changes Claude adapter harness-engineer runtime
+  guidance.
+- Multi-review required: yes; this changes adapter behavior and the
+  diagnosis/application boundary.
+- Minimum verification commands: `python3 -m unittest
+  tests/test_claude_harness_engineer_trace_root.py`; `python3 -m unittest
+  discover -s adapters/claude/tests`; `python3 scripts/check-claude-adapter-paths.py`;
+  `python3 scripts/check-compat-mirrors.py`; `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`; `python3
+  scripts/check-search-set-evidence.py`; `python3 scripts/run-search-set.py`;
+  `python3 scripts/verify-release.py --skip-clean-worktree`; `git diff --check`.
+- Expected scope: Claude harness-engineer skill canonical source, root
+  compatibility mirror, focused trace-root boundary test, and this backlog
+  record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -830,3 +859,71 @@ Done when:
 - Applied harness changes can still initialize the minimum trace surface when
   appropriate.
 - Compatibility mirror checks and focused Claude adapter tests pass.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 -m unittest tests/test_claude_harness_engineer_trace_root.py`,
+  `python3 scripts/check-claude-adapter-paths.py`, and `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Clarified the Claude harness-engineer mode boundary: diagnosis-only,
+  review-only, and proposal-only work reports missing trace infrastructure
+  without creating directories or files.
+- Preserved applied harness evolution behavior by allowing creation of the
+  missing minimum trace surface only when the user asks to apply a harness
+  change.
+- Synchronized the root compatibility mirror at
+  `skills/harness-engineer/SKILL.md`.
+- Added focused coverage for the diagnosis-only no-mutation boundary, applied
+  setup wording, legacy `(create directory if missing)` removal, and mirror
+  marker/count synchronization.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/skills/harness-engineer/SKILL.md`;
+  `skills/harness-engineer/SKILL.md`;
+  `tests/test_claude_harness_engineer_trace_root.py`;
+  `backlog/claude-adapter.md`.
+- Scope deviations: `skills/harness-engineer/SKILL.md` was added to Scope
+  before editing because the selected change had to keep the root compatibility
+  mirror synchronized. Unrelated dirty `backlog/README.md` remains outside this
+  item and will not be staged or committed with item 17.
+- Verification results: PASS `python3 -m unittest
+  tests/test_claude_harness_engineer_trace_root.py`; PASS `python3 -m unittest
+  discover -s adapters/claude/tests`; PASS `python3 scripts/check-claude-adapter-paths.py`;
+  PASS `python3 scripts/check-compat-mirrors.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree`; PASS `git
+  diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes.
+- Multi-review result: semantics critic PASS; tests/mirror critic PASS after
+  score-9 coverage improvement; process critic PASS after VETO and score-9
+  completion-wording fixes.
+- Reviewer scores and VETO handling: semantics critic 10/10 PASS; tests/mirror
+  critic initially 9/10 PASS because the focused unit test rejected the legacy
+  `(create directory if missing)` phrase only in the canonical skill and relied
+  on the mirror gate for the compatibility mirror, then fixed with a direct
+  mirror forbidden-phrase assertion and rerun to 10/10 PASS; process critic
+  initially 8/10 VETO because Start Gate was not recorded in the backlog item,
+  the unrelated dirty `backlog/README.md` was not explicitly handled, and
+  Completion Gate was not yet recorded, then rerun to 9/10 PASS because final
+  acceptance still said the process rerun was pending.
+- For each score 9, why not 10: tests/mirror critic's temporary 9 was due to
+  mirror forbidden-phrase coverage relying on the separate compatibility mirror
+  gate rather than the focused unit test; fixed in this item. Process critic's
+  temporary 9 was due to final Completion Gate wording still saying process
+  rerun and acceptance were pending; fixed in this item.
+- Backlog items added from score-9 residual risk: none; the score-9 reason was
+  an actionable in-scope test/process-record improvement and was resolved
+  before acceptance.
+- Residual risk/follow-up: none.
+- Accepted: yes.
