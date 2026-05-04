@@ -3,6 +3,8 @@
 # Harness Engineering Methodology — Core
 
 Runtime-neutral core principles. For detailed reference in an installed Claude setup, see `~/.claude/docs/harness-reference.md`. Repository source: `core/reference.md`.
+The opening cues below are paper-backed motivation for this repository's
+applied harness toolkit, not local benchmark reproduction claims.
 
 > The bottleneck is environment design, not model intelligence.
 > Richer diagnostic context produces better harnesses. (Meta-Harness, Lee et al. 2026)
@@ -155,7 +157,8 @@ Prompt-as-code example:
 
 ### Applied Repository Hardening: recurring failures are absorbed by structure
 
-> "Don't do this" fails. "Can't do this" succeeds.
+Repository hardening shorthand: "Don't do this" fails; "Can't do this"
+succeeds when repeated trace evidence can be turned into mechanical guardrails.
 
 The Meta-Harness paper core is the proposer/evaluator/trace loop: preserve the
 feedback signal, search in mutable code space, isolate confounding variables,

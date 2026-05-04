@@ -40,6 +40,18 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
         self.assertIn("Applied hardening check", methodology)
         self.assertIn("Drift is mechanically prevented or detected", methodology)
 
+    def test_aphoristic_slogans_are_claim_boundary_framed(self) -> None:
+        methodology = text()
+        mirror = text(MIRROR)
+
+        for document in (methodology, mirror):
+            with self.subTest(document=document[:20]):
+                self.assertIn("paper-backed motivation for this repository's", document)
+                self.assertIn("not local benchmark reproduction claims", document)
+                self.assertIn("Repository hardening shorthand", document)
+                self.assertIn("repeated trace evidence can be turned into mechanical guardrails", document)
+                self.assertNotIn('> "Don\'t do this" fails. "Can\'t do this" succeeds.', document)
+
     def test_compatibility_mirror_has_same_boundary_language(self) -> None:
         canonical = text(CORE)
         mirror = text(MIRROR)
@@ -47,7 +59,9 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
         for marker in (
             "### Applied Repository Hardening",
             "not a separate paper claim",
+            "not local benchmark reproduction claims",
             "**Repository hardening ladder**",
+            "Repository hardening shorthand",
             "Applied hardening check",
             "Drift is mechanically prevented or detected",
         ):

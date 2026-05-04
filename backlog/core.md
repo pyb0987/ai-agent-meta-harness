@@ -1756,7 +1756,15 @@ Completion Gate:
 
 ### 42. P3 audit aphoristic methodology slogans for claim-boundary clarity
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- tests/test_core_methodology_boundaries.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of current local `main` against the
 Meta-Harness methodology.
@@ -1790,6 +1798,85 @@ Done when:
   traceability boundaries.
 - Multi-review checks the result if public claim boundaries or core methodology
   wording change.
+
+Implementation notes:
+
+- Audited README, `MAINTENANCE.md`, `core/methodology.md`, and
+  `core/reference.md` for standalone aphoristic or absolute claim wording.
+  README and `MAINTENANCE.md` already carry the operationalized-toolkit and
+  no-local-reproduction framing from item 45; `core/reference.md` did not have
+  a matching standalone slogan that needed edits.
+- Added claim-boundary context before the opening methodology cues so they read
+  as paper-backed motivation for this repository's applied harness toolkit, not
+  local benchmark reproduction claims.
+- Reworded the structural hardening aphorism as repository shorthand tied to
+  repeated trace evidence and mechanical guardrails.
+- Mirrored the methodology wording in `docs/methodology.md` and added a focused
+  boundary test.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/check-maintenance-review.py`.
+- before: PASS `python3 scripts/check-compat-mirrors.py`.
+- before: PASS `sh .githooks/pre-commit`.
+- before: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+- after: PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`.
+
+Multi-review:
+
+- Result: PASS; required because this changes core methodology/public
+  claim-boundary wording. Used `FALLBACK_NONINDEPENDENT` sequential review
+  because this single-session maintenance pass was not authorized to spawn
+  independent reviewers.
+- Paper-claim boundary critic: score 10/10; verdict PASS; Blocking findings:
+  none. The wording keeps the memorable cues but labels them as paper-backed
+  motivation and repository-applied hardening, not local benchmark proof.
+- Methodology-contract critic: score 10/10; verdict PASS; Blocking findings:
+  none. The change does not weaken trace, evaluator-boundary, or guardrail
+  requirements; it ties the hardening shorthand to repeated trace evidence.
+- Verification/mirror critic: score 10/10; verdict PASS; Blocking findings:
+  none. Focused boundary tests, compatibility mirror checks, standard tests,
+  pre-commit, and Active search-set commands passed.
+- Score handling: no score below 9, so no VETO; no score 9, so no why-not-10
+  residual risk or follow-up backlog item.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: no VETO, so no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `core/methodology.md`, `docs/methodology.md`,
+  `tests/test_core_methodology_boundaries.py`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_core_methodology_boundaries.py
+  tests/test_readme_methodology_boundaries.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3 -m unittest discover -s
+  tests`; PASS `python3 -m unittest discover -s adapters/claude/tests`; PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3 -m
+  unittest tests/test_pre_commit_hook.py`; PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`; PASS `python3 -m
+  unittest tests/test_repository_search_set.py`; PASS `sh .githooks/pre-commit`;
+  PASS `git diff --check`.
+- Search-set verification: PASS before/after for relevant Active commands, as
+  listed above.
+- Multi-review required: yes; core methodology/public claim-boundary wording.
+- Multi-review result: PASS; `FALLBACK_NONINDEPENDENT` sequential review.
+- Reviewer scores and VETO handling: 10/10 paper-claim boundary critic, 10/10
+  methodology-contract critic, 10/10 verification/mirror critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 33. P2 complete repository self-application trace root
 
