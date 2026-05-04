@@ -102,12 +102,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has two unstarted concrete process items from recent
-  current-main methodology reviews: item 66 should make required multi-review
-  presence visible for high-impact changed paths, and item 67 should tighten
-  the README opening attribution for the 6x harness-sensitivity claim so it
-  matches the paper traceability table.
-  Items 56-65 are complete, so future maintenance should not select them as
+- Active core backlog has one unstarted concrete process item from recent
+  current-main methodology reviews: item 67 should tighten the README opening
+  attribution for the 6x harness-sensitivity claim so it matches the paper
+  traceability table.
+  Items 56-66 are complete, so future maintenance should not select them as
   available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -201,37 +200,8 @@ Status: 완료
 Archived: `backlog/archive/core.md#65-p3-decide-whether-archive-lifecycle-validation-belongs-in-pre-commit`
 ### 66. P2 make required multi-review presence visible for high-impact changes
 
-Status: 대기
-
-Source review: 2026-05-04 multi-review of local `main` against the
-Meta-Harness methodology.
-
-`scripts/check-maintenance-review.py` validates review-result structure after it
-finds a `Multi-review:` or `Review outcome:` section. It does not decide whether
-a high-impact change should have had a review section in the first place. That
-keeps the checker simple, but durable-contract changes can still omit a
-multi-review record entirely and pass the structural checker.
-
-Potential improvement:
-
-- Define a lightweight changed-path or backlog-record signal for changes that
-  normally require multi-review: adapter behavior, release gates, hook
-  semantics, core methodology boundaries, trace schemas, and evaluator-boundary
-  policy.
-- Decide whether missing multi-review should be a blocking checker error, a
-  quality signal, or a stricter mode used by release candidates.
-- Require an explicit "not required" reason for high-impact paths when no
-  multi-review section is present.
-- Add focused tests for required, optional, and explicitly skipped review cases.
-
-Done when:
-
-- A high-impact harness or release-gate change cannot accidentally omit
-  multi-review evidence without at least producing a clear checker signal.
-- The policy distinguishes routine docs/status cleanup from durable-contract
-  changes.
-- `MAINTENANCE.md` and checker behavior agree on whether missing multi-review is
-  blocking or advisory.
+Status: 완료
+Archived: `backlog/archive/core.md#66-p2-make-required-multi-review-presence-visible-for-high-impact-changes`
 ### 67. P2 tighten README 6x harness-sensitivity attribution
 
 Status: 대기

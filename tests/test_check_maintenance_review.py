@@ -487,6 +487,143 @@ Potential improvement:
 
         self.assertFalse(any("fallback action threshold met" in line for line in summary_lines))
 
+    def test_missing_multi_review_signal_flags_high_impact_paths(self):
+        signal = check_maintenance_review.missing_multi_review_signal(
+            ["scripts/check-maintenance-review.py"],
+            ["# Core Backlog\n\n### 1. Example\n\nStatus: 진행중\n"],
+        )
+
+        self.assertIsNotNone(signal)
+        self.assertTrue(
+            any(
+                "lack a recorded Multi-review" in line
+                for line in check_maintenance_review.missing_multi_review_summary(signal)
+            )
+        )
+
+    def test_missing_multi_review_signal_accepts_not_required_reason(self):
+        signal = check_maintenance_review.missing_multi_review_signal(
+            ["scripts/check-maintenance-review.py"],
+            ["# Core Backlog\n\nMulti-review not required: generated typo-only cleanup.\n"],
+        )
+
+        self.assertIsNone(signal)
+
+    def test_missing_multi_review_signal_ignores_low_impact_backlog_only_paths(self):
+        signal = check_maintenance_review.missing_multi_review_signal(
+            ["backlog/core.md"],
+            ["# Core Backlog\n\n### 1. Example\n\nStatus: 진행중\n"],
+        )
+
+        self.assertIsNone(signal)
+
+    def test_main_prints_missing_multi_review_signal_for_staged_high_impact_change(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            scripts = root / "scripts"
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            scripts.mkdir()
+            archive.mkdir(parents=True)
+            (scripts / "example.py").write_text("print('hi')\n", encoding="utf-8")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n\n### 1. Example\n\nStatus: 진행중\n",
+                encoding="utf-8",
+            )
+            for name in ("claude-adapter.md", "codex-adapter.md"):
+                (backlog / name).write_text(f"# {name}\n", encoding="utf-8")
+                (archive / name).write_text(f"# {name} Archive\n", encoding="utf-8")
+            (archive / "core.md").write_text("# Core Backlog Archive\n", encoding="utf-8")
+            git(root, "add", "scripts/example.py", "backlog")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("high-impact changed path", stdout.getvalue())
+
+    def test_staged_missing_multi_review_signal_ignores_historical_archive_markers(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            scripts = root / "scripts"
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            scripts.mkdir()
+            archive.mkdir(parents=True)
+            (scripts / "example.py").write_text("print('hi')\n", encoding="utf-8")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n",
+                encoding="utf-8",
+            )
+            for name in ("claude-adapter.md", "codex-adapter.md"):
+                (backlog / name).write_text(f"# {name}\n", encoding="utf-8")
+                (archive / name).write_text(f"# {name} Archive\n", encoding="utf-8")
+            (archive / "core.md").write_text(VALID_REVIEW, encoding="utf-8")
+            git(root, "add", "scripts/example.py", "backlog")
+            git(root, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "initial")
+            (scripts / "example.py").write_text("print('changed')\n", encoding="utf-8")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n\n### 1. Example\n\nStatus: 진행중\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "scripts/example.py", "backlog/core.md")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("high-impact changed path", stdout.getvalue())
+
+    def test_staged_missing_multi_review_signal_accepts_changed_not_required_record(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            scripts = root / "scripts"
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            scripts.mkdir()
+            archive.mkdir(parents=True)
+            (scripts / "example.py").write_text("print('hi')\n", encoding="utf-8")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n",
+                encoding="utf-8",
+            )
+            for name in ("claude-adapter.md", "codex-adapter.md"):
+                (backlog / name).write_text(f"# {name}\n", encoding="utf-8")
+                (archive / name).write_text(f"# {name} Archive\n", encoding="utf-8")
+            (archive / "core.md").write_text(VALID_REVIEW, encoding="utf-8")
+            git(root, "add", "scripts/example.py", "backlog")
+            git(root, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "initial")
+            (scripts / "example.py").write_text("print('changed')\n", encoding="utf-8")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n\nMulti-review not required: script comment-only cleanup.\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "scripts/example.py", "backlog/core.md")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertNotIn("high-impact changed path", stdout.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

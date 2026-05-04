@@ -517,6 +517,15 @@ item does not require multi-review, the Reviewed Commit Loop uses a single
 isolated reviewer as the required handoff hygiene check; that check must still
 not be recorded as satisfying required multi-review.
 
+The maintenance review checker emits a review-quality signal, not a validation
+failure, when staged high-impact paths have no recorded `Multi-review:` section
+or explicit `Multi-review not required:` reason in the staged backlog/review
+records. High-impact paths are adapter surfaces, core methodology, scripts,
+pre-commit hooks, README/maintenance policy, and similar release or evaluator
+contracts. Use the explicit not-required reason only for routine cleanup whose
+changed paths look broad but do not alter one of the durable contracts named
+above.
+
 A one-off nonindependent fallback can be accepted only when the item record
 states why independent critics were unavailable or unnecessary for the
 remaining risk, such as temporary sub-agent unavailability, emergency recovery,

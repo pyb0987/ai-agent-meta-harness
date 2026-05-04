@@ -5965,3 +5965,160 @@ Multi-review:
   required because focused tests plus direct command, pre-commit, and release
   verification cover the selected contract.
 - Final acceptance: yes.
+
+### 66. P2 make required multi-review presence visible for high-impact changes
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-maintenance-review.py` validates review-result structure after it
+finds a `Multi-review:` or `Review outcome:` section. It does not decide whether
+a high-impact change should have had a review section in the first place. That
+keeps the checker simple, but durable-contract changes can still omit a
+multi-review record entirely and pass the structural checker.
+
+Potential improvement:
+
+- Define a lightweight changed-path or backlog-record signal for changes that
+  normally require multi-review: adapter behavior, release gates, hook
+  semantics, core methodology boundaries, trace schemas, and evaluator-boundary
+  policy.
+- Decide whether missing multi-review should be a blocking checker error, a
+  quality signal, or a stricter mode used by release candidates.
+- Require an explicit "not required" reason for high-impact paths when no
+  multi-review section is present.
+- Add focused tests for required, optional, and explicitly skipped review cases.
+
+Done when:
+
+- A high-impact harness or release-gate change cannot accidentally omit
+  multi-review evidence without at least producing a clear checker signal.
+- The policy distinguishes routine docs/status cleanup from durable-contract
+  changes.
+- `MAINTENANCE.md` and checker behavior agree on whether missing multi-review is
+  blocking or advisory.
+
+Decision implemented:
+
+- `MAINTENANCE.md` now states that staged high-impact paths without a recorded
+  `Multi-review:` section or explicit `Multi-review not required:` reason
+  produce a review-quality signal, not a validation failure.
+- `scripts/check-maintenance-review.py` now classifies staged adapter, core,
+  script, hook, README, and maintenance-policy paths as high-impact signals for
+  this purpose, while keeping routine backlog-only work out of the signal.
+- The checker accepts an explicit `Multi-review not required:` reason as the
+  durable-record disposition for broad-looking paths that are routine cleanup.
+- `tests/test_check_maintenance_review.py` covers high-impact missing-review
+  signaling, explicit not-required disposition, low-impact backlog-only
+  exemption, and default staged Git-index output.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`.
+- BEFORE: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+- BEFORE: PASS `python3 scripts/check-maintenance-review.py`.
+- AFTER: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+- AFTER: PASS `python3 scripts/check-maintenance-review.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md` after
+  VETO recovery re-review passed.
+- Changed files: `MAINTENANCE.md`,
+  `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none. Dirty out-of-scope files
+  `backlog/README.md` and `backlog/codex-adapter.md` remain unstaged and are
+  not part of item 66.
+- Verification results: PASS `python3 -m unittest
+  tests/test_check_maintenance_review.py`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 scripts/run-search-set.py`; PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - BEFORE: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py`.
+  - AFTER: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+  - AFTER: PASS `python3 scripts/check-maintenance-review.py`.
+  - AFTER: PASS `python3 scripts/check-search-set-evidence.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree
+    --base-ref origin/main`.
+- Multi-review required: yes; this changes maintenance/release review-checker
+  semantics for high-impact staged paths.
+- Multi-review result: PASS after checker/tests and process/scope VETO
+  recovery re-reviews.
+- Reviewer scores and VETO handling: policy semantics critic 9 PASS;
+  checker/tests critic initially 7 VETO, fixed by adding historical archive
+  marker regression coverage and confirming disposition only comes from staged
+  changed backlog/review records, then re-review score 9 PASS; process/scope
+  critic initially 8 VETO because Completion Gate and dirty-file handling were
+  not yet recorded, then 8 VETO because the Completion Gate search-set evidence
+  was not checker-readable, both fixed; final process/scope re-review score 9
+  PASS.
+- For each score 9, why not 10: policy critic noted broad high-impact wording
+  can produce advisory noise, accepted because the signal is non-blocking and
+  has an explicit disposition path; checker/tests critic noted disposition
+  matching remains coarse-grained across the staged high-impact set, accepted
+  because item 66 only promises a lightweight advisory signal and the regression
+  now guards the historical-marker false negative; process/scope critic
+  noted final acceptance/archive/staging was intentionally pending during
+  re-review, addressed by this final status/archive update.
+- Backlog items added from score-9 residual risk: none; score-9 residuals
+  are accepted as advisory precision or final-closure timing limits for this
+  item rather than required follow-up.
+- Residual risk/follow-up: no follow-up. Optional per-path disposition
+  precision is outside this lightweight advisory item, and final process closure
+  is complete.
+- Accepted: yes.
+
+Multi-review:
+
+- Policy semantics critic: score 9, PASS. Blocking findings: none. Why not 10:
+  high-impact path wording has judgmental breadth around README and maintenance
+  policy changes, which may produce occasional advisory noise.
+  Follow-up/residual risk: accepted because the signal is non-blocking and
+  maintainers can record `Multi-review not required:` for routine cleanup.
+- Checker/tests critic: initial score 7, VETO. Blocking findings: historical
+  archive review markers could suppress the missing-review advisory for a new
+  high-impact staged change. Not accepted until affected re-review reached
+  score 9.
+- Checker/tests re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  disposition matching is still coarse-grained across the staged high-impact
+  set rather than per changed path. Follow-up/residual risk: accepted because
+  item 66 intentionally adds a lightweight advisory signal, and tests now cover
+  the historical archive marker false-negative.
+- Process/scope critic: initial score 8, VETO. Blocking findings: Completion
+  Gate was missing and dirty out-of-scope backlog files were not explicitly
+  handled. Not accepted until affected re-review reached score 9.
+- Process/scope first re-review: score 8, VETO. Blocking findings: Completion
+  Gate search-set evidence was not checker-readable. Not accepted until
+  affected re-review reached score 9.
+- Process/scope final re-review: score 9, PASS. Blocking findings: none. Why
+  not 10: final acceptance/archive/staging was still pending during re-review.
+  Follow-up/residual risk: addressed by this final status/archive update.
+- Score handling: score 7 and both score 8 results triggered VETO recovery;
+  affected critic reruns reached score 9. Every score 9 records why not 10 and
+  residual-risk disposition.
+- Rerun status: checker/tests affected critic rerun after fixes, final score 9;
+  process/scope affected critic rerun after Completion Gate and search-set
+  evidence fixes, final score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
+  closure is complete in this record.
+- Final acceptance: yes.

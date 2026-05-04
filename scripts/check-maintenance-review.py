@@ -25,9 +25,23 @@ DEFAULT_BACKLOG_FILES = (
     "backlog/archive/claude-adapter.md",
     "backlog/archive/codex-adapter.md",
 )
+HIGH_IMPACT_PATH_PREFIXES = (
+    ".githooks/",
+    "adapters/",
+    "core/",
+    "scripts/",
+)
+HIGH_IMPACT_PATHS = {
+    "MAINTENANCE.md",
+    "README.md",
+}
+HIGH_IMPACT_PATH_EXEMPT_PREFIXES = (
+    "scripts/check-clean-worktree.py",
+)
 
 SCORE_RE = re.compile(r"\b(?:normalized\s+)?score(?:d)?(?:\s*[:=]|\s+)(\d+(?:\.\d+)?)\b", re.IGNORECASE)
 REVIEW_MARKER_RE = re.compile(r"^\s*(?:Multi-review|Review outcome):\s*$", re.MULTILINE)
+MULTI_REVIEW_NOT_REQUIRED_RE = re.compile(r"^\s*Multi-review not required:\s+\S.+", re.MULTILINE)
 WHY_NOT_10_RE = re.compile(r"\b(?:why\s+not\s+10|not\s+10)\b", re.IGNORECASE)
 SCORE_9_DISPOSITION_RE = re.compile(
     r"\b(?:backlog|follow-up|residual risk|remaining follow-up|addressed|fixed|resolved|accepted)\b",
@@ -95,6 +109,11 @@ class ReviewQualitySignal:
     heading: str
     start_line: int
     fallback_records: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class MissingMultiReviewSignal:
+    changed_paths: tuple[str, ...]
 
 
 def normalize_score(raw: str) -> float:
@@ -283,6 +302,42 @@ def review_quality_signals(text: str, *, source: str = "<text>") -> list[ReviewQ
     return signals
 
 
+def is_high_impact_path(path: str) -> bool:
+    if path in HIGH_IMPACT_PATHS:
+        return True
+    if path.startswith(HIGH_IMPACT_PATH_EXEMPT_PREFIXES):
+        return False
+    return path.startswith(HIGH_IMPACT_PATH_PREFIXES)
+
+
+def has_multi_review_disposition(texts: list[str]) -> bool:
+    return any(REVIEW_MARKER_RE.search(text) or MULTI_REVIEW_NOT_REQUIRED_RE.search(text) for text in texts)
+
+
+def missing_multi_review_signal(changed_paths: list[str], record_texts: list[str]) -> MissingMultiReviewSignal | None:
+    high_impact = tuple(path for path in changed_paths if is_high_impact_path(path))
+    if not high_impact or has_multi_review_disposition(record_texts):
+        return None
+    return MissingMultiReviewSignal(changed_paths=high_impact)
+
+
+def missing_multi_review_summary(signal: MissingMultiReviewSignal | None, *, limit: int = 5) -> list[str]:
+    if signal is None:
+        return []
+    shown = signal.changed_paths[:limit]
+    lines = [
+        (
+            "Review-quality signal: high-impact changed path(s) lack a recorded "
+            "Multi-review section or explicit 'Multi-review not required:' reason."
+        )
+    ]
+    lines.extend(f"Review-quality signal: high-impact path: {path}" for path in shown)
+    remaining = len(signal.changed_paths) - len(shown)
+    if remaining > 0:
+        lines.append(f"Review-quality signal: ... {remaining} additional high-impact path(s) omitted.")
+    return lines
+
+
 def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5) -> list[str]:
     total_records = sum(len(signal.fallback_records) for signal in signals)
     if total_records == 0:
@@ -367,6 +422,13 @@ def _git(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[
     )
 
 
+def _staged_changed_paths() -> list[str]:
+    result = _git(["diff", "--cached", "--name-only", "--diff-filter=ACMRTD"], check=False)
+    if result.returncode != 0:
+        return []
+    return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+
+
 def _inside_git_worktree() -> bool:
     result = _git(["rev-parse", "--is-inside-work-tree"], check=False)
     return result.returncode == 0 and result.stdout.strip() == "true"
@@ -390,6 +452,14 @@ def indexed_default_paths() -> list[Path]:
         if fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB):
             wanted.add(path)
     return sorted(ROOT / path for path in wanted if path in indexed)
+
+
+def staged_record_paths(changed_paths: list[str]) -> list[Path]:
+    return [
+        ROOT / path
+        for path in changed_paths
+        if path in DEFAULT_BACKLOG_FILES or fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB)
+    ]
 
 
 def validate_index_paths(paths: list[Path]) -> list[str]:
@@ -437,6 +507,7 @@ def main(argv: list[str] | None = None) -> int:
         paths = [Path(arg) for arg in args]
         errors = validate_paths(paths)
         quality_signals = quality_signals_paths(paths)
+        missing_multi_review = None
     else:
         use_index = _inside_git_worktree()
         paths = default_paths(use_index=use_index)
@@ -444,12 +515,23 @@ def main(argv: list[str] | None = None) -> int:
         quality_signals = (
             quality_signals_index_paths(paths) if use_index else quality_signals_paths(paths)
         )
+        changed_paths = _staged_changed_paths() if use_index else []
+        record_texts: list[str] = []
+        disposition_paths = staged_record_paths(changed_paths) if use_index else paths
+        for path in disposition_paths:
+            try:
+                record_texts.append(_read_index_text(path) if use_index else path.read_text(encoding="utf-8"))
+            except OSError:
+                continue
+        missing_multi_review = missing_multi_review_signal(changed_paths, record_texts)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
     print("Maintenance review summaries are valid.")
     for line in quality_signal_summary(quality_signals):
+        print(line)
+    for line in missing_multi_review_summary(missing_multi_review):
         print(line)
     return 0
 
