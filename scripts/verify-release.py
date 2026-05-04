@@ -39,6 +39,7 @@ RELEASE_COMMANDS = (
     ReleaseCommand("codex marketplace metadata", "python3 scripts/check-codex-marketplace-metadata.py"),
     ReleaseCommand("maintenance review records", "python3 scripts/check-maintenance-review.py"),
     ReleaseCommand("search-set evidence records", "python3 scripts/check-search-set-evidence.py"),
+    ReleaseCommand("backlog archive lifecycle", "python3 scripts/check-backlog-archive-lifecycle.py"),
     ReleaseCommand("repository search-set", "python3 scripts/run-search-set.py"),
     ReleaseCommand("repository tests", "python3 -m unittest discover -s tests"),
     ReleaseCommand("claude adapter tests", "python3 -m unittest discover -s adapters/claude/tests"),

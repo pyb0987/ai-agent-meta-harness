@@ -313,6 +313,7 @@ python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-maintenance-review.py
 python3 scripts/check-search-set-evidence.py
+python3 scripts/check-backlog-archive-lifecycle.py
 python3 -m unittest discover -s tests
 python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
