@@ -636,6 +636,150 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 43. P3 refresh Codex plugin-scope v1 protection status
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 43, refresh Codex
+  plugin-scope v1 protection status.
+- Status block added: yes, item 43 marked `진행중`.
+- Harness-affecting: yes; this changes Codex plugin bundle
+  distribution/readiness wording generated into the plugin artifact.
+- Multi-review required: yes; this changes Codex distribution/readiness
+  contract wording for the plugin bundle.
+- Minimum verification commands: `python3 scripts/sync-codex-plugin.py
+  --check`; `python3 -m unittest adapters/codex/tests/test_hook_templates.py`;
+  `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`;
+  `python3 scripts/check-search-set-evidence.py`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: canonical Codex plugin-scope status row, generated plugin
+  mirror, focused Codex docs tests, and this backlog record.
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`adapters/codex/README.md` now describes v1 protection as implemented for
+copied target-project guardrails while runtime plugin hook delivery remains
+deferred. However, `adapters/codex/plugin-scope.md` still says v1 protection has
+install docs planned and status `Partial`. Because `plugin-scope.md` is
+generated into `plugins/ai-agent-meta-harness/`, this stale status creates a
+mixed readiness signal even though plugin sync passes.
+
+Potential improvement:
+
+- Update canonical and generated `plugin-scope.md` so the v1 protection row
+  matches the README's implemented/deferred boundary.
+- Preserve the runtime-delivery caveat: copied guardrails, install docs, and
+  local smoke commands are implemented; runtime plugin hook delivery is still
+  gated on product-supported smoke or reviewed manual evidence.
+- Add or update focused Codex docs tests so README and plugin-scope status do
+  not drift again.
+
+Done when:
+
+- `adapters/codex/README.md`, `adapters/codex/plugin-scope.md`, and the
+  generated plugin mirrors describe the same v1 protection readiness state.
+- `python3 scripts/sync-codex-plugin.py --check` and focused Codex docs tests
+  pass.
+- Multi-review checks the result because this changes distribution/readiness
+  wording for the Codex plugin bundle.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 scripts/sync-codex-plugin.py --check`, `python3 -m
+  unittest adapters/codex/tests/test_hook_templates.py`, `python3
+  scripts/check-maintenance-review.py backlog/codex-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Updated canonical `adapters/codex/plugin-scope.md` and generated
+  `plugins/ai-agent-meta-harness/plugin-scope.md` so the v1 protection row
+  matches the README's implemented/deferred boundary.
+- The row now says copied target-project guardrails, target-project install
+  docs, and local smoke commands are implemented while runtime plugin hook
+  delivery remains deferred until product-supported smoke or reviewed manual
+  evidence exists.
+- Extended focused Codex docs tests so README, generated README, plugin-scope,
+  and generated plugin-scope all share the same v1 protection row and no longer
+  contain `install docs planned` or `Partial` for that row.
+
+Multi-review:
+
+- Distribution/readiness wording critic: score 10/10, PASS. Blocking findings:
+  none.
+- Generated sync/test coverage critic: score 10/10, PASS. Blocking findings:
+  none.
+- Maintenance-process critic: score 8/10, VETO. Blocking findings: Completion
+  Gate and required multi-review result were not yet recorded.
+- Score handling: scores below 9 are VETO. The maintenance-process VETO is
+  handled by recording this Completion Gate and rerunning the affected process
+  critic. For process critic score 9 why not 10, the only remaining issue was
+  final bookkeeping to record the rerun and acceptance; this was addressed in
+  this item and does not create a backlog follow-up.
+- Rerun status: maintenance-process critic re-review score 9/10, PASS.
+  Blocking findings: none.
+- Follow-up/residual risk: no implementation residual risk identified by the
+  two implementation critics. Unrelated user-added backlog changes in
+  `backlog/README.md`, `backlog/core.md`, and `backlog/claude-adapter.md`
+  remain outside item 43 scope and will be left unstaged.
+- Final acceptance: accepted yes after affected process critic re-review scored
+  at least 9 and final bookkeeping was recorded.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/plugin-scope.md
+  - plugins/ai-agent-meta-harness/plugin-scope.md
+  - adapters/codex/tests/test_hook_templates.py
+  - backlog/codex-adapter.md
+- Scope deviations: none for implementation files; unrelated user-added backlog
+  changes in `backlog/README.md`, `backlog/core.md`, and
+  `backlog/claude-adapter.md` are outside item 43 scope and are intentionally
+  left unstaged.
+- Verification results:
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `python3 scripts/check-search-set-evidence.py`
+  - PASS: `python3 scripts/run-search-set.py`
+  - PASS: `python3 scripts/verify-release.py --skip-clean-worktree`
+  - PASS: `git diff --check`
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Codex distribution/readiness
+  contract wording for the plugin bundle.
+- Multi-review result: PASS for implementation critics; PASS for process critic
+  after final record update.
+- Reviewer scores and VETO handling:
+  - Distribution/readiness wording critic: 10/10 PASS; no VETO.
+  - Generated sync/test coverage critic: 10/10 PASS; no VETO.
+  - Maintenance-process critic: 8/10 VETO because Completion Gate and
+    multi-review result were not yet recorded; affected rerun rating 9/10 PASS.
+- For each 9/10 reviewer rating, why not 10:
+  - Maintenance-process critic rerun: not 10 because final bookkeeping still
+    needed to record the process rerun and acceptance; fixed in this item.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: runtime plugin hook delivery remains deferred under
+  the existing item 40 boundary until product-supported smoke or reviewed manual
+  evidence exists. The dirty backlog files outside item 43 are unrelated
+  user-added backlog candidates and remain unstaged.
+- Accepted: yes.
+
 ### 42. P3 add optional Codex CLI surface probe for runtime-delivery docs
 
 Status: 완료

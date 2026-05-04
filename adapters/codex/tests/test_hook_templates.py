@@ -155,9 +155,11 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
         self.assertEqual(canonical, generated)
 
-    def test_readme_v1_protection_scope_names_current_limit(self):
-        canonical = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")
-        generated = (ROOT / "plugins" / "ai-agent-meta-harness" / "README.md").read_text(encoding="utf-8")
+    def test_v1_protection_scope_names_current_limit(self):
+        readme = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")
+        generated_readme = (ROOT / "plugins" / "ai-agent-meta-harness" / "README.md").read_text(encoding="utf-8")
+        scope = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        generated_scope = (ROOT / "plugins" / "ai-agent-meta-harness" / "plugin-scope.md").read_text(encoding="utf-8")
 
         expected_row = (
             "| v1 protection | Checker, hook smoke assertions, protected-path template, "
@@ -167,13 +169,20 @@ class HookTemplateTests(unittest.TestCase):
             "delivery remains deferred until a product-supported smoke or reviewed "
             "manual gate exists |"
         )
-        for text in (canonical, generated):
-            with self.subTest(path="README"):
+        for label, text in (
+            ("README", readme),
+            ("generated README", generated_readme),
+            ("plugin-scope", scope),
+            ("generated plugin-scope", generated_scope),
+        ):
+            with self.subTest(path=label):
                 self.assertIn(expected_row, text)
                 self.assertEqual(text.count("| v1 protection |"), 1)
                 self.assertEqual(text.count(expected_row), 1)
                 self.assertNotIn("install docs planned", text)
-        self.assertEqual(canonical, generated)
+                self.assertNotIn("| Partial |", text)
+        self.assertEqual(readme, generated_readme)
+        self.assertEqual(scope, generated_scope)
 
     def test_runtime_delivery_evidence_status_is_deferred_with_surface_evidence(self):
         readme = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")

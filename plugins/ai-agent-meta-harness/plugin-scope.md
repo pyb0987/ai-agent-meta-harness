@@ -9,7 +9,7 @@ only the Codex runtime adapter surfaces needed to apply that methodology.
 | Stage | Bundle contents | Status |
 |-------|-----------------|--------|
 | v0 scaffold | Skills, AGENTS template, README, plugin manifest, scope document | Implemented |
-| v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, and CI template implemented; install docs planned | Partial |
+| v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains deferred until a product-supported smoke or reviewed manual gate exists |
 | Later release | Examples, marketplace metadata, richer install validation, optional generated assets | Planned |
 
 ## Current Generated Contents
