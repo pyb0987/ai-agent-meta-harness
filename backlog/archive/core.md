@@ -88,7 +88,6 @@ Review outcome:
   after verification passed; no VETO fixes required.
 - Final acceptance: accepted and merged to `main` in commit
   `e7b985e merge: check codex plugin drift from index`.
-
 ### 11. Add maintenance review summary checker
 
 Status: 완료
@@ -166,7 +165,6 @@ Review outcome:
   after verification passed.
 - Final acceptance: accepted and merged to `main` in commit
   `cbf44e9 merge: add maintenance review checker to standard verification`.
-
 ### 12. Clarify prompt-as-code search boundary
 
 Status: 완료
@@ -236,7 +234,6 @@ Review outcome:
   scores were 9, 10, and 10.
 - Final acceptance: accepted and merged to `main` in commit
   `e5c1410 docs: clarify prompt-as-code search boundary`.
-
 ### 13. Label sub-agent guidance as an applied extension
 
 Status: 완료
@@ -306,7 +303,6 @@ Review outcome:
   after verification passed.
 - Final acceptance: accepted and merged to `main` in commit
   `ae81589 merge: label sub-agent guidance as runtime extension`.
-
 ### 14. Calibrate README evidence-level claims
 
 Status: 완료
@@ -377,7 +373,6 @@ Review outcome:
 - Remaining open core candidate: item 28, archive completed backlog records
   without losing Completion Gate, review-score, VETO, search-set, or
   residual-risk history.
-
 ### 15. Validate embedded backlog review outcomes
 
 Status: 완료
@@ -448,7 +443,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 20. P1 harden low-score maintenance review validation
 
 Status: 완료
@@ -524,7 +518,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 21. P2 frame structural hardening as repository practice
 
 Status: 완료
@@ -603,7 +596,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 22. P2 subordinate sub-agent routing to the paper core
 
 Status: 완료
@@ -684,7 +676,6 @@ Completion Gate:
 - Residual risk/follow-up: runtime-specific routing detail remains adapter
   owned.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 23. P3 label maintenance review policy as local release discipline
 
 Status: 완료
@@ -757,7 +748,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 24. P3 reconcile stale accepted backlog statuses
 
 Status: 완료
@@ -825,7 +815,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 25. P1 make maintenance review checker staged-content aware
 
 Status: 완료
@@ -901,7 +890,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 26. P3 label README autoresearch filenames as repository conventions
 
 Status: 완료
@@ -958,7 +946,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 27. P3 refresh core backlog Current Status guidance
 
 Status: 완료
@@ -1005,7 +992,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 19. Add prompt-as-code search example
 
 Status: 완료
@@ -1069,7 +1055,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 16. Enforce score-9 why-not-10 review handling
 
 Status: 완료
@@ -1154,7 +1139,6 @@ Completion Gate:
 - Residual risk/follow-up: complete item 15 before default checker validation is
   expanded to embedded backlog review outcomes.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 17. Restore single-session maintenance pipeline
 
 Status: 완료
@@ -1217,7 +1201,6 @@ Completion Gate:
 - Residual risk/follow-up: update external prompts/playbooks before launching
   new routine maintenance sessions.
 - Accepted: yes, ready for maintainer review and commit.
-
 ### 18. Add maintenance review checker to pre-commit
 
 Status: 완료
@@ -1286,8 +1269,14 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 1. Add fixed-evaluator search-loop detection heuristics
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Current adapter wording can leave fixed-evaluator/search-loop detection to the
 agent without a shared abstraction.
@@ -1306,8 +1295,14 @@ Remaining follow-up work:
 
 - Let adapters add runtime-specific examples only when they differ from the
   shared signal model.
-
 ### 2. Define meaningful trace history tie-breakers
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 When more than one trace root or trace history exists, the harness should define how to choose the active history.
 
@@ -1326,8 +1321,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Let adapters define their concrete source and destination paths for migration.
-
 ### 3. Strengthen Active seed verification quality rules
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The methodology requires auto-executable verify commands, but should define what makes one good enough.
 
@@ -1347,8 +1348,14 @@ Remaining follow-up work:
   this repository.
 
 ## Later Improvements
-
 ### 4. Handle partially initialized trace roots
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 A trace root may exist while one or more required subdirectories or files are missing.
 
@@ -1364,8 +1371,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Let adapters define the exact empty `search-set.md` template they install.
-
 ### 5. Specify Archived case restore and re-archive workflow
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The methodology allows restoring Archived search-set cases but should define when to re-archive them.
 
@@ -1382,8 +1395,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Add parser-level support only if search-set migration becomes automated.
-
 ### 6. Expand standalone fixed-evaluator reference details
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Standalone users may benefit from a short relationship map around
 fixed-evaluator trace artifacts.
@@ -1400,8 +1419,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Adapter examples may name concrete state files when a runtime chooses one.
-
 ### 7. Define documentation abstraction boundaries
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The repository now has a shared core plus runtime adapters. The boundary should be made explicit so future work does not duplicate methodology across adapters.
 
@@ -1416,8 +1441,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Add mechanical duplicate-block detection only if drift recurs.
-
 ### 8. Plan compatibility mirror removal
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Temporary top-level Claude paths are currently retained as compatibility mirrors. They need a removal plan before they become permanent accidental API.
 
@@ -1436,8 +1467,14 @@ Remaining follow-up work:
 
 - Execute the warning/removal plan only after old Claude install smoke coverage
   exists.
-
 ### 9. Define repository release checklist
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Release readiness should be verified with a stable checklist instead of ad hoc manual review.
 
@@ -1456,7 +1493,6 @@ Remaining follow-up work:
 - Add old Claude install command smoke test while compatibility mirrors exist.
 - Add Codex activation smoke test for the chosen primary distribution path.
 - Add release note policy when versioned releases begin.
-
 ### 34. P3 refresh active backlog status after core trace-schema boundary item
 
 Status: 완료
@@ -1498,7 +1534,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 46. P2 add executable repository search-set runner
 
 Status: 완료
@@ -1649,7 +1684,6 @@ Completion Gate:
   repository improvement.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for item 46-only commit.
-
 ### 47. P2 thicken repository self-application trace evidence
 
 Status: 완료
@@ -1783,7 +1817,6 @@ Completion Gate:
   repository improvement.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for item 47 commit.
-
 ### 48. P2 add one executable release verification gate
 
 Status: 완료
@@ -1982,7 +2015,6 @@ Follow-up Completion Gate:
   procedural closure is completed here.
 - Residual risk/follow-up: accepted command-order/equality residual risk.
 - Accepted: yes; ready for commit.
-
 ### 49. P3 guard against root unittest discovery false greens
 
 Status: 완료
@@ -2087,7 +2119,6 @@ Completion Gate:
   completed in this item.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for commit.
-
 ### 50. P2 harden search-set evidence checker text matching
 
 Status: 완료
@@ -2210,7 +2241,6 @@ Completion Gate:
   lightweight checker policy documented in `MAINTENANCE.md`.
 - Residual risk/follow-up: accepted syntactic-checker limitation.
 - Accepted: yes; ready for commit.
-
 ### 51. P3 keep active core Current Status aligned with completed items
 
 Status: 완료
@@ -2316,7 +2346,6 @@ Completion Gate:
   checker behavior for the current `Current Status` convention.
 - Residual risk/follow-up: accepted wording-convention limitation.
 - Accepted: yes; ready for commit.
-
 ### 52. P3 schema-check repository self-application evolution traces
 
 Status: 완료
@@ -2433,7 +2462,6 @@ Completion Gate:
   hardening and lightweight repository-applied schema guard.
 - Residual risk/follow-up: accepted syntactic-schema limitation.
 - Accepted: yes; ready for commit.
-
 ### 53. P2 document the reviewed commit loop
 
 Status: 완료
@@ -2507,7 +2535,6 @@ Completion Gate:
   was handled in this item.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for commit.
-
 ### 54. P2 distinguish multi-review skill use from isolated reviewer gate
 
 Status: 완료
@@ -2639,7 +2666,6 @@ Completion Gate:
 - Residual risk/follow-up: accepted marker-test limitation and recorded BEFORE
   search-set process imperfection.
 - Accepted: yes; ready for commit.
-
 ### 55. P3 mark accepted completed maintenance items as complete
 
 Status: 완료
@@ -2755,7 +2781,6 @@ Completion Gate:
 - Residual risk/follow-up: accepted marker-test limitation; procedural
   final-closure timing addressed by this Completion Gate.
 - Accepted: yes.
-
 ### 56. P2 track repeated nonindependent multi-review fallback as systemic risk
 
 Status: 완료
@@ -2880,7 +2905,6 @@ Completion Gate:
   process placeholder cleanup was completed in this item.
 - Residual risk/follow-up: accepted residual risks above; no new follow-up.
 - Accepted: yes.
-
 ### 57. P2 make search-set evidence checks work on staged or release candidate diffs
 
 Status: 완료
@@ -3017,7 +3041,6 @@ Completion Gate:
   were resolved before acceptance.
 - Residual risk/follow-up: none.
 - Accepted: yes.
-
 ### 58. P3 decide whether search-set evidence records must reference Active cases
 
 Status: 완료
@@ -3131,7 +3154,6 @@ Completion Gate:
   rather than follow from it.
 - Residual risk/follow-up: accepted shape-only checker boundary.
 - Accepted: yes.
-
 ### 59. P2 capture future qualifying repository raw traces
 
 Status: 완료
@@ -3272,7 +3294,6 @@ Completion Gate:
   is completed in this item.
 - Residual risk/follow-up: none.
 - Accepted: yes.
-
 ### 61. P3 align README quick verification guidance with release gate
 
 Status: 완료
@@ -3439,7 +3460,6 @@ Completion Gate:
   assertions, but normalized contract-level checks plus executable
   `verify-release.py` tests cover the durable behavior.
 - Accepted: yes.
-
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료
@@ -3575,7 +3595,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 36. P1 add clean-worktree release verification gate
 
 Status: 완료
@@ -3710,7 +3729,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 37. P3 create paper-claim traceability map for precise citations
 
 Status: 완료
@@ -3846,7 +3864,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 38. P3 remove duplicate core backlog item numbering
 
 Status: 완료
@@ -3916,7 +3933,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 41. P3 refresh active backlog status after item 37 completion
 
 Status: 완료
@@ -3978,7 +3994,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 43. P2 make search-set before/after evidence compliance mechanically visible
 
 Status: 완료
@@ -4127,7 +4142,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 44. P2 remove runtime-specific instruction filenames from core examples
 
 Status: 완료
@@ -4236,7 +4250,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 45. P2 make the operationalized-toolkit framing explicit in public docs
 
 Status: 완료
@@ -4356,7 +4369,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 39. P2 add trace-root completeness to the Active search-set
 
 Status: 완료
@@ -4482,7 +4494,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 28. P2 archive completed backlog items without losing review records
 
 Status: 완료
@@ -4556,7 +4567,6 @@ Completion Gate:
   predate Completion Gate policy were preserved as-is in the archive; they do
   not gain reconstructed Completion Gates from this archive move.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 29. P2 add marketplace metadata checker to standard verification
 
 Status: 완료
@@ -4648,7 +4658,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 32. P2 add repository self-application search-set
 
 Status: 완료
@@ -4737,7 +4746,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 31. P2 narrow backlog workflow multi-review trigger
 
 Status: 완료
@@ -4815,7 +4823,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 30. P3 refresh active backlog Current Status after adapter follow-ups
 
 Status: 완료
@@ -4858,7 +4865,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 40. P3 label core trace schemas as repository-applied conventions
 
 Status: 완료
@@ -4997,7 +5003,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 42. P3 audit aphoristic methodology slogans for claim-boundary clarity
 
 Status: 완료
@@ -5121,7 +5126,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 33. P2 complete repository self-application trace root
 
 Status: 완료
@@ -5230,7 +5234,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes
-
 ### 60. P3 operationalize active backlog archive lifecycle
 
 Status: 완료
@@ -5388,7 +5391,6 @@ Completion Gate:
   bookkeeping was completed in this record.
 - Residual risk/follow-up: accepted residual risks above; no new follow-up.
 - Accepted: yes.
-
 ### 62. P2 connect release verification to base-ref search-set evidence
 
 Status: 완료
@@ -5526,3 +5528,144 @@ Completion Gate:
 - Residual risk/follow-up: accepted documentation/UX residual risk above; no
   follow-up.
 - Accepted: yes.
+### 63. P3 require archived backlog targets to be completed records
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/check-backlog-archive-lifecycle.py
+- tests/test_backlog_archive_lifecycle.py
+- backlog/core.md
+- backlog/archive/core.md
+- backlog/archive/codex-adapter.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-backlog-archive-lifecycle.py` resolves `Archived:` pointers from
+active backlog files, but it only checks archive evidence when the target archive
+section contains `Status: 완료`. If an archive heading exists but accidentally
+omits completed status, the checker can pass even though the archive policy is
+specifically about preserving completed records outside active backlog files.
+
+Potential improvement:
+
+- Require every resolved archive target for a completed active pointer to contain
+  `Status: 완료`.
+- Keep the existing evidence check, but run it after status is confirmed rather
+  than conditionally on status being present.
+- Add focused tests for missing archive target, missing completed status, missing
+  Completion Gate/review evidence, and valid compact pointer records.
+
+Done when:
+
+- A completed active backlog pointer cannot resolve to an archive section that
+  lacks completed status.
+- Archive lifecycle validation still allows compact active pointers and archived
+  historical records that predate modern Completion Gate policy only when their
+  exception is explicit.
+- Focused tests cover the stricter archive target contract.
+
+Decision implemented:
+
+- `scripts/check-backlog-archive-lifecycle.py` now requires every resolved
+  archive target for a completed active pointer to contain `Status: 완료` before
+  evaluating archive evidence.
+- The archive evidence marker set now includes explicit
+  `Legacy archive exception:` sections so older records can remain honest
+  historical records instead of receiving reconstructed Completion Gates.
+- `tests/test_backlog_archive_lifecycle.py` covers missing archived completed
+  status and explicit legacy exception records.
+- Legacy core and Codex archive sections targeted by completed active pointers
+  now contain `Status: 완료` plus explicit legacy exception notes where they
+  predate modern Completion Gate/review records.
+
+Search-set verification:
+
+- BEFORE PASS: `python3 scripts/run-search-set.py`.
+- BEFORE PASS: `python3 -m unittest tests/test_backlog_archive_lifecycle.py`.
+- BEFORE PASS: `python3 scripts/check-backlog-archive-lifecycle.py`.
+- DURING FAIL: after requiring `Status: 완료` on archived targets, the archive
+  lifecycle checker exposed 22 legacy core/Codex archive targets that needed
+  explicit completed status and/or legacy exception evidence.
+- AFTER PASS: `python3 -m unittest tests/test_backlog_archive_lifecycle.py`.
+- AFTER PASS: `python3 scripts/check-backlog-archive-lifecycle.py`.
+- AFTER PASS: `python3 scripts/check-search-set-evidence.py`.
+- AFTER PASS: `python3 scripts/run-search-set.py`.
+- AFTER PASS: `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md` after VETO
+  recovery re-review passed.
+- Changed files:
+  `scripts/check-backlog-archive-lifecycle.py`;
+  `tests/test_backlog_archive_lifecycle.py`; `backlog/core.md`;
+  `backlog/archive/core.md`; `backlog/archive/codex-adapter.md`.
+- Scope deviations: scope expanded from core archive only to include
+  `backlog/archive/codex-adapter.md` after the stricter checker exposed Codex
+  archive targets reached by completed active pointers. Existing dirty
+  `backlog/README.md` and active `backlog/codex-adapter.md` are unrelated
+  user-added backlog changes and must remain unstaged.
+- Verification results: PASS
+  `python3 -m unittest tests/test_backlog_archive_lifecycle.py`; PASS
+  `python3 scripts/check-backlog-archive-lifecycle.py`; PASS
+  `python3 scripts/check-maintenance-review.py backlog/core.md backlog/archive/core.md backlog/archive/codex-adapter.md`;
+  PASS `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 scripts/run-search-set.py`; PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`;
+  PASS `git diff --check`.
+- Search-set verification: required and PASS. BEFORE and AFTER records are
+  listed above; release verification also exercised base-ref search-set
+  evidence mode against `origin/main`.
+- Multi-review required: yes; maintenance/release checker contract changed.
+- Multi-review result: PASS after process VETO recovery and replacement
+  process critic re-review.
+- Reviewer scores and VETO handling: checker semantics 9 PASS; archive
+  migration 10 PASS; maintenance process 6 VETO. The process VETO was handled
+  by adding missing completion, verification, multi-review, and dirty-file
+  treatment records; replacement process critic re-review scored 9 PASS with no
+  blocking findings.
+- For each score 9, why not 10: checker semantics was 9 because legacy
+  exception validation remains marker-level; accepted as residual policy trust
+  because item 63 only required explicit exception evidence, not reconstructed
+  dates or body schema.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: optional future hardening could require structured
+  legacy exception body/date fields, but this is not required for the current
+  archive lifecycle contract.
+- Accepted: yes.
+
+Multi-review:
+
+- Required: yes; this changes a repository maintenance/release checker and the
+  legacy archive evidence contract.
+- Checker semantics critic: score 9, verdict PASS. Blocking findings: none.
+  Why not 10: `Legacy archive exception:` is intentionally lightweight; the
+  checker accepts the marker after completed status but does not validate the
+  explanatory body or prove the record predates modern Completion Gate policy.
+- Archive migration critic: score 10, verdict PASS. Blocking findings: none.
+  Confirmed `Status: 완료` plus explicit legacy exception notes were added only
+  to legacy core items 1-9 and Codex items 1, 3, 5-10, and 12-16 targeted by
+  completed active pointers.
+- Maintenance-process critic: score 6, verdict VETO. Blocking findings:
+  item 63 lacked Completion Gate/final acceptance/multi-review result records;
+  unrelated dirty `backlog/README.md` and `backlog/codex-adapter.md` must remain
+  unstaged and be recorded as out of scope; AFTER verification needed
+  search-set and release verification records. This result is not accepted
+  until affected critic re-review reaches the required threshold.
+- Score handling: score 9 why-not-10 is recorded above and dispositioned as
+  accepted residual risk rather than a backlog item because stricter legacy
+  exception metadata is optional policy hardening beyond this item. Replacement
+  process critic scored 9 because final administrative state was intentionally
+  pending during re-review; that was resolved by this final acceptance/archive
+  record. Score 6 is treated as a VETO and was not accepted until affected
+  critic re-review reached at least nine.
+- Rerun status: replacement maintenance-process critic re-review scored 9,
+  verdict PASS. Blocking findings: none.
+- Follow-up/residual risk: optional future hardening could require structured
+  legacy exception body/date fields, but no follow-up backlog item is required
+  for the current explicit-exception contract.
+- Final acceptance: yes.

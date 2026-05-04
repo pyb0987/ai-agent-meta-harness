@@ -69,7 +69,6 @@ Review outcome:
   after verification passed; no VETO fixes required.
 - Final acceptance: accepted and merged to `main` in commit
   `d231ccb merge: refresh autoresearch trace root branch`.
-
 ### 17. Define Codex plugin marketplace metadata policy
 
 Status: 완료
@@ -145,7 +144,6 @@ Review outcome:
 - Rerun status: all sequential fallback critics reviewed the final scoped diff
   after verification passed.
 - Final acceptance: accepted and merged to the integration branch.
-
 ### 18. Add local plugin artifact smoke test
 
 Status: 완료
@@ -197,7 +195,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 20. Add Codex marketplace metadata release validation
 
 Status: 완료
@@ -290,7 +287,6 @@ Completion Gate:
   until an official schema or taxonomy is cited; the new checker fails if
   publication metadata appears before that readiness evidence is recorded.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 21. Document Codex hook template install paths
 
 Status: 완료
@@ -362,7 +358,6 @@ Completion Gate:
 - Residual risk/follow-up: runtime hook registration remains gated on Codex
   local plugin activation and tool-event smoke coverage.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 22. Document non-GitHub CI BASE_REF setup
 
 Status: 완료
@@ -427,7 +422,6 @@ Completion Gate:
 - Residual risk/follow-up: add provider-specific CI templates only after a
   non-GitHub CI provider becomes a supported target.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 23. P1 align Codex multi-review threshold with maintenance VETO policy
 
 Status: 완료
@@ -523,7 +517,6 @@ Completion Gate:
 - Source reviews: strict multi-review of `adapters/codex/skills/harness-engineer/SKILL.md` and `adapters/codex/skills/autoresearch/SKILL.md`.
 - Last reviewed baselines are the commits linked from the relevant review notes or release notes; avoid keeping a single stale baseline here.
 - Core follow-ups have been moved to `backlog/core.md` to avoid duplicating methodology work across adapters.
-
 ### 24. P2 prefer meaningful Claude history over empty Codex trace roots
 
 Status: 완료
@@ -592,7 +585,6 @@ Completion Gate:
   than actual Codex skill execution on a migrated project fixture; real project
   dry-run work remains tracked by item 11.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 25. P2 connect marketplace metadata checker to publication gates when ready
 
 Status: 완료
@@ -665,8 +657,14 @@ Completion Gate:
   metadata source are recorded; the checker now protects that deferred boundary
   through pre-commit and release checklist paths.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 1. Add Codex sandbox/escalation recording template
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The Codex `harness-engineer` skill says sandbox, permission, and network outcomes are first-class verification outcomes, but it does not give a compact recording template.
 
@@ -682,8 +680,14 @@ Remaining follow-up work:
 
 - Add examples only after real project traces show which blocked-command fields
   need clarification.
-
 ### 3. Harden Codex hook enforcement templates
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Decision implemented: ship template-only Codex hook, pre-commit, and CI guardrails that call the shared autoresearch checker without advertising active runtime hooks in the plugin manifest.
 
@@ -701,8 +705,14 @@ Remaining follow-up work:
 - Add install/smoke-test docs that show exactly where to copy each template in a target project.
 - Add runtime hook config under `adapters/codex/hooks/` and manifest `hooks` only after local plugin activation and tool-event coverage are smoke-tested.
 - Revisit templates when Codex hook interception semantics change, especially whether file-edit tools emit `PreToolUse`.
-
 ### 5. Define Codex plugin bundle scope
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Decision implemented: use staged plugin scope so the bundle carries tested Codex adapter surfaces without copying shared core methodology. Details live in `adapters/codex/plugin-scope.md` and the generated plugin copy.
 
@@ -719,8 +729,14 @@ Remaining follow-up work:
 - Add completed Codex examples after a real project dry run.
 - Expand `plugin.json` beyond `skills` only after runtime assets are executable and smoke-tested.
 - Keep marketplace metadata deferred until local plugin activation is proven.
-
 ### 6. Standardize Codex verify command discovery
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Claude-oriented flows often center hook recipes. Codex harnesses rely more heavily on `search-set.md` Active verify commands and explicit terminal verification.
 
@@ -740,8 +756,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Refine the project-type examples after real TypeScript and Python dry runs.
-
 ### 7. Document sub-agent capability matrix by Codex surface
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Codex sub-agent availability may differ across Desktop, CLI, API, and future surfaces.
 
@@ -759,8 +781,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Update the matrix when Codex CLI/API expose stable sub-agent semantics.
-
 ### 8. Expand Codex permission and escalation guidance
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Codex execution depends on sandbox mode, approval policy, writable roots, and network restrictions. This differs from Claude hook/permission assumptions.
 
@@ -777,8 +805,14 @@ Remaining follow-up work:
 
 - Add a concrete filled example after `adapters/codex/examples/AGENTS.md.example`
   exists.
-
 ### 9. Codexize MCP and tool-use policy
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The core principle favors CLI and direct filesystem access unless an external system requires a tool. Codex has additional surfaces such as tool search, MCP resources, browser plugin, and local browser workflows.
 
@@ -794,8 +828,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Add surface-specific examples when Codex plugin activation docs exist.
-
 ### 10. Add Codex examples
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Claude has a `CLAUDE.md.example`; Codex currently has an `AGENTS.md.template` but not a completed example.
 
@@ -811,8 +851,14 @@ Decision implemented:
 Remaining follow-up work:
 
 - Add additional Python/research examples after real dry runs.
-
 ### 12. Provide a Codex autoresearch protection checker reference implementation
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Decision implemented: ship a reference checker as a Codex plugin asset, plus a protected-path template and unit tests for the matcher and hook outputs.
 
@@ -828,8 +874,14 @@ Remaining follow-up work:
 
 - Add install/smoke-test docs that wire the checker and templates into a target project.
 - Add a non-GitHub CI variant or document how to set `BASE_REF` outside GitHub Actions.
-
 ### 13. Make Codex hook smoke tests mechanically assert output
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Decision implemented: ship an executable smoke assertion script that fails non-zero when Codex hook output JSON drifts from the expected event-specific deny shapes.
 
@@ -845,8 +897,14 @@ Remaining follow-up work:
 
 - Add install docs that show when to run the smoke script during target-project setup.
 - Re-run smoke assertions when Codex hook schemas change.
-
 ### 14. Track Codex hook schema drift
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Codex hook output shapes may change over time. The adapter now depends on current `PreToolUse` and `PermissionRequest` semantics.
 
@@ -864,8 +922,14 @@ Remaining follow-up work:
 
 - If official Codex hook interception semantics change, add a specific backlog item before enabling runtime plugin `hooks` manifest fields.
 - Add the hook schema drift check to the formal release checklist when that checklist is introduced.
-
 ### 15. Clarify local-only protection reporting
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 The `autoresearch` skill allows local-only protection when CI is unavailable, but the reporting format can be more explicit.
 
@@ -885,8 +949,14 @@ Remaining follow-up work:
 
 - Add a concrete setup transcript after a real autoresearch dry run exercises
   all protection levels.
-
 ### 16. Extend the Codex plugin layout as assets grow
+
+Status: 완료
+
+Legacy archive exception:
+
+- This record predates the modern Completion Gate policy and was preserved
+  during backlog archive migration; no reconstructed Completion Gate is added.
 
 Decision implemented: `plugins/ai-agent-meta-harness/` is the generated local plugin root, with `adapters/codex/` remaining canonical. `scripts/sync-codex-plugin.py` owns `--write` and `--check`, and pre-commit runs the check.
 
@@ -897,7 +967,6 @@ Remaining follow-up work:
 - Decide whether `.codex-plugin/plugin.json` should remain hand-authored canonical metadata or become generated from a smaller metadata source.
 - Document and smoke-test the exact local plugin activation command before calling the plugin path fully installed.
 - Revisit marketplace metadata only after the local plugin activation path is proven.
-
 ### 11. Test Codex adapter on real project types
 
 Status: 완료
@@ -979,7 +1048,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: live Codex model dogfooding on external representative projects would still provide stronger evidence if a stable noninteractive skill runner or approved sample-repo workflow becomes available.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 19. Add true Codex local plugin activation smoke test
 
 Status: 완료
@@ -1058,7 +1126,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: runtime plugin hook manifest fields remain gated until separate tool-event coverage exists; the activation smoke proves local CLI marketplace registration and enabled config, not runtime hook delivery.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 26. Reconcile Codex distribution epic follow-up text
 
 Status: 완료
@@ -1107,7 +1174,6 @@ Completion Gate:
 - Residual risk/follow-up: remaining item 4 follow-ups are now current:
   direct-copy fallback limitation reporting and runtime hook/tool-event gating.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 27. Define direct-copy fallback limitation reporting
 
 Status: 완료
@@ -1208,7 +1274,6 @@ Completion Gate:
 - Residual risk/follow-up: runtime hook manifest fields remain gated until
   Codex plugin tool-event delivery can be smoke-tested.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 28. Gate runtime hook manifest fields on tool-event coverage
 
 Status: 완료
@@ -1308,7 +1373,6 @@ Completion Gate:
   future Codex surface supports mechanical plugin tool-event delivery smoke
   coverage.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 29. P2 make marketplace metadata manifest discovery index-only in pre-commit
 
 Status: 완료
@@ -1386,7 +1450,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 43. P3 refresh Codex plugin-scope v1 protection status
 
 Status: 완료
@@ -1530,7 +1593,6 @@ Completion Gate:
   evidence exists. The dirty backlog files outside item 43 are unrelated
   user-added backlog candidates and remain unstaged.
 - Accepted: yes.
-
 ### 42. P3 add optional Codex CLI surface probe for runtime-delivery docs
 
 Status: 완료
@@ -1722,7 +1784,6 @@ Completion Gate:
   remain disabled under the item 40 boundary until a product-supported smoke or
   explicitly reviewed manual gate exists.
 - Accepted: yes.
-
 ### 35. P3 refresh active backlog summaries after Codex items 32-34
 
 Status: 완료
@@ -1765,7 +1826,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes
-
 ### 36. P2 pin bounded timeouts in Codex hook templates
 
 Status: 완료
@@ -1895,7 +1955,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 40. P2 add Codex Desktop/runtime plugin delivery smoke when surface exists
 
 Status: 완료
@@ -2061,7 +2120,6 @@ Completion Gate:
   BEFORE search-set sequencing skip is accepted as a recorded process residual,
   not a repository defect.
 - Accepted: yes.
-
 ### 41. P3 refresh Codex v1 protection scope status
 
 Status: 완료
@@ -2242,7 +2300,6 @@ Completion Gate:
   was procedural final-closure timing or an actionable test gap handled here.
 - Residual risk/follow-up: none.
 - Accepted: yes.
-
 ### 37. P3 refresh Codex hook schema freshness signaling
 
 Status: 완료
@@ -2378,7 +2435,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 38. P2 add end-to-end Codex adoption smoke for generated search-set commands
 
 Status: 완료
@@ -2518,7 +2574,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 39. P3 list init fixture smoke in Codex plugin-scope generated contents
 
 Status: 완료
@@ -2637,7 +2692,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
-
 ### 32. P2 add activation smoke to release checklist
 
 Status: 완료
@@ -2717,7 +2771,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 33. P2 include hard-layer hook templates in hook-sensitive drift policy
 
 Status: 완료
@@ -2809,7 +2862,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 34. P2 list activation smoke in Codex plugin-scope generated contents
 
 Status: 완료
@@ -2889,7 +2941,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes
-
 ### 30. P3 reconcile active backlog summaries after completed Codex follow-ups
 
 Status: 완료
@@ -2935,7 +2986,6 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
-
 ### 31. P2 align root Codex activation smoke documentation with implementation
 
 Status: 완료

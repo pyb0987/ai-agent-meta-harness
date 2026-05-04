@@ -102,16 +102,14 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has five unstarted concrete process items from recent
-  current-main methodology reviews: item 63 should require archived backlog
-  targets to be completed records, item 64 should define an action threshold
+- Active core backlog has four unstarted concrete process items from recent
+  current-main methodology reviews: item 64 should define an action threshold
   for repeated nonindependent multi-review fallback signals, item 65 should
   decide whether archive lifecycle validation belongs in pre-commit, and item
   66 should make required multi-review presence visible for high-impact changed
   paths. Item 67 should tighten the README opening attribution for the 6x
-  harness-sensitivity claim so it matches the paper traceability table. Item 62
-  is currently in progress.
-  Items 56-61 are complete, so future maintenance should not select them as
+  harness-sensitivity claim so it matches the paper traceability table.
+  Items 56-63 are complete, so future maintenance should not select them as
   available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -193,34 +191,8 @@ Status: 완료
 Archived: `backlog/archive/core.md#62-p2-connect-release-verification-to-base-ref-search-set-evidence`
 ### 63. P3 require archived backlog targets to be completed records
 
-Status: 대기
-
-Source review: 2026-05-04 multi-review of local `main` against the
-Meta-Harness methodology.
-
-`scripts/check-backlog-archive-lifecycle.py` resolves `Archived:` pointers from
-active backlog files, but it only checks archive evidence when the target archive
-section contains `Status: 완료`. If an archive heading exists but accidentally
-omits completed status, the checker can pass even though the archive policy is
-specifically about preserving completed records outside active backlog files.
-
-Potential improvement:
-
-- Require every resolved archive target for a completed active pointer to contain
-  `Status: 완료`.
-- Keep the existing evidence check, but run it after status is confirmed rather
-  than conditionally on status being present.
-- Add focused tests for missing archive target, missing completed status, missing
-  Completion Gate/review evidence, and valid compact pointer records.
-
-Done when:
-
-- A completed active backlog pointer cannot resolve to an archive section that
-  lacks completed status.
-- Archive lifecycle validation still allows compact active pointers and archived
-  historical records that predate modern Completion Gate policy only when their
-  exception is explicit.
-- Focused tests cover the stricter archive target contract.
+Status: 완료
+Archived: `backlog/archive/core.md#63-p3-require-archived-backlog-targets-to-be-completed-records`
 ### 64. P2 define action threshold for repeated nonindependent multi-review fallback
 
 Status: 대기

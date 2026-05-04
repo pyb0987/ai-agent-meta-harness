@@ -20,7 +20,10 @@ SECTION_RE = re.compile(r"^###\s+(.+)$", re.MULTILINE)
 STATUS_DONE_RE = re.compile(r"^Status:\s*완료\s*$", re.MULTILINE)
 COMPLETION_GATE_RE = re.compile(r"^Completion Gate:\s*$", re.MULTILINE)
 ARCHIVED_RE = re.compile(r"^Archived:\s*`([^`#]+)#([^`]+)`\s*$", re.MULTILINE)
-ARCHIVE_EVIDENCE_RE = re.compile(r"^(?:Completion Gate|Review outcome|Multi-review):\s*$", re.MULTILINE)
+ARCHIVE_EVIDENCE_RE = re.compile(
+    r"^(?:Completion Gate|Review outcome|Multi-review|Legacy archive exception):\s*$",
+    re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -89,7 +92,9 @@ def validate_root(root: Path = ROOT) -> list[str]:
             target = known_archives.get(archive_path, {}).get(anchor)
             if target is None:
                 errors.append(f"{label}: Archived pointer target not found: {archive_path}#{anchor}")
-            elif STATUS_DONE_RE.search(target.text) and not ARCHIVE_EVIDENCE_RE.search(target.text):
+            elif not STATUS_DONE_RE.search(target.text):
+                errors.append(f"{label}: Archived pointer target lacks completed status: {archive_path}#{anchor}")
+            elif not ARCHIVE_EVIDENCE_RE.search(target.text):
                 errors.append(
                     f"{label}: Archived pointer target lacks Completion Gate or review evidence: "
                     f"{archive_path}#{anchor}"
