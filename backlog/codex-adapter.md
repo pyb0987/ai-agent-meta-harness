@@ -209,3 +209,8 @@ Archived: `backlog/archive/codex-adapter.md#31-p2-align-root-codex-activation-sm
 
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#45-p3-keep-embedded-codex-hook-examples-bounded`
+
+### 46. P3 list bundled init AGENTS asset in Codex plugin scope
+
+Status: 완료
+Archived: `backlog/archive/codex-adapter.md#46-p3-list-bundled-init-agents-asset-in-codex-plugin-scope`

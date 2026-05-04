@@ -167,6 +167,23 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
         self.assertEqual(canonical, generated)
 
+    def test_plugin_scope_lists_init_skill_bundled_agents_asset(self):
+        canonical = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        generated = (ROOT / "plugins" / "ai-agent-meta-harness" / "plugin-scope.md").read_text(encoding="utf-8")
+
+        for text in (canonical, generated):
+            with self.subTest(path="plugin-scope"):
+                self.assertIn("- `skills/init-codex-harness/assets/AGENTS.md.template`", text)
+                self.assertIn(
+                    "| Init skill project template asset | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` | `skills/init-codex-harness/assets/AGENTS.md.template` |",
+                    text,
+                )
+                self.assertIn(
+                    "Skill-local project template used by the init skill; top-level `templates/AGENTS.md.template` remains a compatibility/bootstrap template",
+                    text,
+                )
+        self.assertEqual(canonical, generated)
+
     def test_v1_protection_scope_names_current_limit(self):
         readme = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")
         generated_readme = (ROOT / "plugins" / "ai-agent-meta-harness" / "README.md").read_text(encoding="utf-8")

@@ -23,6 +23,7 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `skills/autoresearch/SKILL.md`
 - `skills/harness-engineer/SKILL.md`
 - `skills/init-codex-harness/SKILL.md`
+- `skills/init-codex-harness/assets/AGENTS.md.template`
 - `skills/multi-review/SKILL.md`
 - `templates/AGENTS.md.template`
 - `templates/autoresearch-protected.txt`
@@ -83,6 +84,7 @@ Do not include:
 | Local plugin artifact smoke test | `adapters/codex/scripts/smoke-local-plugin.py` | `scripts/smoke-local-plugin.py` | Verifies manifest, expected skills, protection assets, and degraded fallback warning |
 | Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` | Proves isolated CLI marketplace registration and enabled-plugin config shape; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
 | Protected-path template | `adapters/codex/templates/autoresearch-protected.txt` | `templates/autoresearch-protected.txt` | Project bootstrap asset copied to `.harness/autoresearch-protected.txt` |
+| Init skill project template asset | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` | `skills/init-codex-harness/assets/AGENTS.md.template` | Skill-local project template used by the init skill; top-level `templates/AGENTS.md.template` remains a compatibility/bootstrap template |
 | Completed Codex example | `adapters/codex/examples/` | `examples/` | Onboarding reference; additional examples should come from real project dry runs |
 
 ## Manifest Rules

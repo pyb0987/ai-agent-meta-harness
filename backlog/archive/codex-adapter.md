@@ -3218,3 +3218,144 @@ Multi-review:
 - Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
   closure is complete in this record.
 - Final acceptance: yes.
+
+### 46. P3 list bundled init AGENTS asset in Codex plugin scope
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
+- backlog/archive/codex-adapter.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`adapters/codex/plugin-scope.md` lists the generated
+`skills/init-codex-harness/SKILL.md` and the top-level
+`templates/AGENTS.md.template`, but it does not list the bundled
+`skills/init-codex-harness/assets/AGENTS.md.template` that the init skill names
+as its local project template. The recursive-copy note explains why it ships,
+but the supported generated-contents inventory is incomplete for consumers
+checking the init skill's bundled assets.
+
+Potential improvement:
+
+- Add `skills/init-codex-harness/assets/AGENTS.md.template` to canonical and
+  generated plugin-scope generated contents.
+- Clarify the distinction between the skill-local init asset and the top-level
+  compatibility template if needed.
+- Add or extend focused plugin-scope tests so bundled skill assets remain listed
+  when they are part of the supported generated surface.
+
+Done when:
+
+- Plugin-scope generated contents enumerate the init skill's bundled AGENTS
+  asset.
+- Canonical and generated plugin-scope files remain synchronized.
+- Plugin sync and focused Codex docs tests pass.
+
+Decision implemented:
+
+- `adapters/codex/plugin-scope.md` now lists
+  `skills/init-codex-harness/assets/AGENTS.md.template` in the generated
+  contents inventory.
+- The v1 canonical path policy now distinguishes the init skill-local project
+  template asset from the top-level compatibility/bootstrap
+  `templates/AGENTS.md.template`.
+- `adapters/codex/tests/test_hook_templates.py` now checks both canonical and
+  generated plugin-scope docs for the bundled init AGENTS asset entry.
+- The generated plugin-scope mirror was refreshed with
+  `python3 scripts/sync-codex-plugin.py --write`.
+
+Search-set verification:
+
+- SKIPPED: docs/test-only generated plugin inventory clarification; no
+  agent-visible runtime behavior, hook/checker semantics, trace schema,
+  evaluator-boundary policy, or release gate changed.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/codex-adapter.md`
+  after process/scope VETO recovery re-review passed.
+- Changed files: `adapters/codex/plugin-scope.md`,
+  `plugins/ai-agent-meta-harness/plugin-scope.md`,
+  `adapters/codex/tests/test_hook_templates.py`,
+  `backlog/codex-adapter.md`, `backlog/archive/codex-adapter.md`.
+- Scope deviations: none for item 46. Dirty out-of-scope `backlog/README.md`
+  remains unstaged. Same-file item 44 and status-summary text are unrelated
+  user-added backlog changes; final staging must include only the selected item
+  46 record/hunks plus implementation files.
+- Verification results: BEFORE PASS `python3 -m unittest
+  adapters/codex/tests/test_local_plugin_smoke.py`; BEFORE PASS
+  `python3 scripts/sync-codex-plugin.py --check`; AFTER PASS
+  `python3 -m unittest adapters/codex/tests/test_hook_templates.py`; AFTER PASS
+  `python3 scripts/sync-codex-plugin.py --check`; AFTER PASS
+  `python3 adapters/codex/scripts/smoke-local-plugin.py`; AFTER PASS
+  `python3 scripts/check-maintenance-review.py`; AFTER PASS
+  `python3 scripts/check-search-set-evidence.py`; AFTER PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - SKIPPED: docs/test-only generated plugin inventory clarification; no
+    agent-visible runtime behavior, hook/checker semantics, trace schema,
+    evaluator-boundary policy, or release gate changed.
+- Multi-review required: yes; this changes Codex generated plugin-scope
+  inventory and distribution-surface documentation.
+- Multi-review result: PASS after process/scope VETO recovery re-review.
+- Reviewer scores and VETO handling: plugin-scope generated-surface critic 9
+  PASS; tests/generated artifact coverage critic 9 PASS; process/scope critic
+  8 VETO because Completion Gate and multi-review outcome were not yet recorded,
+  dirty out-of-scope `backlog/README.md` needed explicit handling, and same-file
+  item 44/status-summary changes needed final staging discipline. This gate
+  addressed those blockers; affected process/scope re-review scored 9 PASS.
+- For each score 9, why not 10: plugin-scope generated-surface critic noted the
+  local plugin smoke expected assets still do not explicitly check the
+  skill-local bundled AGENTS asset, accepted because recursive sync ownership
+  plus focused plugin-scope coverage is sufficient for this P3 docs/surface fix;
+  tests/generated artifact coverage critic noted the test is string-based
+  rather than deriving inventory from the sync map or parsing Markdown
+  structurally, accepted because user-facing plugin-scope wording is the guarded
+  behavior; process/scope critic noted final archive/staging/commit closure
+  was still pending during re-review, addressed by this final status/archive
+  update.
+- Backlog items added from score-9 residual risk: none; score-9 residuals
+  are accepted as documentation-inventory test design or final-closure timing
+  tradeoffs for this item.
+- Residual risk/follow-up: no follow-up. Plugin-scope generated contents now
+  enumerate the skill-local init AGENTS asset, and final process closure is
+  complete.
+- Accepted: yes.
+
+Multi-review:
+
+- Plugin-scope generated-surface critic: score 9, PASS. Blocking findings:
+  none. Why not 10: local plugin smoke expected assets still check only the
+  top-level `templates/AGENTS.md.template`, not the skill-local bundled asset.
+  Follow-up/residual risk: accepted because sync recursively owns skill assets
+  and the focused plugin-scope test locks the documented generated surface.
+- Tests/generated artifact coverage critic: score 9, PASS. Blocking findings:
+  none. Why not 10: the test is string-based against prose/table text rather
+  than deriving expected inventory from the sync map or parsing Markdown
+  structurally. Follow-up/residual risk: accepted because this docs inventory
+  item guards user-facing wording, and harmless copy edits can update the test.
+- Process/scope critic: score 8, VETO. Blocking findings: Completion Gate and
+  multi-review outcome were not yet recorded; dirty out-of-scope
+  `backlog/README.md` needed explicit handling; same-file item 44/status-summary
+  changes must not be unintentionally committed with item 46. Not accepted until
+  affected re-review reaches score 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  final archive/staging/commit closure was still pending during re-review.
+  Follow-up/residual risk: addressed by this final status/archive update.
+- Score handling: score 8 triggered VETO recovery; affected process/scope
+  critic re-review reached score 9. Every score 9 records why not 10 and
+  residual-risk disposition.
+- Rerun status: process/scope affected critic re-review after Completion Gate;
+  final score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
+  closure is complete in this record.
+- Final acceptance: yes.
