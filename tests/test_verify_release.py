@@ -55,6 +55,26 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertEqual(len(all_commands) - len(selected), 1)
         self.assertFalse(any(command.clean_worktree for command in selected))
 
+    def test_base_ref_rewrites_only_search_set_evidence_command(self) -> None:
+        selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="origin/main")
+        commands = {command.name: command.command for command in selected}
+
+        self.assertEqual(
+            commands["search-set evidence records (base-ref: origin/main)"],
+            "python3 scripts/check-search-set-evidence.py --base-ref origin/main",
+        )
+        self.assertIn("python3 scripts/run-search-set.py", commands.values())
+        self.assertNotIn("python3 scripts/check-clean-worktree.py", commands.values())
+
+    def test_base_ref_is_shell_quoted_in_search_set_evidence_command(self) -> None:
+        selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="feature/ref with space")
+        commands = {command.name: command.command for command in selected}
+
+        self.assertEqual(
+            commands["search-set evidence records (base-ref: feature/ref with space)"],
+            "python3 scripts/check-search-set-evidence.py --base-ref 'feature/ref with space'",
+        )
+
     def test_list_mode_prints_commands_without_running(self) -> None:
         output = io.StringIO()
 
@@ -65,11 +85,24 @@ class VerifyReleaseTests(unittest.TestCase):
         text = output.getvalue()
         self.assertIn("python3 scripts/check-compat-mirrors.py", text)
         self.assertIn("python3 scripts/check-clean-worktree.py", text)
+        self.assertIn("search-set evidence mode: worktree status", text)
+
+    def test_list_mode_prints_base_ref_search_set_evidence_command(self) -> None:
+        output = io.StringIO()
+
+        with mock.patch("sys.stdout", output):
+            status = verify_release.main(["--list", "--base-ref", "origin/main"])
+
+        self.assertEqual(status, 0)
+        text = output.getvalue()
+        self.assertIn("search-set evidence mode: base-ref diff (origin/main)", text)
+        self.assertIn("python3 scripts/check-search-set-evidence.py --base-ref origin/main", text)
 
     def test_maintenance_documents_verify_release(self) -> None:
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
 
         self.assertIn("python3 scripts/verify-release.py", text)
+        self.assertIn("python3 scripts/verify-release.py --base-ref origin/main", text)
         self.assertIn("preferred stable-handoff command", text)
 
 

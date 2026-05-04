@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 
@@ -18,6 +19,7 @@ class ReleaseCommand:
     name: str
     command: str
     clean_worktree: bool = False
+    search_set_evidence: bool = False
 
 
 RELEASE_COMMANDS = (
@@ -38,7 +40,11 @@ RELEASE_COMMANDS = (
     ),
     ReleaseCommand("codex marketplace metadata", "python3 scripts/check-codex-marketplace-metadata.py"),
     ReleaseCommand("maintenance review records", "python3 scripts/check-maintenance-review.py"),
-    ReleaseCommand("search-set evidence records", "python3 scripts/check-search-set-evidence.py"),
+    ReleaseCommand(
+        "search-set evidence records",
+        "python3 scripts/check-search-set-evidence.py",
+        search_set_evidence=True,
+    ),
     ReleaseCommand("backlog archive lifecycle", "python3 scripts/check-backlog-archive-lifecycle.py"),
     ReleaseCommand("repository search-set", "python3 scripts/run-search-set.py"),
     ReleaseCommand("repository tests", "python3 -m unittest discover -s tests"),
@@ -48,10 +54,24 @@ RELEASE_COMMANDS = (
 )
 
 
-def selected_commands(*, skip_clean_worktree: bool) -> tuple[ReleaseCommand, ...]:
+def with_search_set_evidence_mode(command: ReleaseCommand, *, base_ref: str | None) -> ReleaseCommand:
+    if not command.search_set_evidence or base_ref is None:
+        return command
+    quoted_ref = shlex.quote(base_ref)
+    return ReleaseCommand(
+        name=f"{command.name} (base-ref: {base_ref})",
+        command=f"{command.command} --base-ref {quoted_ref}",
+        clean_worktree=command.clean_worktree,
+        search_set_evidence=command.search_set_evidence,
+    )
+
+
+def selected_commands(*, skip_clean_worktree: bool, base_ref: str | None = None) -> tuple[ReleaseCommand, ...]:
     if not skip_clean_worktree:
-        return RELEASE_COMMANDS
-    return tuple(command for command in RELEASE_COMMANDS if not command.clean_worktree)
+        commands = RELEASE_COMMANDS
+    else:
+        commands = tuple(command for command in RELEASE_COMMANDS if not command.clean_worktree)
+    return tuple(with_search_set_evidence_mode(command, base_ref=base_ref) for command in commands)
 
 
 def print_command_list(commands: tuple[ReleaseCommand, ...]) -> None:
@@ -89,10 +109,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="omit the clean-worktree gate when validating an in-progress diff",
     )
+    parser.add_argument(
+        "--base-ref",
+        help=(
+            "run search-set evidence validation against REF...HEAD for a clean "
+            "release candidate or branch handoff"
+        ),
+    )
     parser.add_argument("--timeout", type=int, default=300, help="timeout per command in seconds")
     args = parser.parse_args(argv)
 
-    commands = selected_commands(skip_clean_worktree=args.skip_clean_worktree)
+    commands = selected_commands(skip_clean_worktree=args.skip_clean_worktree, base_ref=args.base_ref)
+    evidence_mode = f"base-ref diff ({args.base_ref})" if args.base_ref else "worktree status"
+    print(f"search-set evidence mode: {evidence_mode}")
     if args.list:
         print_command_list(commands)
         return 0

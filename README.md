@@ -184,13 +184,16 @@ For a stable handoff or release-like local verification, prefer the executable
 release gate:
 
 ```bash
-python3 scripts/verify-release.py
+python3 scripts/verify-release.py --base-ref origin/main
 ```
 
 That release gate runs the Standard verification set plus this repository's
-Active search-set and clean-worktree gate. During an in-progress maintenance
-diff, use `python3 scripts/verify-release.py --skip-clean-worktree` to validate
-the release command list before the final clean handoff.
+Active search-set and clean-worktree gate. The `--base-ref` flag makes the
+search-set evidence check compare committed changes against `REF...HEAD`, which
+is the intended mode for a clean release candidate. During an in-progress
+maintenance diff, use `python3 scripts/verify-release.py --skip-clean-worktree`
+without `--base-ref` to validate the worktree-status command list before the
+final clean handoff.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.

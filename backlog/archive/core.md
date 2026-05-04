@@ -5388,3 +5388,141 @@ Completion Gate:
   bookkeeping was completed in this record.
 - Residual risk/follow-up: accepted residual risks above; no new follow-up.
 - Accepted: yes.
+
+### 62. P2 connect release verification to base-ref search-set evidence
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- README.md
+- scripts/verify-release.py
+- tests/test_verify_release.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+Item 57 added staged/base-ref modes to `scripts/check-search-set-evidence.py`,
+and `MAINTENANCE.md` documents base-ref evidence checks for clean release
+candidates. `scripts/verify-release.py` still invokes the evidence checker in
+default status-based mode. That default mode is useful for dirty in-progress
+work, but a clean branch containing committed harness-affecting changes can make
+the evidence check see no changed paths and pass without proving that Active
+search-set before/after evidence was recorded.
+
+Potential improvement:
+
+- Add a `--base-ref` option to `scripts/verify-release.py` and pass it through to
+  `scripts/check-search-set-evidence.py --base-ref <ref>`.
+- Decide the default release behavior: either require `--base-ref` for stable
+  handoff, infer a safe default such as `origin/main` when available, or make the
+  default explicitly in-progress only.
+- Update README and `MAINTENANCE.md` so the stable-handoff command cannot be
+  confused with the dirty-worktree evidence check.
+- Add focused tests for release verifier command-list rendering and command
+  construction with and without a base ref.
+
+Done when:
+
+- A clean release candidate with committed harness-affecting paths can be checked
+  against a base ref for search-set evidence from the release verifier.
+- The release verifier output clearly states whether search-set evidence was
+  checked from worktree status, staged paths, or a base-ref diff.
+- Documentation and tests agree on the intended stable-handoff command.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; PASS `python3
+  scripts/check-search-set-evidence.py --base-ref origin/main`; focused baseline
+  PASS `python3 -m unittest tests/test_verify_release.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`.
+
+Decision implemented:
+
+- Added `--base-ref <ref>` to `scripts/verify-release.py` and route only the
+  search-set evidence release command through `python3
+  scripts/check-search-set-evidence.py --base-ref <ref>`.
+- Made `verify-release` print the search-set evidence mode as either worktree
+  status or base-ref diff, including in `--list` output.
+- Updated `MAINTENANCE.md` and `README.md` so stable handoff uses `python3
+  scripts/verify-release.py --base-ref origin/main`, while in-progress diffs
+  can omit `--base-ref` and use `--skip-clean-worktree`.
+- Added focused tests for command construction and command-list rendering with
+  and without `--base-ref`.
+
+Multi-review:
+
+- Release-command semantics critic: initial score 9, PASS. Blocking findings:
+  none. Why not 10: `base_ref` was interpolated into a shell command while
+  `run_command` uses `shell=True`; the critic recommended shell quoting or
+  argv-based execution.
+- Release-command semantics re-review: score 10, PASS. Blocking findings: none.
+  The affected concern was fixed by shell-quoting `base_ref` with `shlex.quote`
+  and adding focused test coverage.
+- Documentation/UX critic: score 9, PASS. Blocking findings: none. Why not 10:
+  docs assume `origin/main` is the correct and fresh comparison base for this
+  repository's main-based maintenance flow, without spelling out missing,
+  stale, or intentionally different release-base cases. No backlog item added
+  because this is accepted as a small UX residual risk for this repo-local
+  handoff convention.
+- Maintenance-process critic: initial score 7, VETO. Blocking findings:
+  Completion Gate and multi-review records were not yet present, and unrelated
+  dirty `backlog/README.md` and `backlog/codex-adapter.md` needed explicit
+  out-of-scope treatment before commit.
+- Maintenance-process critic re-review: score 9, PASS. Blocking findings:
+  none. Why not 10: process blockers were resolved in substance, but this final
+  score and `Accepted: yes` bookkeeping still had to be written back before
+  commit. No backlog item added because the bookkeeping is completed in this
+  record.
+- Score handling: release-command score 9 was improved to 10 after fixing the
+  shell quoting residual risk. Documentation/UX score 9 records why not 10 and
+  residual-risk disposition. Maintenance-process score 7 triggered VETO
+  recovery before acceptance; affected process critic rerun reached score 9.
+- Rerun status: release-command affected critic rerun completed at score 10;
+  maintenance-process affected critic rerun completed at score 9.
+- Follow-up/residual risk: accepted `origin/main` documentation assumption as
+  repo-local release-base convention; no follow-up added.
+- Final acceptance: accepted after process critic rerun.
+
+Completion Gate:
+
+- Backlog status: `완료` after process VETO recovery and re-review.
+- Changed files: `MAINTENANCE.md`, `README.md`, `scripts/verify-release.py`,
+  `tests/test_verify_release.py`, `backlog/core.md`, `backlog/archive/core.md`.
+- Scope deviations: none for implementation; unrelated dirty
+  `backlog/README.md` and `backlog/codex-adapter.md` remain outside this item
+  and unstaged.
+- Verification results: PASS `python3 -m unittest tests/test_verify_release.py`;
+  PASS `python3 scripts/verify-release.py --list --base-ref origin/main`; PASS
+  `python3 scripts/verify-release.py --list`; PASS `python3
+  scripts/check-search-set-evidence.py --base-ref origin/main`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md backlog/archive/core.md`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; release verifier search-set evidence behavior and
+  stable-handoff governance.
+- Multi-review result: PASS after process critic rerun.
+- Reviewer scores and VETO handling: release-command critic 9 PASS, fixed
+  score-9 concern and reran to 10 PASS; documentation/UX critic 9 PASS;
+  maintenance-process critic 7 VETO, addressed by adding Completion Gate,
+  reviewer score handling, verification results, and explicit out-of-scope dirty
+  path treatment, then rerun to 9 PASS.
+- Score-9 why-not-10 handling: release-command initial 9 was not accepted as
+  residual risk and was fixed; documentation/UX 9 is accepted because
+  `origin/main` is this repository's normal release-base convention and broader
+  missing/stale-ref guidance is not needed for this item; maintenance-process
+  re-review was 9 because final score and acceptance bookkeeping had to be
+  written back before commit.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: accepted documentation/UX residual risk above; no
+  follow-up.
+- Accepted: yes.

@@ -322,14 +322,18 @@ python3 -m unittest discover -s adapters/codex/tests
 The preferred stable-handoff command is the executable release gate:
 
 ```bash
-python3 scripts/verify-release.py
+python3 scripts/verify-release.py --base-ref origin/main
 ```
 
 It runs the Standard verification set, the repository Active search-set, and the
-clean-worktree release gate. Use `python3 scripts/verify-release.py --list` to
-inspect the command list without running it. During an in-progress maintenance
-diff, `--skip-clean-worktree` may be used to validate the release command list
-before the final clean-worktree handoff.
+clean-worktree release gate. The `--base-ref` argument makes the search-set
+evidence check compare `REF...HEAD`, so committed harness-affecting release
+candidates are checked even when the worktree is clean. Use `python3
+scripts/verify-release.py --list --base-ref origin/main` to inspect the release
+candidate command list without running it. During an in-progress maintenance
+diff, omit `--base-ref` to use worktree-status search-set evidence mode, and use
+`--skip-clean-worktree` to validate the release command list before the final
+clean-worktree handoff.
 
 Do not use plain root-level `python3 -m unittest discover` as a repository
 verification signal. It is guarded by a root sentinel that fails on purpose so a

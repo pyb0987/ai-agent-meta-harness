@@ -102,11 +102,17 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has no unstarted concrete process items from recent
-  current-main methodology reviews; item 60 is currently in progress to make
-  the archive lifecycle operational for completed active backlog records.
-  Items 56-59 and 61 are complete, so future maintenance should not select
-  them as available implementation candidates.
+- Active core backlog has five unstarted concrete process items from recent
+  current-main methodology reviews: item 63 should require archived backlog
+  targets to be completed records, item 64 should define an action threshold
+  for repeated nonindependent multi-review fallback signals, item 65 should
+  decide whether archive lifecycle validation belongs in pre-commit, and item
+  66 should make required multi-review presence visible for high-impact changed
+  paths. Item 67 should tighten the README opening attribution for the 6x
+  harness-sensitivity claim so it matches the paper traceability table. Item 62
+  is currently in progress.
+  Items 56-61 are complete, so future maintenance should not select them as
+  available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
@@ -181,6 +187,176 @@ Archived: `backlog/archive/core.md#60-p3-operationalize-active-backlog-archive-l
 
 Status: 완료
 Archived: `backlog/archive/core.md#61-p3-align-readme-quick-verification-guidance-with-release-gate`
+### 62. P2 connect release verification to base-ref search-set evidence
+
+Status: 완료
+Archived: `backlog/archive/core.md#62-p2-connect-release-verification-to-base-ref-search-set-evidence`
+### 63. P3 require archived backlog targets to be completed records
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-backlog-archive-lifecycle.py` resolves `Archived:` pointers from
+active backlog files, but it only checks archive evidence when the target archive
+section contains `Status: 완료`. If an archive heading exists but accidentally
+omits completed status, the checker can pass even though the archive policy is
+specifically about preserving completed records outside active backlog files.
+
+Potential improvement:
+
+- Require every resolved archive target for a completed active pointer to contain
+  `Status: 완료`.
+- Keep the existing evidence check, but run it after status is confirmed rather
+  than conditionally on status being present.
+- Add focused tests for missing archive target, missing completed status, missing
+  Completion Gate/review evidence, and valid compact pointer records.
+
+Done when:
+
+- A completed active backlog pointer cannot resolve to an archive section that
+  lacks completed status.
+- Archive lifecycle validation still allows compact active pointers and archived
+  historical records that predate modern Completion Gate policy only when their
+  exception is explicit.
+- Focused tests cover the stricter archive target contract.
+### 64. P2 define action threshold for repeated nonindependent multi-review fallback
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology, plus `scripts/check-maintenance-review.py` quality
+signal output reporting 31 repeated nonindependent fallback records across 17
+review sections.
+
+Item 56 intentionally made `FALLBACK_NONINDEPENDENT` visible as a review-quality
+signal instead of a retroactive validation failure. That implementation is still
+correct: sequential fallback is an allowed degraded review mode when independent
+critics are unavailable, when the item is low risk, or when the fallback is
+explicitly justified. The unresolved operating question is what an active
+maintenance session should do when the signal remains frequent across durable
+contract decisions.
+
+Potential improvement:
+
+- Define a practical action threshold for repeated fallback signals, such as a
+  count, time window, durable-contract category, or release-candidate condition
+  that requires explicit maintainer disposition.
+- Decide whether the checker should remain advisory, fail only under a stricter
+  flag, or emit grouped summaries by backlog file and contract category.
+- Update `MAINTENANCE.md` so future Completion Gates know when repeated
+  fallback is accepted residual risk versus a new backlog item.
+- Add focused checker tests if the signal gains stricter modes, grouping, or
+  threshold behavior.
+
+Done when:
+
+- `FALLBACK_NONINDEPENDENT` remains a valid disclosed fallback mode, not an
+  automatic failure.
+- Repeated fallback across durable-contract reviews has a documented action
+  threshold and required disposition.
+- The review checker and maintenance policy agree on whether the threshold is
+  advisory or blocking.
+### 65. P3 decide whether archive lifecycle validation belongs in pre-commit
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-backlog-archive-lifecycle.py` is now part of standard and release
+verification, so completed active backlog records are caught before a stable
+handoff. The tracked pre-commit hook does not run it, which means a commit can
+still land with a completed active backlog record that should have been reduced
+to an archive pointer unless the maintainer separately runs the release gate.
+
+Potential improvement:
+
+- Decide whether archive lifecycle validation should be added to
+  `.githooks/pre-commit`, or remain release-only with clearer handoff guidance.
+- If added to pre-commit, keep it fast and index-aware enough that unrelated
+  unstaged backlog work does not block focused commits.
+- If kept release-only, document why commit-time archive enforcement would be
+  too noisy and make the Reviewed Commit Loop call out the separate release
+  check.
+- Add focused tests or hook assertions for the chosen policy.
+
+Done when:
+
+- Maintainers can tell whether archive lifecycle is a commit-time or
+  release-time contract.
+- The tracked hook, maintenance docs, and release gate agree on that contract.
+- Completed active backlog records cannot silently survive the intended
+  verification point.
+### 66. P2 make required multi-review presence visible for high-impact changes
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-maintenance-review.py` validates review-result structure after it
+finds a `Multi-review:` or `Review outcome:` section. It does not decide whether
+a high-impact change should have had a review section in the first place. That
+keeps the checker simple, but durable-contract changes can still omit a
+multi-review record entirely and pass the structural checker.
+
+Potential improvement:
+
+- Define a lightweight changed-path or backlog-record signal for changes that
+  normally require multi-review: adapter behavior, release gates, hook
+  semantics, core methodology boundaries, trace schemas, and evaluator-boundary
+  policy.
+- Decide whether missing multi-review should be a blocking checker error, a
+  quality signal, or a stricter mode used by release candidates.
+- Require an explicit "not required" reason for high-impact paths when no
+  multi-review section is present.
+- Add focused tests for required, optional, and explicitly skipped review cases.
+
+Done when:
+
+- A high-impact harness or release-gate change cannot accidentally omit
+  multi-review evidence without at least producing a clear checker signal.
+- The policy distinguishes routine docs/status cleanup from durable-contract
+  changes.
+- `MAINTENANCE.md` and checker behavior agree on whether missing multi-review is
+  blocking or advisory.
+### 67. P2 tighten README 6x harness-sensitivity attribution
+
+Status: 대기
+
+Source review: 2026-05-04 paper-methodology fidelity critic in the current-main
+Meta-Harness methodology multi-review.
+
+The latest paper-fidelity critic passed the repository's no-local-reproduction
+boundary, but raised a medium concern about the README opening: the first
+paragraph says "Meta-Harness demonstrated" the 6x harness-sensitivity gap, while
+the README's own traceability table more carefully labels that claim as "Paper
+Introduction, citing prior harness sensitivity evidence." The table is the more
+precise wording. The opening sentence should not imply the 6x result is a direct
+Meta-Harness experiment if the paper introduces it as prior cited evidence.
+
+Potential improvement:
+
+- Update the README opening sentence so the 6x harness-sensitivity claim is
+  attributed as paper-introduction context or cited prior evidence, matching the
+  existing paper-claim traceability table.
+- Review nearby MAINTENANCE wording such as "harness design can dominate model
+  choice" and soften it if it reads stronger than the paper's careful framing.
+- Keep the no-local-reproduction disclaimer and evidence-category table intact.
+- Extend focused README boundary tests if the exact opening wording becomes a
+  durable public claim boundary.
+
+Done when:
+
+- README opening wording and the paper-claim traceability table agree on whether
+  the 6x harness-sensitivity statement is direct Meta-Harness evidence or cited
+  prior evidence.
+- Public docs still communicate the harness-sensitivity lesson clearly without
+  overstating local reproduction or paper attribution.
+- Multi-review checks the resulting claim-boundary wording because this touches
+  public paper-methodology fidelity.
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료
