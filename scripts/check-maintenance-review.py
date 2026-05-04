@@ -42,6 +42,8 @@ NONINDEPENDENT_FALLBACK_RE = re.compile(
     r"fallback in the parent context)\b",
     re.IGNORECASE,
 )
+FALLBACK_ACTION_RECORD_THRESHOLD = 5
+FALLBACK_ACTION_SECTION_THRESHOLD = 3
 
 REQUIRED_FIELDS = {
     "verdict": re.compile(r"\b(?:PASS|VETO|MIXED|FAIL)\b"),
@@ -287,6 +289,10 @@ def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5
         return []
 
     intensity = "repeated" if total_records > 1 else "one-off"
+    threshold_met = (
+        total_records >= FALLBACK_ACTION_RECORD_THRESHOLD
+        or len(signals) >= FALLBACK_ACTION_SECTION_THRESHOLD
+    )
     lines = [
         (
             "Review-quality signal: "
@@ -299,6 +305,15 @@ def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5
             "fallback needs follow-up."
         ),
     ]
+    if threshold_met:
+        lines.append(
+            "Review-quality signal: fallback action threshold met "
+            f"({total_records} record(s), {len(signals)} section(s); threshold is "
+            f"{FALLBACK_ACTION_RECORD_THRESHOLD} record(s) or "
+            f"{FALLBACK_ACTION_SECTION_THRESHOLD} section(s)). Record maintainer "
+            "disposition as accepted residual risk, independent re-review, or a "
+            "follow-up backlog item."
+        )
     shown = 0
     for signal in signals:
         for record in signal.fallback_records:

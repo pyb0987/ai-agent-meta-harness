@@ -5669,3 +5669,153 @@ Multi-review:
   legacy exception body/date fields, but no follow-up backlog item is required
   for the current explicit-exception contract.
 - Final acceptance: yes.
+### 64. P2 define action threshold for repeated nonindependent multi-review fallback
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology, plus `scripts/check-maintenance-review.py` quality
+signal output reporting 31 repeated nonindependent fallback records across 17
+review sections.
+
+Item 56 intentionally made `FALLBACK_NONINDEPENDENT` visible as a review-quality
+signal instead of a retroactive validation failure. That implementation is still
+correct: sequential fallback is an allowed degraded review mode when independent
+critics are unavailable, when the item is low risk, or when the fallback is
+explicitly justified. The unresolved operating question is what an active
+maintenance session should do when the signal remains frequent across durable
+contract decisions.
+
+Potential improvement:
+
+- Define a practical action threshold for repeated fallback signals, such as a
+  count, time window, durable-contract category, or release-candidate condition
+  that requires explicit maintainer disposition.
+- Decide whether the checker should remain advisory, fail only under a stricter
+  flag, or emit grouped summaries by backlog file and contract category.
+- Update `MAINTENANCE.md` so future Completion Gates know when repeated
+  fallback is accepted residual risk versus a new backlog item.
+- Add focused checker tests if the signal gains stricter modes, grouping, or
+  threshold behavior.
+
+Done when:
+
+- `FALLBACK_NONINDEPENDENT` remains a valid disclosed fallback mode, not an
+  automatic failure.
+- Repeated fallback across durable-contract reviews has a documented action
+  threshold and required disposition.
+- The review checker and maintenance policy agree on whether the threshold is
+  advisory or blocking.
+
+Decision implemented:
+
+- `MAINTENANCE.md` now defines repeated nonindependent fallback as an allowed
+  disclosed degraded review mode that remains advisory in the checker.
+- The action threshold is at least 5 fallback records across checked review
+  sections, or fallback records in at least 3 review sections.
+- When the threshold is met, stable handoff must record a maintainer
+  disposition: accepted residual risk, independent multi-review re-run, or a
+  follow-up backlog item.
+- `scripts/check-maintenance-review.py` now emits a dedicated threshold-met
+  quality signal with the configured threshold and required disposition choices,
+  without turning legacy accepted records into validation failures.
+- `tests/test_check_maintenance_review.py` covers threshold-met and one-off
+  below-threshold fallback summaries.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`.
+- BEFORE: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+- BEFORE: PASS `python3 scripts/check-maintenance-review.py`.
+- AFTER: PASS `python3 -m unittest tests/test_check_maintenance_review.py`.
+- AFTER: PASS `python3 scripts/check-maintenance-review.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md` after VETO
+  recovery re-review passed.
+- Changed files: `MAINTENANCE.md`; `scripts/check-maintenance-review.py`;
+  `tests/test_check_maintenance_review.py`; `backlog/core.md`;
+  `backlog/archive/core.md`.
+- Scope deviations: `backlog/archive/core.md` was added to scope for normal
+  completed-item archival. Existing dirty `backlog/README.md` and
+  `backlog/codex-adapter.md` are unrelated user-added backlog changes and must
+  remain unstaged.
+- Verification results: PASS
+  `python3 -m unittest tests/test_check_maintenance_review.py`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 -m unittest tests/test_backlog_heading_uniqueness.py tests/test_check_maintenance_review.py`;
+  PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`;
+  PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`.
+  Release verification also exercised base-ref search-set evidence mode against
+  `origin/main`.
+- Multi-review required: yes; maintenance governance/checker output contract
+  changed.
+- Multi-review result: PASS after process VETO recovery and re-review.
+- Reviewer scores and VETO handling: policy semantics 9 PASS; checker
+  semantics 9 PASS; maintenance process 8 VETO. The process VETO was handled by
+  unstaging out-of-scope files and adding missing Completion Gate and review
+  handling records. The first process re-review remained 8 VETO because the
+  Completion Gate search-set record shape made the default evidence checker
+  fail; the record was fixed and the affected critic re-review scored 9 PASS
+  with no blocking findings.
+- For each score 9, why not 10: policy semantics was 9 because exact
+  disposition label/location could be more explicit; accepted because this
+  Completion Gate records the disposition and the maintenance policy already
+  lists the required disposition choices. Checker semantics was 9 because the
+  record-count threshold boundary lacks a dedicated test; accepted because the
+  section-threshold test exercises the threshold branch that current repository
+  records trigger. Process re-review was 9 because final administrative
+  acceptance/archive was intentionally pending during re-review; this final
+  record completes that closure.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: no follow-up. The threshold remains advisory and the
+  current repository-wide historical fallback signal is accepted residual risk;
+  future sessions must record one of the documented dispositions when the
+  threshold is met.
+- Accepted: yes.
+
+Multi-review:
+
+- Required: yes; this changes maintenance review quality-signal policy and
+  checker output semantics for a durable governance contract.
+- Policy semantics critic: score 9, verdict PASS. Blocking findings: none. Why
+  not 10: the disposition requirement is clear, but the policy does not specify
+  an exact record label or location for maintainers to record disposition.
+- Checker semantics critic: score 9, verdict PASS. Blocking findings: none. Why
+  not 10: tests cover the section-count threshold and one-off below-threshold
+  case, but not the record-count threshold boundary directly.
+- Maintenance-process critic: score 8, verdict VETO. Blocking findings:
+  out-of-scope `backlog/README.md` and `backlog/codex-adapter.md` were staged;
+  item 64 lacked Completion Gate, final acceptance, reviewer score handling,
+  and archive closure records. This result is not accepted until affected
+  critic re-review reaches the required threshold.
+- Score handling: the two score 9 reviews are accepted residual risk rather
+  than backlog follow-ups because Completion Gate records are the intended
+  disposition location and the section threshold test covers the checker branch
+  used by current repository records. The score 8 process VETO was handled by
+  unstaging out-of-scope files and adding Completion Gate, multi-review, score,
+  and VETO handling records.
+- Rerun status: maintenance-process critic re-review scored 9, verdict PASS.
+  Blocking findings: none.
+- Follow-up/residual risk: threshold output remains advisory. The current
+  repository-wide threshold signal is dispositioned as accepted residual risk
+  for historical accepted records; this item uses independent multi-review and
+  adds no new fallback dependence.
+- Final acceptance: yes.

@@ -452,6 +452,41 @@ Potential improvement:
         self.assertIn("Review-quality signal:", stdout.getvalue())
         self.assertIn("not a validation failure", stdout.getvalue())
 
+    def test_quality_signal_summary_marks_action_threshold_without_failing(self):
+        text = "\n".join(
+            summary(
+                """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT for this durable-contract check. Follow-up/residual risk: accepted.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+            )
+            for _ in range(check_maintenance_review.FALLBACK_ACTION_SECTION_THRESHOLD)
+        )
+
+        errors = check_maintenance_review.validate_text(text)
+        signals = check_maintenance_review.review_quality_signals(text, source="backlog/core.md")
+        summary_lines = check_maintenance_review.quality_signal_summary(signals)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(any("fallback action threshold met" in line for line in summary_lines))
+
+    def test_quality_signal_summary_keeps_one_off_below_action_threshold(self):
+        text = summary(
+            """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT because sub-agents were unavailable. Follow-up/residual risk: accepted as a one-off fallback.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+        )
+
+        signals = check_maintenance_review.review_quality_signals(text, source="backlog/core.md")
+        summary_lines = check_maintenance_review.quality_signal_summary(signals)
+
+        self.assertFalse(any("fallback action threshold met" in line for line in summary_lines))
+
 
 if __name__ == "__main__":
     unittest.main()

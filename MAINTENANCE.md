@@ -79,6 +79,20 @@ Use this workflow for backlog work:
    actionable.
 11. Record actionable residual risk as follow-up work.
 
+Repeated nonindependent multi-review fallback is allowed only as a disclosed
+degraded review mode. It remains advisory in `scripts/check-maintenance-review.py`
+so old accepted records and low-risk cleanup do not become retroactive blockers,
+but it requires maintainer disposition when it becomes frequent: at least 5
+fallback records across checked review sections, or fallback records in at
+least 3 review sections. When that threshold is met, the active maintenance
+session must record one of these dispositions before stable handoff:
+
+- Accepted residual risk, with the reason independent critics were impractical
+  or unnecessary for the affected work.
+- Independent multi-review re-run for the affected durable-contract item.
+- A follow-up backlog item when the repeated fallback indicates a systemic
+  review-process problem.
+
 When a backlog item becomes implemented foundation, keep it in place but change
 the wording from "Potential improvement" to "Decision implemented" plus
 "Remaining follow-up work". This preserves history without making completed

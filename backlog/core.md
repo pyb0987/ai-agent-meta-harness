@@ -102,14 +102,13 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has four unstarted concrete process items from recent
-  current-main methodology reviews: item 64 should define an action threshold
-  for repeated nonindependent multi-review fallback signals, item 65 should
-  decide whether archive lifecycle validation belongs in pre-commit, and item
-  66 should make required multi-review presence visible for high-impact changed
-  paths. Item 67 should tighten the README opening attribution for the 6x
-  harness-sensitivity claim so it matches the paper traceability table.
-  Items 56-63 are complete, so future maintenance should not select them as
+- Active core backlog has three unstarted concrete process items from recent
+  current-main methodology reviews: item 65 should decide whether archive
+  lifecycle validation belongs in pre-commit, item 66 should make required
+  multi-review presence visible for high-impact changed paths, and item 67
+  should tighten the README opening attribution for the 6x harness-sensitivity
+  claim so it matches the paper traceability table.
+  Items 56-64 are complete, so future maintenance should not select them as
   available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -195,41 +194,8 @@ Status: 완료
 Archived: `backlog/archive/core.md#63-p3-require-archived-backlog-targets-to-be-completed-records`
 ### 64. P2 define action threshold for repeated nonindependent multi-review fallback
 
-Status: 대기
-
-Source review: 2026-05-04 multi-review of local `main` against the
-Meta-Harness methodology, plus `scripts/check-maintenance-review.py` quality
-signal output reporting 31 repeated nonindependent fallback records across 17
-review sections.
-
-Item 56 intentionally made `FALLBACK_NONINDEPENDENT` visible as a review-quality
-signal instead of a retroactive validation failure. That implementation is still
-correct: sequential fallback is an allowed degraded review mode when independent
-critics are unavailable, when the item is low risk, or when the fallback is
-explicitly justified. The unresolved operating question is what an active
-maintenance session should do when the signal remains frequent across durable
-contract decisions.
-
-Potential improvement:
-
-- Define a practical action threshold for repeated fallback signals, such as a
-  count, time window, durable-contract category, or release-candidate condition
-  that requires explicit maintainer disposition.
-- Decide whether the checker should remain advisory, fail only under a stricter
-  flag, or emit grouped summaries by backlog file and contract category.
-- Update `MAINTENANCE.md` so future Completion Gates know when repeated
-  fallback is accepted residual risk versus a new backlog item.
-- Add focused checker tests if the signal gains stricter modes, grouping, or
-  threshold behavior.
-
-Done when:
-
-- `FALLBACK_NONINDEPENDENT` remains a valid disclosed fallback mode, not an
-  automatic failure.
-- Repeated fallback across durable-contract reviews has a documented action
-  threshold and required disposition.
-- The review checker and maintenance policy agree on whether the threshold is
-  advisory or blocking.
+Status: 완료
+Archived: `backlog/archive/core.md#64-p2-define-action-threshold-for-repeated-nonindependent-multi-review-fallback`
 ### 65. P3 decide whether archive lifecycle validation belongs in pre-commit
 
 Status: 대기
