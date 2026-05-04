@@ -124,13 +124,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has newly discovered follow-up items from current-main
-  methodology review: item 41 should refresh this status block, item 42 should
-  audit aphoristic methodology slogans for claim-boundary clarity, item 44
-  should remove runtime-specific instruction filenames from the core, and item
-  45 should make the repository's intended framing explicit across public docs.
-  Item 43 made search-set before/after evidence compliance more mechanically
-  visible and is complete.
+- Active core backlog has one remaining unstarted concrete item from the
+  current-main methodology review: item 42 should audit aphoristic methodology
+  slogans for claim-boundary clarity. Items 41, 43, 44, and 45 are complete, so
+  future maintenance should not select them as available implementation
+  candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -657,7 +655,12 @@ Completion Gate:
 
 ### 41. P3 refresh active backlog status after item 37 completion
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/core.md
 
 Source discussion: 2026-05-04 multi-review of local `main` backlog governance.
 
@@ -683,6 +686,34 @@ Done when:
 - The active core backlog summary matches the statuses of the numbered records
   below it.
 - `python3 scripts/check-maintenance-review.py backlog/core.md` passes.
+
+Implementation notes:
+
+- Updated `Current Status` so it no longer lists handled items 41, 43, 44, or
+  45 as available implementation candidates.
+- Left item 42 as the one remaining unstarted concrete core item from the
+  current-main methodology review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; PASS `python3 scripts/check-search-set-evidence.py`; PASS
+  `git diff --check`.
+- Search-set verification: SKIPPED; not harness-affecting, backlog status
+  summary only.
+- Multi-review required: no; backlog-only status cleanup that does not change
+  core methodology, adapter behavior, hook semantics, release gates, or a
+  durable contract.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: not applicable; no required critics and no
+  VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 43. P2 make search-set before/after evidence compliance mechanically visible
 
