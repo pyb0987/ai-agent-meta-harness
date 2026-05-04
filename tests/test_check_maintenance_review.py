@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import contextlib
+import io
 import sys
 import subprocess
 import tempfile
@@ -408,6 +410,47 @@ Potential improvement:
             paths = {path.relative_to(root).as_posix() for path in check_maintenance_review.default_paths(use_index=True)}
 
         self.assertEqual(paths, {"backlog/review-example.md"})
+
+    def test_quality_signal_flags_nonindependent_fallback_without_validation_error(self):
+        text = summary(
+            """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: review used documented sequential fallback rather than independent sub-agent critics. Follow-up/residual risk: accepted as session-surface residual risk.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+        )
+
+        errors = check_maintenance_review.validate_text(text)
+        signals = check_maintenance_review.review_quality_signals(text, source="backlog/core.md")
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(signals), 1)
+        self.assertIn("sequential fallback", signals[0].fallback_records[0])
+
+    def test_main_prints_fallback_quality_signal_without_failing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review = Path(tmpdir) / "review.md"
+            review.write_text(
+                summary(
+                    """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT because sub-agents were unavailable. Follow-up/residual risk: accepted as a one-off fallback.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([review.as_posix()])
+
+        self.assertEqual(result, 0)
+        self.assertIn("Maintenance review summaries are valid.", stdout.getvalue())
+        self.assertIn("Review-quality signal:", stdout.getvalue())
+        self.assertIn("not a validation failure", stdout.getvalue())
 
 
 if __name__ == "__main__":

@@ -496,6 +496,15 @@ item does not require multi-review, the Reviewed Commit Loop uses a single
 isolated reviewer as the required handoff hygiene check; that check must still
 not be recorded as satisfying required multi-review.
 
+A one-off nonindependent fallback can be accepted only when the item record
+states why independent critics were unavailable or unnecessary for the
+remaining risk, such as temporary sub-agent unavailability, emergency recovery,
+or explicitly low-risk documentation cleanup. Repeated nonindependent fallback
+on durable-contract decisions is a review-quality signal, not an automatic
+retroactive failure. When the review checker reports repeated fallback records,
+the active session must decide whether the pattern is still justified or should
+create follow-up work before accepting the current item.
+
 As local release policy, reviewer or critic scores below 9 are VETO. Scores of
 9 mean the change is acceptable with remaining risk tracked. Scores of 10 should
 be rare and reserved for cases where there is no meaningful known follow-up.

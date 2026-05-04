@@ -124,15 +124,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has three unstarted concrete process items from recent
-  current-main methodology reviews: item 56 should track and reduce repeated
-  nonindependent multi-review fallback use for durable-contract decisions; item
-  59 should capture future qualifying repository raw traces when real failures,
-  VETOs, or experiment episodes occur; item 60 should make the archive
-  lifecycle operational for completed active backlog records.
-  Items 57, 58, and 61 are complete, so future maintenance should not select
+- Active core backlog has one unstarted concrete process item from recent
+  current-main methodology reviews: item 60 should make the archive lifecycle
+  operational for completed active backlog records.
+  Items 56-59 and 61 are complete, so future maintenance should not select
   them as available implementation candidates.
-  available implementation candidate.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
@@ -1441,7 +1437,15 @@ Completion Gate:
 
 ### 56. P2 track repeated nonindependent multi-review fallback as systemic risk
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of current local `main` against the
 Meta-Harness methodology.
@@ -1475,6 +1479,86 @@ Done when:
 - Focused tests or checker fixtures cover the chosen signal if it is made
   mechanical.
 - Multi-review checks the result because this changes review-governance policy.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline PASS
+  `python3 -m unittest tests/test_check_maintenance_review.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `git diff --check`.
+
+Decision implemented:
+
+- Added `MAINTENANCE.md` policy that treats one-off nonindependent fallback as
+  acceptable only when explicitly justified, while repeated nonindependent
+  fallback on durable-contract decisions becomes a review-quality signal.
+- Added a non-failing `scripts/check-maintenance-review.py` quality-signal pass
+  that reports `FALLBACK_NONINDEPENDENT`, documented sequential fallback, and
+  related nonindependent multi-review records found inside review sections.
+- Added focused checker tests showing fallback quality signals are visible
+  without retroactively invalidating otherwise valid review records.
+
+Multi-review:
+
+- Governance-policy critic: score 9, PASS. Blocking findings: none. Why not
+  10: the policy relies on active-session judgment to decide whether repeated
+  fallback concerns durable-contract decisions rather than mechanically
+  classifying durable-contract records. No backlog item added because this item
+  intentionally chose visibility over retroactive enforcement.
+- Checker/test critic: score 9, PASS. Blocking findings: none. Why not 10: the
+  matcher is phrase-based around documented markers and may miss nearby
+  spellings such as hyphenated `non-independent`. No backlog item added because
+  the signal is a visibility aid, not the enforcement gate.
+- Maintenance-process critic: initial score 6, VETO. Blocking findings:
+  Completion Gate and required multi-review results were not yet recorded, and
+  post-implementation verification was not fully listed in the item record.
+- Maintenance-process critic re-review: score 9, PASS. Blocking findings:
+  none. Why not 10: the process record was substantively complete after VETO
+  recovery, but still needed final placeholder cleanup before commit. No
+  backlog item added because this was resolved in the current item record.
+- Score handling: two required critics scored 9; the process critic score 6
+  triggered VETO recovery before acceptance; affected process critic rerun
+  reached score 9. Every score 9 records why not 10 and residual-risk
+  disposition.
+- Rerun status: affected process critic rerun completed after adding the
+  missing Multi-review and Completion Gate record; final process score 9.
+- Follow-up/residual risk: accepted phrase-based matcher and judgment-based
+  durable-contract classification as scoped residual risks for this visibility
+  item.
+- Final acceptance: accepted after process critic rerun.
+
+Completion Gate:
+
+- Backlog status: `완료` after process VETO recovery and re-review.
+- Changed files: `MAINTENANCE.md`, `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, `backlog/core.md`.
+- Scope deviations: none; unrelated dirty `backlog/README.md` remains outside
+  this item and unstaged.
+- Verification results: PASS `python3 -m unittest
+  tests/test_check_maintenance_review.py`; PASS `python3 -m unittest
+  tests/test_maintenance_policy_boundaries.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `git diff --check`.
+- Search-set verification: BEFORE and AFTER PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; review-governance policy and checker behavior.
+- Multi-review result: PASS after process critic rerun.
+- Reviewer scores and VETO handling: governance-policy critic 9 PASS;
+  checker/test critic 9 PASS; maintenance-process critic initial 6 VETO; VETO
+  addressed by adding the missing required multi-review and Completion Gate
+  records before acceptance; maintenance-process critic rerun 9 PASS.
+- Score-9 why-not-10 handling: governance-policy critic was 9 because
+  durable-contract classification remains session-judgment based; checker/test
+  critic was 9 because fallback detection is phrase-based and intentionally
+  limited to documented markers; maintenance-process re-review was 9 because
+  the process record needed final placeholder cleanup after rerun.
+- Backlog items added from score-9 residual risk: none; both score-9 reasons
+  are accepted residual risks for a non-failing visibility signal, and the
+  process placeholder cleanup was completed in this item.
+- Residual risk/follow-up: accepted residual risks above; no new follow-up.
+- Accepted: yes.
 
 ### 57. P2 make search-set evidence checks work on staged or release candidate diffs
 

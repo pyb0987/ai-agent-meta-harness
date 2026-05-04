@@ -33,6 +33,15 @@ SCORE_9_DISPOSITION_RE = re.compile(
     r"\b(?:backlog|follow-up|residual risk|remaining follow-up|addressed|fixed|resolved|accepted)\b",
     re.IGNORECASE,
 )
+NONINDEPENDENT_FALLBACK_RE = re.compile(
+    r"\b(?:FALLBACK_NONINDEPENDENT|"
+    r"nonindependent multi-review fallback|"
+    r"documented sequential fallback|"
+    r"sequential fallback rather than independent|"
+    r"sequential fallback in the parent context|"
+    r"fallback in the parent context)\b",
+    re.IGNORECASE,
+)
 
 REQUIRED_FIELDS = {
     "verdict": re.compile(r"\b(?:PASS|VETO|MIXED|FAIL)\b"),
@@ -76,6 +85,14 @@ class ReviewSection:
     heading: str
     start_line: int
     text: str
+
+
+@dataclass(frozen=True)
+class ReviewQualitySignal:
+    source: str
+    heading: str
+    start_line: int
+    fallback_records: tuple[str, ...]
 
 
 def normalize_score(raw: str) -> float:
@@ -245,6 +262,61 @@ def validate_text(text: str, *, source: str = "<text>") -> list[str]:
     return errors
 
 
+def review_quality_signals(text: str, *, source: str = "<text>") -> list[ReviewQualitySignal]:
+    signals: list[ReviewQualitySignal] = []
+    for section in review_sections(text):
+        block = review_block(section.text)
+        fallback_records = tuple(
+            record for record in bullet_records(block) if NONINDEPENDENT_FALLBACK_RE.search(record)
+        )
+        if fallback_records:
+            signals.append(
+                ReviewQualitySignal(
+                    source=source,
+                    heading=section.heading,
+                    start_line=section.start_line,
+                    fallback_records=fallback_records,
+                )
+            )
+    return signals
+
+
+def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5) -> list[str]:
+    total_records = sum(len(signal.fallback_records) for signal in signals)
+    if total_records == 0:
+        return []
+
+    intensity = "repeated" if total_records > 1 else "one-off"
+    lines = [
+        (
+            "Review-quality signal: "
+            f"{total_records} {intensity} nonindependent multi-review fallback "
+            f"record(s) found across {len(signals)} review section(s)."
+        ),
+        (
+            "Review-quality signal: fallback is visible but not a validation "
+            "failure; use MAINTENANCE.md to decide whether repeated durable-contract "
+            "fallback needs follow-up."
+        ),
+    ]
+    shown = 0
+    for signal in signals:
+        for record in signal.fallback_records:
+            if shown >= limit:
+                remaining = total_records - shown
+                lines.append(f"Review-quality signal: ... {remaining} additional fallback record(s) omitted.")
+                return lines
+            excerpt = re.sub(r"\s+", " ", record).strip()
+            if len(excerpt) > 180:
+                excerpt = f"{excerpt[:177]}..."
+            lines.append(
+                f"Review-quality signal: {signal.source}:{signal.start_line} "
+                f"({signal.heading}): {excerpt}"
+            )
+            shown += 1
+    return lines
+
+
 def validate_paths(paths: list[Path]) -> list[str]:
     errors: list[str] = []
     for path in paths:
@@ -255,6 +327,17 @@ def validate_paths(paths: list[Path]) -> list[str]:
             continue
         errors.extend(validate_text(text, source=path.as_posix()))
     return errors
+
+
+def quality_signals_paths(paths: list[Path]) -> list[ReviewQualitySignal]:
+    signals: list[ReviewQualitySignal] = []
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        signals.extend(review_quality_signals(text, source=path.as_posix()))
+    return signals
 
 
 def _git(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -306,6 +389,17 @@ def validate_index_paths(paths: list[Path]) -> list[str]:
     return errors
 
 
+def quality_signals_index_paths(paths: list[Path]) -> list[ReviewQualitySignal]:
+    signals: list[ReviewQualitySignal] = []
+    for path in paths:
+        try:
+            text = _read_index_text(path)
+        except OSError:
+            continue
+        signals.extend(review_quality_signals(text, source=path.as_posix()))
+    return signals
+
+
 def default_paths(*, use_index: bool = False) -> list[Path]:
     if use_index:
         return indexed_default_paths()
@@ -323,15 +417,25 @@ def validate_default_paths(*, use_index: bool = False) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    use_index = False
     if args:
-        errors = validate_paths([Path(arg) for arg in args])
+        paths = [Path(arg) for arg in args]
+        errors = validate_paths(paths)
+        quality_signals = quality_signals_paths(paths)
     else:
-        errors = validate_default_paths(use_index=_inside_git_worktree())
+        use_index = _inside_git_worktree()
+        paths = default_paths(use_index=use_index)
+        errors = validate_index_paths(paths) if use_index else validate_paths(paths)
+        quality_signals = (
+            quality_signals_index_paths(paths) if use_index else quality_signals_paths(paths)
+        )
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
     print("Maintenance review summaries are valid.")
+    for line in quality_signal_summary(quality_signals):
+        print(line)
     return 0
 
 
