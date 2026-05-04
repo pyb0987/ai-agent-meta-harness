@@ -25,6 +25,9 @@ DEFAULT_BACKLOG_FILES = (
     "backlog/archive/claude-adapter.md",
     "backlog/archive/codex-adapter.md",
 )
+CLEAN_HANDOFF_DISPOSITION_FILES = (
+    "MAINTENANCE.md",
+)
 HIGH_IMPACT_PATH_PREFIXES = (
     ".githooks/",
     "adapters/",
@@ -490,6 +493,11 @@ def _staged_changed_paths() -> list[str]:
     return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
 
 
+def _has_staged_changes() -> bool:
+    result = _git(["diff", "--cached", "--quiet"], check=False)
+    return result.returncode == 1
+
+
 def _inside_git_worktree() -> bool:
     result = _git(["rev-parse", "--is-inside-work-tree"], check=False)
     return result.returncode == 0 and result.stdout.strip() == "true"
@@ -520,6 +528,14 @@ def staged_record_paths(changed_paths: list[str]) -> list[Path]:
         ROOT / path
         for path in changed_paths
         if path in DEFAULT_BACKLOG_FILES or fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB)
+    ]
+
+
+def clean_handoff_disposition_paths() -> list[Path]:
+    return [
+        ROOT / path
+        for path in CLEAN_HANDOFF_DISPOSITION_FILES
+        if (ROOT / path).exists()
     ]
 
 
@@ -589,7 +605,12 @@ def main(argv: list[str] | None = None) -> int:
             quality_signals_index_paths(paths) if use_index else quality_signals_paths(paths)
         )
         changed_paths = _staged_changed_paths() if use_index else []
-        disposition_paths = staged_record_paths(changed_paths) if use_index else paths
+        if use_index:
+            disposition_paths = staged_record_paths(changed_paths)
+            if not disposition_paths and not _has_staged_changes():
+                disposition_paths = clean_handoff_disposition_paths()
+        else:
+            disposition_paths = paths
         fallback_dispositions = (
             fallback_threshold_dispositions_index_paths(disposition_paths)
             if use_index

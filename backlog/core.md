@@ -237,6 +237,11 @@ Archived: `backlog/archive/core.md#73-p3-refresh-backlog-summaries-after-codex-r
 Status: 완료
 Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gate-invariants`
 
+### 74. P2 make fallback disposition durable for clean handoffs
+
+Status: 완료
+Archived: `backlog/archive/core.md#74-p2-make-fallback-disposition-durable-for-clean-handoffs`
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

@@ -7114,3 +7114,97 @@ Completion Gate:
   release-gate shell execution, and selective staging will be verified before
   commit.
 - Accepted: yes.
+
+### 74. P2 make fallback disposition durable for clean handoffs
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- MAINTENANCE.md
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Item 69 added a checker-readable `Fallback-threshold disposition:` label and
+made staged/current records distinguish accepted residual risk, independent
+re-review, or follow-up backlog disposition. In a clean stable handoff with no
+active staged disposition record, `scripts/check-maintenance-review.py` still
+prints the threshold-met message asking maintainers to record a disposition.
+That keeps the signal visible, but it means a reviewer cannot tell from the
+clean main output alone whether the current repository-wide fallback signal has
+already been dispositioned for this release state.
+
+Potential improvement:
+
+- Decide whether clean release/handoff state needs a durable disposition surface,
+  such as a release note file, a current active-backlog summary label, or a
+  checker-recognized handoff marker.
+- Keep historical archive dispositions from masking future work, which item 69
+  correctly guarded against.
+- Consider separate checker output for "threshold met and currently
+  undispositioned" versus "threshold met and dispositioned for this clean
+  handoff".
+- Add focused tests that cover clean worktree/default-index behavior, staged
+  item behavior, stale archive-only dispositions, and explicit path mode.
+
+Done when:
+
+- A clean stable-handoff run of `python3 scripts/check-maintenance-review.py`
+  makes the fallback-threshold disposition state unambiguous.
+- The repository still treats legacy fallback records as advisory historical
+  evidence, not retroactive failures.
+- `MAINTENANCE.md` and checker output agree on where maintainers record the
+  clean-handoff disposition.
+
+Completion Gate:
+
+- Backlog status: `진행중`; implementation and focused verification complete,
+  pending required multi-review.
+- Changed files: `MAINTENANCE.md`, `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, `backlog/core.md`.
+- Scope deviations: none. Out-of-scope dirty backlog additions remain in
+  `backlog/README.md`, `backlog/codex-adapter.md`, and `backlog/core.md` hunks
+  outside item 74, including items 75-79, item 49, and recheck bookkeeping;
+  final staging must include only item 74 files/hunks.
+- Verification results: PASS `python3 -m unittest
+  tests/test_check_maintenance_review.py`; PASS `python3
+  scripts/check-maintenance-review.py MAINTENANCE.md backlog/core.md`; PASS
+  staged-index probe `python3 scripts/check-maintenance-review.py` after staging
+  `MAINTENANCE.md`, `scripts/check-maintenance-review.py`, and
+  `tests/test_check_maintenance_review.py`, which reported
+  `disposition recorded at .../MAINTENANCE.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED because the pre-implementation search-set was not run before
+    selecting item 74.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; maintenance review checker/governance handoff
+  semantics.
+- Multi-review result: PASS after checker-behavior VETO recovery re-review.
+- Reviewer scores and VETO handling: checker-behavior critic 7 VETO because the
+  clean-handoff fallback initially applied whenever no staged backlog/review
+  record existed, even if other staged work existed. Fixed by allowing the
+  `MAINTENANCE.md` clean-handoff marker only when there are no staged changes
+  and adding a staged non-backlog negative test. Checker-behavior re-review: 9
+  PASS. Maintenance-policy critic 9 PASS. Process/test critic 9 PASS.
+- For each score 9, why not 10: checker-behavior re-review was not 10 because
+  `MAINTENANCE.md` still said "no staged backlog/review record" while the
+  implementation correctly required no staged changes; fixed by tightening the
+  policy wording. Maintenance-policy critic was not 10 because the wrapped
+  `Fallback-threshold disposition:` line yields a shorter checker excerpt; this
+  is accepted as display-only residual risk because the full detail remains in
+  MAINTENANCE.md and the checker still recognizes the disposition. Process/test
+  critic was not 10 because selective staging remains hunk-level in a dirty
+  worktree; accepted because out-of-scope dirty hunks are disclosed and staged
+  patch inspection is required before commit.
+- Backlog items added from score-9 residual risk: none; no actionable follow-up
+  remains after the policy wording fix.
+- Residual risk/follow-up: no new follow-up. The durable clean-handoff marker is
+  intentionally advisory and applies only with no staged changes.
+- Accepted: yes.

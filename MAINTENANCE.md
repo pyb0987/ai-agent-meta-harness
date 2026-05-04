@@ -105,6 +105,16 @@ undispositioned threshold visible as an action prompt. Historical archive
 dispositions do not mask later stable handoffs unless the archive record itself
 is part of the current staged handoff.
 
+For a clean stable handoff with no staged changes, record the
+current repository-wide disposition in this file so `python3
+scripts/check-maintenance-review.py` can report the threshold as dispositioned
+without letting old archive records hide future work:
+
+- Fallback-threshold disposition: accepted residual risk because current clean
+  handoffs use independent multi-review for required durable-contract changes,
+  while older nonindependent fallback records remain advisory history rather
+  than retroactive release blockers.
+
 When a backlog item becomes implemented foundation, keep it in place but change
 the wording from "Potential improvement" to "Decision implemented" plus
 "Remaining follow-up work". This preserves history without making completed

@@ -456,6 +456,89 @@ Potential improvement:
         self.assertIn("Record maintainer disposition", stdout.getvalue())
         self.assertNotIn("disposition recorded", stdout.getvalue())
 
+    def test_default_git_mode_counts_clean_handoff_disposition(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            git(root, "config", "user.email", "test@example.com")
+            git(root, "config", "user.name", "Test User")
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            archive.mkdir(parents=True)
+            for path in (
+                backlog / "core.md",
+                backlog / "claude-adapter.md",
+                backlog / "codex-adapter.md",
+                archive / "claude-adapter.md",
+                archive / "codex-adapter.md",
+            ):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("", encoding="utf-8")
+            (archive / "core.md").write_text(fallback_threshold_review(), encoding="utf-8")
+            (root / "MAINTENANCE.md").write_text(
+                "- Fallback-threshold disposition: accepted residual risk because "
+                "this clean handoff has independent review discipline.\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "MAINTENANCE.md", "backlog")
+            git(root, "commit", "-m", "clean handoff disposition")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("disposition recorded", stdout.getvalue())
+        self.assertNotIn("Record maintainer disposition", stdout.getvalue())
+
+    def test_default_git_mode_does_not_use_clean_handoff_disposition_for_staged_work(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            git(root, "config", "user.email", "test@example.com")
+            git(root, "config", "user.name", "Test User")
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            archive.mkdir(parents=True)
+            for path in (
+                backlog / "core.md",
+                backlog / "claude-adapter.md",
+                backlog / "codex-adapter.md",
+                archive / "claude-adapter.md",
+                archive / "codex-adapter.md",
+            ):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("", encoding="utf-8")
+            (archive / "core.md").write_text(fallback_threshold_review(), encoding="utf-8")
+            (root / "MAINTENANCE.md").write_text(
+                "- Fallback-threshold disposition: accepted residual risk because "
+                "this clean handoff has independent review discipline.\n",
+                encoding="utf-8",
+            )
+            script = root / "scripts" / "example.py"
+            script.parent.mkdir()
+            script.write_text("print('old')\n", encoding="utf-8")
+            git(root, "add", "MAINTENANCE.md", "backlog", "scripts/example.py")
+            git(root, "commit", "-m", "clean handoff disposition")
+            script.write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/example.py")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("Record maintainer disposition", stdout.getvalue())
+        self.assertNotIn("disposition recorded", stdout.getvalue())
+
     def test_default_git_mode_counts_staged_threshold_disposition(self):
         original_root = check_maintenance_review.ROOT
         with tempfile.TemporaryDirectory() as tmpdir:
