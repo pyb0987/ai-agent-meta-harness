@@ -311,6 +311,11 @@ python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
+Do not use plain root-level `python3 -m unittest discover` as a repository
+verification signal. It is guarded by a root sentinel that fails on purpose so a
+generic unittest runner cannot report a zero-test false green. Use the three
+explicit unittest discovery roots in the Standard verification set instead.
+
 The tracked pre-commit hook runs the drift, artifact smoke, and maintenance
 review checks, but not the full unit test suites or the heavier Codex local
 plugin activation smoke:

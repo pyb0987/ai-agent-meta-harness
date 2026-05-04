@@ -507,7 +507,14 @@ Done when:
 
 ### 49. P3 guard against root unittest discovery false greens
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- test_root_unittest_discovery.py
+- backlog/core.md
 
 Source review: 2026-05-04 executable-implementation critic in the current-main
 methodology multi-review.
@@ -535,6 +542,73 @@ Done when:
   unittest run with zero tests and mistake it for repository verification.
 - The Standard verification docs continue to name all three real unittest roots.
 - Focused tests or documentation checks cover the chosen behavior.
+
+Decision implemented:
+
+- Added root-level `test_root_unittest_discovery.py` as a sentinel discovered by
+  plain `python3 -m unittest discover`.
+- The sentinel fails intentionally with a message directing maintainers to the
+  three explicit Standard verification unittest roots.
+- Updated `MAINTENANCE.md` to state that plain root-level unittest discovery is
+  not a repository verification signal and that the explicit suite roots remain
+  canonical.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because the item
+  was selected from a clean `main`, baseline `python3 -m unittest discover`
+  already reproduced the false green, and `python3 scripts/run-search-set.py
+  --list` confirmed the Active case inventory before edits. Baseline
+  `python3 -m unittest discover -s tests` passed.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Multi-review:
+
+- First isolated release-gate reviewer: score 8/10, VETO. Blocking findings:
+  P1 record search-set evidence before acceptance; P2 Scope named
+  `tests/test_root_unittest_discovery.py`, but the actual sentinel is
+  root-level `test_root_unittest_discovery.py`. Not accepted.
+- Score handling: score below 9 was treated as VETO. Blocking findings were
+  fixed by correcting the Scope path and adding this search-set evidence
+  record.
+- Affected reviewer rerun: score 9/10, PASS. Blocking findings: none. Why not
+  10: the rerun happened while this record still said `Final acceptance: no`;
+  final closure was still needed after receiving the rerun result.
+- Score handling: the score-9 why-not-10 reason was procedural and is addressed
+  by this Completion Gate; no backlog follow-up is needed.
+- Rerun status: affected reviewer rerun reached score 9/10 PASS.
+- Follow-up/residual risk: none.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `MAINTENANCE.md`, `test_root_unittest_discovery.py`,
+  `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest discover -s tests`; PASS
+  `python3 -m unittest discover -s adapters/claude/tests`; PASS `python3 -m
+  unittest discover -s adapters/codex/tests`; EXPECTED FAIL `python3 -m
+  unittest discover` with the root sentinel guidance message; PASS `python3
+  scripts/run-search-set.py`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; PASS `python3
+  scripts/check-codex-marketplace-metadata.py` with deferred publication
+  manifest note; PASS `python3 scripts/check-claude-adapter-paths.py`; PASS
+  `python3 scripts/sync-codex-plugin.py --check`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `git diff --check`.
+- Search-set verification: BEFORE SKIPPED with reason above; AFTER PASS
+  `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; release/test verification gate semantics.
+- Multi-review result: PASS after VETO fix and affected reviewer rerun.
+- Reviewer scores and VETO handling: see Multi-review records above; initial
+  VETO blocking findings were fixed and the affected reviewer rerun passed.
+- For each score-9 result, why not 10: final backlog closure was still pending
+  at the moment of rerun; addressed by this Completion Gate.
+- Backlog items added from score-9 residual risk: none; procedural closure was
+  completed in this item.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for commit.
 
 ### 50. P2 harden search-set evidence checker text matching
 
