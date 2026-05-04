@@ -1,6 +1,8 @@
 # Backlog
 
-Repository-level backlog for non-blocking improvements discovered during harness reviews and adapter porting work.
+Repository-level backlog for non-blocking improvements discovered while this
+project operationalizes Meta-Harness paper principles into a practical harness
+toolkit, runtime adapters, and verification gates.
 
 Operational maintenance rules, verification commands, release checks, and test
 policy live in `../MAINTENANCE.md`. This folder tracks future work; the

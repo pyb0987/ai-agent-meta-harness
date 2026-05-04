@@ -944,7 +944,16 @@ Completion Gate:
 
 ### 45. P2 make the operationalized-toolkit framing explicit in public docs
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- README.md
+- MAINTENANCE.md
+- backlog/README.md
+- tests/test_readme_methodology_boundaries.py
+- backlog/core.md
 
 Source discussion: 2026-05-04 maintainer framing preference after current-main
 Meta-Harness methodology review.
@@ -977,6 +986,81 @@ Done when:
 - Focused README or methodology-boundary tests protect the framing from drifting
   back toward reproduction/implementation overclaiming.
 - Multi-review checks the result because this is a public claim-boundary change.
+
+Implementation notes:
+
+- Added the canonical operationalized-toolkit framing to the README first
+  viewport, `MAINTENANCE.md` opening, and `backlog/README.md` opening.
+- Kept the README's paper benchmark numbers explicitly labeled as paper
+  context and retained the no-local-reproduction disclaimer.
+- Updated the README methodology-boundary test so README, maintenance, and
+  backlog guidance all keep the same canonical framing and avoid overclaiming
+  reproduction/proof.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/check-maintenance-review.py`.
+- before: PASS `python3 scripts/check-compat-mirrors.py`.
+- before: PASS `sh .githooks/pre-commit`.
+- before: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+- after: PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`.
+
+Multi-review:
+
+- Result: PASS; required because this is a public claim-boundary change. Used
+  `FALLBACK_NONINDEPENDENT` sequential review because this single-session
+  maintenance pass was not authorized to spawn independent reviewers.
+- Paper-claim boundary critic: score 10/10; verdict PASS; Blocking findings:
+  none. The wording says the repository operationalizes paper principles and
+  explicitly does not claim local benchmark reproduction.
+- Public-doc consistency critic: score 10/10; verdict PASS; Blocking findings:
+  none. README, maintenance, and backlog overview now share the same canonical
+  framing, with focused tests guarding the normalized text.
+- Verification/release critic: score 10/10; verdict PASS; Blocking findings:
+  none. Focused boundary tests, standard tests, pre-commit, and Active
+  search-set commands passed.
+- Score handling: no score below 9, so no VETO; no score 9, so no why-not-10
+  residual risk or follow-up backlog item.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: no VETO, so no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `README.md`, `MAINTENANCE.md`, `backlog/README.md`,
+  `tests/test_readme_methodology_boundaries.py`, `backlog/core.md`.
+- Scope deviations: `backlog/README.md` was added to Scope before editing to
+  cover directly linked backlog guidance. A transient reservation block was
+  initially placed on item 41, noticed from `git diff`, and corrected before
+  completion.
+- Verification results: PASS `python3 -m unittest
+  tests/test_readme_methodology_boundaries.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3 -m unittest discover -s
+  tests`; PASS `python3 -m unittest discover -s adapters/claude/tests`; PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3 -m
+  unittest tests/test_pre_commit_hook.py`; PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`; PASS `python3 -m
+  unittest tests/test_repository_search_set.py`; PASS `sh .githooks/pre-commit`;
+  PASS `git diff --check`.
+- Search-set verification: PASS before/after for relevant Active commands, as
+  listed above.
+- Multi-review required: yes; public paper-claim boundary change.
+- Multi-review result: PASS; `FALLBACK_NONINDEPENDENT` sequential review.
+- Reviewer scores and VETO handling: 10/10 paper-claim boundary critic, 10/10
+  public-doc consistency critic, 10/10 verification/release critic; no VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 39. P2 add trace-root completeness to the Active search-set
 

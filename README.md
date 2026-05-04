@@ -2,7 +2,7 @@
 
 A practical framework for building reliable AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
 
-Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project is a paper-inspired toolkit that combines those published findings with repository-local engineering practices. It has local checks for documentation, adapters, generated assets, and self-application traces, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
+Meta-Harness demonstrated that **the environment around an LLM matters as much as the model itself** — changing only the harness can produce a 6x performance gap on the same benchmark. This project operationalizes Meta-Harness paper principles into a practical harness toolkit, runtime adapters, and verification gates. It combines published findings with repository-local engineering practices and checks for documentation, adapters, generated assets, and self-application traces, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 

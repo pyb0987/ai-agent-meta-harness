@@ -43,7 +43,7 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
         text = normalized_readme()
 
         for marker in (
-            "This project is a paper-inspired toolkit",
+            "This project operationalizes Meta-Harness paper principles into a practical harness toolkit, runtime adapters, and verification gates",
             "does not claim a local reproduction of the paper's end-to-end benchmark gains",
             "Evidence categories used in this repository",
             "Paper results and benchmark claims",
@@ -65,6 +65,30 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
         self.assertIn("Paper results and benchmark claims", text)
         self.assertNotIn("this repository reproduces", lower)
         self.assertNotIn("locally reproduced the paper", lower)
+
+    def test_public_framing_avoids_reproduction_or_proof_overclaim(self) -> None:
+        readme = normalized_readme()
+        maintenance = " ".join((ROOT / "MAINTENANCE.md").read_text(encoding="utf-8").split())
+        backlog = " ".join((ROOT / "backlog" / "README.md").read_text(encoding="utf-8").split())
+        combined = f"{readme} {maintenance} {backlog}".lower()
+
+        framing = "operationalizes meta-harness paper principles into a practical harness toolkit, runtime adapters, and verification gates"
+        self.assertIn(framing, readme.lower())
+        self.assertIn(framing, maintenance.lower())
+        self.assertIn(framing, backlog.lower())
+        for forbidden in (
+            "paper reproduction package",
+            "full meta-harness implementation",
+            "empirical proof of the paper's performance claims",
+            "demonstrated the paper's benchmark gains",
+        ):
+            with self.subTest(forbidden=forbidden):
+                if forbidden == "paper reproduction package":
+                    self.assertIn("not a paper reproduction package", combined)
+                elif forbidden == "demonstrated the paper's benchmark gains":
+                    self.assertIn("not a paper reproduction package or a claim that this local repo has demonstrated the paper's benchmark gains", combined)
+                else:
+                    self.assertNotIn(forbidden, combined)
 
     def test_readme_has_compact_paper_claim_traceability_map(self) -> None:
         text = normalized_readme()

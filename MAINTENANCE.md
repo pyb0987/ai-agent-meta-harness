@@ -1,9 +1,11 @@
 # Maintenance Plan
 
-This repository is a maintainable Meta-Harness artifact, not only a document
-collection. The primary maintenance goal is to keep the shared methodology,
-runtime adapters, generated bundles, and compatibility surfaces aligned while
-the harness evolves.
+This repository operationalizes Meta-Harness paper principles into a practical
+harness toolkit, runtime adapters, and verification gates. It is not a paper
+reproduction package or a claim that this local repo has demonstrated the
+paper's benchmark gains. The primary maintenance goal is to keep the shared
+methodology, runtime adapters, generated bundles, and compatibility surfaces
+aligned while the harness evolves.
 
 ## Maintenance Model
 
