@@ -204,6 +204,10 @@ Archived: `backlog/archive/core.md#66-p2-make-required-multi-review-presence-vis
 
 Status: 완료
 Archived: `backlog/archive/core.md#67-p2-tighten-readme-6x-harness-sensitivity-attribution`
+### 68. P3 refresh backlog theme index after completed maintenance items
+
+Status: 완료
+Archived: `backlog/archive/core.md#68-p3-refresh-backlog-theme-index-after-completed-maintenance-items`
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

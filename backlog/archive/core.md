@@ -6123,6 +6123,78 @@ Multi-review:
   closure is complete in this record.
 - Final acceptance: yes.
 
+### 68. P3 refresh backlog theme index after completed maintenance items
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/README.md
+- backlog/core.md
+- backlog/archive/core.md
+
+Source: local active backlog had no remaining `Status: 대기` concrete items,
+but `backlog/README.md` had an uncommitted Theme Index refresh that aligned the
+index with recently completed core, Claude, and Codex maintenance records.
+
+Potential improvement:
+
+- Accept and verify the Theme Index refresh as a concrete backlog cleanup item.
+- Keep the active core backlog focused by archiving the full completed record
+  after Completion Gate.
+
+Done when:
+
+- `backlog/README.md` Theme Index references recent completed items accurately
+  enough for future selection.
+- The item records verification, review result, score-9 handling, and archive
+  lifecycle status.
+
+Completion Gate:
+
+- Backlog status: 완료; archived after isolated reviewer PASS and final
+  verification.
+- Changed files:
+  - `backlog/README.md`
+  - `backlog/core.md`
+  - `backlog/archive/core.md`
+- Scope deviations: none.
+- Verification results:
+  - PASS `python3 scripts/check-maintenance-review.py`
+  - PASS `python3 scripts/check-search-set-evidence.py`
+  - PASS `python3 scripts/check-backlog-archive-lifecycle.py`
+  - PASS `git diff --check`
+- Search-set verification:
+  - SKIPPED: backlog/theme-index documentation cleanup only; no
+    harness-affecting behavior, runtime contract, checker semantics, trace
+    schema, or release gate changed.
+- Multi-review required: no; routine backlog/status cleanup that does not
+  change adapter behavior, release gates, hook semantics, core methodology
+  boundary, or durable install/runtime contracts.
+- Multi-review result: not required. Stable handoff reviewer gate used instead.
+- Reviewer scores and VETO handling:
+  - Isolated backlog/status reviewer: 9/10 PASS; no VETO.
+- For each score 9, why not 10:
+  - The reviewer noted the item was still missing Completion Gate and archive
+    closure at review time. Addressed by this Completion Gate and archive
+    update; no follow-up needed.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes.
+
+Review outcome:
+
+- Isolated backlog/status reviewer: score 9, PASS. Blocking findings: none.
+  Why not 10: item 68 was still an in-progress handoff record and had not yet
+  recorded Completion Gate, score-9 handling, or archive closure.
+- Score handling: score 9 accepted with why-not-10 handling; no score below 9
+  and no VETO.
+- Rerun status: no affected reviewer rerun required.
+- Follow-up/residual risk: addressed by this final archive record; no backlog
+  follow-up needed.
+- Final acceptance: yes.
+
 ### 67. P2 tighten README 6x harness-sensitivity attribution
 
 Status: 완료
