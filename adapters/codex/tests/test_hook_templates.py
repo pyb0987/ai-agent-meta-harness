@@ -150,6 +150,25 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
         self.assertEqual(canonical, generated)
 
+    def test_readme_v1_protection_scope_names_current_limit(self):
+        canonical = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")
+        generated = (ROOT / "plugins" / "ai-agent-meta-harness" / "README.md").read_text(encoding="utf-8")
+
+        expected_row = (
+            "| v1 protection | Checker, hook smoke assertions, protected-path template, "
+            "AGENTS reminder snippet, Codex hook template, pre-commit template, CI "
+            "template, target-project install docs, and local smoke commands | "
+            "Implemented for copied target-project guardrails; runtime plugin hook "
+            "delivery remains gated on item 40 |"
+        )
+        for text in (canonical, generated):
+            with self.subTest(path="README"):
+                self.assertIn(expected_row, text)
+                self.assertEqual(text.count("| v1 protection |"), 1)
+                self.assertEqual(text.count(expected_row), 1)
+                self.assertNotIn("install docs planned", text)
+        self.assertEqual(canonical, generated)
+
 
 if __name__ == "__main__":
     unittest.main()

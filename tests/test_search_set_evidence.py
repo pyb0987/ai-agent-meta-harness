@@ -152,6 +152,52 @@ Completion Gate:
 
         self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
 
+    def test_completed_current_record_satisfies_completed_handoff(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            return """
+### 42. Current completed item
+Status: 완료
+Completion Gate:
+- Changed files: `adapters/codex/README.md`, `backlog/codex-adapter.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py --list`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+- Multi-review required: yes
+"""
+
+        errors = check_search_set_evidence.validate(
+            ["adapters/codex/README.md", "backlog/codex-adapter.md"],
+            read_text=read_text,
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_unrelated_completed_record_does_not_satisfy_completed_handoff(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            return """
+### 41. New completed item
+Status: 완료
+Completion Gate:
+- Changed files: `adapters/codex/README.md`, `backlog/codex-adapter.md`.
+- Verification results: PASS `cmd`
+
+### 40. Old completed item
+Status: 완료
+Completion Gate:
+- Changed files: `core/methodology.md`, `backlog/core.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py --list`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+- Multi-review required: yes
+"""
+
+        errors = check_search_set_evidence.validate(
+            ["adapters/codex/README.md", "backlog/codex-adapter.md"],
+            read_text=read_text,
+        )
+
+        self.assertTrue(errors)
+
     def test_unrelated_review_pending_record_does_not_satisfy_in_progress_item(self) -> None:
         records = {
             "backlog/core.md": """
@@ -176,6 +222,35 @@ Completion Gate:
 
         errors = check_search_set_evidence.validate(
             ["MAINTENANCE.md", "backlog/core.md", "backlog/codex-adapter.md"],
+            read_text=read_text,
+        )
+
+        self.assertTrue(errors)
+
+    def test_completed_record_does_not_satisfy_review_pending_item(self) -> None:
+        records = {
+            "backlog/codex-adapter.md": """
+### 43. Review-pending item
+Status: 리뷰대기
+Completion Gate:
+- Verification results:
+  - PASS: `cmd`
+
+### 42. Completed item
+Status: 완료
+Completion Gate:
+- Changed files: `adapters/codex/README.md`, `backlog/codex-adapter.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py --list`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+""",
+        }
+
+        def read_text(path: Path, *, encoding: str) -> str:
+            return records[path.relative_to(ROOT).as_posix()]
+
+        errors = check_search_set_evidence.validate(
+            ["adapters/codex/README.md", "backlog/codex-adapter.md"],
             read_text=read_text,
         )
 

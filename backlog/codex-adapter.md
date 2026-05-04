@@ -845,7 +845,37 @@ Done when:
 
 ### 41. P3 refresh Codex v1 protection scope status
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/README.md
+- adapters/codex/tests/test_hook_templates.py
+- scripts/check-search-set-evidence.py
+- tests/test_search_set_evidence.py
+- backlog/codex-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 41, refresh Codex v1
+  protection scope status.
+- Status block added: yes, item 41 marked `진행중`.
+- Harness-affecting: yes; this changes Codex adapter distribution and
+  runtime-evidence boundary documentation generated into the plugin bundle.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary wording.
+- Minimum verification commands: `python3 scripts/sync-codex-plugin.py
+  --check`; `python3 -m unittest adapters/codex/tests/test_hook_templates.py`;
+  `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`;
+  `python3 scripts/check-search-set-evidence.py`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: `adapters/codex/README.md`, generated
+  `plugins/ai-agent-meta-harness/README.md`, focused Codex docs test,
+  search-set evidence checker/test support for completed dirty records, and
+  this backlog record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -873,6 +903,124 @@ Done when:
 - Remaining limitations are stated precisely, such as runtime delivery smoke
   pending item 40, instead of using a stale generic Partial status.
 - Plugin sync and local plugin smoke checks pass.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py --list` confirmed the Active
+  case inventory before edits; focused baseline gates passed: `python3
+  scripts/sync-codex-plugin.py --check`, `python3 -m unittest
+  adapters/codex/tests/test_hook_templates.py`, `python3
+  scripts/check-maintenance-review.py backlog/codex-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Updated the Codex adapter README bundle scope row so v1 protection no longer
+  says install docs are planned or uses a stale generic `Partial` status.
+- The v1 protection row now says target-project guardrails, install docs, and
+  local smoke commands are implemented while runtime plugin hook delivery
+  remains gated on item 40.
+- Synchronized the generated plugin README and added a focused test that
+  requires exactly one current v1 protection row in both README copies.
+
+Multi-review:
+
+- Runtime-boundary wording critic: score 10/10, PASS. Blocking findings: none.
+- Generated sync/test critic: score 8/10, VETO. Blocking findings: exact
+  duplicate v1 rows were not detected because the first test removed all
+  matching expected rows before checking for leftovers; not accepted.
+- Process-compliance critic: score 8/10, VETO. Blocking findings: Start Gate
+  fields were reported in the session but missing from the backlog record; not
+  accepted.
+- Score handling: scores below 9 were treated as VETO. The generated sync/test
+  VETO was fixed by asserting exactly one `| v1 protection |` marker and exactly
+  one expected row. The process VETO was fixed by recording the full Start Gate
+  in this backlog item.
+- Affected generated sync/test critic rerun: score 10/10, PASS. Blocking
+  findings: none.
+- Affected process-compliance critic rerun: score 9/10, PASS. Blocking
+  findings: none. Why not 10: final Completion Gate still needed to record the
+  rerun result and completed reviewer-score handling before acceptance.
+- Expanded-scope process critic rerun: score 8/10, VETO. Blocking findings:
+  Completion Gate omitted `scripts/check-search-set-evidence.py` and
+  `tests/test_search_set_evidence.py`, and did not close out the earlier failed
+  release verification. Not accepted.
+- Expanded-scope test/checker critic rerun: score 8/10, VETO. Blocking
+  findings: completed fallback could accept stale completed evidence from an
+  unrelated old section in the changed backlog file. Not accepted.
+- Expanded-scope score handling: scores below 9 were treated as VETO. The
+  Completion Gate omission was fixed by adding expanded files and final release
+  PASS evidence. The stale completed-evidence hole was fixed by requiring
+  completed evidence sections to mention an affected harness path, with a
+  focused regression test. A follow-up review noted the test did not directly
+  pin completed evidence against review-pending records; this actionable gap was
+  fixed with an additional regression test.
+- Expanded-scope test/checker critic rerun: score 9/10, PASS. Blocking
+  findings: none. Why not 10: completed evidence precedence against
+  review-pending records was verified synthetically but not yet pinned by a
+  committed test.
+- Second expanded-scope test/checker critic rerun: score 10/10, PASS. Blocking
+  findings: none.
+- Final process-compliance critic rerun: score 9/10, PASS. Blocking findings:
+  none. Why not 10: final record still needed to add this latest process-rerun
+  result after the report.
+- Rerun status: all affected critics reran; final scores are 10/10, 10/10,
+  10/10, and 9/10 PASS.
+- Follow-up/residual risk: procedural final-closure timing addressed by this
+  Completion Gate.
+- Final acceptance: accepted after VETO fixes and affected critic reruns.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/codex/README.md`,
+  `plugins/ai-agent-meta-harness/README.md`,
+  `adapters/codex/tests/test_hook_templates.py`,
+  `scripts/check-search-set-evidence.py`, `tests/test_search_set_evidence.py`,
+  `backlog/codex-adapter.md`.
+- Scope deviations: scope expanded to include
+  `scripts/check-search-set-evidence.py` and `tests/test_search_set_evidence.py`
+  before editing them, after the completed-item policy exposed that the
+  search-set evidence checker did not accept completed dirty handoff records.
+- Verification results: PASS `python3 scripts/sync-codex-plugin.py --check`;
+  PASS `python3 -m unittest adapters/codex/tests/test_hook_templates.py`; PASS
+  `python3 -m unittest tests/test_search_set_evidence.py`; PASS
+  `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/run-search-set.py`; PASS `git diff --check`. Initial `python3
+  scripts/verify-release.py --skip-clean-worktree` failed only because
+  search-set evidence had not yet been recorded; after the record was added,
+  final `python3 scripts/verify-release.py --skip-clean-worktree` passed.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py --list` confirmed Active
+    case inventory before edits; focused baseline gates passed.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary wording.
+- Multi-review result: PASS after three-critic multi-review, VETO fixes, and
+  affected critic reruns.
+- Reviewer scores and VETO handling: runtime-boundary wording critic 10/10
+  PASS; generated sync/test critic 8/10 VETO fixed and rerun to 10/10 PASS;
+  process-compliance critic 8/10 VETO fixed and rerun to 9/10 PASS. Expanded
+  scope process critic 8/10 VETO and expanded-scope test/checker critic 8/10
+  VETO were fixed. Expanded-scope test/checker critic reran to 9/10 PASS, then
+  to 10/10 PASS after adding the review-pending precedence regression test;
+  final process critic reran to 9/10 PASS after the record update.
+- For each score-9 result, why not 10:
+  - Process-compliance critic rerun: not 10 because final Completion Gate still
+    needed to record rerun result and completed score handling at rerun time;
+    addressed by this Completion Gate.
+  - Expanded-scope test/checker critic rerun: not 10 because completed evidence
+    precedence against review-pending records was not directly pinned; fixed in
+    this item with a focused regression test and rerun to 10/10 PASS.
+  - Final process-compliance critic rerun: not 10 because final record still
+    needed to add the latest process-rerun result at report time; addressed by
+    this Completion Gate.
+- Backlog items added from score-9 residual risk: none; the only score-9 reason
+  was procedural final-closure timing or an actionable test gap handled here.
+- Residual risk/follow-up: none.
+- Accepted: yes.
 
 ### 37. P3 refresh Codex hook schema freshness signaling
 

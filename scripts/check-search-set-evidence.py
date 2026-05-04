@@ -124,8 +124,19 @@ def has_current_record_evidence(text: str, *, status: str | None = None) -> bool
         if "Status: 진행중" in section or "Status: 리뷰대기" in section
     ]
     if not sections:
+        sections = [section for section in BACKLOG_SECTION_RE.findall(text) if "Status: 완료" in section]
+    if not sections:
         return has_search_set_evidence(text)
     return any(has_search_set_evidence(section) for section in sections)
+
+
+def has_completed_record_evidence_for_paths(text: str, affected_paths: list[str]) -> bool:
+    for section in sections_with_status(text, "완료"):
+        if not has_search_set_evidence(section):
+            continue
+        if any(path in section for path in affected_paths):
+            return True
+    return False
 
 
 def validate(changed_paths: list[str], *, read_text=Path.read_text) -> list[str]:
@@ -134,6 +145,7 @@ def validate(changed_paths: list[str], *, read_text=Path.read_text) -> list[str]
         return []
     progressing_records: list[str] = []
     review_records: list[str] = []
+    completed_records: list[str] = []
     record_texts: list[str] = []
     for record in record_paths(changed_paths):
         try:
@@ -145,11 +157,16 @@ def validate(changed_paths: list[str], *, read_text=Path.read_text) -> list[str]
             progressing_records.append(text)
         if sections_with_status(text, "리뷰대기"):
             review_records.append(text)
+        if sections_with_status(text, "완료"):
+            completed_records.append(text)
     if progressing_records:
         if any(has_current_record_evidence(text, status="진행중") for text in progressing_records):
             return []
     elif review_records:
         if any(has_current_record_evidence(text, status="리뷰대기") for text in review_records):
+            return []
+    elif completed_records:
+        if any(has_completed_record_evidence_for_paths(text, affected) for text in completed_records):
             return []
     elif any(has_search_set_evidence(text) for text in record_texts):
         return []
