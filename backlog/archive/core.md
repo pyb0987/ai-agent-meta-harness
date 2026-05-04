@@ -6122,3 +6122,144 @@ Multi-review:
 - Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
   closure is complete in this record.
 - Final acceptance: yes.
+
+### 67. P2 tighten README 6x harness-sensitivity attribution
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- README.md
+- MAINTENANCE.md
+- tests/test_readme_methodology_boundaries.py
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 paper-methodology fidelity critic in the current-main
+Meta-Harness methodology multi-review.
+
+The latest paper-fidelity critic passed the repository's no-local-reproduction
+boundary, but raised a medium concern about the README opening: the first
+paragraph says "Meta-Harness demonstrated" the 6x harness-sensitivity gap, while
+the README's own traceability table more carefully labels that claim as "Paper
+Introduction, citing prior harness sensitivity evidence." The table is the more
+precise wording. The opening sentence should not imply the 6x result is a direct
+Meta-Harness experiment if the paper introduces it as prior cited evidence.
+
+Potential improvement:
+
+- Update the README opening sentence so the 6x harness-sensitivity claim is
+  attributed as paper-introduction context or cited prior evidence, matching the
+  existing paper-claim traceability table.
+- Review nearby MAINTENANCE wording such as "harness design can dominate model
+  choice" and soften it if it reads stronger than the paper's careful framing.
+- Keep the no-local-reproduction disclaimer and evidence-category table intact.
+- Extend focused README boundary tests if the exact opening wording becomes a
+  durable public claim boundary.
+
+Done when:
+
+- README opening wording and the paper-claim traceability table agree on whether
+  the 6x harness-sensitivity statement is direct Meta-Harness evidence or cited
+  prior evidence.
+- Public docs still communicate the harness-sensitivity lesson clearly without
+  overstating local reproduction or paper attribution.
+- Multi-review checks the resulting claim-boundary wording because this touches
+  public paper-methodology fidelity.
+
+Decision implemented:
+
+- `README.md` now frames the 6x harness-sensitivity sentence as prior evidence
+  cited in the Meta-Harness paper introduction, matching the paper-claim
+  traceability table rather than implying a direct Meta-Harness experiment.
+- `MAINTENANCE.md` now describes the same point as a harness-sensitivity lesson
+  from cited prior evidence instead of saying harness design can dominate model
+  choice.
+- Boundary tests now assert the README attribution and guard against restoring
+  the stronger "Meta-Harness demonstrated that" framing.
+
+Search-set verification:
+
+- SKIPPED: docs-only public claim-boundary wording; no agent-visible runtime
+  behavior, hook/checker semantics, trace schema, evaluator-boundary policy, or
+  release gate changed.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md` after
+  process/scope VETO recovery re-review passed.
+- Changed files: `README.md`, `MAINTENANCE.md`,
+  `tests/test_readme_methodology_boundaries.py`,
+  `tests/test_maintenance_policy_boundaries.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none. Dirty out-of-scope files `backlog/README.md` and
+  `backlog/codex-adapter.md` remain unstaged and are not part of item 67.
+- Verification results: BEFORE PASS `python3 -m unittest
+  tests/test_readme_methodology_boundaries.py
+  tests/test_maintenance_policy_boundaries.py`; AFTER PASS
+  `python3 -m unittest tests/test_readme_methodology_boundaries.py
+  tests/test_maintenance_policy_boundaries.py`; AFTER PASS
+  `python3 -m unittest tests/test_backlog_heading_uniqueness.py
+  tests/test_readme_methodology_boundaries.py
+  tests/test_maintenance_policy_boundaries.py`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 scripts/check-backlog-archive-lifecycle.py`; PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - SKIPPED: docs-only public claim-boundary wording; no agent-visible runtime
+    behavior, hook/checker semantics, trace schema, evaluator-boundary policy,
+    or release gate changed.
+- Multi-review required: yes; public paper-methodology attribution and durable
+  README/maintenance claim-boundary wording.
+- Multi-review result: PASS after process/scope VETO recovery re-review.
+- Reviewer scores and VETO handling: claim-boundary critic 9 PASS;
+  tests/verification critic 9 PASS; process/scope critic 8 VETO because the
+  Completion Gate and multi-review outcome were not yet recorded and dirty
+  out-of-scope files needed explicit handling. This gate addressed those
+  blockers; affected process/scope critic re-review scored 9 PASS.
+- For each score 9, why not 10: claim-boundary critic noted the README opening
+  still prominently mentions the 6x claim and does not name the cited prior
+  evidence inline, accepted because the sentence says the paper introduction
+  cites prior evidence and the nearby traceability table provides the boundary;
+  tests/verification critic noted exact prose assertions may require updates
+  for harmless wording edits, accepted because this is a public claim-boundary
+  contract; process/scope critic noted final archive/commit-ready closure was
+  still pending during re-review, addressed by this final status/archive update.
+- Backlog items added from score-9 residual risk: none; score-9 residuals
+  are wording/test-maintenance precision or final-closure timing limits accepted
+  for this item.
+- Residual risk/follow-up: no follow-up. Public claim-boundary wording is
+  aligned with the traceability table, and final process closure is complete.
+- Accepted: yes.
+
+Multi-review:
+
+- Claim-boundary critic: score 9, PASS. Blocking findings: none. Why not 10:
+  the 6x claim remains prominent in the README opening paragraph and the cited
+  prior evidence is not named inline. Follow-up/residual risk: accepted because
+  the wording explicitly says the paper introduction cites prior evidence and
+  the nearby claim traceability table records the evidence boundary.
+- Tests/verification critic: score 9, PASS. Blocking findings: none. Why not
+  10: the new assertions use fairly exact README and MAINTENANCE prose strings.
+  Follow-up/residual risk: accepted because exact strings are reasonable for a
+  public claim-boundary fix, even though future harmless wording edits may need
+  test updates.
+- Process/scope critic: score 8, VETO. Blocking findings: Completion Gate and
+  multi-review outcome were not yet recorded, and dirty out-of-scope files
+  `backlog/README.md` and `backlog/codex-adapter.md` needed explicit handling.
+  Not accepted until affected re-review reaches score 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  final archive/commit-ready closure was still pending during re-review.
+  Follow-up/residual risk: addressed by this final status/archive update.
+- Score handling: score 8 triggered VETO recovery; affected process/scope
+  critic re-review reached score 9. Every score 9 records why not 10 and
+  residual-risk disposition.
+- Rerun status: process/scope affected critic re-review after Completion Gate;
+  final score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
+  closure is complete in this record.
+- Final acceptance: yes.

@@ -60,9 +60,14 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
         text = normalized_readme()
         lower = text.lower()
 
+        self.assertIn(
+            "its introduction cites prior harness-sensitivity evidence that changing only the harness can produce a 6x performance gap on the same benchmark",
+            text,
+        )
         self.assertIn("6x performance gap on the same benchmark", text)
         self.assertIn("full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3)", text)
         self.assertIn("Paper results and benchmark claims", text)
+        self.assertNotIn("meta-harness demonstrated that", lower)
         self.assertNotIn("this repository reproduces", lower)
         self.assertNotIn("locally reproduced the paper", lower)
 

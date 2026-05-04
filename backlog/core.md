@@ -102,11 +102,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one unstarted concrete process item from recent
-  current-main methodology reviews: item 67 should tighten the README opening
-  attribution for the 6x harness-sensitivity claim so it matches the paper
-  traceability table.
-  Items 56-66 are complete, so future maintenance should not select them as
+- Active core backlog has no unstarted core process items from recent
+  current-main methodology reviews.
+  Items 56-67 are complete, so future maintenance should not select them as
   available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -204,39 +202,8 @@ Status: 완료
 Archived: `backlog/archive/core.md#66-p2-make-required-multi-review-presence-visible-for-high-impact-changes`
 ### 67. P2 tighten README 6x harness-sensitivity attribution
 
-Status: 대기
-
-Source review: 2026-05-04 paper-methodology fidelity critic in the current-main
-Meta-Harness methodology multi-review.
-
-The latest paper-fidelity critic passed the repository's no-local-reproduction
-boundary, but raised a medium concern about the README opening: the first
-paragraph says "Meta-Harness demonstrated" the 6x harness-sensitivity gap, while
-the README's own traceability table more carefully labels that claim as "Paper
-Introduction, citing prior harness sensitivity evidence." The table is the more
-precise wording. The opening sentence should not imply the 6x result is a direct
-Meta-Harness experiment if the paper introduces it as prior cited evidence.
-
-Potential improvement:
-
-- Update the README opening sentence so the 6x harness-sensitivity claim is
-  attributed as paper-introduction context or cited prior evidence, matching the
-  existing paper-claim traceability table.
-- Review nearby MAINTENANCE wording such as "harness design can dominate model
-  choice" and soften it if it reads stronger than the paper's careful framing.
-- Keep the no-local-reproduction disclaimer and evidence-category table intact.
-- Extend focused README boundary tests if the exact opening wording becomes a
-  durable public claim boundary.
-
-Done when:
-
-- README opening wording and the paper-claim traceability table agree on whether
-  the 6x harness-sensitivity statement is direct Meta-Harness evidence or cited
-  prior evidence.
-- Public docs still communicate the harness-sensitivity lesson clearly without
-  overstating local reproduction or paper attribution.
-- Multi-review checks the resulting claim-boundary wording because this touches
-  public paper-methodology fidelity.
+Status: 완료
+Archived: `backlog/archive/core.md#67-p2-tighten-readme-6x-harness-sensitivity-attribution`
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

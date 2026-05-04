@@ -26,8 +26,9 @@ Primary sources:
 
 - `core/methodology.md` for runtime-neutral operating principles.
 - `core/reference.md` for trace formats and analysis workflow.
-- Meta-Harness paper for the claim that harness design can dominate model
-  choice in long-running agent performance.
+- Meta-Harness paper for the harness-sensitivity lesson, including the
+  introduction's cited prior evidence that changing only the harness can
+  produce a 6x performance gap on the same benchmark.
 - Effective harness writing guidance for practical project-instruction hygiene.
 
 Maintenance decisions should preserve these anchors:

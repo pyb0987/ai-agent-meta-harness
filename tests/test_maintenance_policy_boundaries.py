@@ -40,6 +40,11 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "the paper motivates evaluator boundaries, trace reuse, and harness design",
             text,
         )
+        self.assertIn(
+            "Meta-Harness paper for the harness-sensitivity lesson, including the introduction's cited prior evidence that changing only the harness can produce a 6x performance gap on the same benchmark",
+            text,
+        )
+        self.assertNotIn("harness design can dominate model choice", lower)
         self.assertNotIn("paper requires reviewer scores below 9", lower)
         self.assertNotIn("paper requires score 9", lower)
 
