@@ -32,6 +32,7 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `templates/hooks/agents-autoresearch-protection.md`
 - `examples/AGENTS.md.example`
 - `scripts/check-autoresearch-protected.py`
+- `scripts/check-codex-cli-surface.py`
 - `scripts/check-codex-hook-schema-drift.py`
 - `scripts/smoke-autoresearch-hooks.py`
 - `scripts/smoke-init-codex-project-fixtures.py`
@@ -74,6 +75,7 @@ Do not include:
 | AGENTS reminder snippet | `adapters/codex/templates/hooks/agents-autoresearch-protection.md` | `templates/hooks/agents-autoresearch-protection.md` | Level 1 instruction layer for target projects |
 | Runtime Codex hook config | `adapters/codex/hooks/` | `hooks/` plus manifest `hooks` field | Only after isolated local activation and Codex plugin tool-event delivery smoke tests pass |
 | Autoresearch checker reference | `adapters/codex/scripts/check-autoresearch-protected.py` | `scripts/check-autoresearch-protected.py` | Shared by Codex hooks, pre-commit, and CI templates |
+| Optional Codex CLI surface probe | `adapters/codex/scripts/check-codex-cli-surface.py` | `scripts/check-codex-cli-surface.py` | Checks local `codex plugin marketplace` and `codex app-server` help markers when Codex is installed; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
 | Hook schema drift reference | `adapters/codex/hook-schema.md` | `hook-schema.md` | Records verified Codex hook output assumptions and official source URLs |
 | Hook schema drift checker | `adapters/codex/scripts/check-codex-hook-schema-drift.py` | `scripts/check-codex-hook-schema-drift.py` | Fails when hook-sensitive staged changes omit schema re-verification |
 | Hook smoke assertions | `adapters/codex/scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Mechanically asserts Codex hook deny JSON shapes |
@@ -95,11 +97,13 @@ should not be advertised as active runtime hooks.
 Runtime delivery evidence is deliberately deferred as of the 2026-05-04
 maintenance pass. Local evidence covers generated artifact integrity and
 isolated CLI activation/config shape. The local Codex CLI exposes plugin
-marketplace management and experimental app-server protocol tooling, but no
-stable noninteractive command that proves Desktop model-visible skill surfacing
-or plugin hook event delivery. Runtime hook manifest fields must remain absent
-until a product-supported smoke or explicitly reviewed manual gate covers that
-third evidence level.
+marketplace management and experimental app-server protocol tooling; the
+optional CLI surface probe can mechanically confirm those help markers when a
+local Codex CLI is installed. That probe is not runtime delivery evidence and
+does not prove Desktop model-visible skill surfacing or plugin hook event
+delivery. Runtime hook manifest fields must remain absent until a
+product-supported smoke or explicitly reviewed manual gate covers that third
+evidence level.
 
 ## Marketplace Metadata Policy
 

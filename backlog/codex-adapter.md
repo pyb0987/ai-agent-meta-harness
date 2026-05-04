@@ -638,7 +638,43 @@ Completion Gate:
 
 ### 42. P3 add optional Codex CLI surface probe for runtime-delivery docs
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/scripts/check-codex-cli-surface.py
+- plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/README.md
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_codex_cli_surface.py
+- adapters/codex/tests/test_hook_templates.py
+- adapters/codex/scripts/smoke-local-plugin.py
+- plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py
+- scripts/sync-codex-plugin.py
+- backlog/codex-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 42, add optional Codex CLI
+  surface probe for runtime-delivery docs.
+- Status block added: yes, item 42 marked `진행중`.
+- Harness-affecting: yes; this adds an adapter-facing optional verification
+  probe and generated plugin script for Codex CLI surface evidence.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary verification semantics.
+- Minimum verification commands: `python3 scripts/sync-codex-plugin.py
+  --check`; `python3 -m unittest adapters/codex/tests/test_codex_cli_surface.py`;
+  `python3 -m unittest adapters/codex/tests/test_hook_templates.py`;
+  `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`;
+  `python3 scripts/check-search-set-evidence.py`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: optional Codex CLI surface probe script, generated plugin
+  mirror, Codex adapter docs/scope docs, focused adapter tests, plugin sync
+  required-script list, and this backlog record.
 
 Source: score-9 residual risk from item 40 local/product-surface evidence
 critic.
@@ -666,6 +702,131 @@ Done when:
   surface behind the item 40 runtime-delivery docs.
 - Repository docs/tests continue to state that CLI help evidence does not prove
   Desktop runtime plugin delivery.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 scripts/sync-codex-plugin.py --check`, `python3 -m
+  unittest adapters/codex/tests/test_hook_templates.py`, `python3
+  scripts/check-maintenance-review.py backlog/codex-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py` after staging the selected
+  item files so index-aware pre-commit/plugin sync checks could see the new
+  required script. An earlier unstaged run failed SS-003 because the new script
+  was not yet present in the Git index.
+
+Decision implemented:
+
+- Added `adapters/codex/scripts/check-codex-cli-surface.py`, an optional local
+  Codex CLI help-surface probe that checks `codex plugin marketplace` and
+  `codex app-server` markers when the CLI is installed.
+- The probe skips cleanly when `codex` is absent by default and fails with
+  `--require-installed` when a local environment must provide the CLI.
+- Documented the probe in the Codex README and plugin-scope generated surface
+  as CLI help evidence only, not Desktop runtime skill surfacing or plugin hook
+  delivery evidence.
+- Synced the generated plugin mirror and required the new script in
+  `scripts/sync-codex-plugin.py`.
+- Added focused tests for pass, marker failure, missing-CLI skip,
+  require-installed failure, subprocess help failures, and `main()` stream/exit
+  behavior.
+- Updated the local plugin artifact smoke expected assets so the new generated
+  probe remains part of bundle asset verification.
+
+Multi-review:
+
+- Runtime evidence-boundary critic: score 9/10, PASS. Blocking findings: none.
+  Why not 10: the new probe was not included in the artifact smoke expected
+  asset list, leaving one local evidence check slightly stale.
+- Generated sync/test critic: score 9/10, PASS. Blocking findings: none. Why
+  not 10: tests did not cover `main()` stream/exit behavior, nonzero help
+  subprocess failures, and `--require-installed` used a `SKIPPED:` prefix while
+  returning failure.
+- Maintenance-process critic: score 8/10, VETO. Blocking finding: the item was
+  not completion-ready before this record because Completion Gate and
+  multi-review results were not yet recorded.
+- Score handling: scores below 9 are VETO. The process VETO is handled by
+  completing this record and rerunning the affected process critic. Both score
+  9 reasons were actionable and fixed in this item before acceptance. For
+  process critic score 9 why not 10, the only remaining issue was final
+  bookkeeping to record the rerun and acceptance; this was addressed in this
+  item and does not create a backlog follow-up.
+- Rerun status: runtime evidence-boundary critic re-review score 10/10, PASS.
+  Blocking findings: none. Generated sync/test critic re-review score 10/10,
+  PASS. Blocking findings: none. Maintenance-process critic re-review score
+  9/10, PASS. Blocking findings: none.
+- Follow-up/residual risk: no new backlog item added because both score-9
+  actionable issues were fixed in this item. The remaining runtime-delivery
+  limitation is the existing item 40 boundary: CLI help evidence does not prove
+  Desktop model-visible skill surfacing or plugin hook event delivery.
+- Final acceptance: accepted yes after affected process critic re-review scored
+  at least 9 and final bookkeeping was recorded.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/scripts/check-codex-cli-surface.py
+  - plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+  - adapters/codex/README.md
+  - plugins/ai-agent-meta-harness/README.md
+  - adapters/codex/plugin-scope.md
+  - plugins/ai-agent-meta-harness/plugin-scope.md
+  - adapters/codex/tests/test_codex_cli_surface.py
+  - adapters/codex/tests/test_hook_templates.py
+  - adapters/codex/scripts/smoke-local-plugin.py
+  - plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py
+  - scripts/sync-codex-plugin.py
+  - backlog/codex-adapter.md
+- Scope deviations: `adapters/codex/scripts/smoke-local-plugin.py` and the
+  generated mirror were added to Scope before editing so the artifact smoke
+  could cover the new probe asset.
+- Verification results:
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 -m unittest adapters/codex/tests/test_codex_cli_surface.py`
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 -m unittest adapters/codex/tests/test_codex_cli_surface.py adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 adapters/codex/scripts/check-codex-cli-surface.py --require-installed`
+  - PASS: `python3 plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py --require-installed`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 -m unittest discover -s adapters/codex/tests`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `python3 scripts/check-search-set-evidence.py`
+  - PASS: `python3 scripts/run-search-set.py`
+  - PASS: `python3 scripts/verify-release.py --skip-clean-worktree`
+  - PASS: `git diff --cached --check`
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py` after staging selected item
+  files for index-aware checks. An unstaged AFTER attempt failed SS-003 because
+  the new required script was not yet in the Git index; the staged rerun passed.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary verification semantics.
+- Multi-review result: PASS for runtime evidence-boundary and generated
+  sync/test critics after score-9 fixes; PASS for process critic after final
+  record update.
+- Reviewer scores and VETO handling:
+  - Runtime evidence-boundary critic: 9/10 PASS initially; artifact smoke asset
+    coverage gap fixed; rerun rating 10/10 PASS.
+  - Generated sync/test critic: 9/10 PASS initially; CLI probe failure/main
+    coverage gap fixed; rerun rating 10/10 PASS.
+  - Maintenance-process critic: 8/10 VETO initially because Completion Gate and
+    multi-review record were not yet present; affected rerun rating 9/10 PASS.
+- For each 9/10 reviewer rating, why not 10:
+  - Runtime evidence-boundary critic: not 10 because the artifact smoke did not
+    include the new probe in expected assets; fixed in this item.
+  - Generated sync/test critic: not 10 because `main()` stream/exit behavior,
+    nonzero help subprocess failures, and require-installed failure wording
+    needed coverage; fixed in this item.
+  - Maintenance-process critic rerun: not 10 because final bookkeeping still
+    needed to record the process rerun and acceptance; fixed in this item.
+- Backlog items added from score-9 residual risk: none; both actionable
+  implementation score-9 reasons were fixed in this item before acceptance, and
+  the process score-9 reason was final bookkeeping fixed in this item.
+- Residual risk/follow-up: CLI help-surface evidence remains non-substitutive
+  for Desktop runtime plugin delivery evidence; runtime hook manifest fields
+  remain disabled under the item 40 boundary until a product-supported smoke or
+  explicitly reviewed manual gate exists.
+- Accepted: yes.
 
 ### 35. P3 refresh active backlog summaries after Codex items 32-34
 

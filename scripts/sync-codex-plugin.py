@@ -38,6 +38,7 @@ REQUIRED_TEMPLATE_FILES = (
 )
 REQUIRED_SCRIPT_FILES = (
     "check-autoresearch-protected.py",
+    "check-codex-cli-surface.py",
     "check-codex-hook-schema-drift.py",
     "smoke-init-codex-project-fixtures.py",
     "smoke-local-plugin-activation.py",

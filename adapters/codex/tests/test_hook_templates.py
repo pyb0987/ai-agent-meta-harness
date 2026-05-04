@@ -136,9 +136,14 @@ class HookTemplateTests(unittest.TestCase):
         for text in (canonical, generated):
             with self.subTest(path="plugin-scope"):
                 self.assertIn("- `scripts/smoke-local-plugin-activation.py`", text)
+                self.assertIn("- `scripts/check-codex-cli-surface.py`", text)
                 self.assertIn("- `scripts/smoke-init-codex-project-fixtures.py`", text)
                 self.assertIn(
                     "| Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` |",
+                    text,
+                )
+                self.assertIn(
+                    "| Optional Codex CLI surface probe | `adapters/codex/scripts/check-codex-cli-surface.py` | `scripts/check-codex-cli-surface.py` |",
                     text,
                 )
                 self.assertIn(
@@ -185,13 +190,17 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("no stable noninteractive smoke exists in this repo yet", text)
                 self.assertIn("codex plugin marketplace add|upgrade|remove", text)
                 self.assertIn("experimental app-server protocol tooling", text)
+                self.assertIn("check-codex-cli-surface.py", text)
+                self.assertIn("skips when it is absent", text)
+                self.assertIn("This probe does not assert that a running Desktop session surfaced plugin skills", text)
                 self.assertIn("Keep runtime hook manifest fields disabled", text)
         for text in (scope, generated_scope):
             normalized = " ".join(text.split())
             with self.subTest(path="plugin-scope"):
                 self.assertIn("Runtime delivery evidence is deliberately deferred as of the 2026-05-04 maintenance pass", normalized)
                 self.assertIn("generated artifact integrity and isolated CLI activation/config shape", normalized)
-                self.assertIn("no stable noninteractive command that proves Desktop model-visible skill surfacing or plugin hook event delivery", normalized)
+                self.assertIn("optional CLI surface probe can mechanically confirm those help markers", normalized)
+                self.assertIn("That probe is not runtime delivery evidence and does not prove Desktop model-visible skill surfacing or plugin hook event delivery", normalized)
                 self.assertIn("Runtime hook manifest fields must remain absent", normalized)
         self.assertEqual(readme, generated_readme)
         self.assertEqual(scope, generated_scope)

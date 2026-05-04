@@ -181,6 +181,7 @@ python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/co
 python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py
+python3 adapters/codex/scripts/check-codex-cli-surface.py
 ```
 
 The generated plugin lives at `plugins/ai-agent-meta-harness/`. The artifact smoke test validates the bundle artifact: manifest, expected skills, checker/hook/template assets, and degraded fallback warnings.
@@ -205,7 +206,7 @@ Runtime delivery has three evidence levels:
 2. Isolated CLI activation/config: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`.
 3. Runtime model-visible skill surfacing or plugin hook delivery: no stable noninteractive smoke exists in this repo yet.
 
-As of the 2026-05-04 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and experimental app-server protocol tooling, but no supported command that asserts a running Desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
+As of the 2026-05-04 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and experimental app-server protocol tooling. `python3 adapters/codex/scripts/check-codex-cli-surface.py` optionally probes that local CLI help surface when `codex` is installed and skips when it is absent; use `--require-installed` when a local environment must fail instead of skip. This probe does not assert that a running Desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
 
 For executable local skill iteration without plugin registration, use the degraded direct-copy fallback:
 
