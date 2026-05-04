@@ -26,7 +26,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "repository governance and release discipline",
             "stricter than the Meta-Harness paper's methodological claims",
             "this repository chooses numeric review gates",
-            "As local release policy, reviewer scores below 9 are VETO",
+            "As local release policy, reviewer or critic scores below 9 are VETO",
             "local governance requires recording why",
         ):
             with self.subTest(marker=marker):
@@ -58,6 +58,34 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         )
         self.assertNotIn(
             "anything that can steer future work in the wrong direction",
+            text,
+        )
+
+    def test_required_multi_review_is_not_single_reviewer_gate(self) -> None:
+        text = normalized_text()
+
+        for marker in (
+            "If multi-review is required, run the multi-review skill or an explicitly "
+            "documented equivalent with multiple reviewers/critics before acceptance",
+            "A single isolated reviewer does not satisfy required multi-review",
+            "If multi-review is not required but the item will be committed as a stable "
+            "handoff, ask a single isolated reviewer",
+            "Required multi-review means multiple distinct reviewers or critics",
+            "When a committed stable-handoff item does not require multi-review, the "
+            "Reviewed Commit Loop uses a single isolated reviewer as the required "
+            "handoff hygiene check",
+            "that check must still not be recorded as satisfying required multi-review",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+        self.assertNotIn(
+            "ask an isolated reviewer to review the item-specific diff before acceptance "
+            "when multi-review is required",
+            text,
+        )
+        self.assertNotIn(
+            "when multi-review is required or when the item will be committed as a "
+            "stable handoff",
             text,
         )
 

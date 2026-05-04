@@ -71,9 +71,9 @@ Use this workflow for backlog work:
    Routine backlog/status/doc cleanup can use focused checks without mandatory
    multi-review when it does not change those contracts.
 9. Apply this repository's local release discipline for review scores: treat
-   reviewer scores below 9 as VETO. Fix the blocking findings and rerun the
-   affected critics until every required critic scores at least 9, or stop and
-   record that the item is not accepted.
+   reviewer or critic scores below 9 as VETO. Fix the blocking findings and
+   rerun the affected critics until every required critic scores at least 9, or
+   stop and record that the item is not accepted.
 10. Under the same local governance rule, identify why every score of 9 was not
    10. Record the residual risk, and add a backlog follow-up when it is
    actionable.
@@ -159,24 +159,27 @@ repeatable loop so future sessions can reproduce the handoff discipline:
    before editing the new path.
 6. Run focused verification, then the relevant standard verification for the
    changed contract.
-7. Ask an isolated reviewer to review the item-specific diff before acceptance
-   when multi-review is required or when the item will be committed as a
-   stable handoff. The reviewer must not edit files.
-8. Treat every reviewer score below 9 as VETO. Fix the blocking findings,
-   record the VETO and handling in the backlog item, and rerun the affected
-   reviewer until the score is at least 9.
-9. For every score of 9, record why it was not 10. If the reason is an
+7. If multi-review is required, run the multi-review skill or an explicitly
+   documented equivalent with multiple reviewers/critics before acceptance. A
+   single isolated reviewer does not satisfy required multi-review.
+8. If multi-review is not required but the item will be committed as a stable
+   handoff, ask a single isolated reviewer to review the item-specific diff
+   before acceptance. The reviewer must not edit files.
+9. Treat every reviewer or critic score below 9 as VETO. Fix the blocking
+   findings, record the VETO and handling in the backlog item, and rerun the
+   affected reviewer or critic until the score is at least 9.
+10. For every score of 9, record why it was not 10. If the reason is an
    actionable repository improvement, add a follow-up backlog item before
    acceptance; otherwise record why it is accepted as residual risk.
-10. Complete the Completion Gate, mark the item `리뷰대기`, rerun the maintenance
+11. Complete the Completion Gate, mark the item `리뷰대기`, rerun the maintenance
     review and search-set evidence checkers, and record the results.
-11. Stage only the selected item's intended files or hunks. If the worktree has
+12. Stage only the selected item's intended files or hunks. If the worktree has
     unrelated dirty backlog additions or user edits, leave them unstaged and
     mention them in the Completion Gate or final handoff.
-12. Inspect the staged patch with `git diff --cached`, verify the staged file
+13. Inspect the staged patch with `git diff --cached`, verify the staged file
     list with `git diff --cached --name-status`, run `git diff --cached
     --check`, then commit.
-13. After commit, run `python3 scripts/check-clean-worktree.py` when a clean
+14. After commit, run `python3 scripts/check-clean-worktree.py` when a clean
     stable handoff is expected. If unrelated work intentionally remains dirty,
     record that exception instead of claiming a clean handoff.
 
@@ -213,9 +216,9 @@ follow this maintenance process.
 7. Run the required multi-review if the change affects adapter behavior,
    release gates, hook semantics, core methodology boundaries, or another
    durable contract.
-8. Treat every reviewer score below 9 as VETO, even if the session had marked
-   the work accepted. Fix the blocking findings and rerun the affected critics,
-   or leave the branch `보류`.
+8. Treat every reviewer or critic score below 9 as VETO, even if the session
+   had marked the work accepted. Fix the blocking findings and rerun the
+   affected critics, or leave the branch `보류`.
 9. Move the item to `리뷰대기` only after the reconstructed record shows scope,
    verification, search-set status, review status, residual risk, and merge
    eligibility.
@@ -468,9 +471,17 @@ Use multi-review when a change affects:
   on, such as trace schemas, evaluator-boundary rules, install behavior, or
   runtime enforcement semantics.
 
-As local release policy, reviewer scores below 9 are VETO. Scores of 9 mean the
-change is acceptable with remaining risk tracked. Scores of 10 should be rare
-and reserved for cases where there is no meaningful known follow-up.
+Required multi-review means multiple distinct reviewers or critics. Prefer the
+multi-review skill when available. If the skill cannot be used, record the
+fallback explicitly, including why it is equivalent enough for the item and
+which independent critic scopes were covered. When a committed stable-handoff
+item does not require multi-review, the Reviewed Commit Loop uses a single
+isolated reviewer as the required handoff hygiene check; that check must still
+not be recorded as satisfying required multi-review.
+
+As local release policy, reviewer or critic scores below 9 are VETO. Scores of
+9 mean the change is acceptable with remaining risk tracked. Scores of 10 should
+be rare and reserved for cases where there is no meaningful known follow-up.
 
 When a critic returns VETO, local release discipline requires the next
 iteration to fix or explicitly reject the blocking findings, rerun the affected

@@ -1104,6 +1104,138 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for commit.
 
+### 54. P2 distinguish multi-review skill use from isolated reviewer gate
+
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+
+Source discussion: 2026-05-04 maintainer clarification that when multi-review is
+required, the intended direction is to use the multi-review skill with multiple
+reviewers/critics, not to satisfy the requirement with a single isolated
+reviewer.
+
+The `Reviewed Commit Loop` currently says to ask an isolated reviewer when
+multi-review is required or when an item will be committed as a stable handoff.
+That wording can make a single-reviewer stable-handoff check look equivalent to
+required multi-review. It should distinguish:
+
+- required multi-review for adapter behavior, release gates, hook semantics,
+  core methodology boundaries, and durable contracts; and
+- single isolated reviewer checks for committed handoff hygiene when
+  multi-review is not required.
+
+Done when:
+
+- `MAINTENANCE.md` clearly says required multi-review uses multiple
+  reviewers/critics through the multi-review skill or an explicitly documented
+  equivalent.
+- The reviewed commit loop no longer implies one isolated reviewer can satisfy
+  required multi-review.
+- Completion Gate wording remains able to record single-reviewer stable-handoff
+  checks separately from required multi-review.
+
+Decision implemented:
+
+- Updated the `Reviewed Commit Loop` so required multi-review must use the
+  multi-review skill or an explicitly documented equivalent with multiple
+  reviewers/critics.
+- Clarified that a single isolated reviewer is used for committed
+  stable-handoff hygiene when multi-review is not required, and must not be
+  recorded as satisfying required multi-review.
+- Added `Multi-Review Use` wording that defines required multi-review as
+  multiple distinct reviewers or critics, prefers the multi-review skill, and
+  requires explicit fallback documentation if the skill cannot be used.
+- Added a focused maintenance policy boundary test for the distinction.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation; operator did
+  not run the full Active set before the first policy edit. Baseline focused
+  gates did pass before edits: `python3 scripts/check-maintenance-review.py
+  backlog/core.md` and `python3 scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Multi-review:
+
+- Policy-semantics critic: score 8/10, VETO. Blocking findings: stable-handoff
+  reviewer wording was internally inconsistent because `Reviewed Commit Loop`
+  required a single reviewer for non-multi-review stable handoffs while
+  `Multi-Review Use` called it optional. Not accepted.
+- Test/enforceability critic: score 8/10, VETO. Blocking findings:
+  `tests/test_maintenance_policy_boundaries.py` asserted the new wording existed
+  but did not reject the old combined wording that asked for an isolated
+  reviewer when multi-review was required. Not accepted.
+- Process-compliance critic: score 8/10, VETO. Blocking findings: item lacked a
+  complete multi-review/Completion Gate record, and the original BEFORE
+  search-set skipped reason was too weak for a harness-affecting governance
+  change. Not accepted.
+- Score handling: all scores below 9 were treated as VETO. Blocking findings
+  were fixed by clarifying that the single-reviewer stable-handoff hygiene check
+  is required only when multi-review is not required, adding negative tests for
+  the old combined wording, and replacing the BEFORE search-set record with the
+  exact focused baseline commands plus the full Active skip reason.
+- Final policy-semantics critic rerun: score 10/10, PASS. Blocking findings:
+  none.
+- Final test/enforceability critic rerun: score 9/10, PASS. Blocking findings:
+  none. Why not 10: wording-marker enforcement remains intentionally limited
+  and cannot catch every semantically equivalent future regression.
+- Final process-compliance critic rerun: score 9/10, PASS. Blocking findings:
+  none. Why not 10: full Active search-set was not run before the first edit,
+  though the record is now honest and focused baseline gates plus full AFTER
+  PASS are recorded.
+- Score handling: the policy-semantics score-9 reason was addressed in this
+  item by harmonizing `reviewer or critic` score wording in general policy
+  areas. The remaining score-9 reasons are accepted as residual risk: focused
+  wording-marker tests are appropriate for this policy boundary, and the BEFORE
+  search-set process imperfection is recorded honestly rather than overclaimed.
+- Rerun status: all affected critics reran; final scores are 10/10, 9/10, and
+  9/10 PASS.
+- Follow-up/residual risk: accepted marker-test limitation and recorded BEFORE
+  search-set process imperfection; no backlog item added.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `MAINTENANCE.md`,
+  `tests/test_maintenance_policy_boundaries.py`, `backlog/core.md`.
+- Scope deviations: `tests/test_maintenance_policy_boundaries.py` was added to
+  Scope after the implementation needed a focused policy-boundary test; Scope
+  was updated before final acceptance.
+- Verification results: PASS `python3 -m unittest
+  tests/test_maintenance_policy_boundaries.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree`; PASS `git
+  diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED full Active search-set before implementation with exact
+    reason above; focused baseline gates passed.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes maintenance review-contract
+  semantics.
+- Multi-review result: PASS after three-critic multi-review, VETO fixes, and
+  affected critic reruns.
+- Reviewer scores and VETO handling: see Multi-review records above; all
+  initial VETO blocking findings were fixed and all final affected reruns
+  passed.
+- For each score-9 result, why not 10: test/enforceability critic says the guard
+  is marker/string-level and cannot catch every semantically equivalent future
+  regression; process critic says full Active search-set was not run before the
+  first edit, though this is now recorded honestly with focused baseline gates
+  and AFTER PASS.
+- Backlog items added from score-9 residual risk: none; both score-9 reasons are
+  accepted residual risks for this scoped policy clarification.
+- Residual risk/follow-up: accepted marker-test limitation and recorded BEFORE
+  search-set process imperfection.
+- Accepted: yes; ready for commit.
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료
