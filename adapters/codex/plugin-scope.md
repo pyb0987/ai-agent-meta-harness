@@ -92,6 +92,15 @@ smoke-tested through both the isolated local plugin activation path and a Codex
 plugin tool-event delivery path. Template-only files under `templates/hooks/`
 should not be advertised as active runtime hooks.
 
+Runtime delivery evidence is deliberately deferred as of the 2026-05-04
+maintenance pass. Local evidence covers generated artifact integrity and
+isolated CLI activation/config shape. The local Codex CLI exposes plugin
+marketplace management and experimental app-server protocol tooling, but no
+stable noninteractive command that proves Desktop model-visible skill surfacing
+or plugin hook event delivery. Runtime hook manifest fields must remain absent
+until a product-supported smoke or explicitly reviewed manual gate covers that
+third evidence level.
+
 ## Marketplace Metadata Policy
 
 Marketplace metadata is a release surface, not part of the local-only dogfood

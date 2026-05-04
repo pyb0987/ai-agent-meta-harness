@@ -45,8 +45,12 @@ Remaining follow-up work:
 
 - Direct-copy fallback limitation reporting is completed in item 27, and
   runtime hook manifest fields remain intentionally gated by item 28.
-- Item 40 tracks the next valuable evidence step once Codex exposes a mechanical
-  way to prove running-session skill surfacing or plugin tool-event delivery.
+- Item 40 records the current runtime-delivery evidence boundary and keeps
+  runtime hook manifest fields disabled until a product-supported smoke or
+  reviewed manual gate exists.
+- Item 42 tracks an optional local Codex CLI surface probe so documentation can
+  mechanically pin the observed `plugin marketplace` and `app-server` surface
+  without claiming Desktop runtime delivery.
 
 ### 5. Define Codex plugin bundle scope
 
@@ -153,7 +157,7 @@ Completion Gate:
   - Runtime realism critic: 9/10 PASS; the smoke validates deterministic project-fixture outputs but does not run a live Codex model against external repositories.
   - Maintenance compliance critic: 9/10 PASS; Start Gate, scope, focused verification, standard verification, search-set SKIPPED reason, and Completion Gate are recorded, with nonindependent multi-review fallback called out.
   - VETO handling: no reviewer score below 9; no VETO.
-- For each score 9, why not 10:
+- For each 9/10 reviewer rating, why not 10:
   - Runtime realism critic: not 10 because this is a deterministic fixture smoke, not live model dogfooding on externally maintained repositories. No backlog item added because the missing piece is a runtime/product-surface and sample-repo availability issue rather than a concrete repo-local fix for this pass.
   - Maintenance compliance critic: not 10 because multi-review was sequential fallback in the parent context, not independent parallel critics. No backlog item added because this is session-surface residual risk, not repository work.
 - Backlog items added from score-9 residual risk: none.
@@ -267,7 +271,7 @@ Completion Gate:
   - Runtime-boundary honesty critic: 9/10 PASS; docs and script comments explicitly avoid claiming model-visible Desktop session activation or runtime hook delivery.
   - Maintenance compliance critic: 9/10 PASS; Start Gate, scope update, focused verification, standard verification, search-set SKIPPED reason, and Completion Gate are recorded, with nonindependent multi-review fallback called out.
   - VETO handling: no reviewer score below 9; no VETO.
-- For each score 9, why not 10:
+- For each 9/10 reviewer rating, why not 10:
   - Runtime-boundary honesty critic: not 10 because Codex CLI currently exposes `plugin marketplace add/remove/upgrade` but no noninteractive `plugin list` or session-inspection command to prove model-visible skill discovery in a running Desktop session. This is accepted as product-surface residual risk rather than a repository follow-up for this item.
   - Maintenance compliance critic: not 10 because multi-review was sequential fallback in the parent context, not independent parallel critics. This is accepted as session-surface residual risk.
 - Backlog items added from score-9 residual risk: none.
@@ -632,6 +636,37 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
 
+### 42. P3 add optional Codex CLI surface probe for runtime-delivery docs
+
+Status: 대기
+
+Source: score-9 residual risk from item 40 local/product-surface evidence
+critic.
+
+Item 40 documents the 2026-05-04 local Codex CLI surface evidence for
+`codex plugin marketplace add|upgrade|remove` and experimental `codex
+app-server` protocol tooling, but the focused test only pins that evidence as
+documented strings. A future optional/local-only probe could mechanically
+inspect the installed Codex CLI help surface without overclaiming Desktop
+runtime skill surfacing or plugin hook event delivery.
+
+Potential improvement:
+
+- Add an optional smoke or docs-check mode that runs against a locally
+  installed Codex CLI when available and verifies the observed plugin
+  marketplace and app-server command surface.
+- Keep the probe separate from CI-required release checks unless the Codex CLI
+  is guaranteed in that environment.
+- Make the probe explicitly non-substitutive for runtime model-visible skill or
+  plugin hook delivery evidence.
+
+Done when:
+
+- The optional probe or documented manual check can confirm the local CLI help
+  surface behind the item 40 runtime-delivery docs.
+- Repository docs/tests continue to state that CLI help evidence does not prove
+  Desktop runtime plugin delivery.
+
 ### 35. P3 refresh active backlog summaries after Codex items 32-34
 
 Status: 완료
@@ -807,7 +842,35 @@ Completion Gate:
 
 ### 40. P2 add Codex Desktop/runtime plugin delivery smoke when surface exists
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/README.md
+- plugins/ai-agent-meta-harness/README.md
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 40, add Codex
+  Desktop/runtime plugin delivery smoke when surface exists.
+- Status block added: yes, item 40 marked `진행중`.
+- Harness-affecting: yes; this changes Codex plugin distribution/runtime
+  evidence boundary documentation and hook enablement gate.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary semantics.
+- Minimum verification commands: `python3 scripts/sync-codex-plugin.py
+  --check`; `python3 -m unittest adapters/codex/tests/test_hook_templates.py`;
+  `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`;
+  `python3 scripts/check-search-set-evidence.py`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: Codex README/plugin-scope canonical docs, generated plugin
+  mirrors, focused Codex docs tests, and this backlog record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -842,6 +905,106 @@ Done when:
   mechanically or explicitly verified.
 - Multi-review checks the result because this changes Codex distribution and
   runtime evidence boundaries.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because the
+  first edit happened after focused baseline checks and local Codex surface
+  inspection only. Focused baseline gates passed: `python3
+  scripts/sync-codex-plugin.py --check`, `python3 -m unittest
+  adapters/codex/tests/test_hook_templates.py`, `python3
+  scripts/check-maintenance-review.py backlog/codex-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py` before the evidence record was needed.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Documented three Codex runtime-delivery evidence levels in the canonical
+  README and generated plugin README: generated artifact integrity, isolated
+  CLI activation/config, and runtime model-visible skill surfacing or plugin
+  hook delivery.
+- Recorded the 2026-05-04 local Codex surface evidence: `codex plugin
+  marketplace add|upgrade|remove` exists and `codex app-server` protocol
+  tooling exists, but no stable noninteractive command proves Desktop
+  model-visible skill surfacing or plugin hook event delivery.
+- Kept runtime hook manifest fields disabled until a product-supported smoke or
+  explicitly reviewed manual gate covers the runtime-delivery level.
+- Updated the v1 protection scope row and focused tests so they no longer imply
+  item 40 itself is the runtime hook delivery enabling gate.
+
+Multi-review:
+
+- Runtime evidence-boundary critic: score 8/10, VETO. Blocking finding:
+  the README v1 protection row still said runtime plugin hook delivery remained
+  gated on item 40, which conflicted with item 40's deferral outcome.
+- Local/product-surface evidence critic: score 9/10, PASS. Blocking findings:
+  none.
+- Maintenance-process critic: score 9/10, PASS. Blocking findings: none.
+- Score handling: scores below 9 are VETO. The 8/10 VETO was fixed before
+  acceptance. For score 9 why not 10, the local/product-surface critic noted
+  that tests pin documented evidence as strings rather than mechanically
+  inspecting `codex plugin marketplace --help` or `codex app-server --help`;
+  this actionable follow-up was added to backlog item 42. For score 9 why not
+  10, the maintenance-process critic noted the BEFORE full Active search-set
+  sequencing skip; that residual risk is accepted as recorded process debt, not
+  a repository defect.
+- Rerun status: affected runtime evidence-boundary critic re-review score
+  10/10, PASS. Blocking findings: none.
+- Follow-up/residual risk: item 42 was added for the actionable CLI surface
+  probe. Runtime model-visible skill surfacing and plugin hook event delivery
+  remain unproven until Codex exposes a product-supported smoke or this
+  repository adopts an explicitly reviewed manual gate.
+- Final acceptance: accepted yes after VETO fix, affected critic rerun, and all
+  reviewer ratings at or above 9.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - adapters/codex/README.md
+  - plugins/ai-agent-meta-harness/README.md
+  - adapters/codex/plugin-scope.md
+  - plugins/ai-agent-meta-harness/plugin-scope.md
+  - adapters/codex/tests/test_hook_templates.py
+  - backlog/codex-adapter.md
+- Scope deviations: none
+- Verification results:
+  - PASS: `python3 scripts/sync-codex-plugin.py --check`
+  - PASS: `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - PASS: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/codex-adapter.md`
+  - PASS: `python3 scripts/check-search-set-evidence.py`
+  - PASS: `python3 scripts/run-search-set.py`
+  - PASS: `python3 scripts/verify-release.py --skip-clean-worktree`
+  - PASS: `git diff --check`
+- Search-set verification: BEFORE SKIPPED with recorded sequencing reason;
+  AFTER PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Codex distribution/runtime evidence
+  boundary semantics.
+- Multi-review result: PASS after VETO fix and affected critic rerun.
+- Reviewer scores and VETO handling:
+  - Runtime evidence-boundary critic: 8/10 VETO initially; fixed stale runtime
+    delivery gate wording; rerun rating 10/10 PASS.
+  - Local/product-surface evidence critic: 9/10 PASS; no VETO.
+  - Maintenance-process critic: 9/10 PASS; no VETO.
+- For each 9/10 reviewer rating, why not 10:
+  - Local/product-surface evidence critic: not 10 because the new focused test
+    pins the documented evidence boundary as strings but does not mechanically
+    inspect `codex plugin marketplace --help` or `codex app-server --help`.
+  - Maintenance-process critic: not 10 because the full Active search-set
+    BEFORE run was skipped after sequencing had already moved past the first
+    edit; the skip was honestly recorded and the AFTER search-set passed.
+- Backlog items added from score-9 residual risk:
+  - Added item 42 for an optional local Codex CLI surface probe covering
+    `plugin marketplace` and `app-server` help evidence without claiming
+    Desktop runtime delivery.
+- Residual risk/follow-up: runtime model-visible skill surfacing and plugin
+  hook event delivery remain unproven until Codex exposes a product-supported
+  smoke or this repository adopts an explicitly reviewed manual gate. The
+  BEFORE search-set sequencing skip is accepted as a recorded process residual,
+  not a repository defect.
+- Accepted: yes.
 
 ### 41. P3 refresh Codex v1 protection scope status
 
@@ -901,7 +1064,8 @@ Done when:
 - Codex README and generated plugin README no longer say v1 protection install
   docs are merely planned after the install section exists.
 - Remaining limitations are stated precisely, such as runtime delivery smoke
-  pending item 40, instead of using a stale generic Partial status.
+  deferred until a product-supported smoke or reviewed manual gate exists,
+  instead of using a stale generic Partial status.
 - Plugin sync and local plugin smoke checks pass.
 
 Search-set verification:
@@ -920,7 +1084,8 @@ Decision implemented:
   says install docs are planned or uses a stale generic `Partial` status.
 - The v1 protection row now says target-project guardrails, install docs, and
   local smoke commands are implemented while runtime plugin hook delivery
-  remains gated on item 40.
+  remains deferred until a product-supported smoke or reviewed manual gate
+  exists.
 - Synchronized the generated plugin README and added a focused test that
   requires exactly one current v1 protection row in both README copies.
 

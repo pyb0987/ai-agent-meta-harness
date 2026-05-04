@@ -159,7 +159,8 @@ class HookTemplateTests(unittest.TestCase):
             "AGENTS reminder snippet, Codex hook template, pre-commit template, CI "
             "template, target-project install docs, and local smoke commands | "
             "Implemented for copied target-project guardrails; runtime plugin hook "
-            "delivery remains gated on item 40 |"
+            "delivery remains deferred until a product-supported smoke or reviewed "
+            "manual gate exists |"
         )
         for text in (canonical, generated):
             with self.subTest(path="README"):
@@ -168,6 +169,32 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertEqual(text.count(expected_row), 1)
                 self.assertNotIn("install docs planned", text)
         self.assertEqual(canonical, generated)
+
+    def test_runtime_delivery_evidence_status_is_deferred_with_surface_evidence(self):
+        readme = (ROOT / "adapters" / "codex" / "README.md").read_text(encoding="utf-8")
+        scope = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        generated_readme = (ROOT / "plugins" / "ai-agent-meta-harness" / "README.md").read_text(encoding="utf-8")
+        generated_scope = (ROOT / "plugins" / "ai-agent-meta-harness" / "plugin-scope.md").read_text(encoding="utf-8")
+
+        for text in (readme, generated_readme):
+            with self.subTest(path="README"):
+                self.assertIn("Runtime delivery has three evidence levels", text)
+                self.assertIn("Generated artifact integrity", text)
+                self.assertIn("Isolated CLI activation/config", text)
+                self.assertIn("Runtime model-visible skill surfacing or plugin hook delivery", text)
+                self.assertIn("no stable noninteractive smoke exists in this repo yet", text)
+                self.assertIn("codex plugin marketplace add|upgrade|remove", text)
+                self.assertIn("experimental app-server protocol tooling", text)
+                self.assertIn("Keep runtime hook manifest fields disabled", text)
+        for text in (scope, generated_scope):
+            normalized = " ".join(text.split())
+            with self.subTest(path="plugin-scope"):
+                self.assertIn("Runtime delivery evidence is deliberately deferred as of the 2026-05-04 maintenance pass", normalized)
+                self.assertIn("generated artifact integrity and isolated CLI activation/config shape", normalized)
+                self.assertIn("no stable noninteractive command that proves Desktop model-visible skill surfacing or plugin hook event delivery", normalized)
+                self.assertIn("Runtime hook manifest fields must remain absent", normalized)
+        self.assertEqual(readme, generated_readme)
+        self.assertEqual(scope, generated_scope)
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ The bundle scope is staged so packaging does not outrun tested behavior. Full de
 | Stage | Includes | Status |
 |-------|----------|--------|
 | v0 scaffold | Skills, AGENTS template, README, plugin manifest, scope document | Implemented |
-| v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains gated on item 40 |
+| v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains deferred until a product-supported smoke or reviewed manual gate exists |
 | Later release | Examples, marketplace metadata, richer install validation | Planned |
 
 The Meta-Harness paper informs the acceptance criteria for this scope, but its methodology remains in `core/`; the plugin should not copy core content into a Codex-specific fork.
@@ -196,6 +196,16 @@ smoke. It does not run a live Codex model against an external project or prove
 Codex Desktop skill surfacing.
 
 The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
+
+### Runtime Delivery Evidence Status
+
+Runtime delivery has three evidence levels:
+
+1. Generated artifact integrity: `python3 adapters/codex/scripts/smoke-local-plugin.py`.
+2. Isolated CLI activation/config: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`.
+3. Runtime model-visible skill surfacing or plugin hook delivery: no stable noninteractive smoke exists in this repo yet.
+
+As of the 2026-05-04 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and experimental app-server protocol tooling, but no supported command that asserts a running Desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
 
 For executable local skill iteration without plugin registration, use the degraded direct-copy fallback:
 
