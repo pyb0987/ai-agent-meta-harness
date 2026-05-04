@@ -38,7 +38,7 @@ def smoke_validate_init_harness_output(project: Path, trace_root: str = ".claude
         errors.append(f"MISSING FILE: {trace_root}/search-set.md")
     else:
         text = search_set.read_text(encoding="utf-8")
-        for marker in ("## Active", "### SS-001:", "- **verify**: `"):
+        for marker in ("## Active", "### SS-001:", "- **Source**:", "- **Symptom**:", "- **verify**: `"):
             if marker not in text:
                 errors.append(f"SEARCH SET MISSING: {marker}")
 
@@ -88,9 +88,9 @@ class ClaudeInitHarnessFixtureSmokeTests(unittest.TestCase):
 
 ## Active
 ### SS-001: Typecheck before handoff
+- **Source**: .claude/traces/failures/001-typecheck-before-handoff.md
 - **Symptom**: Type errors can slip into commits.
 - **verify**: `npm run typecheck`
-- **ref**: none
 
 ## Archived
 (Resolved cases with low regression risk)
@@ -167,9 +167,9 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
 
 ## Active
 ### SS-001: Preserve migrated shared history
+- **Source**: .harness/traces/failures/001-preserve-migrated-shared-history.md
 - **Symptom**: Migrated projects can split trace history across roots.
 - **verify**: `npm run typecheck`
-- **ref**: none
 """,
         )
         write(
@@ -228,6 +228,8 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
 
     def test_init_harness_documents_migrated_trace_root_selection(self):
         text = INIT_HARNESS.read_text(encoding="utf-8")
+        normalized = " ".join(text.split())
+        search_set_template = text[text.index("# .claude/traces/search-set.md") : text.index("## Archived")]
 
         for marker in (
             "Select the active trace root before writing new trace files",
@@ -235,27 +237,57 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
             "Meaningful history includes `search-set.md` with Active cases",
             "migrate/copy it into `.claude/traces/`",
             "Do not split future trace history silently",
+            "grep -l 'resolved: false' {trace_root}/failures/",
+            "against the selected active trace root",
+            "- **Source**: {trace_root}/failures/{failure-file.md once recorded, or \"seeded-from-init-analysis\"}",
+            "Older Claude projects may contain legacy `ref` fields",
             "Active trace root selected by evidence",
             "`{trace_root}/search-set.md` template or reused Active search-set exists",
             "`{trace_root}/evolution/001-initial-harness.md` written",
+            "failure trace under the selected trace root",
             "CLAUDE.md includes Harness section (.claude/hooks/, selected trace root",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
+        for marker in (
+            "do not generate new `ref` fields",
+            "Source` / `Symptom` / `verify` schema",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, normalized)
+        self.assertNotIn("- **ref**:", search_set_template)
+        self.assertNotIn("grep -l 'resolved: false' .claude/traces/failures/", search_set_template)
+        self.assertNotIn("entry in `.claude/traces/failures/*.md`", text)
 
     def test_compatibility_mirror_has_migrated_trace_root_selection(self):
         canonical = INIT_HARNESS.read_text(encoding="utf-8")
         mirror = MIRROR_INIT_HARNESS.read_text(encoding="utf-8")
+        normalized_mirror = " ".join(mirror.split())
+        mirror_template = mirror[mirror.index("# .claude/traces/search-set.md") : mirror.index("## Archived")]
 
         for marker in (
             "Select the active trace root before writing new trace files",
             "migrate/copy it into `.claude/traces/`",
+            "grep -l 'resolved: false' {trace_root}/failures/",
+            "- **Source**: {trace_root}/failures/{failure-file.md once recorded, or \"seeded-from-init-analysis\"}",
+            "Older Claude projects may contain legacy `ref` fields",
             "Active trace root selected by evidence",
             "`{trace_root}/search-set.md` template or reused Active search-set exists",
+            "failure trace under the selected trace root",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
+        for marker in (
+            "do not generate new `ref` fields",
+            "Source` / `Symptom` / `verify` schema",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, normalized_mirror)
+        self.assertNotIn("- **ref**:", mirror_template)
+        self.assertNotIn("grep -l 'resolved: false' .claude/traces/failures/", mirror_template)
+        self.assertNotIn("entry in `.claude/traces/failures/*.md`", mirror)
+        self.assertEqual(canonical, mirror)
 
     def test_init_harness_sub_agent_boundary_matches_core_policy(self):
         text = INIT_HARNESS.read_text(encoding="utf-8")

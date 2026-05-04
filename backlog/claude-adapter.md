@@ -667,3 +667,166 @@ Completion Gate:
   was handled here.
 - Residual risk/follow-up: accepted lexical-test limitation.
 - Accepted: yes.
+
+### 16. P2 align Claude init search-set template with core reference schema
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_fixture.py
+- tests/test_claude_init_harness_verify_examples.py
+- backlog/claude-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/claude-adapter.md` item 16, align Claude init
+  search-set template with core reference schema.
+- Status block added: yes, item 16 marked `진행중`.
+- Harness-affecting: yes; this changes Claude initialization trace/search-set
+  schema behavior.
+- Multi-review required: yes; this changes Claude initialization and trace
+  schema behavior.
+- Minimum verification commands: `python3 scripts/check-compat-mirrors.py`;
+  `python3 scripts/check-claude-adapter-paths.py`; `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py
+  tests/test_claude_init_harness_verify_examples.py`; `python3 -m unittest
+  discover -s adapters/claude/tests`; `python3 scripts/check-maintenance-review.py
+  backlog/claude-adapter.md`; `python3 scripts/check-search-set-evidence.py`;
+  `python3 scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: Claude init command canonical source, root compatibility
+  mirror, focused Claude init fixture/verify tests, and this backlog record.
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The shared reference schema for `search-set.md` uses Active entries with
+`Source`, `Symptom`, and executable `verify` fields. The Claude `/init-harness`
+surface still seeds or describes a different shape in places, including legacy
+fields such as `ref`. That can make Claude-initialized projects less aligned
+with the provider-neutral trace/search-set contract and harder to migrate into
+`.harness/traces/`.
+
+Potential improvement:
+
+- Update `adapters/claude/commands/init-harness.md` and the root compatibility
+  mirror so new Claude projects seed the core `Source` / `Symptom` / `verify`
+  Active-entry shape.
+- Preserve backward-compatible reading guidance for older Claude projects if
+  needed, but stop generating the legacy shape for new projects.
+- Add or extend fixture coverage so Claude init output matches the shared
+  reference schema and compatibility mirrors remain synchronized.
+
+Done when:
+
+- Claude `/init-harness` no longer generates or recommends a search-set shape
+  that conflicts with `core/reference.md`.
+- Existing Claude migration guidance remains clear for projects with older
+  trace files.
+- Focused Claude init tests and compatibility mirror checks pass.
+- Multi-review checks the result because this changes Claude initialization and
+  trace schema behavior.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 scripts/check-compat-mirrors.py`, `python3
+  scripts/check-claude-adapter-paths.py`, `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py
+  tests/test_claude_init_harness_verify_examples.py`, `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Updated Claude `/init-harness` search-set template to generate shared
+  `Source` / `Symptom` / `verify` Active entries.
+- Removed new-template generation of the legacy `ref` field while documenting
+  that older Claude projects may preserve legacy `ref` fields when reading or
+  migrating history.
+- Synchronized the root compatibility mirror at `commands/init-harness.md`.
+- Strengthened focused fixture coverage so generated/reused Claude search-set
+  examples require `Source`, `Symptom`, and executable `verify`, and so the
+  canonical command and compatibility mirror do not generate `- **ref**:` in the
+  new search-set template.
+- After schema reviewer re-review, also removed the adjacent generated
+  CLAUDE.md hardcoded `.claude/traces/failures/*.md` failure-escalation wording
+  in favor of selected trace root wording.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/commands/init-harness.md`;
+  `commands/init-harness.md`; `tests/test_claude_init_harness_fixture.py`;
+  `backlog/claude-adapter.md`.
+- Scope deviations: `tests/test_claude_init_harness_verify_examples.py` was in
+  planned verification scope but did not require edits. `backlog/claude-adapter.md`
+  also contains user-added item 17 context that was already adjacent in the
+  selected backlog file. Unrelated dirty `backlog/README.md` remains outside
+  this item and is not part of the selected scope.
+- Verification results: PASS `python3 scripts/check-compat-mirrors.py`; PASS
+  `python3 scripts/check-claude-adapter-paths.py`; PASS `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py
+  tests/test_claude_init_harness_verify_examples.py`; PASS `python3 -m unittest
+  discover -s adapters/claude/tests`; PASS `python3 scripts/check-maintenance-review.py
+  backlog/claude-adapter.md`; PASS `python3 scripts/check-search-set-evidence.py`;
+  PASS `python3 scripts/run-search-set.py`; PASS `python3 scripts/verify-release.py
+  --skip-clean-worktree`; PASS `git diff --check`.
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes.
+- Multi-review result: schema/trace-root critic VETO resolved and final PASS;
+  tests/mirror critic PASS; process critic PASS.
+- Reviewer scores and VETO handling: schema/trace-root critic initially 8/10
+  VETO for hardcoded `.claude/traces/failures/`, fixed to `{trace_root}/failures/`,
+  then 9/10 PASS for adjacent generated CLAUDE.md wording, then fixed and
+  rerun to 10/10 PASS; tests/mirror critic initially 9/10 PASS for limited
+  mirror equality, fixed with full canonical-vs-mirror equality assertion and
+  rerun to 10/10 PASS; process critic initially 7/10 VETO because Completion
+  Gate and final acceptance were not yet recorded, then rerun to 10/10 PASS
+  after the Completion Gate was recorded.
+- For each score 9, why not 10: schema/trace-root critic's temporary 9 was due
+  to adjacent generated CLAUDE.md failure-escalation wording hardcoding
+  `.claude/traces/failures/*.md`; fixed in this item. tests/mirror critic's
+  temporary 9 was due to marker/count coverage rather than full equality; fixed
+  in this item.
+- Backlog items added from score-9 residual risk: none; both score-9 reasons
+  were actionable in-scope fixes and were resolved before acceptance.
+- Residual risk/follow-up: none.
+- Accepted: yes.
+
+### 17. P3 keep Claude diagnosis-only reviews from silently creating trace infrastructure
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The core methodology says applied harness changes may create missing minimum
+trace surfaces, while diagnosis-only work should report missing trace
+infrastructure instead of silently expanding the project. The Claude
+`harness-engineer` skill still contains wording that can be read as creating the
+trace directory whenever it is missing, even for review or diagnosis-only
+sessions.
+
+Potential improvement:
+
+- Reword the Claude `harness-engineer` skill so diagnosis-only or proposal-only
+  work reports missing trace infrastructure without mutating the project.
+- Keep applied harness evolution behavior intact: when the user asks to apply a
+  harness change, create the missing minimum trace surface before writing new
+  traces.
+- Add focused lexical or fixture coverage for the distinction between
+  diagnosis-only reporting and applied trace initialization.
+
+Done when:
+
+- Claude harness-engineer guidance matches the core diagnosis-only boundary.
+- Applied harness changes can still initialize the minimum trace surface when
+  appropriate.
+- Compatibility mirror checks and focused Claude adapter tests pass.

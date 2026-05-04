@@ -61,17 +61,22 @@ After harness changes, verify effectiveness using active cases in this list.
 Update last_updated when adding/removing items.
 
 ## Operational Policy
-- When Active reaches 0, the regression safety net vanishes → restore an Archived entry's verify to Active, or run `grep -l 'resolved: false' .claude/traces/failures/` to register an unresolved failure as a new SS
+- When Active reaches 0, the regression safety net vanishes → restore an Archived entry's verify to Active, or run `grep -l 'resolved: false' {trace_root}/failures/` against the selected active trace root to register an unresolved failure as a new SS
 - Archive criteria: (a) the linked failure's `escalated_to` is filled (absorbed into CLAUDE.md / hook / tool) AND (b) another active guard exists for the same pattern — if either is missing, keep it in Active
 
 ## Active
 ### SS-001: {first failure scenario identified from project analysis}
+- **Source**: {trace_root}/failures/{failure-file.md once recorded, or "seeded-from-init-analysis"}
 - **Symptom**: {risk found in Step 2 analysis — e.g., deploying without tests, ignoring type errors}
 - **verify**: `{auto-executable verification command}`
-- **ref**: (linked to .claude/traces/failures/ when recorded later)
 ## Archived
 (Resolved cases with low regression risk)
 ```
+
+Older Claude projects may contain legacy `ref` fields in search-set entries.
+Preserve those records when reading or migrating history, but do not generate
+new `ref` fields; new Active entries use the shared `Source` / `Symptom` /
+`verify` schema from `core/reference.md`.
 
 **Seed entry creation rule**: write the most frequent or critical failure scenario from Step 2 analysis as SS-001. The verify field must be an auto-executable shell command. Examples by project type:
 - TypeScript: `tmp="${TMPDIR:-/tmp}/harness-verify.$$"; tsc --noEmit >"$tmp" 2>&1; status=$?; tail -5 "$tmp"; rm -f "$tmp"; echo "EXIT: $status"; exit $status`
@@ -94,7 +99,7 @@ Write or enhance project CLAUDE.md:
    - Hook list + each hook's enforcement level (blocking/warning)
    - .claude/traces/ structure
    - **Change strategy**: Additive first -> Subtractive -> Structural (one at a time, confounding variable isolation)
-   - **Failure escalation loop**: a `resolved: true` entry in `.claude/traces/failures/*.md` must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
+   - **Failure escalation loop**: a `resolved: true` failure trace under the selected trace root must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
    - **Sub-agent triggers**: reference `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" — two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence). Generic sub-agent uses (parallel Explore, context firewall) are Claude Code runtime tactics, not harness methodology; use them only when they materially preserve independence or unblock bounded parallel work
    - Protected files (if applicable)
 
