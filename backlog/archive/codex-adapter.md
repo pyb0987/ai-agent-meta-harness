@@ -3379,6 +3379,110 @@ Multi-review:
   score-9 residuals; final search-set verification must pass before commit.
 - Final acceptance: yes.
 
+### 50. P3 add deeper installer protection fixture coverage
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- adapters/codex/scripts/install-autoresearch-protection.py
+- adapters/codex/tests/test_install_autoresearch_protection.py
+- plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py
+- backlog/codex-adapter.md
+- backlog/archive/codex-adapter.md
+
+Source: item 49 multi-review score-9 residual risk.
+
+The target-project autoresearch protection installer now covers fresh Git
+targets, existing hook/CI/AGENTS/protected-file projects, non-Git manual setup,
+and conflicting `core.hooksPath` cases. The score-9 reviewers accepted the
+current local-only reporting, but noted that fixture coverage can be more exact:
+it does not run an actual negative `git commit` hook block, does not directly
+cover `.codex/config.toml` merge-required behavior, and does not exercise the CI
+smoke path against a target with an initial commit.
+
+Potential improvement:
+
+- Add installer fixture coverage for existing `.codex/config.toml` so the
+  merge-required record names the active config surface precisely.
+- Add a target Git fixture with an initial commit so `--run-smoke` exercises the
+  CI checker path instead of only recording the no-base skipped reason.
+- Consider a negative commit-hook fixture that proves protected-path changes are
+  blocked by the installed `.githooks/pre-commit` hook without leaving target
+  fixtures dirty.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/codex-adapter.md`.
+- Changed files: `adapters/codex/scripts/install-autoresearch-protection.py`,
+  `adapters/codex/tests/test_install_autoresearch_protection.py`,
+  `plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py`,
+  `backlog/codex-adapter.md`, `backlog/archive/codex-adapter.md`.
+- Scope deviations: none. Existing dirty out-of-scope `backlog/README.md` and
+  `backlog/core.md` remain unstaged.
+- Verification results: BEFORE PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 -m unittest adapters/codex/tests/test_install_autoresearch_protection.py`;
+  PASS `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3
+  scripts/sync-codex-plugin.py --check`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin.py`; PASS `git diff --cached
+  --check`.
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py` after this Completion Gate and
+  selected item files were staged.
+- Multi-review required: yes; this changes Codex adapter installer protection
+  behavior and fixture evidence for hook/pre-commit/CI semantics.
+- Multi-review result: PASS after affected re-review for output precision.
+- Reviewer scores and VETO handling: installer-behavior critic scored 9 PASS,
+  then after the local CI smoke command output was made explicit reran at 10
+  PASS; protection-honesty critic scored 9 PASS, then affected re-review scored
+  10 PASS; verification/bundle critic scored 9 PASS with a completion-readiness
+  note. No reviewer score was below 9, so no VETO handling was required.
+- For each score 9, why not 10: initial installer-behavior 9 noted the printed
+  generic CI command did not show the actual `--base-ref HEAD` local smoke
+  command; fixed before acceptance and rerun to 10. Initial protection-honesty 9
+  noted that `--base-ref HEAD` proves local command wiring but not a PR-base
+  protected-path CI rejection; accepted as honest local-only scope after the
+  explicit local command output was added, and affected re-review scored 10.
+  Verification/bundle 9 noted Completion Gate/archive closure and out-of-scope
+  dirty files were still pending; this final record and selective staging close
+  the timing concern.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: no follow-up. Item 50 now covers
+  `.codex/config.toml` merge-required precision, initial-commit local CI smoke,
+  and a real negative `git commit` hook block. The remaining CI boundary is
+  explicitly local-only and does not claim shared-repo PR comparison proof.
+- Follow-up/residual risk: no follow-up; residual CI scope is accepted as
+  honest local-only evidence, not shared-repo protection.
+- Accepted: yes.
+
+Multi-review:
+
+- Installer-behavior critic: score 9, PASS. Blocking findings: none. Why not
+  10: printed smoke commands still showed generic `--ci` while the actual local
+  initial-commit smoke used `--base-ref HEAD`. Follow-up/residual risk:
+  addressed immediately by printing the explicit local CI smoke command and
+  asserting it in the focused test.
+- Installer-behavior affected re-review: score 10, PASS. Blocking findings:
+  none. Prior why-not-10 resolved.
+- Protection-honesty critic: score 9, PASS. Blocking findings: none. Why not
+  10: `--base-ref HEAD` proves local command wiring/executability, not a
+  shared-repo PR-base protected-path rejection. Follow-up/residual risk:
+  accepted as honest local-only evidence after explicit command output.
+- Protection-honesty affected re-review: score 10, PASS. Blocking findings:
+  none. Evidence boundary is clear and bounded.
+- Verification/bundle critic: score 9, PASS. Blocking findings: none. Why not
+  10: item 50 was still `진행중`, archive/Completion Gate were pending, and
+  unrelated dirty backlog files required careful commit boundaries. Follow-up:
+  no backlog item; this final archive and selective staging close the process
+  timing concern.
+- Score handling: no score below 9; no VETO.
+- Rerun status: affected behavior/protection critics rerun after output
+  precision fix; final scores are 10, 10, and 9.
+- Follow-up/residual risk: no backlog follow-up. The only final score-9 reason
+  was pre-acceptance closure timing, resolved in this record.
+- Final acceptance: yes.
+
 ### 44. P2 keep Codex Desktop/runtime delivery smoke open until product surface exists
 
 Status: 완료

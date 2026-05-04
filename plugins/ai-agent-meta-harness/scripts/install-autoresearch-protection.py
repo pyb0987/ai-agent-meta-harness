@@ -85,10 +85,13 @@ class Installer:
         return True
 
     def copy_hook_config_if_missing(self) -> None:
-        target = self.target(".codex/hooks.json")
+        hooks_json = self.target(".codex/hooks.json")
         config_toml = self.target(".codex/config.toml")
-        if target.exists() or config_toml.exists():
-            self.record("merge-required", target, "existing Codex hook config left unchanged")
+        if config_toml.exists():
+            self.record("merge-required", config_toml, "existing Codex config left unchanged")
+            return
+        if hooks_json.exists():
+            self.record("merge-required", hooks_json, "existing Codex hook config left unchanged")
             return
         self.copy_if_missing("templates/hooks/codex-hooks.json.template", ".codex/hooks.json")
 
@@ -238,7 +241,7 @@ def run_smokes(target_root: Path) -> tuple[bool, list[str]]:
     if run_command(["python3", "scripts/check-autoresearch-protected.py", "--pre-commit"], target_root) != 0:
         return False, skipped
     if has_git_base(target_root):
-        if run_command(["python3", "scripts/check-autoresearch-protected.py", "--ci"], target_root) != 0:
+        if run_command(["python3", "scripts/check-autoresearch-protected.py", "--ci", "--base-ref", "HEAD"], target_root) != 0:
             return False, skipped
     else:
         skipped.append("CI/base-ref smoke skipped because target is not a git repository with an initial commit")
@@ -266,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
     print(smoke_command())
     print("python3 scripts/check-autoresearch-protected.py --pre-commit")
     print("python3 scripts/check-autoresearch-protected.py --ci")
+    print("Local initial-commit CI smoke command:")
+    print("python3 scripts/check-autoresearch-protected.py --ci --base-ref HEAD")
     has_merge_required = any(action.status == "merge-required" for action in actions)
     has_manual_step = any(action.status == "manual-step" for action in actions)
     if has_merge_required or has_manual_step:
@@ -286,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
             if skipped:
                 print("CI/shared-repo status: skipped with reason above.")
             else:
-                print("CI/shared-repo status: local CI command passed against available git base.")
+                print("CI/shared-repo status: local CI command passed against HEAD base.")
             return 0
         if ok:
             print("Protection level: incomplete")

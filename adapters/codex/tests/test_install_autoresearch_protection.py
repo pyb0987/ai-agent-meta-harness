@@ -64,6 +64,23 @@ class InstallAutoresearchProtectionTests(unittest.TestCase):
             )
             self.assertEqual(hooks_path.stdout.strip(), ".githooks")
 
+    def test_git_project_with_initial_commit_runs_ci_smoke_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            self.init_git_repo(target)
+            (target / "evaluate.py").write_text("print('ok')\n", encoding="utf-8")
+            subprocess.run(["git", "add", "evaluate.py"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(["git", "commit", "-m", "baseline"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            result = self.run_installer(target, "--run-smoke")
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Protection level: local-only", result.stdout)
+            self.assertIn("Local initial-commit CI smoke command:", result.stdout)
+            self.assertIn("check-autoresearch-protected.py --ci --base-ref HEAD", result.stdout)
+            self.assertIn("CI/shared-repo status: local CI command passed against HEAD base.", result.stdout)
+            self.assertNotIn("CI/base-ref smoke skipped", result.stdout)
+
     def test_existing_project_files_are_not_silently_overwritten(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
@@ -94,6 +111,21 @@ class InstallAutoresearchProtectionTests(unittest.TestCase):
             self.assertIn("pre-commit-autoresearch-protected.sh", pre_commit.read_text(encoding="utf-8"))
             self.assertIn("## Autoresearch Protection", agents.read_text(encoding="utf-8"))
             self.assertNotIn("Protection level: template-installed", result.stdout)
+
+    def test_existing_codex_config_toml_requires_precise_reviewed_merge(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / ".codex").mkdir()
+            config = target / ".codex/config.toml"
+            config.write_text("[features]\ncodex_hooks = true\n", encoding="utf-8")
+
+            result = self.run_installer(target)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("merge-required: .codex/config.toml", result.stdout)
+            self.assertNotIn("merge-required: .codex/hooks.json", result.stdout)
+            self.assertFalse((target / ".codex/hooks.json").exists())
+            self.assertEqual("[features]\ncodex_hooks = true\n", config.read_text(encoding="utf-8"))
 
     def test_dry_run_does_not_write_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -138,6 +170,36 @@ class InstallAutoresearchProtectionTests(unittest.TestCase):
                 stderr=subprocess.PIPE,
             )
             self.assertEqual(hooks_path.stdout.strip(), ".custom-hooks")
+
+    def test_installed_git_hook_blocks_protected_path_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            self.init_git_repo(target)
+            evaluator = target / "evaluate.py"
+            evaluator.write_text("print('baseline')\n", encoding="utf-8")
+            subprocess.run(["git", "add", "evaluate.py"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(["git", "commit", "-m", "baseline"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            install = self.run_installer(target, "--run-smoke")
+            self.assertEqual(install.returncode, 0, install.stderr)
+
+            evaluator.write_text("print('changed')\n", encoding="utf-8")
+            subprocess.run(["git", "add", "evaluate.py"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            blocked = subprocess.run(
+                ["git", "commit", "-m", "mutate evaluator"],
+                cwd=target,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn("autoresearch protected-path violation", blocked.stderr)
+            self.assertIn("evaluate.py", blocked.stderr)
+
+    def init_git_repo(self, target: Path) -> None:
+        subprocess.run(["git", "init"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["git", "config", "user.email", "codex@example.test"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["git", "config", "user.name", "Codex Test"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 if __name__ == "__main__":
