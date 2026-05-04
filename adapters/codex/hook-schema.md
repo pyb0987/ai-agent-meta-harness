@@ -23,6 +23,11 @@ This drift check validates documented output-shape assumptions only. It does not
 - Re-verification note: 2026-05-04 item 45 aligned the embedded autoresearch
   skill `.codex/hooks.json` example with the already-verified item 36 bounded
   timeout contract; hook output shapes and timeout semantics remain unchanged.
+- Re-verification note: 2026-05-04 item 70 changed Codex autoresearch Run Mode
+  rejected-diff retention guidance only; official Codex hooks/config docs were
+  not behavior-affecting for this change, and `PreToolUse`,
+  `PermissionRequest`, `hookSpecificOutput`, `features.codex_hooks`, and
+  timeout assumptions remain unchanged.
 - Re-verification note: 2026-05-03 item 27 defined direct-copy degraded
   reporting only; official Codex hooks/config docs were re-checked, and
   `PreToolUse`, `PermissionRequest`, `hookSpecificOutput`, and

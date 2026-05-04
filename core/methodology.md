@@ -62,7 +62,9 @@ expanding the project.
   1. New guard violation type (a guard failure not seen before)
   2. Result opposite to hypothesis (e.g., expected improvement → degradation)
   3. Structural code change failure (logic change, not parameter tuning)
-  Simple threshold misses (REJECT_THRESHOLD) don't need recording — experiments/ episode tables suffice
+  Simple threshold misses (REJECT_THRESHOLD) don't need `failures/` diagnosis
+  records, but their candidate diffs still belong in the fixed-evaluator
+  rejected-diff trail below.
 - **search-set**: each entry must have a `verify` field — an auto-executable verification command
 - **experiments/**: record experiment episodes immediately at adapter-defined
   milestones so interruption does not erase diagnostic context. Format: see
@@ -264,7 +266,9 @@ Before starting work, define: `Done when: [specific, verifiable condition]`
   machine-readable output.
 - Verdict: binary or thresholded adopt/reject decision defined by the project.
 - Rejected candidate preservation: before reverting or discarding a rejected
-  candidate, capture the candidate diff and raw evaluator output in traces when
+  candidate, capture a compact candidate diff for every non-adopted
+  fixed-evaluator attempt. Preserve raw evaluator output in `experiments.jsonl`
+  for every attempt, and write a richer `failures/` diagnosis only when the
   recording triggers apply. Candidate code may be unrecoverable after cleanup.
 - Escalation: repeated rejects, suspected evaluator defects, or exhausted search
   axes should stop normal experimentation and trigger manual review.

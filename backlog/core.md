@@ -212,6 +212,10 @@ Archived: `backlog/archive/core.md#68-p3-refresh-backlog-theme-index-after-compl
 
 Status: 완료
 Archived: `backlog/archive/core.md#69-p2-make-fallback-threshold-disposition-discoverable-at-stable-handoff`
+### 70. P2 evaluate preserving diffs for all fixed-evaluator rejected candidates
+
+Status: 완료
+Archived: `backlog/archive/core.md#70-p2-evaluate-preserving-diffs-for-all-fixed-evaluator-rejected-candidates`
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료

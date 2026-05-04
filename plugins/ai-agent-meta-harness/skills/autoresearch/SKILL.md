@@ -410,13 +410,15 @@ Run Mode executes experiments when the autoresearch files already exist.
 4. Formulate a one-line hypothesis that does not duplicate rejection history.
 5. Modify only mutable genome files.
 6. Commit the experiment change with `experiment: {short hypothesis}`.
-7. Run `evaluate.py` and capture the raw JSON stdout before any revert or cleanup.
-8. Append the full evaluator result to `experiments.jsonl` for every verdict.
-9. Write any required episode trace immediately if this experiment hits an ADOPT, axis exhaustion, termination, or 10-experiment milestone.
-10. On `ADOPT`, keep the genome commit, keep the `best_score.txt` update from `evaluate.py`, then amend the experiment commit or create a follow-up record commit that includes `best_score.txt`, `experiments.jsonl`, and trace artifacts.
-11. On `REJECT_GUARD`, `REJECT_THRESHOLD`, or `ERROR`, preserve the genome diff and evaluator JSON when recording triggers apply, revert the genome commit according to the current Codex permission policy, then commit or otherwise durably save `experiments.jsonl` and any trace/handoff updates.
-12. End each experiment with a clean worktree or an explicit handoff note explaining the dirty files.
-13. Repeat until a termination condition is reached.
+7. Run `evaluate.py` and preserve the raw JSON stdout outside the rejected candidate commit before any revert or cleanup.
+8. For every `REJECT_GUARD`, `REJECT_THRESHOLD`, or `ERROR`, capture the rejected genome diff before cleanup and save it in a compact rejected-diff trail such as `.harness/traces/experiments/rejected-diffs/NNN-{verdict}-{slug}.patch`, or in an adapter-approved equivalent path referenced from `experiments.jsonl`.
+9. For trigger-worthy rejects, write the richer failure diagnosis from the preserved evaluator JSON and rejected diff before reverting.
+10. On `REJECT_GUARD`, `REJECT_THRESHOLD`, or `ERROR`, revert the genome commit according to the current Codex permission policy only after steps 7-9 have preserved the necessary evidence.
+11. Append or update the full evaluator result in `experiments.jsonl` for every verdict from the preserved evaluator JSON. For non-adopted verdicts, include the rejected-diff trail path.
+12. Write any required episode trace immediately if this experiment hits an ADOPT, axis exhaustion, termination, or 10-experiment milestone.
+13. On `ADOPT`, keep the genome commit, keep the `best_score.txt` update from `evaluate.py`, then amend the experiment commit or create a follow-up record commit that includes `best_score.txt`, `experiments.jsonl`, and trace artifacts.
+14. End each experiment with a clean worktree or an explicit handoff note explaining the dirty files.
+15. Repeat until a termination condition is reached.
 
 Destructive revert note: if `git reset --hard HEAD~1` requires approval or conflicts with current runtime policy, request approval or stop with the exact command and preserved evidence. Never revert before preserving required diagnostic context and evaluator JSON.
 
@@ -425,10 +427,10 @@ Destructive revert note: if `git reset --hard HEAD~1` requires approval or confl
 Append one JSON line per experiment to `experiments.jsonl`. Include at least:
 
 ```json
-{"ts":"ISO8601","n":1,"hypothesis":"...","verdict":"ADOPT","metric":0.0,"improvement_pct":0.0,"guards":{},"sha":"...","reverted":false}
+{"ts":"ISO8601","n":1,"hypothesis":"...","verdict":"ADOPT","metric":0.0,"improvement_pct":0.0,"guards":{},"sha":"...","reverted":false,"rejected_diff":null}
 ```
 
-Preserve the evaluator's raw JSON fields. Do not summarize away guard details, metrics, or error output.
+Preserve the evaluator's raw JSON fields. Do not summarize away guard details, metrics, or error output. For non-adopted verdicts, set `rejected_diff` to the compact rejected-diff trail path.
 
 ### Episode Trace Recording
 

@@ -6259,6 +6259,174 @@ Multi-review:
   before commit.
 - Final acceptance: yes.
 
+### 70. P2 evaluate preserving diffs for all fixed-evaluator rejected candidates
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- core/reference.md
+- core/methodology.md
+- docs/reference.md
+- docs/methodology.md
+- adapters/codex/skills/autoresearch/SKILL.md
+- adapters/codex/skills/harness-engineer/SKILL.md
+- adapters/codex/hook-schema.md
+- plugins/ai-agent-meta-harness/hook-schema.md
+- plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md
+- plugins/ai-agent-meta-harness/skills/harness-engineer/SKILL.md
+- tests/test_core_methodology_boundaries.py
+- tests/test_codex_autoresearch_reject_diff_retention.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of clean local `main` against the
+Meta-Harness methodology and arXiv 2603.28052 abstract wording.
+
+The Meta-Harness paper describes proposer access to source code, scores, and
+execution traces of prior candidates through the filesystem. This repository
+preserves raw evaluator outputs and candidate diffs for rejected fixed-evaluator
+experiments when failure-recording triggers apply, and Claude autoresearch now
+captures every REJECT before revert. The shared core and Codex guidance still
+allowed routine `REJECT_THRESHOLD` candidates to be reverted with only
+`experiments.jsonl` metadata and episode summaries retained. That was a
+practical space/noise trade-off, but weaker than the paper-inspired "all prior
+candidate source deltas remain searchable" property.
+
+Decision implemented:
+
+- Choose "preserve every rejected candidate diff compactly" for fixed-evaluator
+  projects, while keeping rich `failures/` diagnoses limited to trigger-worthy
+  rejects.
+- Define the durable rejected-diff trail as
+  `{trace_root}/experiments/rejected-diffs/NNN-{verdict}-{name}.patch` or an
+  adapter-defined equivalent path referenced by the experiment log.
+- Keep raw evaluator JSON in `experiments.jsonl` for every verdict; rejected
+  diff trail entries carry source deltas, not richer evaluator payloads.
+- Update Codex autoresearch Run Mode so non-adopted attempts preserve raw
+  evaluator JSON outside the rejected candidate commit, capture the rejected
+  diff before cleanup, revert only after evidence preservation, and append or
+  update `experiments.jsonl` afterward with `rejected_diff`.
+- Sync the Codex plugin bundle and add focused text-contract tests for core,
+  docs mirrors, Codex skill wording, and plugin copies.
+
+Done when:
+
+- The repository explicitly chooses between "preserve all rejected candidate
+  diffs" and "preserve only trigger-worthy rejected diffs" for fixed-evaluator
+  loops, with paper-fidelity and storage/noise trade-offs documented.
+- Codex and Claude autoresearch guidance no longer disagree accidentally on
+  every-REJECT diff preservation.
+- Future reviewers can tell whether routine `REJECT_THRESHOLD` candidates are
+  searchable by source delta, not only by score/result metadata.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `core/methodology.md`, `core/reference.md`,
+  `docs/methodology.md`, `docs/reference.md`,
+  `adapters/codex/skills/autoresearch/SKILL.md`,
+  `adapters/codex/skills/harness-engineer/SKILL.md`,
+  `adapters/codex/hook-schema.md`,
+  `plugins/ai-agent-meta-harness/hook-schema.md`,
+  `plugins/ai-agent-meta-harness/skills/autoresearch/SKILL.md`,
+  `plugins/ai-agent-meta-harness/skills/harness-engineer/SKILL.md`,
+  `tests/test_core_methodology_boundaries.py`,
+  `tests/test_codex_autoresearch_reject_diff_retention.py`,
+  `backlog/core.md`, `backlog/archive/core.md`.
+- Scope deviations: `docs/methodology.md`, `docs/reference.md`,
+  `adapters/codex/hook-schema.md`, generated plugin copies, and focused tests
+  were added to Scope before editing because release gates enforce
+  compatibility mirror, hook-schema re-verification, and plugin sync contracts.
+  Dirty out-of-scope backlog files `backlog/README.md` and
+  `backlog/codex-adapter.md` remain outside item 70.
+- Verification results: BEFORE PASS `python3 scripts/check-maintenance-review.py`;
+  AFTER PASS `python3 -m unittest tests/test_core_methodology_boundaries.py
+  tests/test_codex_autoresearch_reject_diff_retention.py`; AFTER PASS
+  `python3 scripts/check-compat-mirrors.py`; AFTER PASS
+  `python3 scripts/sync-codex-plugin.py --check`; AFTER PASS
+  `python3 scripts/check-maintenance-review.py`; AFTER PASS
+  `python3 scripts/run-search-set.py`; AFTER PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; INITIAL AFTER
+  `python3 -m unittest discover -s tests` failed only because item 70 was still
+  `진행중` before archive/status update; final repository/release verification is
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py` as the active
+    SS-001 maintenance-review command.
+  - AFTER: PASS `python3 scripts/run-search-set.py` with 6 Active cases.
+- Multi-review required: yes; this changes core fixed-evaluator trace-retention
+  policy and Codex autoresearch runtime guidance.
+- Multi-review result: PASS after paper/policy, Codex runtime, and
+  process/scope VETO recovery re-reviews.
+- Reviewer scores and VETO handling: paper/policy critic 8 VETO because Codex
+  wording conflated compact rejected-diff retention with evaluator JSON
+  retention; fixed by separating diff trail, `experiments.jsonl`, and
+  trigger-worthy failure diagnosis; affected critic re-review scored 9 PASS.
+  Codex runtime critic 8 VETO because `experiments.jsonl` could still be
+  appended before reset-like reject cleanup; fixed by preserving evaluator JSON
+  and rejected diff before revert, then updating `experiments.jsonl` afterward;
+  affected critic re-review scored 9 PASS. Process/scope critic 8 VETO because
+  Completion Gate, archive/pointer closure, and staging isolation were not yet
+  complete; affected critic re-review scored 9 PASS after this gate.
+- For each score 9, why not 10: paper/policy critic noted the policy remains a
+  text-contract rather than executable runtime enforcement of actual
+  rejected-diff artifacts; accepted because item 70 asks for policy/guidance
+  alignment and durable text tests. Codex runtime critic noted there is no
+  executable autoresearch runtime smoke that simulates a rejected experiment,
+  reset-like revert, and post-revert `experiments.jsonl` update; accepted
+  because current Codex autoresearch behavior is governed through skill text and
+  mirror/plugin tests. Process/scope critic noted the archive record still
+  needed to be updated with the re-review result and final verification/staging
+  checks; accepted as procedural residual covered by final checks before commit.
+- Backlog items added from score-9 residual risk: none; the score-9
+  residuals are accepted text-contract/runtime-fixture limits for this item.
+- Residual risk/follow-up: final verification and staging isolation remain
+  mechanical commit-readiness checks after this accepted record.
+- Accepted: yes.
+
+Multi-review:
+
+- Paper/policy critic: score 8, VETO. Blocking finding: Codex autoresearch
+  wording folded evaluator JSON into every-reject rejected-diff retention,
+  weakening the compact-diff versus trigger-worthy-failure boundary. Not
+  accepted until fixed and affected critic rerun.
+- Paper/policy re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  policy is methodologically sound but remains a text-contract policy rather
+  than executable runtime enforcement of actual rejected-diff artifacts.
+  Follow-up/residual risk: accepted because item 70 targets policy/guidance
+  alignment and durable text tests.
+- Codex runtime critic: score 8, VETO. Blocking finding: Codex Run Mode still
+  appeared to append `experiments.jsonl` before rejected diff capture and
+  reset-like revert, risking loss of the experiment log. Not accepted until
+  reject ordering was clarified and affected critic rerun.
+- Codex runtime re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  no executable autoresearch runtime smoke simulates rejected experiment,
+  reset-like revert, and post-revert `experiments.jsonl` update. Follow-up/
+  residual risk: accepted because this repo currently governs the behavior
+  through skill text and mirror/plugin tests.
+- Process/scope critic: score 8, VETO. Blocking findings: Completion Gate and
+  archive/pointer closure were missing, out-of-scope dirty backlog files needed
+  selective staging, and the new focused test file was untracked. Not accepted
+  until affected re-review reaches at least 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  the archive record still needed this re-review result, final verification, and
+  staged-index isolation before commit. Follow-up/residual risk: no backlog
+  follow-up; accepted as procedural residual covered by final checks.
+- Score handling: scores below 9 triggered VETO recovery. Paper/policy and
+  Codex runtime affected critic reruns reached 9. Process/scope affected critic
+  rerun reached 9. Every score 9 records why not 10 and residual-risk
+  disposition.
+- Rerun status: paper/policy affected critic rerun complete at score 9; Codex
+  runtime affected critic rerun complete at score 9; process/scope affected
+  critic rerun complete at score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals. The
+  remaining procedural risk is covered by final verification and staging checks
+  before commit.
+- Final acceptance: yes.
+
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료

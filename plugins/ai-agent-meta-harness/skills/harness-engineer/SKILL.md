@@ -181,7 +181,7 @@ Autoresearch recording rules, when the project uses autoresearch:
 
 - Record `{trace_root}/experiments/NNN-{name}.md` immediately on ADOPT, axis exhaustion, termination, and every 10 experiments. Do not wait for the session end.
 - On axis exhaustion, record the experiment range and exhaustion rationale, then add the exhausted axis to the `## Rejection History` section of `program.md` when that file is the project's research state file.
-- For an autoresearch REJECT that meets failure recording triggers, capture the genome diff and evaluator JSON before reverting. The minimum command evidence is `git diff HEAD~1` plus the full evaluator stdout.
+- For every autoresearch REJECT or ERROR, capture the genome diff before reverting and keep it in the compact rejected-diff trail referenced by `experiments.jsonl`. For a REJECT that meets failure recording triggers, also capture the evaluator JSON in the richer failure diagnosis. The minimum command evidence is `git diff HEAD~1` plus the full evaluator stdout.
 - Preserve REJECT code context before any destructive revert; reverting first loses the evidence needed for diagnosis.
 
 ## Minimum Trace Schemas

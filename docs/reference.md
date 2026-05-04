@@ -67,18 +67,32 @@ resolved: true | false
 
 ### Fixed-Evaluator Failure Trace Supplement
 
-When recording a rejected fixed-evaluator experiment in failures/, additionally
-include:
+Rejected fixed-evaluator candidates have two recording levels:
+
+- **Rejected-diff trail for every non-adopted attempt**: before any revert or
+  cleanup, save a compact candidate diff at
+  `{trace_root}/experiments/rejected-diffs/NNN-{verdict}-{name}.patch` or in an
+  adapter-defined equivalent path referenced by the experiment log. This applies
+  to `REJECT_GUARD`, `REJECT_THRESHOLD`, and `ERROR` attempts, including simple
+  threshold misses that do not justify a full failure diagnosis.
+- **Failure diagnosis for trigger-worthy rejects**: when a rejected experiment
+  also meets the `failures/` recording triggers from `core/methodology.md`,
+  write a failure trace and include the details below.
+
+When recording a trigger-worthy rejected fixed-evaluator experiment in
+`failures/`, additionally include:
 - **candidate diff**: the full diff for the rejected candidate, captured before
   any revert or cleanup
 - **evaluator output**: the raw machine-readable evaluator result, including
   guard details and metrics
 - **causal analysis**: 1-2 line summary of why hypothesis and result diverged
 
-**Reject workflow**: (1) parse verdict -> (2) if a recording trigger applies,
-capture candidate diff + evaluator output -> (3) revert or discard the rejected
-candidate using the adapter's approved mechanism -> (4) append the experiment
-log. Candidate code may be unrecoverable after revert, so order matters.
+**Reject workflow**: (1) parse verdict -> (2) capture the rejected-diff trail
+entry and raw evaluator output -> (3) if a recording trigger applies, write the
+failure diagnosis with diff, evaluator output, and causal analysis -> (4) revert
+or discard the rejected candidate using the adapter's approved mechanism -> (5)
+append or update the experiment log with the evaluator result and rejected-diff
+reference. Candidate code may be unrecoverable after revert, so order matters.
 
 ### Numbering
 - `NNN` is a 3-digit sequence number (001, 002, ...)

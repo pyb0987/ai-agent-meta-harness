@@ -158,6 +158,37 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, reference_mirror)
                 self.assertEqual(reference.count(marker), reference_mirror.count(marker))
 
+    def test_rejected_candidate_diff_policy_is_explicit_and_mirrored(self) -> None:
+        methodology = text(CORE)
+        methodology_mirror = text(MIRROR)
+        reference = text(REFERENCE)
+        reference_mirror = text(REFERENCE_MIRROR)
+
+        methodology_markers = (
+            "Simple threshold misses (REJECT_THRESHOLD) don't need `failures/` diagnosis",
+            "records, but their candidate diffs still belong in the fixed-evaluator\n  rejected-diff trail below.",
+            "capture a compact candidate diff for every non-adopted",
+            "Preserve raw evaluator output in `experiments.jsonl`",
+            "write a richer `failures/` diagnosis only when the",
+        )
+        for marker in methodology_markers:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, methodology)
+                self.assertIn(marker, methodology_mirror)
+                self.assertEqual(methodology.count(marker), methodology_mirror.count(marker))
+
+        reference_markers = (
+            "Rejected fixed-evaluator candidates have two recording levels",
+            "`{trace_root}/experiments/rejected-diffs/NNN-{verdict}-{name}.patch`",
+            "including simple\n  threshold misses that do not justify a full failure diagnosis",
+            "append or update the experiment log with the evaluator result and rejected-diff\nreference",
+        )
+        for marker in reference_markers:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, reference)
+                self.assertIn(marker, reference_mirror)
+                self.assertEqual(reference.count(marker), reference_mirror.count(marker))
+
 
 if __name__ == "__main__":
     unittest.main()
