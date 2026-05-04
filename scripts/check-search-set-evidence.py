@@ -65,6 +65,71 @@ def git_changed_paths() -> list[str]:
     return sorted(set(paths))
 
 
+def git_staged_paths() -> list[str]:
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRTD"],
+        cwd=ROOT,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "git diff --cached failed")
+    return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+
+
+def git_base_paths(base_ref: str) -> list[str]:
+    commands = (
+        ["git", "diff", "--name-only", "--diff-filter=ACMRTD", f"{base_ref}...HEAD"],
+        ["git", "diff", "--name-only", "--diff-filter=ACMRTD", f"{base_ref}..HEAD"],
+    )
+    errors: list[str] = []
+    for command in commands:
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            encoding="utf-8",
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode == 0:
+            return sorted({line.strip() for line in result.stdout.splitlines() if line.strip()})
+        errors.append(result.stderr.strip())
+    raise RuntimeError(errors[-1] or f"git diff against {base_ref} failed")
+
+
+def read_index_text(path: Path, *, encoding: str) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    result = subprocess.run(
+        ["git", "show", f":{relative}"],
+        cwd=ROOT,
+        encoding=encoding,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise FileNotFoundError(result.stderr.strip() or f"missing staged file: {relative}")
+    return result.stdout
+
+
+def read_head_text(path: Path, *, encoding: str) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    result = subprocess.run(
+        ["git", "show", f"HEAD:{relative}"],
+        cwd=ROOT,
+        encoding=encoding,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise FileNotFoundError(result.stderr.strip() or f"missing HEAD file: {relative}")
+    return result.stdout
+
+
 def is_harness_affecting(path: str) -> bool:
     if path in HARNESS_AFFECTING_FILES:
         return True
@@ -178,22 +243,45 @@ def validate(changed_paths: list[str], *, read_text=Path.read_text) -> list[str]
     ]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument(
+        "--staged",
+        action="store_true",
+        help="validate staged changed paths and staged backlog/trace records",
+    )
+    source.add_argument(
+        "--base-ref",
+        metavar="REF",
+        help="validate changed paths in REF...HEAD for a clean release candidate",
+    )
     parser.add_argument(
         "paths",
         nargs="*",
         help="Optional changed paths to validate instead of reading git status.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.paths and (args.staged or args.base_ref):
+        parser.error("explicit paths cannot be combined with --staged or --base-ref")
 
     try:
-        changed_paths = args.paths or git_changed_paths()
+        read_text = Path.read_text
+        if args.paths:
+            changed_paths = args.paths
+        elif args.staged:
+            changed_paths = git_staged_paths()
+            read_text = read_index_text
+        elif args.base_ref:
+            changed_paths = git_base_paths(args.base_ref)
+            read_text = read_head_text
+        else:
+            changed_paths = git_changed_paths()
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
-    errors = validate(changed_paths)
+    errors = validate(changed_paths, read_text=read_text)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)

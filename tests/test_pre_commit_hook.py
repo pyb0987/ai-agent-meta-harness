@@ -20,6 +20,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-maintenance-review.py", text)
 
+    def test_hook_runs_staged_search_set_evidence_checker(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-search-set-evidence.py --staged", text)
+
     def test_hook_runs_codex_marketplace_metadata_checker(self):
         text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
 

@@ -335,8 +335,9 @@ verification signal. It is guarded by a root sentinel that fails on purpose so a
 generic unittest runner cannot report a zero-test false green. Use the three
 explicit unittest discovery roots in the Standard verification set instead.
 
-The tracked pre-commit hook runs the drift, artifact smoke, and maintenance
-review checks, but not the full unit test suites or the heavier Codex local
+The tracked pre-commit hook runs the drift, artifact smoke, maintenance review,
+and staged search-set evidence checks, but not the full unit test suites or the
+heavier Codex local
 plugin activation smoke:
 
 ```bash
@@ -357,17 +358,23 @@ state is being hidden outside the checked index. A dirty result is a release
 blocker unless the handoff notes explicitly record the exception.
 
 For harness-affecting repository changes, run the search-set evidence
-compliance checker before stable handoff:
+compliance checker before stable handoff. Use the default mode while reviewing
+an in-progress dirty worktree, the staged mode immediately before commit, and
+the base-ref mode for a clean release candidate or branch handoff:
 
 ```bash
 python3 scripts/check-search-set-evidence.py
+python3 scripts/check-search-set-evidence.py --staged
+python3 scripts/check-search-set-evidence.py --base-ref origin/main
 ```
 
 This checker is intentionally lightweight. It detects common harness-affecting
 changed paths and requires a touched backlog, review, or trace record to include
 search-set before/after evidence or an explicit skipped reason. It does not try
-to prove full methodology compliance, and it leaves pre-commit index semantics
-unchanged.
+to prove full methodology compliance. The staged mode reads both changed paths
+and backlog/trace records from the Git index so unstaged user work does not hide
+or satisfy commit-time evidence. The base-ref mode compares `REF...HEAD` so a
+clean release candidate still checks the committed harness-affecting diff.
 
 Use structured evidence lines so the checker can reject vague prose and
 accidental keywords:

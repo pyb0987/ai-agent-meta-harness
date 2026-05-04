@@ -1480,7 +1480,37 @@ Done when:
 
 ### 57. P2 make search-set evidence checks work on staged or release candidate diffs
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .githooks/pre-commit
+- scripts/check-search-set-evidence.py
+- tests/test_search_set_evidence.py
+- tests/test_pre_commit_hook.py
+- MAINTENANCE.md
+- backlog/core.md
+
+Start Gate:
+
+- Selected item: `backlog/core.md` item 57, make search-set evidence checks
+  work on staged or release candidate diffs.
+- Status block added: yes, item 57 marked `진행중`.
+- Harness-affecting: yes; this changes release-gate/evidence-check semantics.
+- Multi-review required: yes; this changes release-gate semantics and the
+  maintenance verification contract.
+- Minimum verification commands: `python3 -m unittest
+  tests/test_search_set_evidence.py`; `python3 -m unittest
+  tests/test_pre_commit_hook.py`; `python3 scripts/check-search-set-evidence.py`;
+  `python3 scripts/check-search-set-evidence.py --staged`; `python3
+  scripts/check-search-set-evidence.py --base-ref origin/main`; `sh
+  .githooks/pre-commit`; `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; `python3 scripts/run-search-set.py`; `python3
+  scripts/verify-release.py --skip-clean-worktree`; `git diff --check`.
+- Expected scope: search-set evidence checker, pre-commit staged wiring,
+  focused checker/pre-commit tests, maintenance guidance, and this backlog
+  record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -1511,6 +1541,79 @@ Done when:
   before release, and during in-progress review.
 - Focused tests cover the chosen source of changed paths.
 - Multi-review checks the result because this changes release-gate semantics.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 -m unittest tests/test_search_set_evidence.py`, `python3
+  scripts/check-search-set-evidence.py`, and `python3
+  scripts/check-maintenance-review.py backlog/core.md`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Added `--staged` mode to `scripts/check-search-set-evidence.py`; it reads
+  changed paths and backlog/trace records from the Git index.
+- Added `--base-ref REF` mode for clean release-candidate or branch-handoff
+  checks over `REF...HEAD`, with a `REF..HEAD` fallback, reading backlog/trace
+  evidence records from `HEAD`.
+- Kept explicit path arguments for focused/manual checks and preserved the
+  default dirty-worktree mode for in-progress review.
+- Wired `.githooks/pre-commit` to run `python3
+  scripts/check-search-set-evidence.py --staged`.
+- Updated `MAINTENANCE.md` to document default, staged, and base-ref evidence
+  checker modes and when to run each.
+- Added focused and temp-repo integration tests for staged index record reading,
+  staged failures, base-ref path selection and committed-record reading,
+  explicit-path argument conflicts, documentation, and pre-commit wiring.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `.githooks/pre-commit`; `scripts/check-search-set-evidence.py`;
+  `tests/test_search_set_evidence.py`; `tests/test_pre_commit_hook.py`;
+  `MAINTENANCE.md`; `backlog/core.md`.
+- Scope deviations: `.githooks/pre-commit` and `tests/test_pre_commit_hook.py`
+  were added to Scope before editing because staged evidence checking belongs
+  in the commit-time hook. Unrelated dirty `backlog/README.md` remains outside
+  item 57 and will not be staged or committed with it.
+- Verification results: PASS `python3 -m unittest
+  tests/test_search_set_evidence.py tests/test_pre_commit_hook.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/check-search-set-evidence.py --staged`; PASS `python3
+  scripts/check-search-set-evidence.py --base-ref origin/main`; PASS `sh
+  .githooks/pre-commit`; PASS `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; PASS `python3 scripts/run-search-set.py`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes.
+- Multi-review result: checker semantics critic PASS after score-9 fix;
+  tests/pre-commit/docs critic PASS after score-9 fix; process critic PASS
+  after VETO and score-9 completion-wording fixes.
+- Reviewer scores and VETO handling: checker semantics critic initially 9/10
+  PASS because `--base-ref` read record files from the working tree and relied
+  on surrounding clean-worktree discipline, then fixed to read records from
+  `HEAD` and rerun to 10/10 PASS; tests/pre-commit/docs critic initially 9/10
+  PASS because tests monkeypatched Git-facing helpers rather than exercising a
+  real Git index/range, then fixed with temp-repo integration tests and rerun
+  to 10/10 PASS; process critic initially 8/10 VETO because the Start Gate had
+  been misplaced under item 50, Scope underreported pre-commit/test files, and
+  Completion Gate was not yet recorded; Start Gate was moved under item 57,
+  Scope was corrected, and Completion Gate is now recorded.
+- For each score 9, why not 10: checker semantics critic's temporary 9 was due
+  to base-ref evidence records being read from the worktree instead of `HEAD`;
+  fixed in this item. tests/pre-commit/docs critic's temporary 9 was due to
+  lack of temp-repo integration coverage for real Git index/base-ref behavior;
+  fixed in this item. Process critic's temporary 9 was due to final Completion
+  Gate wording still saying process rerun and acceptance were pending; fixed in
+  this item.
+- Backlog items added from score-9 residual risk: none; both score-9 reasons
+  and the process score-9 bookkeeping reason were actionable in-scope fixes and
+  were resolved before acceptance.
+- Residual risk/follow-up: none.
+- Accepted: yes.
 
 ### 58. P3 decide whether search-set evidence records must reference Active cases
 

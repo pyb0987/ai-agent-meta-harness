@@ -9,3 +9,4 @@ python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/co
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-maintenance-review.py
+python3 scripts/check-search-set-evidence.py --staged
