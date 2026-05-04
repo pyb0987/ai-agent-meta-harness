@@ -105,6 +105,19 @@ Do NOT evaluate [Anti-scope].
 
 ### Phase 4: Convergence Check
 
+### Repository Governance Mode
+
+When reviewing this repository's maintenance work, harness-affecting changes,
+release gates, hook semantics, core methodology boundaries, or durable adapter
+contracts, apply the repository's local release discipline from `MAINTENANCE.md`:
+any reviewer or Critic score below 9 is a **VETO** until the blocking finding is
+fixed and the affected Critic reruns to at least 9. A score of 9 is acceptable
+only when the final report records why it was not 10 and either accepts the
+residual risk or creates follow-up backlog work.
+
+The generic 7/10 threshold below applies only to non-governance qualitative
+reviews where the repository maintenance policy is not the acceptance contract.
+
 | Condition | Verdict |
 |-----------|---------|
 | All Critics ≥ 7 AND no veto | **PASS** — report with one-line summary |

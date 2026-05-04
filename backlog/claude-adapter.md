@@ -438,7 +438,15 @@ Done when:
 
 ### 15. P2 align Claude multi-review threshold with repository governance
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/claude/skills/multi-review/SKILL.md
+- skills/multi-review/SKILL.md
+- tests/test_claude_multi_review_skill.py
+- backlog/claude-adapter.md
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -467,3 +475,78 @@ Done when:
 - The generic multi-review threshold and repository release discipline are
   clearly separated.
 - Compatibility mirror checks pass after the update.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because the
+  first edit happened after focused baseline checks only. Focused baseline gates
+  passed: `python3 scripts/check-compat-mirrors.py`, `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py` before the evidence record was needed.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Added a `Repository Governance Mode` section to the Claude multi-review skill
+  so repository maintenance, harness-affecting changes, release gates, hook
+  semantics, core methodology boundaries, and durable adapter contracts apply
+  this repository's local release discipline.
+- The Claude skill now says any reviewer or Critic score below 9 is VETO until
+  the blocking finding is fixed and the affected Critic reruns to at least 9.
+- Preserved the generic 7/10 PASS threshold only for non-governance qualitative
+  reviews where repository maintenance policy is not the acceptance contract.
+- Updated the root compatibility mirror and added focused tests for the
+  governance mode, generic threshold separation, and mirror equality.
+
+Multi-review:
+
+- Governance semantics critic: score 10/10, PASS. Blocking findings: none.
+- Mirror/test enforceability critic: score 9/10, PASS. Blocking findings: none.
+  Why not 10: tests are lexical guardrails rather than a semantic parser of the
+  full verdict table; accepted as residual risk because this matches the
+  repository's focused policy-boundary test style.
+- Process-compliance critic: score 9/10, PASS. Blocking findings: none. Why not
+  10: final Completion Gate and acceptance record still needed to be written at
+  report time; addressed by this Completion Gate.
+- Score handling: no reviewer score below 9; no VETO.
+- Rerun status: no VETO, so no affected critic rerun required.
+- Follow-up/residual risk: accepted lexical-test limitation; procedural
+  final-closure timing addressed by this Completion Gate.
+- Final acceptance: accepted after three-critic multi-review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/skills/multi-review/SKILL.md`,
+  `skills/multi-review/SKILL.md`, `tests/test_claude_multi_review_skill.py`,
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_claude_multi_review_skill.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree`; PASS `git
+  diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED full Active search-set before implementation with reason
+    above; focused baseline gates passed.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Claude adapter review-contract
+  semantics.
+- Multi-review result: PASS after three-critic multi-review; no VETO.
+- Reviewer scores and VETO handling: governance semantics critic 10/10 PASS;
+  mirror/test enforceability critic 9/10 PASS; process-compliance critic 9/10
+  PASS; no score below 9 and no VETO.
+- For each score-9 result, why not 10:
+  - Mirror/test enforceability critic: not 10 because tests are lexical
+    guardrails rather than a semantic parser of the full verdict table; accepted
+    as residual risk for this focused wording boundary.
+  - Process-compliance critic: not 10 because final Completion Gate and
+    acceptance record still needed to be written at report time; addressed by
+    this Completion Gate.
+- Backlog items added from score-9 residual risk: none; lexical guardrail
+  limitation is accepted as residual risk, and procedural final-closure timing
+  was handled here.
+- Residual risk/follow-up: accepted lexical-test limitation.
+- Accepted: yes.
