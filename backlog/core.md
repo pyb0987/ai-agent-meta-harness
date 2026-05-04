@@ -126,10 +126,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
   here.
 - Active core backlog has unstarted concrete items from the 2026-05-04
   current-main methodology reviews: item 48 should bundle release verification
-  into one executable gate, and item 52 should schema-check repository
-  self-application evolution traces. Items 41-47 and 49-51 are complete or
-  ready for maintainer review, so future maintenance should not select them as
-  available implementation candidates.
+  into one executable gate. Items 41-47 and 49-52 are complete or ready for
+  maintainer review, so future maintenance should not select them as available
+  implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -837,7 +836,14 @@ Completion Gate:
 
 ### 52. P3 schema-check repository self-application evolution traces
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .harness/traces/evolution/001-repository-self-application-root.md
+- tests/test_repository_search_set.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -866,6 +872,84 @@ Done when:
 - Tests or a checker fail when future evolution traces omit required fields.
 - The trace-root completeness tests and `core/reference.md` agree on the accepted
   shape.
+
+Decision implemented:
+
+- Updated `.harness/traces/evolution/001-repository-self-application-root.md`
+  from a reduced bootstrap record to the full repository evolution schema:
+  `iteration`, `type`, `verdict`, `files_changed`, `refs`, and the
+  Diagnosis/Change/Result/Lesson structure.
+- Added a focused schema test for every tracked repository evolution record in
+  `.harness/traces/evolution/*.md`.
+- The schema check requires the frontmatter fields documented in
+  `core/reference.md`, validates allowed `type` and `verdict` values, checks
+  `files_changed` and `refs` list syntax, and requires Before/After result
+  bullets.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because the item
+  was selected from a clean `main`, baseline `python3 -m unittest
+  tests/test_repository_search_set.py` passed, baseline `python3
+  scripts/run-search-set.py --list` confirmed the Active case inventory, and the
+  change was a trace-schema/test hardening pass.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Multi-review:
+
+- Isolated trace-schema reviewer: score 9/10, PASS. Blocking findings: none.
+  Why not 10: the schema check is intentionally syntactic rather than a full
+  YAML/schema parser; it does not validate date format, parse `files_changed` or
+  `refs` as actual lists, or require Before/After to appear specifically inside
+  `### Result`.
+- Score handling: the score-9 why-not-10 reason is accepted as residual risk
+  because this is a scoped P3 hardening item and the repository currently needs
+  a lightweight guard against missing fields/sections rather than a full schema
+  validator.
+- Rerun status: no VETO, so no rerun required.
+- Follow-up/residual risk: accepted syntactic-schema limitation; no backlog item
+  added.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files:
+  `.harness/traces/evolution/001-repository-self-application-root.md`,
+  `tests/test_repository_search_set.py`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_repository_search_set.py`; PASS `python3 -m unittest
+  tests/test_backlog_heading_uniqueness.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3 -m unittest discover -s
+  tests`; PASS `python3 -m unittest discover -s adapters/claude/tests`; PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3 scripts/check-claude-adapter-paths.py`;
+  PASS `python3 scripts/sync-codex-plugin.py --check`; PASS `python3
+  adapters/codex/scripts/check-codex-hook-schema-drift.py`; PASS `python3
+  adapters/codex/scripts/smoke-autoresearch-hooks.py --checker
+  adapters/codex/scripts/check-autoresearch-protected.py --protected-file
+  adapters/codex/templates/autoresearch-protected.txt`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin.py`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; PASS `python3
+  scripts/check-codex-marketplace-metadata.py` with deferred publication
+  manifest note; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED with reason above.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; repository trace/schema durable contract.
+- Multi-review result: PASS.
+- Reviewer scores and VETO handling: see Multi-review record above; isolated
+  trace-schema reviewer passed and no VETO occurred.
+- For each score-9 result, why not 10: schema check is syntactic and does not
+  fully parse YAML/list/date semantics or enforce Before/After placement within
+  `### Result`.
+- Backlog items added from score-9 residual risk: none; accepted as scoped P3
+  hardening and lightweight repository-applied schema guard.
+- Residual risk/follow-up: accepted syntactic-schema limitation.
+- Accepted: yes; ready for commit.
 
 ### 53. P2 document the reviewed commit loop
 

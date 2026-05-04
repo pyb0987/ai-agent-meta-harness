@@ -10,6 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = ROOT / ".harness" / "traces"
 SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
 MAINTENANCE = ROOT / "MAINTENANCE.md"
+FRONTMATTER_RE = re.compile(r"\A---\n(?P<body>.*?)\n---\n", re.S)
+REQUIRED_EVOLUTION_FIELDS = (
+    "iteration",
+    "date",
+    "type",
+    "verdict",
+    "files_changed",
+    "refs",
+)
 
 
 def read_search_set() -> str:
@@ -19,6 +28,19 @@ def read_search_set() -> str:
 def active_entries(text: str) -> list[str]:
     active = text.split("## Active", 1)[1].split("## Archived", 1)[0]
     return re.findall(r"^### SS-\d{3}: .+?(?=^### SS-\d{3}: |\Z)", active, flags=re.M | re.S)
+
+
+def frontmatter(text: str) -> dict[str, str]:
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        return {}
+    fields: dict[str, str] = {}
+    for line in match.group("body").splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip()] = value.strip()
+    return fields
 
 
 class RepositorySearchSetTests(unittest.TestCase):
@@ -103,6 +125,24 @@ class RepositorySearchSetTests(unittest.TestCase):
         self.assertIn("minimum trace surface is present", text)
         self.assertIn("Legacy Claude-local history remains under `.claude/traces/`", text)
         self.assertIn("Future repository maintenance traces should be\nwritten under `.harness/traces/`", text)
+
+    def test_repository_evolution_records_follow_schema(self) -> None:
+        for path in sorted((TRACE_ROOT / "evolution").glob("*.md")):
+            with self.subTest(path=path.relative_to(ROOT).as_posix()):
+                text = path.read_text(encoding="utf-8")
+                fields = frontmatter(text)
+                self.assertEqual([field for field in REQUIRED_EVOLUTION_FIELDS if field not in fields], [])
+                self.assertRegex(fields["iteration"], r"^\d+$")
+                self.assertIn(fields["type"], {"additive", "subtractive", "structural"})
+                self.assertIn(fields["verdict"], {"improved", "regressed", "neutral"})
+                self.assertTrue(fields["files_changed"].startswith("["))
+                self.assertTrue(fields["refs"].startswith("["))
+                iteration = int(fields["iteration"])
+                self.assertIn(f"## Iteration {iteration:03d}:", text)
+                for heading in ("### Diagnosis", "### Change", "### Result", "### Lesson"):
+                    self.assertIn(heading, text)
+                self.assertRegex(text, r"- Before: .+")
+                self.assertRegex(text, r"- After: .+")
 
     def test_evolution_review_trace_records_self_application_evidence_boundary(self) -> None:
         text = (TRACE_ROOT / "evolution/002-self-application-evidence-review.md").read_text(encoding="utf-8")
