@@ -241,7 +241,7 @@ run the full standard verification set.
 | Claude adapter | `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 -m unittest discover -s adapters/claude/tests` |
 | Codex adapter/plugin | `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 -m unittest discover -s adapters/codex/tests` |
 | Compatibility/generated surfaces | Drift check for the generated or mirrored surface plus its owning adapter tests |
-| Harness-affecting behavior | Relevant tier above + Active `search-set.md` verify commands before and after the change, with skipped reasons recorded |
+| Harness-affecting behavior | Relevant tier above + `python3 scripts/run-search-set.py` before and after the change, or the relevant Active `search-set.md` verify commands with skipped reasons recorded |
 
 Harness-affecting behavior means a change that alters agent-visible runtime
 behavior or the rules used to judge it: project instruction templates, skills,
@@ -250,6 +250,12 @@ evaluator-boundary policy, install/activation behavior, or release gates.
 Docs, README text, backlog wording, generated metadata, and smoke-test-only
 changes do not require search-set verification unless they change one of those
 contracts.
+
+For this repository's self-application trace root, prefer
+`python3 scripts/run-search-set.py` to execute the Active cases in
+`.harness/traces/search-set.md`. Use individual Active verify commands only
+when narrowing to a relevant subset, and record the command or skipped reason in
+the backlog Completion Gate.
 
 Standard verification:
 

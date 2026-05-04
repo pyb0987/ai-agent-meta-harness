@@ -124,11 +124,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has one remaining unstarted concrete item from the
-  current-main methodology review: item 42 should audit aphoristic methodology
-  slogans for claim-boundary clarity. Items 41, 43, 44, and 45 are complete, so
-  future maintenance should not select them as available implementation
-  candidates.
+- Active core backlog has no unstarted concrete item from the previous
+  current-main methodology review. Item 46 is ready for maintainer review after
+  adding the executable repository search-set runner. Items 41-46 are complete
+  or ready for maintainer review, so future maintenance should not select them
+  as available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -175,6 +175,157 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
+
+### 46. P2 add executable repository search-set runner
+
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/run-search-set.py
+- tests/test_run_search_set.py
+- MAINTENANCE.md
+- backlog/core.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The repository now has an Active self-application search-set at
+`.harness/traces/search-set.md`, and standard verification currently runs the
+same important checks. The operational review still found a gap: the repository
+does not yet provide a generic command that parses Active `verify` entries from
+the selected search-set and executes them as the search-set itself. That leaves
+the "executable trace memory" contract partly dependent on humans copying the
+commands or on standard verification happening to overlap the Active set.
+
+Potential improvement:
+
+- Add a small script, likely `scripts/run-search-set.py`, that reads a
+  `search-set.md`, extracts Active `verify` commands, and runs either all
+  Active entries or a selected subset.
+- Preserve command exit status and print enough context to diagnose which
+  search-set case failed.
+- Default to `.harness/traces/search-set.md` for this repository, while
+  allowing an explicit path for target-project use.
+- Keep parsing conservative; fail closed on malformed Active entries rather
+  than silently skipping them.
+- Add focused tests that cover Active/Archived boundaries, failing commands,
+  selected IDs, malformed entries, and command output reporting.
+
+Done when:
+
+- A maintainer can run one command to execute this repository's Active
+  `.harness/traces/search-set.md` verify entries without manually copying them.
+- The runner fails if an Active case has no executable `verify` command or if
+  any selected verify command fails.
+- `MAINTENANCE.md` and/or the search-set guidance names the runner as the
+  preferred way to execute Active repository self-application cases.
+- Focused tests cover the parser and failure behavior.
+- Multi-review checks the result because this changes verification policy and
+  search-set execution semantics.
+
+Implementation notes:
+
+- Added `scripts/run-search-set.py`, a conservative Active search-set runner
+  that defaults to `.harness/traces/search-set.md`, supports repeated `--case`
+  filters, lists cases with `--list`, fails on missing or duplicate Active
+  `verify` lines, and returns non-zero when any selected verify command fails.
+- Added focused parser and runner tests for Active/Archived boundaries, missing
+  verify lines, selected IDs, unknown IDs, failing commands, and list mode.
+- Updated `MAINTENANCE.md` to name `python3 scripts/run-search-set.py` as the
+  preferred repository self-application Active search-set execution command.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/check-maintenance-review.py`.
+- before: PASS `python3 scripts/check-compat-mirrors.py`.
+- before: PASS `sh .githooks/pre-commit`.
+- before: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/run-search-set.py`.
+- after: PASS `python3 scripts/run-search-set.py --list`.
+- after: PASS `python3 scripts/run-search-set.py --case SS-001 --case SS-002`.
+- after: PASS `python3 -m unittest tests/test_run_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+- after: PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`.
+
+Review notes:
+
+- Initial isolated reviewer score: 8/10 VETO. Blocking findings: missing
+  Completion Gate / search-set evidence record, and risk of staging unrelated
+  pre-existing backlog additions with the item 46 commit.
+- First VETO handling: added search-set evidence and commit-scope notes.
+- First re-review score: 8/10 VETO. Blocking findings: item still lacked full
+  Completion Gate, `리뷰대기` status, and required multi-review score record.
+- Second VETO handling: added the full Completion Gate below, changed backlog
+  status to `리뷰대기`, and will request another isolated re-review before
+  staging or committing.
+
+Multi-review:
+
+- Result: PASS after VETO handling and final isolated re-review.
+- Isolated maintenance reviewer, initial: score 8/10; verdict VETO; Blocking
+  findings: missing Completion Gate/search-set evidence and contaminated commit
+  scope risk; not accepted until VETO findings were fixed and rerun.
+- Isolated maintenance reviewer, first rerun: score 8/10; verdict VETO;
+  Blocking findings: missing full Completion Gate, `리뷰대기` status, and
+  required multi-review score record; not accepted until VETO findings were
+  fixed and rerun.
+- Isolated maintenance reviewer, final rerun: score 9/10; verdict PASS;
+  Blocking findings: none. Why not 10: final review-record closure was still
+  pending at the moment of review; no backlog follow-up because this is a
+  procedural closure step completed in this record.
+- Score handling: scores below 9 were treated as VETO. Blocking findings were
+  addressed before rerun; final rerun reached 9/10.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: final isolated re-review completed after Completion Gate
+  correction; score 9/10 PASS.
+- Final acceptance: accepted; ready for commit with item 46-only staging.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `scripts/run-search-set.py`, `tests/test_run_search_set.py`,
+  `MAINTENANCE.md`, `backlog/core.md`.
+- Scope deviations: none for item 46 implementation. The worktree also contains
+  pre-existing backlog-seeding edits in `backlog/README.md`,
+  `backlog/claude-adapter.md`, `backlog/codex-adapter.md`, and broader
+  `backlog/core.md` hunks for items 47-52; those are not part of the item 46
+  commit and must not be staged with it.
+- Verification results: PASS `python3 -m unittest tests/test_run_search_set.py`;
+  PASS `python3 scripts/run-search-set.py --list`; PASS `python3
+  scripts/run-search-set.py --case SS-001 --case SS-002`; PASS `python3
+  scripts/run-search-set.py`; PASS `python3 scripts/check-maintenance-review.py`;
+  PASS `python3 scripts/check-compat-mirrors.py`; PASS `python3 -m unittest
+  discover -s tests`; PASS `python3 -m unittest discover -s
+  adapters/claude/tests`; PASS `python3 -m unittest discover -s
+  adapters/codex/tests`; PASS `python3 -m unittest tests/test_pre_commit_hook.py`;
+  PASS `python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py`;
+  PASS `python3 -m unittest tests/test_repository_search_set.py`; PASS `sh
+  .githooks/pre-commit`; PASS `python3 scripts/check-search-set-evidence.py`;
+  PASS `git diff --check`.
+- Search-set verification: PASS before/after for relevant Active commands, as
+  listed above. The after set includes `python3 scripts/run-search-set.py`,
+  which executed all six Active repository cases successfully.
+- Multi-review required: yes; verification policy and search-set execution
+  semantics.
+- Multi-review result: PASS after final isolated re-review.
+- Reviewer scores and VETO handling: initial isolated reviewer 8/10 VETO; first
+  rerun 8/10 VETO; both VETO blocking findings addressed; final isolated
+  reviewer rerun 9/10 PASS.
+- For each score-9 result, why not 10: final review-record closure was still
+  pending at the moment of final review; accepted as procedural residual because
+  this record now closes it.
+- Backlog items added from score-9 residual risk: none; no actionable
+  repository improvement.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for item 46-only commit.
 
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
