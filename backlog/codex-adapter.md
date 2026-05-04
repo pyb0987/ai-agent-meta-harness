@@ -43,10 +43,10 @@ Implemented foundation:
 
 Remaining follow-up work:
 
-- No active implementation follow-up remains in this epic. Direct-copy fallback
-  limitation reporting is completed in item 27, and runtime hook manifest
-  fields remain intentionally gated by item 28 until Codex exposes a mechanical
-  plugin tool-event delivery smoke surface.
+- Direct-copy fallback limitation reporting is completed in item 27, and
+  runtime hook manifest fields remain intentionally gated by item 28.
+- Item 40 tracks the next valuable evidence step once Codex exposes a mechanical
+  way to prove running-session skill surfacing or plugin tool-event delivery.
 
 ### 5. Define Codex plugin bundle scope
 
@@ -804,6 +804,75 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for maintainer review.
+
+### 40. P2 add Codex Desktop/runtime plugin delivery smoke when surface exists
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The Codex local plugin activation smoke now proves isolated CLI marketplace
+registration and enabled-plugin config shape. The docs correctly avoid
+overclaiming that this proves a running Codex Desktop session has surfaced the
+skills to the model or delivered plugin runtime hook events. The remaining
+valuable follow-up is to add runtime-level smoke coverage once Codex exposes a
+stable, automatable surface for it.
+
+Potential improvement:
+
+- Identify an official or product-supported way to verify that a running Codex
+  Desktop or equivalent runtime has loaded the generated plugin and can surface
+  the expected skills to the model.
+- Add a smoke test or documented manual verification flow that proves plugin
+  tool-event delivery before enabling runtime hook manifest fields.
+- Keep the existing CLI activation smoke and artifact smoke as prerequisites,
+  not replacements, for runtime delivery evidence.
+- If no stable noninteractive runtime surface exists, leave runtime hook
+  manifest fields gated and record the product-surface limitation explicitly.
+
+Done when:
+
+- Codex adapter docs distinguish three evidence levels: generated artifact
+  integrity, isolated CLI activation/config, and runtime model-visible skill or
+  hook delivery.
+- A new smoke/manual gate covers the runtime delivery level, or the backlog item
+  is deliberately deferred with concrete product-surface evidence.
+- Runtime hook manifest fields remain disabled until tool-event delivery is
+  mechanically or explicitly verified.
+- Multi-review checks the result because this changes Codex distribution and
+  runtime evidence boundaries.
+
+### 41. P3 refresh Codex v1 protection scope status
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`adapters/codex/README.md` still describes the v1 protection stage as
+`install docs planned` and `Partial`, but the same README now includes
+target-project protection install guidance, smoke commands, and asset mapping.
+Because this README is generated into the plugin bundle, the stale source status
+propagates to the generated artifact even though `sync-codex-plugin.py --check`
+passes.
+
+Potential improvement:
+
+- Update the bundle scope table so v1 protection accurately reflects the
+  implemented install documentation and any remaining limitations.
+- Preserve the distinction between copied target-project guardrails and active
+  plugin runtime hooks; do not overclaim Codex Desktop tool-event delivery.
+- Synchronize the generated plugin README and add or update focused docs checks
+  if needed.
+
+Done when:
+
+- Codex README and generated plugin README no longer say v1 protection install
+  docs are merely planned after the install section exists.
+- Remaining limitations are stated precisely, such as runtime delivery smoke
+  pending item 40, instead of using a stale generic Partial status.
+- Plugin sync and local plugin smoke checks pass.
 
 ### 37. P3 refresh Codex hook schema freshness signaling
 

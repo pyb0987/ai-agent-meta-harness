@@ -124,11 +124,16 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has no unstarted concrete item from the previous
-  current-main methodology review. Item 46 is ready for maintainer review after
-  adding the executable repository search-set runner. Items 41-46 are complete
-  or ready for maintainer review, so future maintenance should not select them
-  as available implementation candidates.
+- Active core backlog has unstarted concrete items from the 2026-05-04
+  current-main methodology reviews: item 47 should thicken repository self-application trace
+  evidence beyond the initial trace-root scaffold, item 48 should bundle release
+  verification into one executable gate, item 49 should prevent default unittest
+  discovery from looking like a valid release signal, item 50 should harden
+  search-set evidence text matching, item 51 should keep Current Status aligned
+  with completed items, and item 52 should schema-check repository
+  self-application evolution traces. Items 41-46 are complete or ready for
+  maintainer review, so future
+  maintenance should not select them as available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -326,6 +331,209 @@ Completion Gate:
   repository improvement.
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for item 46-only commit.
+
+### 47. P2 thicken repository self-application trace evidence
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The repository has the required `.harness/traces/` surface and an Active
+search-set, but its tracked self-application evidence is still thin:
+`failures/` and `experiments/` only contain placeholders, and the initial
+evolution trace records that legacy `.claude/traces/` history was not copied.
+That is acceptable as a bootstrap state, but it means trace reuse is more
+prospective than demonstrated for the repository's own maintenance loop.
+
+Potential improvement:
+
+- Add a follow-up evolution trace summarizing the 2026-05-04 methodology
+  multi-review result, including the specific concern that self-application raw
+  evidence is thin.
+- If local `.claude/traces/` contains reusable non-sensitive lessons, create a
+  reviewed migration or summary trace under `.harness/traces/` without copying
+  provider/session-local content blindly.
+- Add a failure trace only if there is a concrete repository harness failure or
+  review VETO with reusable diagnostic value; do not manufacture failures just
+  to populate the directory.
+- Consider adding a short trace index or maintenance note that tells future
+  maintainers how to decide whether a legacy local trace is safe to summarize.
+
+Done when:
+
+- `.harness/traces/evolution/` contains at least one substantive repository
+  self-application review or maintenance trace beyond the initial root
+  bootstrap.
+- Any legacy `.claude/traces/` reuse decision is documented as copied,
+  summarized, intentionally excluded, or deferred with a concrete reason.
+- The repository does not claim richer self-application evidence than it has;
+  `failures/` and `experiments/` may remain empty if no qualifying raw evidence
+  exists.
+- Search-set verification or an explicit skipped reason is recorded for the
+  trace-writing change.
+
+### 48. P2 add one executable release verification gate
+
+Status: 대기
+
+Source review: 2026-05-04 executable-implementation critic in the current-main
+methodology multi-review.
+
+`MAINTENANCE.md` documents a Standard verification set and release checklist,
+but the full stable-handoff gate is still a Markdown checklist rather than one
+executable command. `.githooks/pre-commit` intentionally runs a lighter subset
+and omits clean-worktree verification, activation smoke, unit suites, and full
+search-set evidence checks. That is acceptable for commit-time latency, but it
+means a maintainer can accidentally skip release-only checks while still seeing
+pre-commit pass.
+
+Potential improvement:
+
+- Add a script such as `scripts/verify-release.py` or
+  `scripts/verify-standard.py` that runs the documented Standard verification
+  commands in order and returns non-zero on the first failure or with a clear
+  summary of failures.
+- Include clean-worktree verification, compatibility/generated drift checks,
+  Codex activation smoke, marketplace metadata check, maintenance review
+  checks, and the three explicit unittest discovery roots.
+- Keep `.githooks/pre-commit` as the lighter index-oriented gate unless this
+  item explicitly changes pre-commit policy.
+- Document the new command in `MAINTENANCE.md` as the preferred stable-handoff
+  command.
+
+Done when:
+
+- A maintainer can run one local command before treating `main` as a stable
+  handoff point.
+- The command does not rely on plain root-level `python3 -m unittest discover`
+  as a success signal.
+- Focused tests or a dry-run/list mode protect the command list from drifting
+  away from `MAINTENANCE.md`.
+- Multi-review checks the result because this changes release-gate semantics.
+
+### 49. P3 guard against root unittest discovery false greens
+
+Status: 대기
+
+Source review: 2026-05-04 executable-implementation critic in the current-main
+methodology multi-review.
+
+The documented verification commands correctly run `python3 -m unittest
+discover -s tests`, `python3 -m unittest discover -s adapters/claude/tests`, and
+`python3 -m unittest discover -s adapters/codex/tests`. However, plain
+`python3 -m unittest discover` from the repository root reports zero tests. A
+generic CI runner or maintainer muscle memory could treat that false green as
+test coverage even though it exercises none of the implementation suites.
+
+Potential improvement:
+
+- Decide whether to add root-level test discovery glue, a clear failing sentinel,
+  or documentation/tooling that explicitly forbids using plain
+  `python3 -m unittest discover` as a release signal.
+- Prefer the smallest change that prevents accidental false confidence while
+  keeping the existing explicit suite commands intact.
+- If item 48 adds a release verification script first, this item may be handled
+  by making that script and docs the canonical test entrypoint.
+
+Done when:
+
+- A maintainer or CI configuration cannot easily report a passing root-level
+  unittest run with zero tests and mistake it for repository verification.
+- The Standard verification docs continue to name all three real unittest roots.
+- Focused tests or documentation checks cover the chosen behavior.
+
+### 50. P2 harden search-set evidence checker text matching
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-search-set-evidence.py` now makes search-set before/after
+evidence mechanically visible, but the parser accepts weak text: any occurrence
+of `skipped`, or any section containing both `before` and `after`, satisfies the
+gate. Text such as `not skipped`, TODO prose, or vague notes can pass without
+concrete Active search-set results or an explicit skipped reason. That weakens
+the repository's regression-memory loop for harness-affecting changes.
+
+Potential improvement:
+
+- Require structured `BEFORE:` / `AFTER:` records with PASS/FAIL/SKIPPED
+  status, or a structured `SKIPPED:` reason.
+- Reject ambiguous negations such as `not skipped`, unchecked TODOs, or prose
+  that mentions before/after without command evidence.
+- Keep the checker lightweight; it should catch common omission and ambiguity,
+  not prove full methodology compliance.
+- Add focused tests for false positives, valid before/after records, valid
+  skipped reasons, and stale unrelated records.
+
+Done when:
+
+- Harness-affecting changes cannot satisfy the search-set evidence gate with
+  vague prose or accidental keywords.
+- `MAINTENANCE.md` and backlog Completion Gate examples use the accepted shape.
+- Focused tests prove both valid and invalid evidence text.
+
+### 51. P3 keep active core Current Status aligned with completed items
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The `Current Status` block has repeatedly pointed future maintainers at items
+that were already marked `Status: 완료`, most recently item 42. This does not
+change runtime behavior, but it weakens backlog-as-regression-memory quality and
+can cause agents to reselect completed work instead of creating new follow-up
+items.
+
+Potential improvement:
+
+- Add a focused backlog consistency check that verifies every item listed as an
+  active implementation candidate in `Current Status` is not marked complete.
+- Alternatively, remove item-specific active pointers from `Current Status` and
+  replace them with a generated or checker-backed summary.
+- Preserve short completed-item pointers, but make them clearly non-selectable.
+
+Done when:
+
+- A completed item cannot be named as the active unstarted core candidate without
+  a checker or review failure catching it.
+- The `Current Status` block remains useful as handoff guidance without becoming
+  another stale source of truth.
+
+### 52. P3 schema-check repository self-application evolution traces
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`.harness/traces/evolution/001-repository-self-application-root.md` establishes
+the active self-application trace root, but it uses a lighter bootstrap shape
+than the evolution schema in `core/reference.md`. The current repository tests
+check that the minimum trace surface exists and that the legacy `.claude/traces/`
+relationship is documented, but they do not protect frontmatter fields such as
+`iteration`, `type`, `verdict`, `files_changed`, or the expected Before/After
+result shape.
+
+Potential improvement:
+
+- Decide whether bootstrap trace-root records have an explicitly allowed reduced
+  schema, or update the initial trace to follow the full evolution format.
+- Add a focused trace-schema check for repository self-application evolution
+  files.
+- Keep the schema repository-applied rather than paper-core: the paper requires
+  reusable raw trace evidence, while this repository chooses the exact fields.
+
+Done when:
+
+- Repository self-application evolution traces either conform to the documented
+  evolution schema or use a documented bootstrap exception.
+- Tests or a checker fail when future evolution traces omit required fields.
+- The trace-root completeness tests and `core/reference.md` agree on the accepted
+  shape.
 
 ### 35. P2 separate paper-result claims from repository implementation evidence
 

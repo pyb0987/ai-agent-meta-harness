@@ -399,3 +399,71 @@ Completion Gate:
 - Backlog items added from score-9 residual risk: none; the score-9 reason is session review independence, not an actionable repository defect.
 - Residual risk/follow-up: none.
 - Accepted: yes; accepted by maintainer review and ready for commit.
+
+### 14. P2 align Claude init sub-agent trigger wording with core isolation policy
+
+Status: 대기
+
+Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
+methodology multi-review.
+
+The shared core now says only two methodology-level isolation triggers belong in
+the core: qualitative multi-perspective judgment and evaluator independence.
+Generic parallel exploration, context firewalls, model routing, and exact
+sub-agent thresholds are runtime policy. Claude `/init-harness` mostly respects
+that boundary, but still refers to "three trigger categories" and says "Prefer
+over-invoking to under-invoking" for sub-agent triggers. That can make the Claude
+adapter sound broader than the core policy, especially for trivial or generic
+sub-agent use.
+
+Potential improvement:
+
+- Reword `adapters/claude/commands/init-harness.md` so methodology-level
+  sub-agent guidance names the two core isolation triggers and treats any extra
+  Claude-specific routing as runtime policy.
+- Remove or qualify "Prefer over-invoking to under-invoking" so it does not
+  override the core anti-pattern against trivial sub-agent use.
+- Keep Claude-specific tactical guidance where it belongs, but make the
+  core-vs-adapter boundary explicit.
+- Update compatibility mirror `commands/init-harness.md` and focused path/docs
+  tests if wording changes.
+
+Done when:
+
+- Claude init guidance cannot be read as adding a third paper/core
+  methodology-level sub-agent trigger.
+- Claude-specific sub-agent tactics are clearly runtime policy, not paper-core
+  Meta-Harness claims.
+- Mirror/path checks pass after the wording update.
+
+### 15. P2 align Claude multi-review threshold with repository governance
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`MAINTENANCE.md` treats repository governance reviews below score 9 as VETO, and
+the Codex multi-review skill has a governance mode for that local release
+discipline. The Claude `multi-review` skill still marks all critics scoring at
+least 7 with no veto as PASS. Claude-side maintainers can therefore accept
+methodology, adapter, hook, or release-gate decisions under a weaker local rule
+than this repository now requires.
+
+Potential improvement:
+
+- Add a repository-governance mode or explicit note to the Claude multi-review
+  skill: when reviewing this repository's maintenance, harness-affecting changes,
+  release gates, or durable adapter contracts, scores below 9 are VETO.
+- Preserve the generic 7/10 PASS threshold only for non-governance qualitative
+  reviews if that remains useful.
+- Update the root compatibility mirror for the Claude skill and any focused
+  tests or mirror checks affected by the wording.
+
+Done when:
+
+- Claude-side multi-review guidance cannot approve repository governance work
+  with a critic score below 9.
+- The generic multi-review threshold and repository release discipline are
+  clearly separated.
+- Compatibility mirror checks pass after the update.
