@@ -6123,6 +6123,161 @@ Multi-review:
   closure is complete in this record.
 - Final acceptance: yes.
 
+### 72. P2 harden search-set runner command execution
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/run-search-set.py
+- tests/test_repository_search_set.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+The repository now has an executable Active search-set runner and release gate,
+which is the right direction for fixed-evaluator harness discipline. The
+trace/evaluator review found that `scripts/run-search-set.py` still executes
+markdown-sourced verify commands with `shell=True`. Current Active commands are
+repo-authored and constrained by tests, so this is not an immediate failure, but
+it leaves the runner more permissive than necessary for a durable harness
+surface.
+
+Potential improvement:
+
+- Parse verify commands with `shlex.split()` or an explicit command schema and
+  run them with argv lists instead of `shell=True`.
+- Reject shell metacharacters, redirects, command substitution, environment
+  prefixes, and command chaining unless the repository intentionally introduces
+  a reviewed escape hatch.
+- Decide whether `scripts/verify-release.py` should share the same safe command
+  runner or keep a separate reviewed allowlist for release commands.
+- Add focused tests for allowed Active commands, rejected shell syntax, helpful
+  error messages, and preservation of `--case` filtering behavior.
+
+Done when:
+
+- Active search-set verify commands execute without shell evaluation.
+- Unsafe markdown command syntax fails clearly before execution.
+- `python3 scripts/run-search-set.py` and release verification still pass with
+  the current Active cases.
+
+Implementation notes:
+
+- Decision implemented: `scripts/run-search-set.py` now parses markdown verify
+  commands with `shlex.split()` and executes argv lists with `shell=False`.
+- Unsafe shell syntax is rejected before execution, including pipes, redirects,
+  command chaining, command substitution, shell variable expansion, glob
+  patterns, environment assignment prefixes, and malformed argv text.
+- `scripts/verify-release.py` keeps its separate static command list for this
+  item because release commands are repository-authored constants rather than
+  markdown-authored trace content.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py --case SS-006`
+
+Completion Gate:
+
+- Backlog status: 완료; archived after VETO recovery, affected re-reviews, and
+  final verification.
+- Changed files:
+  - `scripts/run-search-set.py`
+  - `tests/test_repository_search_set.py`
+  - `backlog/core.md`
+  - `backlog/archive/core.md`
+- Scope deviations:
+  - User-added backlog bookkeeping in `backlog/README.md`,
+    `backlog/codex-adapter.md`, and adjacent new `backlog/core.md` items 69-71
+    is unrelated to item 72 and must remain unstaged from the item 72 commit.
+- Verification results:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - BEFORE: PASS `python3 -m unittest tests/test_repository_search_set.py`
+  - AFTER: FAIL `python3 -m unittest tests/test_repository_search_set.py`
+    before test-loader fix; dataclass import helper did not register the module
+    in `sys.modules`.
+  - AFTER: FAIL `python3 scripts/run-search-set.py --case SS-006` before the
+    same focused test fix.
+  - AFTER: PASS `python3 -m unittest tests/test_repository_search_set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py --case SS-006`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/check-search-set-evidence.py`
+  - AFTER: PASS `python3 scripts/check-maintenance-review.py`
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`
+  - AFTER: PASS `git diff --check`
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py --case SS-006`
+- Multi-review required: yes; the repository search-set runner is a durable
+  harness/release verification contract.
+- Multi-review result: PASS after VETO recovery and affected critic re-review.
+- Reviewer scores and VETO handling:
+  - Command-safety critic: 9/10 PASS; no VETO.
+  - Test/regression coverage critic: 8/10 VETO because the first patch tested
+    `verify_argv()` but not full `run_case()` unsafe-command behavior. Fixed by
+    adding `test_search_set_runner_rejects_unsafe_case_before_subprocess`;
+    affected critic re-review scored 9/10 PASS.
+  - Process/scope critic: 8/10 VETO because Completion Gate/archive closure and
+    scope-deviation handling were not complete at review time. Addressed by this
+    Completion Gate, archive closure, and staged-only plan; affected critic
+    re-review scored 9/10 PASS.
+- For each score 9, why not 10:
+  - Command-safety critic: top-level aggregate failures collapse unsafe status
+    2 into process exit 1, and the safety model is a broad regex prefilter plus
+    argv parsing rather than an explicit command schema. Accepted as residual
+    risk because per-case output preserves the unsafe-command reason and the
+    current item only needs shell-free execution for existing Active commands.
+  - Test/regression coverage re-review critic: CLI-level unsafe fixture coverage
+    is not exercised through `main()` with a temporary search-set. Accepted as
+    residual risk because `run_case()` now asserts return 2, error output, and
+    no subprocess execution directly, while focused runner verification covers
+    normal CLI execution.
+  - Process/scope re-review critic: archive record still said process/scope
+    re-review was pending at re-review time. Addressed by this final archive
+    update; no follow-up needed.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up:
+  - No follow-up. The remaining score-9 gaps are small ergonomics/precision
+    trade-offs rather than actionable repository improvements for item 72.
+- Accepted: yes.
+
+Multi-review:
+
+- Command-safety critic: score 9, PASS. Blocking findings: none. Why not 10:
+  aggregate unsafe-command status is less machine-readable than per-case status,
+  and the safety model is regex prefilter plus argv parsing instead of an
+  explicit command schema. Follow-up/residual risk: accepted; no backlog
+  follow-up needed.
+- Test/regression coverage critic: score 8, VETO. Blocking finding: unsafe
+  syntax rejection was tested at `verify_argv()` level only, not through
+  `run_case()` showing return 2, helpful error, and no subprocess execution.
+  Not accepted until affected critic re-review reached score 9; fixed by adding
+  `test_search_set_runner_rejects_unsafe_case_before_subprocess`.
+- Test/regression coverage re-review: score 9, PASS. Blocking findings: none.
+  Why not 10: no CLI-level temporary search-set fixture for unsafe syntax.
+  Follow-up/residual risk: accepted because direct `run_case()` coverage plus
+  focused CLI success coverage satisfies the item.
+- Process/scope critic: score 8, VETO. Blocking finding: Completion Gate/archive
+  closure and scope-deviation handling were incomplete during review.
+  Not accepted until affected critic re-review reached score 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  archive record still needed to replace pending/final-acceptance language with
+  the re-review result. Follow-up/residual risk: addressed by this final archive
+  update; no backlog follow-up needed.
+- Score handling: score 8 reviews are VETO. Test/regression VETO was fixed and
+  affected critic re-review reached score 9. Process/scope VETO was fixed and
+  affected critic re-review reached score 9. Every score 9 records why not 10
+  and residual-risk disposition.
+- Rerun status: test/regression affected critic re-review after coverage fix,
+  final score 9; process/scope affected critic re-review after Completion Gate,
+  final score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals.
+- Final acceptance: yes.
+
 ### 68. P3 refresh backlog theme index after completed maintenance items
 
 Status: 완료

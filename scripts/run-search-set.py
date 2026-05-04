@@ -7,6 +7,7 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 
@@ -15,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
 CASE_RE = re.compile(r"^###\s+([A-Za-z0-9_-]+):\s*(.+?)\s*$", re.MULTILINE)
 VERIFY_RE = re.compile(r"^- \*\*verify\*\*: `([^`]+)`\s*$", re.MULTILINE)
+ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+SHELL_SYNTAX_RE = re.compile(r"[|&;<>()[\]{}$`\\*?\n]")
 
 
 @dataclass(frozen=True)
@@ -22,6 +25,10 @@ class SearchSetCase:
     case_id: str
     title: str
     verify: str
+
+
+class UnsafeVerifyCommand(ValueError):
+    """Raised when a markdown-authored verify command needs shell evaluation."""
 
 
 def active_block(text: str) -> str:
@@ -66,14 +73,34 @@ def selected_cases(cases: list[SearchSetCase], selected: list[str]) -> list[Sear
     return [by_id[case_id] for case_id in selected]
 
 
+def verify_argv(command: str) -> list[str]:
+    if SHELL_SYNTAX_RE.search(command):
+        raise UnsafeVerifyCommand(
+            "verify command contains shell syntax; use a plain argv command without pipes, redirects, chaining, command substitution, or globs"
+        )
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        raise UnsafeVerifyCommand(f"verify command cannot be parsed as argv: {exc}") from exc
+    if not argv:
+        raise UnsafeVerifyCommand("verify command is empty")
+    if ENV_ASSIGNMENT_RE.match(argv[0]):
+        raise UnsafeVerifyCommand("verify command uses an environment assignment prefix; wrap it in a checked script instead")
+    return argv
+
+
 def run_case(case: SearchSetCase, *, cwd: Path, timeout: int) -> int:
     print(f"==> {case.case_id}: {case.title}")
     print(f"$ {case.verify}")
     try:
+        argv = verify_argv(case.verify)
+    except UnsafeVerifyCommand as exc:
+        print(f"{case.case_id}: unsafe verify command: {exc}", file=sys.stderr)
+        return 2
+    try:
         result = subprocess.run(
-            case.verify,
+            argv,
             cwd=cwd,
-            shell=True,
             text=True,
             timeout=timeout,
             check=False,

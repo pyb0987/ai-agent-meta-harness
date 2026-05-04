@@ -208,6 +208,10 @@ Archived: `backlog/archive/core.md#67-p2-tighten-readme-6x-harness-sensitivity-a
 
 Status: 완료
 Archived: `backlog/archive/core.md#68-p3-refresh-backlog-theme-index-after-completed-maintenance-items`
+### 72. P2 harden search-set runner command execution
+
+Status: 완료
+Archived: `backlog/archive/core.md#72-p2-harden-search-set-runner-command-execution`
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

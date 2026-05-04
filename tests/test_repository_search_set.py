@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import importlib.util
+import io
 from pathlib import Path
 import re
+import sys
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = ROOT / ".harness" / "traces"
 SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
 MAINTENANCE = ROOT / "MAINTENANCE.md"
+RUN_SEARCH_SET = ROOT / "scripts" / "run-search-set.py"
 FRONTMATTER_RE = re.compile(r"\A---\n(?P<body>.*?)\n---\n", re.S)
 REQUIRED_EVOLUTION_FIELDS = (
     "iteration",
@@ -29,6 +34,16 @@ REQUIRED_FAILURE_FIELDS = (
 
 def read_search_set() -> str:
     return SEARCH_SET.read_text(encoding="utf-8")
+
+
+def load_run_search_set_module():
+    spec = importlib.util.spec_from_file_location("run_search_set", RUN_SEARCH_SET)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def active_entries(text: str) -> list[str]:
@@ -70,6 +85,7 @@ class RepositorySearchSetTests(unittest.TestCase):
         self.assertGreaterEqual(len(entries), 6)
 
     def test_active_entries_have_executable_verify_commands(self) -> None:
+        run_search_set = load_run_search_set_module()
         for entry in active_entries(read_search_set()):
             with self.subTest(entry=entry.splitlines()[0]):
                 self.assertIn("- **Source**:", entry)
@@ -80,6 +96,58 @@ class RepositorySearchSetTests(unittest.TestCase):
                 self.assertRegex(command, r"^(python3|sh) ")
                 self.assertNotIn("echo ", command)
                 self.assertNotIn("|", command)
+                self.assertGreater(len(run_search_set.verify_argv(command)), 1)
+
+    def test_search_set_runner_rejects_shell_syntax_before_execution(self) -> None:
+        run_search_set = load_run_search_set_module()
+
+        unsafe_commands = (
+            "python3 scripts/check-maintenance-review.py | tail -20",
+            "BASE_REF=main python3 scripts/check-search-set-evidence.py",
+            "python3 scripts/check-maintenance-review.py && python3 scripts/check-search-set-evidence.py",
+            "python3 scripts/check-maintenance-review.py > /tmp/out",
+            "python3 $(pwd)/scripts/check-maintenance-review.py",
+            "python3 scripts/*.py",
+        )
+        for command in unsafe_commands:
+            with self.subTest(command=command):
+                with self.assertRaises(run_search_set.UnsafeVerifyCommand):
+                    run_search_set.verify_argv(command)
+
+    def test_search_set_runner_rejects_unsafe_case_before_subprocess(self) -> None:
+        run_search_set = load_run_search_set_module()
+        case = run_search_set.SearchSetCase(
+            case_id="SS-999",
+            title="Unsafe syntax fixture",
+            verify="python3 scripts/check-maintenance-review.py | tail -20",
+        )
+
+        stderr = io.StringIO()
+        stdout = io.StringIO()
+        with (
+            mock.patch("subprocess.run") as subprocess_run,
+            mock.patch("sys.stderr", stderr),
+            mock.patch("sys.stdout", stdout),
+        ):
+            status = run_search_set.run_case(case, cwd=ROOT, timeout=1)
+
+        self.assertEqual(status, 2)
+        subprocess_run.assert_not_called()
+        self.assertIn("==> SS-999: Unsafe syntax fixture", stdout.getvalue())
+        self.assertIn("SS-999: unsafe verify command", stderr.getvalue())
+        self.assertIn("without pipes, redirects, chaining", stderr.getvalue())
+
+    def test_search_set_runner_preserves_case_filtering_with_safe_argv(self) -> None:
+        run_search_set = load_run_search_set_module()
+        cases = run_search_set.parse_active_cases(read_search_set())
+
+        selected = run_search_set.selected_cases(cases, ["SS-006"])
+
+        self.assertEqual([case.case_id for case in selected], ["SS-006"])
+        self.assertEqual(
+            run_search_set.verify_argv(selected[0].verify),
+            ["python3", "-m", "unittest", "tests/test_repository_search_set.py"],
+        )
 
     def test_active_cases_cover_current_recurring_regressions(self) -> None:
         text = read_search_set()
