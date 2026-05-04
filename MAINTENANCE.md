@@ -88,11 +88,22 @@ fallback records across checked review sections, or fallback records in at
 least 3 review sections. When that threshold is met, the active maintenance
 session must record one of these dispositions before stable handoff:
 
-- Accepted residual risk, with the reason independent critics were impractical
-  or unnecessary for the affected work.
-- Independent multi-review re-run for the affected durable-contract item.
-- A follow-up backlog item when the repeated fallback indicates a systemic
-  review-process problem.
+- `Fallback-threshold disposition: accepted residual risk because ...`, with
+  the reason independent critics were impractical or unnecessary for the
+  affected work.
+- `Fallback-threshold disposition: independent re-review because ...`, when an
+  independent multi-review re-run was completed for the affected
+  durable-contract item.
+- `Fallback-threshold disposition: follow-up backlog item because ...`, when
+  the repeated fallback indicates a systemic review-process problem.
+
+Use the exact `Fallback-threshold disposition:` label in the active item
+Completion Gate, release note, or review summary. In default git-index mode,
+the checker treats a matching record with explanatory detail in the current
+staged backlog/review record as a dispositioned threshold signal and keeps an
+undispositioned threshold visible as an action prompt. Historical archive
+dispositions do not mask later stable handoffs unless the archive record itself
+is part of the current staged handoff.
 
 When a backlog item becomes implemented foundation, keep it in place but change
 the wording from "Potential improvement" to "Decision implemented" plus
@@ -534,7 +545,10 @@ or explicitly low-risk documentation cleanup. Repeated nonindependent fallback
 on durable-contract decisions is a review-quality signal, not an automatic
 retroactive failure. When the review checker reports repeated fallback records,
 the active session must decide whether the pattern is still justified or should
-create follow-up work before accepting the current item.
+create follow-up work before accepting the current item. Record that decision
+with the exact `Fallback-threshold disposition:` label so the checker can
+distinguish "threshold met and undispositioned" from "threshold met and
+disposition recorded" during stable handoff.
 
 As local release policy, reviewer or critic scores below 9 are VETO. Scores of
 9 mean the change is acceptable with remaining risk tracked. Scores of 10 should

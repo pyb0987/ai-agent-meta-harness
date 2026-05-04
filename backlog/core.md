@@ -208,6 +208,10 @@ Archived: `backlog/archive/core.md#67-p2-tighten-readme-6x-harness-sensitivity-a
 
 Status: 완료
 Archived: `backlog/archive/core.md#68-p3-refresh-backlog-theme-index-after-completed-maintenance-items`
+### 69. P2 make fallback-threshold disposition discoverable at stable handoff
+
+Status: 완료
+Archived: `backlog/archive/core.md#69-p2-make-fallback-threshold-disposition-discoverable-at-stable-handoff`
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료

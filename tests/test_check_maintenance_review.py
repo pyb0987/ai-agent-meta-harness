@@ -30,6 +30,21 @@ Multi-review:
 """
 
 
+def fallback_threshold_review(*, disposition: str | None = None) -> str:
+    disposition_line = f"- Fallback-threshold disposition: {disposition}\n" if disposition else ""
+    return "\n".join(
+        summary(
+            f"""- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT for this durable-contract check. Follow-up/residual risk: accepted.
+{disposition_line}- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+        )
+        for _ in range(check_maintenance_review.FALLBACK_ACTION_SECTION_THRESHOLD)
+    )
+
+
 VALID_REVIEW = summary(
     """- Test scope critic: score 9, PASS. Blocking findings: none. Why not 10: fixture coverage is intentionally narrow. Follow-up/residual risk: accepted.
 - Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
@@ -411,6 +426,69 @@ Potential improvement:
 
         self.assertEqual(paths, {"backlog/review-example.md"})
 
+    def test_default_git_mode_ignores_historical_threshold_disposition(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            git(root, "config", "user.email", "test@example.com")
+            git(root, "config", "user.name", "Test User")
+            archive = root / "backlog" / "archive"
+            archive.mkdir(parents=True)
+            archive_core = archive / "core.md"
+            archive_core.write_text(
+                fallback_threshold_review(
+                    disposition="accepted residual risk because this is a historical record"
+                ),
+                encoding="utf-8",
+            )
+            git(root, "add", "backlog/archive/core.md")
+            git(root, "commit", "-m", "historical disposition")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("Record maintainer disposition", stdout.getvalue())
+        self.assertNotIn("disposition recorded", stdout.getvalue())
+
+    def test_default_git_mode_counts_staged_threshold_disposition(self):
+        original_root = check_maintenance_review.ROOT
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            git(root, "config", "user.email", "test@example.com")
+            git(root, "config", "user.name", "Test User")
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            archive.mkdir(parents=True)
+            core = backlog / "core.md"
+            archive_core = archive / "core.md"
+            core.write_text("", encoding="utf-8")
+            archive_core.write_text(fallback_threshold_review(), encoding="utf-8")
+            git(root, "add", "backlog/core.md", "backlog/archive/core.md")
+            git(root, "commit", "-m", "historical fallback")
+            core.write_text(
+                "- Fallback-threshold disposition: independent re-review because affected critics were rerun independently.\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "backlog/core.md")
+
+            check_maintenance_review.ROOT = root
+            self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("disposition recorded", stdout.getvalue())
+        self.assertNotIn("Record maintainer disposition", stdout.getvalue())
+
     def test_quality_signal_flags_nonindependent_fallback_without_validation_error(self):
         text = summary(
             """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: review used documented sequential fallback rather than independent sub-agent critics. Follow-up/residual risk: accepted as session-surface residual risk.
@@ -452,6 +530,33 @@ Potential improvement:
         self.assertIn("Review-quality signal:", stdout.getvalue())
         self.assertIn("not a validation failure", stdout.getvalue())
 
+    def test_main_prints_recorded_threshold_disposition(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review = Path(tmpdir) / "review.md"
+            review.write_text(
+                "\n".join(
+                    summary(
+                        """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT for this durable-contract check. Follow-up/residual risk: accepted.
+- Fallback-threshold disposition: accepted residual risk because current item used independent critics.
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+                    )
+                    for _ in range(check_maintenance_review.FALLBACK_ACTION_SECTION_THRESHOLD)
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = check_maintenance_review.main([review.as_posix()])
+
+        self.assertEqual(result, 0)
+        self.assertIn("disposition recorded", stdout.getvalue())
+        self.assertNotIn("Record maintainer disposition", stdout.getvalue())
+
     def test_quality_signal_summary_marks_action_threshold_without_failing(self):
         text = "\n".join(
             summary(
@@ -471,6 +576,55 @@ Potential improvement:
 
         self.assertEqual(errors, [])
         self.assertTrue(any("fallback action threshold met" in line for line in summary_lines))
+
+    def test_quality_signal_summary_reports_recorded_threshold_disposition(self):
+        for disposition in (
+            "accepted residual risk because current item used independent critics",
+            "independent re-review because affected critics were rerun independently",
+            "follow-up backlog item because repeated fallback needs systemic cleanup",
+        ):
+            with self.subTest(disposition=disposition):
+                text = "\n".join(
+                    summary(
+                        f"""- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT for this durable-contract check. Follow-up/residual risk: accepted.
+- Fallback-threshold disposition: {disposition}
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+                    )
+                    for _ in range(check_maintenance_review.FALLBACK_ACTION_SECTION_THRESHOLD)
+                )
+
+                signals = check_maintenance_review.review_quality_signals(text, source="backlog/core.md")
+                dispositions = check_maintenance_review.fallback_threshold_dispositions(
+                    text,
+                    source="backlog/core.md",
+                )
+                summary_lines = check_maintenance_review.quality_signal_summary(
+                    signals,
+                    dispositions=dispositions,
+                )
+
+                self.assertEqual(len(dispositions), check_maintenance_review.FALLBACK_ACTION_SECTION_THRESHOLD)
+                self.assertTrue(any("disposition recorded" in line for line in summary_lines))
+                self.assertFalse(any("Record maintainer disposition" in line for line in summary_lines))
+
+    def test_empty_threshold_disposition_detail_is_not_counted(self):
+        text = summary(
+            """- Governance critic: score 9, PASS. Blocking findings: none. Why not 10: multi-review used FALLBACK_NONINDEPENDENT for this durable-contract check. Follow-up/residual risk: accepted.
+- Fallback-threshold disposition: accepted residual risk
+- Score handling: all required critics scored at least 9. Every score 9 records why not 10 and residual-risk disposition.
+- Rerun status: no fixes were needed, so no rerun was required.
+- Follow-up/residual risk: accepted for this follow-up iteration.
+- Final acceptance: accepted for this follow-up iteration.
+"""
+        )
+
+        dispositions = check_maintenance_review.fallback_threshold_dispositions(text)
+
+        self.assertEqual(dispositions, [])
 
     def test_quality_signal_summary_keeps_one_off_below_action_threshold(self):
         text = summary(

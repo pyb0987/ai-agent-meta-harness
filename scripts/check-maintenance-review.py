@@ -56,6 +56,12 @@ NONINDEPENDENT_FALLBACK_RE = re.compile(
     r"fallback in the parent context)\b",
     re.IGNORECASE,
 )
+FALLBACK_THRESHOLD_DISPOSITION_RE = re.compile(
+    r"^\s*-\s*Fallback-threshold disposition:\s*"
+    r"(?P<disposition>accepted residual risk|independent re-review|follow-up backlog item)"
+    r"\b(?P<detail>.*)$",
+    re.IGNORECASE | re.MULTILINE,
+)
 FALLBACK_ACTION_RECORD_THRESHOLD = 5
 FALLBACK_ACTION_SECTION_THRESHOLD = 3
 
@@ -109,6 +115,13 @@ class ReviewQualitySignal:
     heading: str
     start_line: int
     fallback_records: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FallbackThresholdDisposition:
+    source: str
+    start_line: int
+    record: str
 
 
 @dataclass(frozen=True)
@@ -302,6 +315,27 @@ def review_quality_signals(text: str, *, source: str = "<text>") -> list[ReviewQ
     return signals
 
 
+def fallback_threshold_dispositions(
+    text: str,
+    *,
+    source: str = "<text>",
+) -> list[FallbackThresholdDisposition]:
+    dispositions: list[FallbackThresholdDisposition] = []
+    for match in FALLBACK_THRESHOLD_DISPOSITION_RE.finditer(text):
+        detail = match.group("detail").strip()
+        record = match.group(0).strip()
+        if not detail:
+            continue
+        dispositions.append(
+            FallbackThresholdDisposition(
+                source=source,
+                start_line=text.count("\n", 0, match.start()) + 1,
+                record=record,
+            )
+        )
+    return dispositions
+
+
 def is_high_impact_path(path: str) -> bool:
     if path in HIGH_IMPACT_PATHS:
         return True
@@ -338,10 +372,16 @@ def missing_multi_review_summary(signal: MissingMultiReviewSignal | None, *, lim
     return lines
 
 
-def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5) -> list[str]:
+def quality_signal_summary(
+    signals: list[ReviewQualitySignal],
+    *,
+    dispositions: list[FallbackThresholdDisposition] | None = None,
+    limit: int = 5,
+) -> list[str]:
     total_records = sum(len(signal.fallback_records) for signal in signals)
     if total_records == 0:
         return []
+    dispositions = dispositions or []
 
     intensity = "repeated" if total_records > 1 else "one-off"
     threshold_met = (
@@ -361,14 +401,24 @@ def quality_signal_summary(signals: list[ReviewQualitySignal], *, limit: int = 5
         ),
     ]
     if threshold_met:
-        lines.append(
-            "Review-quality signal: fallback action threshold met "
-            f"({total_records} record(s), {len(signals)} section(s); threshold is "
-            f"{FALLBACK_ACTION_RECORD_THRESHOLD} record(s) or "
-            f"{FALLBACK_ACTION_SECTION_THRESHOLD} section(s)). Record maintainer "
-            "disposition as accepted residual risk, independent re-review, or a "
-            "follow-up backlog item."
-        )
+        if dispositions:
+            disposition = dispositions[-1]
+            excerpt = re.sub(r"\s+", " ", disposition.record).strip()
+            if len(excerpt) > 180:
+                excerpt = f"{excerpt[:177]}..."
+            lines.append(
+                "Review-quality signal: fallback action threshold met and "
+                f"disposition recorded at {disposition.source}:{disposition.start_line}: {excerpt}"
+            )
+        else:
+            lines.append(
+                "Review-quality signal: fallback action threshold met "
+                f"({total_records} record(s), {len(signals)} section(s); threshold is "
+                f"{FALLBACK_ACTION_RECORD_THRESHOLD} record(s) or "
+                f"{FALLBACK_ACTION_SECTION_THRESHOLD} section(s)). Record maintainer "
+                "disposition as accepted residual risk, independent re-review, or a "
+                "follow-up backlog item."
+            )
     shown = 0
     for signal in signals:
         for record in signal.fallback_records:
@@ -408,6 +458,17 @@ def quality_signals_paths(paths: list[Path]) -> list[ReviewQualitySignal]:
             continue
         signals.extend(review_quality_signals(text, source=path.as_posix()))
     return signals
+
+
+def fallback_threshold_dispositions_paths(paths: list[Path]) -> list[FallbackThresholdDisposition]:
+    dispositions: list[FallbackThresholdDisposition] = []
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        dispositions.extend(fallback_threshold_dispositions(text, source=path.as_posix()))
+    return dispositions
 
 
 def _git(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -485,6 +546,17 @@ def quality_signals_index_paths(paths: list[Path]) -> list[ReviewQualitySignal]:
     return signals
 
 
+def fallback_threshold_dispositions_index_paths(paths: list[Path]) -> list[FallbackThresholdDisposition]:
+    dispositions: list[FallbackThresholdDisposition] = []
+    for path in paths:
+        try:
+            text = _read_index_text(path)
+        except OSError:
+            continue
+        dispositions.extend(fallback_threshold_dispositions(text, source=path.as_posix()))
+    return dispositions
+
+
 def default_paths(*, use_index: bool = False) -> list[Path]:
     if use_index:
         return indexed_default_paths()
@@ -507,6 +579,7 @@ def main(argv: list[str] | None = None) -> int:
         paths = [Path(arg) for arg in args]
         errors = validate_paths(paths)
         quality_signals = quality_signals_paths(paths)
+        fallback_dispositions = fallback_threshold_dispositions_paths(paths)
         missing_multi_review = None
     else:
         use_index = _inside_git_worktree()
@@ -516,8 +589,13 @@ def main(argv: list[str] | None = None) -> int:
             quality_signals_index_paths(paths) if use_index else quality_signals_paths(paths)
         )
         changed_paths = _staged_changed_paths() if use_index else []
-        record_texts: list[str] = []
         disposition_paths = staged_record_paths(changed_paths) if use_index else paths
+        fallback_dispositions = (
+            fallback_threshold_dispositions_index_paths(disposition_paths)
+            if use_index
+            else fallback_threshold_dispositions_paths(disposition_paths)
+        )
+        record_texts: list[str] = []
         for path in disposition_paths:
             try:
                 record_texts.append(_read_index_text(path) if use_index else path.read_text(encoding="utf-8"))
@@ -529,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
             print(error, file=sys.stderr)
         return 1
     print("Maintenance review summaries are valid.")
-    for line in quality_signal_summary(quality_signals):
+    for line in quality_signal_summary(quality_signals, dispositions=fallback_dispositions):
         print(line)
     for line in missing_multi_review_summary(missing_multi_review):
         print(line)

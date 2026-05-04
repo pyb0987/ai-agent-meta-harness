@@ -6123,6 +6123,142 @@ Multi-review:
   closure is complete in this record.
 - Final acceptance: yes.
 
+### 69. P2 make fallback-threshold disposition discoverable at stable handoff
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- scripts/check-maintenance-review.py
+- tests/test_check_maintenance_review.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Item 64 defined the repeated nonindependent fallback action threshold and
+accepted the current historical fallback signal as residual risk. The checker
+still reports that the threshold is met during `scripts/verify-release.py`,
+which is useful visibility, but a fresh stable-handoff reviewer cannot easily
+tell whether the current threshold signal has already been dispositioned for
+this handoff or still needs action.
+
+Decision implemented:
+
+- Define the durable checker-readable label `Fallback-threshold disposition:`
+  for active item Completion Gates, release notes, or review summaries.
+- Keep `scripts/check-maintenance-review.py` advisory, but distinguish
+  undispositioned threshold hits from threshold hits with a recorded disposition.
+- Preserve the item 64 policy that legacy fallback records are not retroactive
+  failures and that the checker remains advisory by default.
+- Count fallback-threshold dispositions from the current staged backlog/review
+  record in default git-index mode, so historical archive dispositions do not
+  mask later stable handoffs.
+- Add focused tests for undispositioned threshold hits, accepted residual-risk
+  disposition, independent re-review disposition, follow-up backlog disposition,
+  empty disposition details, stale historical archive dispositions, and staged
+  default-index disposition discovery.
+- Fallback-threshold disposition: accepted residual risk because the existing
+  historical fallback records remain advisory legacy evidence, while this item
+  makes their current stable-handoff disposition explicit and checker-visible.
+
+Done when:
+
+- A stable handoff reviewer can distinguish "threshold met and undispositioned"
+  from "threshold met and explicitly accepted/rerun/followed-up".
+- The checker output and `MAINTENANCE.md` agree on where the disposition should
+  be recorded.
+- The current repository-wide fallback signal no longer causes ambiguity during
+  methodology/framing review.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `MAINTENANCE.md`, `scripts/check-maintenance-review.py`,
+  `tests/test_check_maintenance_review.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none. The reservation Scope initially named
+  `tests/test_maintenance_review.py`; corrected to the actual focused test file
+  `tests/test_check_maintenance_review.py` before test edits. Dirty
+  out-of-scope backlog follow-up files `backlog/README.md` and
+  `backlog/codex-adapter.md`, plus unrelated new core backlog candidates, remain
+  unstaged and outside item 69.
+- Verification results: BEFORE PASS `python3 scripts/check-maintenance-review.py`;
+  AFTER PASS `python3 -m unittest tests/test_check_maintenance_review.py`;
+  AFTER PASS `python3 scripts/check-maintenance-review.py backlog/core.md`;
+  AFTER PASS `python3 scripts/check-backlog-archive-lifecycle.py`; AFTER PASS
+  `python3 scripts/run-search-set.py`; INITIAL AFTER
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main` failed only because item 69 was still `진행중` before this
+  archive/status update; FINAL AFTER PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref
+  origin/main`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py` as the active
+    SS-001 maintenance-review command.
+  - AFTER: PASS `python3 scripts/run-search-set.py` with 6 Active cases.
+- Multi-review required: yes; this changes maintenance checker semantics and a
+  durable stable-handoff policy contract.
+- Multi-review result: PASS after policy/checker and process/scope VETO
+  recovery re-reviews.
+- Reviewer scores and VETO handling: policy/checker critic 8 VETO because
+  historical archive dispositions could mask future handoff prompts; fixed by
+  counting default git-index dispositions only from staged backlog/review
+  records and adding regression tests; affected critic re-review scored 9 PASS.
+  Tests/release critic scored 9 PASS. Process/scope critic scored 7 VETO because
+  Completion Gate, search-set evidence, archive/status update, and staging
+  proof were not yet complete; this gate addressed those blockers and affected
+  critic re-review scored 9 PASS.
+- For each score 9, why not 10: policy/checker critic noted explicit path mode
+  still counts dispositions from every user-supplied path; accepted as residual
+  because stable handoff/release uses default git-index mode and explicit path
+  mode is intentionally caller-scoped. Tests/release critic noted there was no
+  focused staged-index regression test; addressed by adding temp git tests for
+  historical archive masking and staged disposition discovery.
+- Backlog items added from score-9 residual risk: none; policy explicit-path
+  behavior is accepted tool-mode semantics, and the tests/release residual was
+  resolved in this item.
+- Residual risk/follow-up: final staging isolation and release verification
+  remain mechanical commit-readiness checks after this accepted record.
+- Accepted: yes.
+
+Multi-review:
+
+- Policy/checker critic: score 8, VETO. Blocking finding: any
+  `Fallback-threshold disposition:` in scanned paths could mark the threshold as
+  disposition-recorded, letting item 69's future archive record mask later
+  stable handoffs. Not accepted until fixed and affected critic rerun.
+- Policy/checker re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  explicit path mode still counts dispositions from every user-supplied path.
+  Follow-up/residual risk: accepted because stable handoff/release uses default
+  git-index mode, while explicit path mode is intentionally caller-scoped.
+- Tests/release critic: score 9, PASS. Blocking findings: none. Why not 10:
+  default/index staged disposition discovery lacked focused regression coverage
+  at the time of review. Follow-up/residual risk: addressed in this item by
+  adding temp git tests for historical archive masking and staged disposition
+  discovery.
+- Process/scope critic: score 7, VETO. Blocking findings: Completion Gate and
+  search-set evidence were not yet recorded, and staging needed to exclude dirty
+  out-of-scope backlog files. Not accepted until affected re-review reaches at
+  least 9.
+- Process/scope re-review: score 9, PASS. Blocking findings: none. Why not 10:
+  final commit-readiness still depends on updating this record with the
+  re-review result, rerunning final verification, and staging only item 69
+  scope. Follow-up/residual risk: no backlog follow-up; accepted as procedural
+  residual covered by final verification and staging checks before commit.
+- Score handling: scores below 9 triggered VETO recovery. Policy/checker critic
+  rerun reached 9. Process/scope critic rerun reached 9. Every score 9 records
+  why not 10 and residual-risk disposition.
+- Rerun status: policy/checker affected critic rerun complete at score 9;
+  process/scope affected critic rerun complete at score 9.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals. The
+  remaining procedural risk is covered by final verification and staging checks
+  before commit.
+- Final acceptance: yes.
+
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료
