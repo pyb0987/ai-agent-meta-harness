@@ -361,6 +361,19 @@ diff, omit `--base-ref` to use worktree-status search-set evidence mode, and use
 `--skip-clean-worktree` to validate the release command list before the final
 clean-worktree handoff.
 
+The repository CI workflow at `.github/workflows/release-gate.yml` runs the
+deterministic release-gate subset with `--ci --skip-clean-worktree --base-ref
+<base>`. CI fetches full history so pull requests compare against their base
+branch and protected-branch pushes compare against the previous pushed commit.
+The clean-worktree gate remains local-only because GitHub Actions checks out an
+ephemeral workspace, not the maintainer's handoff worktree. The Codex local
+plugin activation smoke also remains local-only because CI does not provision a
+maintainer-owned Codex CLI/plugin environment; CI still checks generated plugin
+artifact integrity. Product/runtime evidence such as Codex Desktop model-visible
+plugin surfacing or plugin hook tool-event delivery remains outside CI until a
+product-supported noninteractive smoke exists; CI must not treat local plugin
+artifact or CLI activation smokes as that proof.
+
 Do not use plain root-level `python3 -m unittest discover` as a repository
 verification signal. It is guarded by a root sentinel that fails on purpose so a
 generic unittest runner cannot report a zero-test false green. Use the three

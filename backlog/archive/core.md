@@ -7004,3 +7004,113 @@ Completion Gate:
   was resolved in this item by recording the final re-review result.
 - Residual risk/follow-up: none.
 - Accepted: yes.
+
+### 77. P1 add repository-level CI for release-gate invariants
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- .github/workflows/
+- MAINTENANCE.md
+- README.md
+- scripts/verify-release.py
+- tests/
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+The release gate is strong when maintainers run it locally:
+`python3 scripts/verify-release.py --base-ref origin/main` passed on clean
+`main`, including repository search-set execution, adapter smokes, unit tests,
+and clean-worktree validation. The repository does not currently contain a
+`.github/` workflow or equivalent checked-in CI entry point, so the same
+invariants are not enforced automatically on remote branch or pull-request
+updates. This leaves a gap between "stable handoff command exists" and "main is
+protected by automated evaluation."
+
+Potential improvement:
+
+- Add a repository-level CI workflow or documented equivalent that runs the
+  appropriate release-gate subset for pull requests and protected branches.
+- Decide which checks must run in CI versus remain local-only because they need a
+  clean worktree, local Codex CLI/plugin environment, or maintainer-owned
+  runtime surface.
+- Keep the root unittest sentinel behavior: CI must use the explicit discovery
+  roots, not plain root-level `python3 -m unittest discover`.
+- Record skipped environment-dependent checks explicitly so CI does not overclaim
+  Codex Desktop/runtime delivery or local plugin hook delivery.
+
+Done when:
+
+- The repository has a checked-in CI workflow or an explicit accepted decision
+  explaining why repo-level CI is intentionally deferred.
+- The CI path runs deterministic repository checks for methodology, adapters,
+  generated artifacts, tests, and search-set coverage where practical.
+- Documentation distinguishes CI-enforced invariants from local stable-handoff
+  checks that still require maintainer execution.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `.github/workflows/release-gate.yml`, `MAINTENANCE.md`,
+  `README.md`, `scripts/verify-release.py`,
+  `tests/test_release_ci_workflow.py`, `tests/test_verify_release.py`,
+  `backlog/core.md`, `backlog/archive/core.md`.
+- Scope deviations: README and `scripts/verify-release.py` were added to Scope
+  after implementation because the CI/local handoff distinction needed public
+  verification guidance and the CI subset needed a first-class release-gate
+  mode. Out-of-scope dirty backlog additions remain in `backlog/README.md`,
+  `backlog/codex-adapter.md`, and `backlog/core.md` hunks outside item 77
+  including new items 74-76 and 78-79 plus recheck bookkeeping; final staging
+  must include only item 77 files/hunks and leave those unrelated backlog
+  changes unstaged.
+- Verification results: PASS `python3 -m unittest
+  tests/test_release_ci_workflow.py tests/test_verify_release.py
+  tests/test_pre_commit_hook.py`; PASS `python3 scripts/verify-release.py
+  --list --ci --skip-clean-worktree --base-ref origin/main`; PASS `python3
+  scripts/verify-release.py --ci --skip-clean-worktree --base-ref origin/main`;
+  PASS `python3
+  scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`; PASS
+  `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED because the pre-implementation search-set was not run before
+    selecting item 77.
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree
+    --base-ref origin/main`, which ran `python3 scripts/run-search-set.py` and
+    `python3 scripts/check-search-set-evidence.py --base-ref origin/main`.
+- Multi-review required: yes; repository-level CI and release-gate enforcement
+  contract.
+- Multi-review result: PASS after VETO recovery re-reviews.
+- Reviewer scores and VETO handling: release-gate CI critic 9 PASS;
+  evidence-boundary/documentation critic 8 VETO on overclaiming CI enforcement
+  of the local Codex CLI activation smoke, fixed by adding `--ci` mode and
+  documenting local-only activation; evidence-boundary re-review 9 PASS.
+  Initial tests/process critic 6 VETO on worktree search-set evidence,
+  out-of-scope dirty disclosure, and pending lifecycle; worktree search-set
+  evidence and scope were fixed. Replacement process critic 8 VETO on
+  out-of-scope dirty backlog disclosure; fixed by recording the exact
+  out-of-scope dirty files/hunks and selective-staging requirement. Affected
+  process re-review: 9 PASS, no blocking findings.
+- For each score 9, why not 10: release-gate CI critic was not 10 because the
+  workflow uses floating `ubuntu-latest`, Python `3.x`, major-version action
+  tags, substring workflow tests, and the existing static release gate still
+  uses `shell=True`; `shell=True` is already tracked by item 79, and the other
+  points are accepted as routine CI maintenance residual risk. Evidence-boundary
+  re-review was not 10 because `--ci` does not enforce pairing with
+  `--skip-clean-worktree`; the checked-in workflow uses the correct pairing, so
+  this is accepted as residual hardening rather than a blocker. Affected process
+  re-review was not 10 because the worktree still physically contains mixed
+  item-77 and out-of-scope backlog changes, so final acceptance depends on
+  careful selective staging; this is accepted because the risk is disclosed and
+  will be handled by staged patch inspection before commit.
+- Backlog items added from score-9 residual risk: none; item 79 already tracks
+  the static release-gate `shell=True` residual, and no new actionable follow-up
+  is needed for the accepted CI pinning/string-test residuals.
+- Residual risk/follow-up: no new follow-up. Item 79 already tracks static
+  release-gate shell execution, and selective staging will be verified before
+  commit.
+- Accepted: yes.

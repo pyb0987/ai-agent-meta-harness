@@ -232,6 +232,11 @@ Archived: `backlog/archive/core.md#72-p2-harden-search-set-runner-command-execut
 Status: 완료
 Archived: `backlog/archive/core.md#73-p3-refresh-backlog-summaries-after-codex-runtime-evidence-blocks`
 
+### 77. P1 add repository-level CI for release-gate invariants
+
+Status: 완료
+Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gate-invariants`
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

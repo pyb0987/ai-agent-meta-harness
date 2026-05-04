@@ -197,6 +197,13 @@ maintenance diff, use `python3 scripts/verify-release.py --skip-clean-worktree`
 without `--base-ref` to validate the worktree-status command list before the
 final clean handoff.
 
+The checked-in GitHub Actions workflow runs the deterministic CI release-gate
+subset for pull requests and pushes to `main` with `--ci --skip-clean-worktree
+--base-ref <base>`. Maintainers still run the full local stable-handoff command
+with the clean-worktree gate and Codex local plugin activation smoke before
+release-like handoff. CI does not prove Codex Desktop/runtime plugin skill
+surfacing, plugin hook event delivery, or maintainer-local Codex CLI activation.
+
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.
 

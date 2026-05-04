@@ -20,6 +20,7 @@ class ReleaseCommand:
     command: str
     clean_worktree: bool = False
     search_set_evidence: bool = False
+    ci_local_only: bool = False
 
 
 RELEASE_COMMANDS = (
@@ -37,6 +38,7 @@ RELEASE_COMMANDS = (
     ReleaseCommand(
         "codex local plugin activation smoke",
         "python3 adapters/codex/scripts/smoke-local-plugin-activation.py",
+        ci_local_only=True,
     ),
     ReleaseCommand("codex marketplace metadata", "python3 scripts/check-codex-marketplace-metadata.py"),
     ReleaseCommand("maintenance review records", "python3 scripts/check-maintenance-review.py"),
@@ -66,11 +68,18 @@ def with_search_set_evidence_mode(command: ReleaseCommand, *, base_ref: str | No
     )
 
 
-def selected_commands(*, skip_clean_worktree: bool, base_ref: str | None = None) -> tuple[ReleaseCommand, ...]:
+def selected_commands(
+    *,
+    skip_clean_worktree: bool,
+    base_ref: str | None = None,
+    ci: bool = False,
+) -> tuple[ReleaseCommand, ...]:
     if not skip_clean_worktree:
         commands = RELEASE_COMMANDS
     else:
         commands = tuple(command for command in RELEASE_COMMANDS if not command.clean_worktree)
+    if ci:
+        commands = tuple(command for command in commands if not command.ci_local_only)
     return tuple(with_search_set_evidence_mode(command, base_ref=base_ref) for command in commands)
 
 
@@ -116,11 +125,22 @@ def main(argv: list[str] | None = None) -> int:
             "release candidate or branch handoff"
         ),
     )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help=(
+            "run the deterministic CI subset; excludes local-only checks such "
+            "as the Codex CLI activation smoke and should be combined with "
+            "--skip-clean-worktree"
+        ),
+    )
     parser.add_argument("--timeout", type=int, default=300, help="timeout per command in seconds")
     args = parser.parse_args(argv)
 
-    commands = selected_commands(skip_clean_worktree=args.skip_clean_worktree, base_ref=args.base_ref)
+    commands = selected_commands(skip_clean_worktree=args.skip_clean_worktree, base_ref=args.base_ref, ci=args.ci)
     evidence_mode = f"base-ref diff ({args.base_ref})" if args.base_ref else "worktree status"
+    if args.ci:
+        print("release-gate mode: ci deterministic subset")
     print(f"search-set evidence mode: {evidence_mode}")
     if args.list:
         print_command_list(commands)

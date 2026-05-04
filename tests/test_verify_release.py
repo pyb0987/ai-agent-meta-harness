@@ -55,6 +55,14 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertEqual(len(all_commands) - len(selected), 1)
         self.assertFalse(any(command.clean_worktree for command in selected))
 
+    def test_ci_mode_omits_clean_gate_and_local_codex_activation_smoke(self) -> None:
+        selected = verify_release.selected_commands(skip_clean_worktree=True, ci=True)
+        commands = {command.name: command.command for command in selected}
+
+        self.assertNotIn("clean worktree", commands)
+        self.assertNotIn("codex local plugin activation smoke", commands)
+        self.assertIn("codex local plugin smoke", commands)
+
     def test_base_ref_rewrites_only_search_set_evidence_command(self) -> None:
         selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="origin/main")
         commands = {command.name: command.command for command in selected}
@@ -91,12 +99,14 @@ class VerifyReleaseTests(unittest.TestCase):
         output = io.StringIO()
 
         with mock.patch("sys.stdout", output):
-            status = verify_release.main(["--list", "--base-ref", "origin/main"])
+            status = verify_release.main(["--list", "--ci", "--skip-clean-worktree", "--base-ref", "origin/main"])
 
         self.assertEqual(status, 0)
         text = output.getvalue()
+        self.assertIn("release-gate mode: ci deterministic subset", text)
         self.assertIn("search-set evidence mode: base-ref diff (origin/main)", text)
         self.assertIn("python3 scripts/check-search-set-evidence.py --base-ref origin/main", text)
+        self.assertNotIn("smoke-local-plugin-activation.py", text)
 
     def test_maintenance_documents_verify_release(self) -> None:
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
