@@ -218,3 +218,134 @@ Archived: `backlog/archive/codex-adapter.md#45-p3-keep-embedded-codex-hook-examp
 
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#46-p3-list-bundled-init-agents-asset-in-codex-plugin-scope`
+
+### 47. P2 record first Codex Desktop/runtime delivery evidence packet
+
+Status: 보류
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/codex-adapter.md
+
+Originating source review: 2026-05-04 multi-review of clean local `main`
+against the Meta-Harness methodology.
+
+Items 40 and 44 correctly prevent overclaiming: artifact smoke and isolated CLI
+activation prove bundle/config shape, while item 44 defines a reviewed manual
+gate for runtime delivery when no product-supported automated smoke exists.
+The repo still has no actual evidence packet proving that a running Codex
+Desktop or equivalent runtime surfaced the generated plugin skills to the model
+or delivered plugin hook tool events.
+
+Potential improvement:
+
+- When Codex exposes a suitable runtime surface, record the first reviewed
+  runtime evidence packet using the item 44 manual gate or replace it with an
+  automated smoke.
+- Include runtime version, surface, OS, plugin source path, artifact smoke,
+  activation smoke, CLI surface probe result or skipped reason, and transcript,
+  screenshot, or exported trace evidence from the running runtime.
+- Keep plugin manifest `hooks` fields disabled unless a separate reviewed packet
+  proves hook tool-event delivery and accepted hook output.
+- Update adapter README/plugin-scope docs and tests only after real runtime
+  evidence exists.
+
+Done when:
+
+- The repository contains a reviewed runtime delivery evidence packet or
+  automated smoke result for model-visible skill surfacing.
+- Hook manifest enablement remains separately gated on actual tool-event
+  delivery evidence.
+- Existing documentation still distinguishes artifact integrity, isolated CLI
+  activation/config, and runtime delivery proof.
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 47, P2 record first Codex
+  Desktop/runtime delivery evidence packet.
+- Status block added: yes, `진행중` reservation was added before
+  implementation edits; this record is now `보류` because acceptance evidence is
+  unavailable.
+- Harness-affecting: yes, because the item concerns Codex adapter runtime
+  delivery evidence and plugin delivery claims.
+- Multi-review required: yes for accepting a runtime delivery evidence packet;
+  if no packet exists, the correct outcome is non-acceptance rather than
+  simulated review acceptance.
+- Minimum verification commands: `python3 scripts/check-maintenance-review.py
+  backlog/codex-adapter.md`; `python3 adapters/codex/scripts/smoke-local-plugin.py`;
+  `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`; `python3
+  adapters/codex/scripts/check-codex-cli-surface.py`; `python3
+  scripts/sync-codex-plugin.py --check`; `python3 -m unittest
+  adapters/codex/tests/test_hook_templates.py
+  adapters/codex/tests/test_local_plugin_smoke.py
+  adapters/codex/tests/test_local_plugin_activation_smoke.py`.
+- Expected scope: current runtime surface/evidence check plus this item 47
+  backlog record only; adapter docs and generated plugin mirrors remain
+  unchanged unless real runtime delivery proof exists.
+
+Attempted in 2026-05-04 single-session maintenance pass:
+
+- Local artifact smoke passed.
+- Isolated local Codex CLI marketplace activation smoke passed.
+- Local Codex CLI surface probe passed for `plugin marketplace` and
+  `app-server` help markers.
+- Current Codex Desktop session did not expose the generated
+  `ai-agent-meta-harness` plugin skills (`autoresearch`, `harness-engineer`,
+  `init-codex-harness`) in the active runtime skill list, so this pass cannot
+  honestly record the first model-visible runtime delivery packet.
+- Hook manifest enablement remains gated on separate tool-event delivery
+  evidence.
+
+Completion Gate:
+
+- Backlog status: `보류`; prerequisite evidence was refreshed, but the item is
+  not accepted because the required runtime model-visible delivery evidence is
+  unavailable in this session.
+- Changed files: `backlog/codex-adapter.md`.
+- Scope deviations: narrowed to backlog evidence/status only; no adapter docs
+  changed because no runtime delivery proof exists. Unrelated dirty work remains
+  intentionally unstaged in `backlog/README.md`, `backlog/core.md`, and
+  pre-existing `backlog/codex-adapter.md` hunks outside item 47, including item
+  48 and the top-level distribution-summary refresh.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py
+  backlog/codex-adapter.md`; PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`;
+  PASS `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`;
+  PASS `python3 adapters/codex/scripts/check-codex-cli-surface.py`; PASS
+  `python3 scripts/sync-codex-plugin.py --check`; PASS `python3 -m unittest
+  adapters/codex/tests/test_hook_templates.py
+  adapters/codex/tests/test_local_plugin_smoke.py
+  adapters/codex/tests/test_local_plugin_activation_smoke.py`.
+- Search-set verification: SKIPPED because this pass made no accepted harness
+  behavior or adapter contract change; it records that the required product
+  runtime evidence is still absent.
+- Multi-review required: yes for acceptance of a runtime delivery evidence
+  packet; this pass instead ran multiple reviewers on the non-acceptance/blocked
+  handoff record.
+- Multi-review result: SKIPPED; no runtime delivery evidence packet exists in
+  this session, so there is no acceptance packet to review.
+- Reviewer scores and VETO handling: runtime-boundary critic 9 PASS;
+  blocked-item appropriateness critic 9 PASS; maintenance-process critic 7 VETO
+  on dirty-handoff disclosure, out-of-scope item 48 disclosure, and missing
+  in-record Start Gate. VETO handled by adding this Start Gate, clarifying
+  originating source review wording, and recording unrelated dirty/out-of-scope
+  hunks explicitly. Maintenance-process re-review: 9 PASS, no blocking
+  findings.
+- For each score 9, why not 10: runtime-boundary critic was not 10 because
+  `Originating source review` could be confused with this pass's acceptance
+  multi-review; wording was clarified. Blocked-item appropriateness critic was
+  not 10 because the active skill-list absence is recorded from session
+  observation rather than an attached transcript/screenshot/exported trace; this
+  is accepted for `보류` because it is evidence of absence sufficient to avoid
+  false acceptance, not evidence used to prove runtime delivery.
+  Maintenance-process re-review was not 10 because final commit readiness still
+  depends on precise hunk staging that excludes disclosed unrelated/out-of-scope
+  dirty changes; this will be handled by staging only item 47 and checking the
+  staged patch before commit.
+- Backlog items added from score-9 residual risk: none; no actionable
+  repository improvement was created by the score-9 residuals. Item 48 was
+  pre-existing user-added backlog work, not a follow-up added by this pass.
+- Residual risk/follow-up: rerun this item only when the active Codex runtime
+  can surface the generated `ai-agent-meta-harness` plugin skills or provides a
+  product-supported noninteractive smoke for model-visible skill delivery.
+- Accepted: no.
