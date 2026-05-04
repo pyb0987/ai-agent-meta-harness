@@ -173,7 +173,24 @@ Compatibility mirror mapping:
 | `skills/*` | `adapters/claude/skills/*` |
 | `adapters/codex/templates/AGENTS.md.template` | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` |
 
-Run `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, and `python3 scripts/check-maintenance-review.py` before committing changes that touch mirrored paths, adapters, generated plugin or marketplace surfaces, or backlog review records.
+For a quick pre-commit-adjacent check before committing focused mirror, adapter,
+generated plugin, marketplace, or backlog-review changes, run the tracked hook:
+
+```bash
+sh .githooks/pre-commit
+```
+
+For a stable handoff or release-like local verification, prefer the executable
+release gate:
+
+```bash
+python3 scripts/verify-release.py
+```
+
+That release gate runs the Standard verification set plus this repository's
+Active search-set and clean-worktree gate. During an in-progress maintenance
+diff, use `python3 scripts/verify-release.py --skip-clean-worktree` to validate
+the release command list before the final clean handoff.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.

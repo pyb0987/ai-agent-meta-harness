@@ -124,9 +124,19 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog currently has no unstarted concrete core implementation
-  item. Items 41-54 are complete, so future maintenance should not select them
-  as available implementation candidates.
+- Active core backlog has five unstarted concrete process items from recent
+  current-main methodology reviews: item 56 should track and reduce repeated
+  nonindependent multi-review fallback use for durable-contract decisions; item
+  57 should make search-set evidence enforcement meaningful for staged or
+  release candidate diffs; item 58 should decide how far evidence records should
+  be tied to actual Active search-set commands; item 59 should capture future
+  qualifying repository raw traces when real failures, VETOs, or experiment
+  episodes occur; item 60 should make the archive lifecycle operational for
+  completed active backlog records.
+  Item 61 is complete, so future maintenance should not select it as an
+  available implementation candidate.
+  Items 41-55 are complete, so future maintenance should not select them as
+  available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -1429,6 +1439,356 @@ Completion Gate:
   risk.
 - Residual risk/follow-up: accepted marker-test limitation; procedural
   final-closure timing addressed by this Completion Gate.
+- Accepted: yes.
+
+### 56. P2 track repeated nonindependent multi-review fallback as systemic risk
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of current local `main` against the
+Meta-Harness methodology.
+
+The latest governance critic passed the current maintenance and multi-review
+gates, but noted one repeated residual risk: several durable-contract backlog
+items were accepted through documented `FALLBACK_NONINDEPENDENT` or sequential
+review paths. The records are honest and the current policy now distinguishes
+required multi-review from single isolated reviewer checks, but repeated
+fallback use can become a quiet assurance downgrade if it is always treated as
+session-local rather than as an observable maintenance signal.
+
+Potential improvement:
+
+- Add a lightweight policy or checker signal that counts or flags required
+  multi-review records using `FALLBACK_NONINDEPENDENT`, sequential fallback, or
+  another explicitly weaker review mode.
+- Define when repeated fallback is acceptable, such as unavailable sub-agent
+  support, emergency recovery, or explicitly low-risk documentation cleanup.
+- Define when repeated fallback should create follow-up work, such as multiple
+  durable-contract acceptances in a short window without independent critics.
+- Keep this as a governance visibility item; do not retroactively invalidate
+  completed records that already document fallback and VETO handling honestly.
+
+Done when:
+
+- `MAINTENANCE.md` or the review checker makes repeated nonindependent fallback
+  visible as a review-quality signal.
+- Future Completion Gates can distinguish a one-off fallback from a repeated
+  systemic fallback pattern.
+- Focused tests or checker fixtures cover the chosen signal if it is made
+  mechanical.
+- Multi-review checks the result because this changes review-governance policy.
+
+### 57. P2 make search-set evidence checks work on staged or release candidate diffs
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-search-set-evidence.py` currently reads `git status --porcelain`
+to identify harness-affecting changes. That catches dirty in-progress work, but
+it becomes weak at the stable handoff point: `scripts/verify-release.py` runs
+the evidence checker and also requires a clean worktree, so a clean release
+candidate can make the evidence checker pass with no affected paths to inspect.
+
+Potential improvement:
+
+- Add a mode that checks staged paths, a commit range, or another explicit path
+  list rather than relying only on dirty worktree state.
+- Decide where that mode belongs: pre-commit, `verify-release.py`, a reviewed
+  commit loop command, or a release-candidate command that compares `HEAD`
+  against a base ref.
+- Preserve the current dirty-worktree behavior for in-progress checks if it is
+  still useful.
+- Add focused tests for clean tree, staged changes, explicit path lists, and
+  commit-range or base-ref behavior if implemented.
+
+Done when:
+
+- A harness-affecting staged or release-candidate change cannot bypass
+  search-set evidence checking merely because the worktree is clean.
+- `MAINTENANCE.md` explains which mode maintainers should run before commit,
+  before release, and during in-progress review.
+- Focused tests cover the chosen source of changed paths.
+- Multi-review checks the result because this changes release-gate semantics.
+
+### 58. P3 decide whether search-set evidence records must reference Active cases
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The current evidence checker intentionally validates record shape, not full
+methodology compliance. It accepts structured `BEFORE:` / `AFTER:` command
+records or a structured `SKIPPED:` reason, but it does not verify that the
+recorded command is one of the Active entries in `.harness/traces/search-set.md`
+or that `python3 scripts/run-search-set.py` actually ran. This is honest
+lightweight enforcement, but the repository should explicitly decide whether
+stronger semantic checking is worth the extra complexity.
+
+Potential improvement:
+
+- Review whether repository maintenance should require
+  `scripts/run-search-set.py` for harness-affecting changes by default, with
+  explicit skipped reasons for narrower or impossible cases.
+- If stronger checking is desired, teach the checker to parse Active verify
+  commands from the repository search-set and compare them with recorded
+  evidence, while still allowing documented subsets or skipped reasons.
+- If the current syntactic checker remains the right boundary, document that as
+  an intentional policy and avoid implying that the checker proves execution.
+- Add tests only for the policy that is actually chosen.
+
+Done when:
+
+- The repository has an explicit decision on whether search-set evidence is
+  shape-only or tied to Active search-set commands.
+- `MAINTENANCE.md` and checker tests match that decision.
+- The policy still allows practical skipped reasons for docs-only, unsafe,
+  unavailable, or intentionally narrowed verification.
+
+### 59. P2 capture future qualifying repository raw traces
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The trace/evaluator critic passed the repository's executable trace and
+search-set contracts, but noted that this repository's own tracked
+self-application raw trace evidence remains intentionally thin. Item 47 added a
+substantive evolution trace and explicitly avoided manufacturing failures or
+experiments just to populate `.harness/traces/failures/` or
+`.harness/traces/experiments/`. The useful follow-up is not to create synthetic
+evidence, but to make sure the next real qualifying repository harness failure,
+review VETO with reusable diagnosis, or autoresearch-style experiment episode is
+captured in the appropriate trace directory.
+
+Potential improvement:
+
+- During future harness-affecting maintenance, record a failure trace when a
+  real repository harness failure, repeated VETO, evaluator-boundary defect, or
+  regression has reusable diagnostic value.
+- Record an experiment episode only when the repository actually runs an
+  autoresearch-style fixed-evaluator episode or comparable structured
+  experiment.
+- Add the new trace to `.harness/traces/search-set.md` only when it yields a
+  durable regression case with an executable verify command.
+- Do not write placeholder, synthetic, or retrospective-fiction traces merely
+  to make `failures/` or `experiments/` look populated.
+
+Done when:
+
+- The next qualifying real repository failure or experiment has a raw trace
+  under `.harness/traces/failures/` or `.harness/traces/experiments/`, or the
+  item records that no qualifying event occurred during the selected maintenance
+  pass.
+- Any new trace follows `core/reference.md` format and preserves raw command
+  output, diffs, evaluator output, or review evidence as applicable.
+- Search-set coverage is added only if the trace contains a reusable executable
+  regression case.
+- Multi-review checks the result if the new trace changes durable methodology,
+  release, or verification contracts.
+
+### 60. P3 operationalize active backlog archive lifecycle
+
+Status: 대기
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`backlog/README.md` says active backlog files should focus on available,
+in-progress, review-pending, and compact follow-up pointers, with completed
+records moved to matching `backlog/archive/` files after they have complete
+Completion Gates. Current active backlog files still contain many long completed
+records with full Completion Gates. This does not weaken runtime harness
+behavior, but it makes the active backlog harder to scan and shows that the
+archive lifecycle is policy rather than an operational routine.
+
+Potential improvement:
+
+- Move completed records with complete Completion Gates from active backlog files
+  to the matching archive files, leaving compact active-file pointers.
+- Preserve anchors and enough pointer text so old references remain navigable.
+- Add or strengthen a backlog hygiene check that flags long completed records in
+  active backlog files after an accepted item is ready to archive.
+- Keep genuinely active, in-progress, review-pending, or intentionally compact
+  pointer records in active files.
+
+Done when:
+
+- Active backlog files mostly contain actionable items and compact completed
+  pointers, not full completed histories.
+- Archive files preserve the full Completion Gate, verification, search-set,
+  multi-review, VETO, score-9, residual-risk, and acceptance records.
+- `scripts/check-maintenance-review.py` or another focused check protects the
+  chosen archive lifecycle from drifting again.
+
+### 61. P3 align README quick verification guidance with release gate
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- README.md
+- tests/test_pre_commit_hook.py
+- backlog/core.md
+
+Start Gate:
+
+- Selected item: `backlog/core.md` item 61, align README quick verification
+  guidance with release gate.
+- Status block added: yes, item 61 marked `진행중`; an initial reservation was
+  accidentally attached under other new core items and was corrected before
+  acceptance.
+- Harness-affecting: yes; this changes repository verification guidance that
+  maintainers use for stable handoff decisions.
+- Multi-review required: yes; this changes release/stable-handoff verification
+  guidance.
+- Minimum verification commands: `python3 -m unittest
+  tests/test_pre_commit_hook.py`; `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; `python3 scripts/check-search-set-evidence.py`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: root README quick verification guidance, focused README
+  verification tests, and this backlog record.
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+The README's before-commit shortcut lists important adapter and backlog checks,
+but it omits newer stable-handoff evidence such as Codex activation smoke,
+search-set evidence checking, the repository search-set runner, and
+`scripts/verify-release.py`. `MAINTENANCE.md` and the executable release gate are
+stronger, but a maintainer following only README can skip recent executable
+trace-memory verification.
+
+Potential improvement:
+
+- Replace the long README inline command list with a clear split between quick
+  pre-commit-adjacent checks and the canonical stable-handoff command.
+- Name `python3 scripts/verify-release.py --skip-clean-worktree` or the
+  appropriate release command as the preferred full local verification path.
+- Keep README concise by pointing detailed tiering and exceptions to
+  `MAINTENANCE.md`.
+- Add or update focused README/maintenance tests so README quick guidance cannot
+  drift behind the executable release gate again.
+
+Done when:
+
+- README readers can tell when the short command list is enough and when to run
+  the full release/stable-handoff gate.
+- README mentions the executable release verifier and does not silently omit
+  trace-memory verification from its stable-handoff guidance.
+- Focused docs tests or release-gate list checks protect the relationship between
+  README, `MAINTENANCE.md`, and `scripts/verify-release.py`.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 -m unittest tests/test_pre_commit_hook.py`, `python3
+  scripts/check-maintenance-review.py backlog/core.md`, and `python3
+  scripts/check-search-set-evidence.py`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Replaced the README's long inline before-commit command list with a split
+  between quick pre-commit-adjacent checks and stable handoff verification.
+- The quick path now points to `sh .githooks/pre-commit`.
+- The stable handoff path now points first to `python3
+  scripts/verify-release.py` and reserves `python3 scripts/verify-release.py
+  --skip-clean-worktree` for in-progress maintenance diffs before the final
+  clean handoff.
+- README states that the release gate runs Standard verification plus the
+  repository Active search-set and clean-worktree gate.
+- Added focused README coverage in `tests/test_pre_commit_hook.py` so the quick
+  hook and release-gate distinction cannot silently drift.
+
+Multi-review:
+
+- README verification guidance critic: score 9/10, PASS. Blocking findings:
+  none. Why not 10: README initially listed `--skip-clean-worktree` first under
+  stable handoff wording, while `MAINTENANCE.md` treats the no-skip command as
+  preferred for stable handoff.
+- Focused README test critic: score 8/10, VETO. Blocking finding: the new test
+  was too coupled to exact prose and hard-wrapped newlines instead of the
+  durable guidance contract.
+- Maintenance-process critic: score 4/10, VETO. Blocking findings: the initial
+  reservation was attached under the wrong item, item 61 itself still said
+  `대기`, Completion Gate was missing, and required multi-review was not
+  recorded.
+- Score handling: scores below 9 are VETO. The README guidance issue was fixed
+  by listing `python3 scripts/verify-release.py` first for clean stable handoff
+  and reserving `--skip-clean-worktree` for in-progress diffs. The test VETO was
+  fixed by normalizing whitespace and checking contract-level markers. The
+  process VETO was handled by correcting the misplaced reservation, marking
+  item 61 `완료`, recording this Completion Gate, and rerunning the affected
+  process critic. For score 9 why not 10, the remaining lexical-test limitation
+  is accepted as residual risk because README guidance still needs some
+  text-level guard and the executable release behavior is covered elsewhere.
+  For process critic score 9 why not 10, the only remaining issue was final
+  bookkeeping to record the process rerun and acceptance; this was addressed in
+  this item and does not create a backlog follow-up.
+- Rerun status: README verification guidance critic re-review score 10/10,
+  PASS. Blocking findings: none. Focused README test critic re-review score
+  9/10, PASS. Blocking findings: none. Maintenance-process critic re-review
+  score 9/10, PASS. Blocking findings: none.
+- Follow-up/residual risk: no new backlog item added. The score-9 lexical guard
+  limitation is accepted as residual risk, not a separate actionable repository
+  improvement.
+- Final acceptance: accepted yes after affected process critic re-review scored
+  at least 9 and final bookkeeping was recorded.
+
+Completion Gate:
+
+- Backlog status: 완료
+- Changed files:
+  - README.md
+  - tests/test_pre_commit_hook.py
+  - backlog/core.md
+- Scope deviations: `backlog/core.md` already contained user-added candidate
+  context for items 56-61 when item 61 was selected; this commit preserves that
+  core backlog context together with the item 61 record. Unrelated user-added
+  backlog candidates in `backlog/README.md` and `backlog/claude-adapter.md`
+  remain outside item 61 scope and will not be staged for this commit.
+- Verification results:
+  - PASS: `python3 -m unittest tests/test_pre_commit_hook.py`
+  - PASS: `python3 -m unittest tests/test_backlog_heading_uniqueness.py tests/test_pre_commit_hook.py`
+  - PASS: `python3 scripts/check-maintenance-review.py backlog/core.md`
+  - PASS: `python3 scripts/check-search-set-evidence.py`
+  - PASS: `python3 scripts/run-search-set.py`
+  - PASS: `python3 scripts/verify-release.py --skip-clean-worktree`
+  - PASS: `git diff --check`
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes release/stable-handoff verification
+  guidance.
+- Multi-review result: PASS for README guidance critic after score-9 fix; PASS
+  for focused README test critic after VETO fix; PASS for process critic after
+  final record update.
+- Reviewer scores and VETO handling:
+  - README verification guidance critic: 9/10 PASS initially; README command
+    ordering fixed; rerun rating 10/10 PASS.
+  - Focused README test critic: 8/10 VETO initially; brittle prose/newline
+    assertions fixed; rerun rating 9/10 PASS.
+  - Maintenance-process critic: 4/10 VETO initially; misplaced reservation
+    corrected and Completion Gate recorded; affected rerun rating 9/10 PASS.
+- For each 9/10 reviewer rating, why not 10:
+  - README verification guidance critic initial review: not 10 because
+    `--skip-clean-worktree` appeared first under stable handoff wording; fixed
+    in this item.
+  - Focused README test critic rerun: not 10 because the README guard remains a
+    lexical documentation test and cannot prove how readers interpret the
+    guidance; accepted as residual risk because command behavior is protected by
+    `tests/test_verify_release.py` and release-gate execution.
+  - Maintenance-process critic rerun: not 10 because final bookkeeping still
+    needed to record the process rerun and acceptance; fixed in this item.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: README wording is still partly protected by lexical
+  assertions, but normalized contract-level checks plus executable
+  `verify-release.py` tests cover the durable behavior.
 - Accepted: yes.
 
 ### 35. P2 separate paper-result claims from repository implementation evidence

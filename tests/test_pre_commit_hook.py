@@ -49,6 +49,19 @@ class PreCommitHookTests(unittest.TestCase):
         self.assertIn("part of Standard verification rather than pre-commit", text)
         self.assertNotIn("pending an activation smoke test", text)
 
+    def test_root_readme_distinguishes_quick_hook_from_release_gate(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        normalized = " ".join(text.split())
+
+        self.assertIn("quick pre-commit-adjacent check", normalized)
+        self.assertIn("sh .githooks/pre-commit", text)
+        self.assertIn("stable handoff or release-like local verification", normalized)
+        self.assertIn("python3 scripts/verify-release.py", text)
+        self.assertIn("python3 scripts/verify-release.py --skip-clean-worktree", text)
+        self.assertIn("runs the Standard verification set plus this repository's Active search-set", normalized)
+        self.assertIn("clean-worktree gate", normalized)
+        self.assertIn("During an in-progress maintenance diff", normalized)
+
 
 if __name__ == "__main__":
     unittest.main()
