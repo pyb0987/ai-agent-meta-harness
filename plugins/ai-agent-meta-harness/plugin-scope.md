@@ -34,6 +34,7 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `scripts/check-autoresearch-protected.py`
 - `scripts/check-codex-hook-schema-drift.py`
 - `scripts/smoke-autoresearch-hooks.py`
+- `scripts/smoke-init-codex-project-fixtures.py`
 - `scripts/smoke-local-plugin-activation.py`
 - `scripts/smoke-local-plugin.py`
 
@@ -76,6 +77,7 @@ Do not include:
 | Hook schema drift reference | `adapters/codex/hook-schema.md` | `hook-schema.md` | Records verified Codex hook output assumptions and official source URLs |
 | Hook schema drift checker | `adapters/codex/scripts/check-codex-hook-schema-drift.py` | `scripts/check-codex-hook-schema-drift.py` | Fails when hook-sensitive staged changes omit schema re-verification |
 | Hook smoke assertions | `adapters/codex/scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Mechanically asserts Codex hook deny JSON shapes |
+| Init project fixture smoke test | `adapters/codex/scripts/smoke-init-codex-project-fixtures.py` | `scripts/smoke-init-codex-project-fixtures.py` | Deterministic artifact/adoption check that runs generated Active search-set verifiers in fixture projects; does not prove live Codex model dogfooding |
 | Local plugin artifact smoke test | `adapters/codex/scripts/smoke-local-plugin.py` | `scripts/smoke-local-plugin.py` | Verifies manifest, expected skills, protection assets, and degraded fallback warning |
 | Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` | Proves isolated CLI marketplace registration and enabled-plugin config shape; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
 | Protected-path template | `adapters/codex/templates/autoresearch-protected.txt` | `templates/autoresearch-protected.txt` | Project bootstrap asset copied to `.harness/autoresearch-protected.txt` |

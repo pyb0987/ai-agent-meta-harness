@@ -1083,7 +1083,15 @@ Completion Gate:
 
 ### 39. P3 list init fixture smoke in Codex plugin-scope generated contents
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/plugin-scope.md
+- plugins/ai-agent-meta-harness/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- backlog/codex-adapter.md
 
 Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
 methodology multi-review.
@@ -1112,6 +1120,85 @@ Done when:
 - `python3 scripts/sync-codex-plugin.py --check` and the local plugin smoke pass.
 - A reviewer can tell from `plugin-scope.md` that the fixture smoke is a
   deterministic artifact/adoption check, not live model dogfooding.
+
+Implementation notes:
+
+- Added `scripts/smoke-init-codex-project-fixtures.py` to the canonical
+  `adapters/codex/plugin-scope.md` Current Generated Contents list.
+- Added the init project fixture smoke to the v1 canonical path policy table
+  with its generated plugin path and evidence boundary.
+- Synced `plugins/ai-agent-meta-harness/plugin-scope.md`.
+- Extended the focused plugin-scope test so canonical and generated scope docs
+  must both list the init fixture smoke and its deterministic, non-live-model
+  evidence boundary.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/check-maintenance-review.py`.
+- before: PASS `python3 scripts/check-compat-mirrors.py`.
+- before: PASS `sh .githooks/pre-commit`.
+- before: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+- after: PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`.
+
+Multi-review:
+
+- Result: PASS; required because this updates the documented Codex generated
+  plugin support surface. Used `FALLBACK_NONINDEPENDENT` sequential review
+  because this single-session maintenance pass was not authorized to spawn
+  independent reviewers.
+- Adapter support-surface critic: score 10/10; verdict PASS; Blocking
+  findings: none. The current contents list and canonical path table now name
+  the fixture smoke and its generated path.
+- Generated-artifact drift critic: score 10/10; verdict PASS; Blocking
+  findings: none. The generated `plugin-scope.md` matches the canonical source,
+  and plugin sync plus local plugin smoke passed.
+- Evidence-boundary critic: score 10/10; verdict PASS; Blocking findings:
+  none. The scope table describes the smoke as deterministic artifact/adoption
+  evidence and explicitly avoids live Codex model dogfooding claims.
+- Score handling: no score below 9, so no VETO; no score 9, so no why-not-10
+  residual risk or follow-up backlog item.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: no VETO, so no critic rerun required.
+- Final acceptance: accepted; ready for maintainer review.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/codex/plugin-scope.md`,
+  `plugins/ai-agent-meta-harness/plugin-scope.md`,
+  `adapters/codex/tests/test_hook_templates.py`, `backlog/codex-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  adapters/codex/tests/test_hook_templates.py`; PASS `python3
+  scripts/sync-codex-plugin.py --check`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin.py`; PASS `python3
+  plugins/ai-agent-meta-harness/scripts/smoke-local-plugin.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3 -m unittest discover -s
+  tests`; PASS `python3 -m unittest discover -s adapters/claude/tests`; PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; PASS `python3 -m
+  unittest tests/test_pre_commit_hook.py`; PASS `python3 -m unittest
+  tests/test_claude_autoresearch_reject_evidence.py`; PASS `python3 -m
+  unittest tests/test_repository_search_set.py`; PASS `sh .githooks/pre-commit`;
+  PASS `git diff --check`.
+- Search-set verification: PASS before/after for relevant Active commands, as
+  listed above.
+- Multi-review required: yes; Codex generated plugin support-surface change.
+- Multi-review result: PASS; `FALLBACK_NONINDEPENDENT` sequential review.
+- Reviewer scores and VETO handling: 10/10 adapter support-surface critic,
+  10/10 generated-artifact drift critic, 10/10 evidence-boundary critic; no
+  VETO.
+- For each score-9 result, why not 10: none.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for maintainer review.
 
 ### 32. P2 add activation smoke to release checklist
 

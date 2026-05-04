@@ -136,10 +136,17 @@ class HookTemplateTests(unittest.TestCase):
         for text in (canonical, generated):
             with self.subTest(path="plugin-scope"):
                 self.assertIn("- `scripts/smoke-local-plugin-activation.py`", text)
+                self.assertIn("- `scripts/smoke-init-codex-project-fixtures.py`", text)
                 self.assertIn(
                     "| Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` |",
                     text,
                 )
+                self.assertIn(
+                    "| Init project fixture smoke test | `adapters/codex/scripts/smoke-init-codex-project-fixtures.py` | `scripts/smoke-init-codex-project-fixtures.py` |",
+                    text,
+                )
+                self.assertIn("Deterministic artifact/adoption check that runs generated Active search-set verifiers in fixture projects", text)
+                self.assertIn("does not prove live Codex model dogfooding", text)
                 self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
         self.assertEqual(canonical, generated)
 
