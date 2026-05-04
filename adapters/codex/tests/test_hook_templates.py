@@ -220,6 +220,7 @@ class HookTemplateTests(unittest.TestCase):
         generated_scope = (ROOT / "plugins" / "ai-agent-meta-harness" / "plugin-scope.md").read_text(encoding="utf-8")
 
         for text in (readme, generated_readme):
+            normalized_readme = " ".join(text.split())
             with self.subTest(path="README"):
                 self.assertIn("Runtime delivery has three evidence levels", text)
                 self.assertIn("Generated artifact integrity", text)
@@ -232,6 +233,12 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("skips when it is absent", text)
                 self.assertIn("This probe does not assert that a running Desktop session surfaced plugin skills", text)
                 self.assertIn("Keep runtime hook manifest fields disabled", text)
+                self.assertIn("Reviewed Manual Runtime Delivery Gate", text)
+                self.assertIn("Minimum manual evidence packet", text)
+                self.assertIn("Codex app or runtime version, surface name, OS", text)
+                self.assertIn("showing the running Codex surface loaded `ai-agent-meta-harness`", normalized_readme)
+                self.assertIn("For manifest `hooks` enablement only", text)
+                self.assertIn("CLI help probes and isolated activation smokes remain prerequisites, not substitutes", normalized_readme)
         for text in (scope, generated_scope):
             normalized = " ".join(text.split())
             with self.subTest(path="plugin-scope"):
@@ -240,6 +247,11 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("optional CLI surface probe can mechanically confirm those help markers", normalized)
                 self.assertIn("That probe is not runtime delivery evidence and does not prove Desktop model-visible skill surfacing or plugin hook event delivery", normalized)
                 self.assertIn("Runtime hook manifest fields must remain absent", normalized)
+                self.assertIn("An explicitly reviewed manual gate may substitute for an automated runtime delivery smoke only when it records a concrete evidence packet", normalized)
+                self.assertIn("Codex app or runtime version, surface name, OS, plugin source path", normalized)
+                self.assertIn("fresh session transcript, screenshot, or exported runtime trace showing the generated `ai-agent-meta-harness` plugin surfaced the expected skills", normalized)
+                self.assertIn("Manifest `hooks` fields still require separate evidence that a plugin hook received a real tool event", normalized)
+                self.assertIn("CLI help probes and isolated activation smokes are prerequisites, not substitutes", normalized)
         self.assertEqual(readme, generated_readme)
         self.assertEqual(scope, generated_scope)
 

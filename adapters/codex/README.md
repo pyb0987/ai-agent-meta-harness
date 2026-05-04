@@ -208,6 +208,34 @@ Runtime delivery has three evidence levels:
 
 As of the 2026-05-04 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and experimental app-server protocol tooling. `python3 adapters/codex/scripts/check-codex-cli-surface.py` optionally probes that local CLI help surface when `codex` is installed and skips when it is absent; use `--require-installed` when a local environment must fail instead of skip. This probe does not assert that a running Desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
 
+#### Reviewed Manual Runtime Delivery Gate
+
+Until Codex exposes a stable noninteractive runtime smoke for model-visible
+plugin skills or plugin hook tool-event delivery, a maintainer may close this
+evidence gap only with a reviewed manual gate. Record the evidence packet in the
+backlog item or release notes, and keep `hooks` out of `.codex-plugin/plugin.json`
+unless the packet covers hook tool-event delivery too.
+
+Minimum manual evidence packet:
+
+- Codex app or runtime version, surface name, OS, and the exact local plugin
+  source path under test.
+- PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`.
+- PASS `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`.
+- PASS or SKIPPED-with-reason
+  `python3 adapters/codex/scripts/check-codex-cli-surface.py --require-installed`.
+- A fresh session transcript, screenshot, or exported runtime trace showing the
+  running Codex surface loaded `ai-agent-meta-harness` from the generated plugin
+  and surfaced the expected skills to the model.
+- For manifest `hooks` enablement only: a separate fresh transcript, screenshot,
+  or exported runtime trace showing a plugin hook receiving a real tool event
+  from that same runtime surface, plus the hook output accepted by Codex.
+- Multi-review acceptance of the evidence packet, with every required reviewer
+  score at least 9 and every score of 9 carrying a why-not-10 note.
+
+CLI help probes and isolated activation smokes remain prerequisites, not
+substitutes, for runtime delivery evidence.
+
 For executable local skill iteration without plugin registration, use the degraded direct-copy fallback:
 
 ```bash

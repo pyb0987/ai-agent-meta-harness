@@ -107,6 +107,17 @@ delivery. Runtime hook manifest fields must remain absent until a
 product-supported smoke or explicitly reviewed manual gate covers that third
 evidence level.
 
+An explicitly reviewed manual gate may substitute for an automated runtime
+delivery smoke only when it records a concrete evidence packet: Codex app or
+runtime version, surface name, OS, plugin source path, passing local artifact and
+activation smokes, CLI surface probe result or skipped reason, and a fresh
+session transcript, screenshot, or exported runtime trace showing the generated
+`ai-agent-meta-harness` plugin surfaced the expected skills to the running
+model. Manifest `hooks` fields still require separate evidence that a plugin
+hook received a real tool event from that runtime surface and that Codex
+accepted the hook output. CLI help probes and isolated activation smokes are
+prerequisites, not substitutes, for this manual runtime delivery evidence.
+
 ## Marketplace Metadata Policy
 
 Marketplace metadata is a release surface, not part of the local-only dogfood

@@ -42,9 +42,9 @@ Remaining follow-up work:
 
 - Direct-copy fallback limitation reporting is completed in item 27, and
   runtime hook manifest fields remain intentionally gated by item 28.
-- Item 40 records the current runtime-delivery evidence boundary and keeps
-  runtime hook manifest fields disabled until a product-supported smoke or
-  reviewed manual gate exists.
+- Item 40 records the current runtime-delivery evidence boundary, while item 44
+  keeps the actual future Desktop/runtime delivery smoke open until a
+  product-supported smoke or reviewed manual gate exists.
 - Item 42 tracks an optional local Codex CLI surface probe so documentation can
   mechanically pin the observed `plugin marketplace` and `app-server` surface
   without claiming Desktop runtime delivery.
@@ -205,11 +205,15 @@ Archived: `backlog/archive/codex-adapter.md#30-p3-reconcile-active-backlog-summa
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#31-p2-align-root-codex-activation-smoke-documentation-with-implementation`
 
+### 44. P2 keep Codex Desktop/runtime delivery smoke open until product surface exists
+
+Status: 완료
+Archived: `backlog/archive/codex-adapter.md#44-p2-keep-codex-desktop-runtime-delivery-smoke-open-until-product-surface-exists`
+
 ### 45. P3 keep embedded Codex hook examples bounded
 
 Status: 완료
 Archived: `backlog/archive/codex-adapter.md#45-p3-keep-embedded-codex-hook-examples-bounded`
-
 ### 46. P3 list bundled init AGENTS asset in Codex plugin scope
 
 Status: 완료

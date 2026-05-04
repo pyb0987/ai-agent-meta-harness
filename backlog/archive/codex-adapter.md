@@ -3219,6 +3219,158 @@ Multi-review:
   closure is complete in this record.
 - Final acceptance: yes.
 
+### 44. P2 keep Codex Desktop/runtime delivery smoke open until product surface exists
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/codex/README.md
+- adapters/codex/plugin-scope.md
+- adapters/codex/tests/test_hook_templates.py
+- plugins/ai-agent-meta-harness/
+- backlog/codex-adapter.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+Item 40 correctly completed the evidence-boundary work: docs now distinguish
+generated artifact integrity, isolated CLI activation/config shape, and runtime
+model-visible skill surfacing or plugin hook event delivery. It also kept
+runtime hook manifest fields disabled. The remaining unsolved work is the
+actual runtime delivery proof, which was intentionally deferred because the repo
+does not yet have a stable noninteractive Codex Desktop or equivalent runtime
+surface for that claim.
+
+Potential improvement:
+
+- Track official or product-supported Codex runtime surfaces that can prove a
+  running session has loaded the generated plugin and surfaced the expected
+  skills to the model.
+- Add a smoke test or explicitly reviewed manual gate for runtime plugin
+  delivery before enabling plugin manifest `hooks` fields.
+- Keep CLI help-surface probes and isolated activation smokes as prerequisites,
+  not substitutes, for runtime delivery evidence.
+- Update plugin-scope and README docs when the runtime proof exists, without
+  weakening the current evidence-boundary wording.
+
+Done when:
+
+- The repo has a product-supported automated smoke or reviewed manual procedure
+  for Desktop/runtime plugin delivery evidence.
+- Runtime hook manifest fields remain disabled until tool-event delivery is
+  verified by that gate.
+- Existing tests continue to reject overclaims that CLI activation proves
+  runtime model-visible skill surfacing or plugin hook event delivery.
+
+Implementation notes:
+
+- Decision implemented: keep the actual runtime delivery proof open until a
+  product-supported automated smoke exists, but define an explicitly reviewed
+  manual evidence gate that can close the gap without overclaiming CLI
+  activation as runtime delivery.
+- The manual evidence packet must record Codex runtime version, surface, OS,
+  plugin source path, local artifact/activation smoke results, CLI surface probe
+  result or skipped reason, and fresh transcript/screenshot/exported-trace
+  evidence that the running Codex surface loaded `ai-agent-meta-harness` and
+  surfaced the expected skills.
+- Manifest `hooks` fields remain disabled unless a separate reviewed evidence
+  packet shows a plugin hook receiving a real tool event and Codex accepting the
+  hook output from that runtime surface.
+- Search-set verification:
+  - SKIPPED: documentation/test-only Codex runtime-delivery evidence gate
+    clarification; no runtime hook manifest field, plugin activation behavior,
+    checker semantics, trace schema, or release gate changed.
+
+Completion Gate:
+
+- Backlog status: 완료; archived after multi-review PASS and final verification.
+- Changed files:
+  - `adapters/codex/README.md`
+  - `adapters/codex/plugin-scope.md`
+  - `adapters/codex/tests/test_hook_templates.py`
+  - `plugins/ai-agent-meta-harness/README.md`
+  - `plugins/ai-agent-meta-harness/plugin-scope.md`
+  - `backlog/codex-adapter.md`
+  - `backlog/archive/codex-adapter.md`
+- Scope deviations:
+  - `backlog/README.md` remains a pre-existing unrelated dirty user edit and
+    must stay unstaged.
+- Verification results:
+  - BEFORE: PASS `python3 scripts/sync-codex-plugin.py --check`
+  - BEFORE: PASS `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - BEFORE: PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - BEFORE: PASS `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - AFTER: PASS `python3 -m unittest adapters/codex/tests/test_hook_templates.py`
+  - AFTER: PASS `python3 scripts/sync-codex-plugin.py --check`
+  - AFTER: PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`
+  - AFTER: PASS `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`
+  - AFTER: PASS `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`
+  - AFTER: PASS `python3 adapters/codex/scripts/check-codex-cli-surface.py`
+  - AFTER: PASS `python3 scripts/check-maintenance-review.py`
+  - AFTER: PASS `python3 scripts/check-search-set-evidence.py`
+  - AFTER: PASS `python3 scripts/check-backlog-archive-lifecycle.py`
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`
+  - AFTER: PASS `git diff --check`
+- Search-set verification:
+  - SKIPPED: documentation/test-only Codex runtime-delivery evidence gate
+    clarification; no runtime hook manifest field, plugin activation behavior,
+    checker semantics, trace schema, or release gate changed.
+- Multi-review required: yes, Codex distribution/runtime delivery evidence and
+  manifest hook gating are durable adapter contracts.
+- Multi-review result: PASS with three independent sub-agent reviewers using
+  the Codex multi-review governance protocol.
+- Reviewer scores and VETO handling:
+  - Runtime delivery boundary critic: 9/10 PASS; no VETO.
+  - Test/generated artifact coverage critic: 9/10 PASS; no VETO.
+  - Maintenance process/scope critic: 9/10 PASS; no VETO.
+- For each score 9, why not 10:
+  - Runtime delivery boundary critic: manual gate is prose plus
+    string-asserted documentation, not a structured evidence packet template or
+    validator. Accepted as residual risk because item 44 only required a
+    reviewed manual gate while no product-supported runtime smoke exists; no
+    follow-up needed before first real runtime review.
+  - Test/generated artifact coverage critic: `sync-codex-plugin.py --check`
+    is index-oriented, so `--check` alone is not a complete reviewer tool for
+    unstaged generated-artifact drift. Accepted as residual risk because the
+    focused unit test compares working-tree canonical/generated docs for this
+    item and the release/pre-commit contract is intentionally index-based.
+  - Maintenance process/scope critic: completion evidence and archive closure
+    were still pending at review time, and `backlog/README.md` was dirty outside
+    scope. Addressed by this Completion Gate, staged-only discipline, and
+    archive closure; no follow-up needed.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up:
+  - No new follow-up. A structured runtime-delivery evidence template can be
+    added later if maintainers want stronger ergonomics before the first real
+    manual runtime review.
+- Accepted: yes.
+
+Multi-review:
+
+- Runtime delivery boundary critic: score 9, PASS. Blocking findings: none.
+  Why not 10: the gate is still prose plus string-asserted documentation, not a
+  structured evidence packet template or validator. Follow-up/residual risk:
+  accepted for this item because the goal was to define a reviewed manual gate
+  while no stable runtime smoke exists.
+- Test/generated artifact coverage critic: score 9, PASS. Blocking findings:
+  none. Why not 10: `sync-codex-plugin.py --check` is index-oriented and is not
+  alone a complete reviewer tool for unstaged generated-artifact drift.
+  Follow-up/residual risk: accepted because the focused unit test compares the
+  working-tree canonical and generated docs for this change, while pre-commit
+  and release checks intentionally use the index.
+- Maintenance process/scope critic: score 9, PASS. Blocking findings: none.
+  Why not 10: completion evidence and archive closure were pending at review
+  time, and `backlog/README.md` was dirty outside the item scope.
+  Follow-up/residual risk: addressed by this Completion Gate, archive closure,
+  and staged-only discipline.
+- Score handling: no VETO. Every score 9 records why not 10 and residual-risk
+  disposition.
+- Rerun status: no affected critic rerun required.
+- Follow-up/residual risk: no backlog follow-up from score-9 residuals.
+- Final acceptance: yes.
+
 ### 46. P3 list bundled init AGENTS asset in Codex plugin scope
 
 Status: 완료
