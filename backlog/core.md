@@ -334,7 +334,14 @@ Completion Gate:
 
 ### 47. P2 thicken repository self-application trace evidence
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .harness/traces/evolution/
+- tests/test_repository_search_set.py
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -372,6 +379,92 @@ Done when:
   exists.
 - Search-set verification or an explicit skipped reason is recorded for the
   trace-writing change.
+
+Implementation notes:
+
+- Added `.harness/traces/evolution/002-self-application-evidence-review.md`, a
+  substantive repository self-application evolution trace using the documented
+  evolution frontmatter shape.
+- Recorded the 2026-05-04 review concern that tracked self-application evidence
+  is still thin, without manufacturing failure or experiment traces.
+- Documented that legacy `.claude/traces/` history was not blindly copied
+  because it is ignored and may contain provider/session-local context.
+- Extended `tests/test_repository_search_set.py` so the second evolution trace
+  remains part of the minimum self-application trace surface and preserves the
+  evidence-boundary wording.
+
+Search-set verification:
+
+- before: PASS `python3 scripts/run-search-set.py`.
+- after: PASS `python3 scripts/run-search-set.py`.
+- after: PASS `python3 scripts/run-search-set.py --case SS-006`.
+- after: PASS `python3 -m unittest tests/test_repository_search_set.py`.
+- after: PASS `python3 scripts/check-maintenance-review.py`.
+- after: PASS `python3 scripts/check-compat-mirrors.py`.
+- after: PASS `python3 -m unittest discover -s tests`.
+- after: PASS `python3 -m unittest discover -s adapters/claude/tests`.
+- after: PASS `python3 -m unittest discover -s adapters/codex/tests`.
+- after: PASS `sh .githooks/pre-commit`.
+- after: PASS `python3 scripts/check-search-set-evidence.py`.
+
+Review notes:
+
+- Initial isolated reviewer score: 8/10 VETO. Blocking findings: missing
+  Completion Gate / multi-review record, and evolution trace `files_changed`
+  omitted `tests/test_repository_search_set.py`.
+- VETO handling before re-review: updated the trace frontmatter to include the
+  focused test and added this Completion Gate.
+
+Multi-review:
+
+- Result: PASS after VETO handling and final isolated re-review.
+- Isolated evidence reviewer, initial: score 8/10; verdict VETO; Blocking
+  findings: missing Completion Gate / search-set evidence record and
+  underreported trace `files_changed`; not accepted until VETO findings are
+  fixed and rerun.
+- Isolated evidence reviewer, final rerun: score 9/10; verdict PASS; Blocking
+  findings: none. Why not 10: final review-record closure was still pending at
+  the moment of review; no backlog follow-up because this record now closes it.
+- Score handling: score below 9 was treated as VETO. Blocking findings were
+  addressed before rerun; final rerun reached 9/10.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: final isolated re-review completed after Completion Gate and
+  metadata correction; score 9/10 PASS.
+- Final acceptance: accepted; ready for item 47 commit.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files:
+  `.harness/traces/evolution/002-self-application-evidence-review.md`,
+  `tests/test_repository_search_set.py`, `backlog/core.md`.
+- Scope deviations: `tests/test_repository_search_set.py` was added to Scope
+  before editing so the new trace is mechanically protected.
+- Verification results: PASS `python3 -m unittest
+  tests/test_repository_search_set.py`; PASS `python3 scripts/run-search-set.py
+  --case SS-006`; PASS `python3 scripts/run-search-set.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3 -m unittest discover -s
+  tests`; PASS `python3 -m unittest discover -s adapters/claude/tests`; PASS
+  `python3 -m unittest discover -s adapters/codex/tests`; PASS `sh
+  .githooks/pre-commit`; PASS `python3 scripts/check-search-set-evidence.py`;
+  PASS `git diff --check`.
+- Search-set verification: PASS before/after with `python3
+  scripts/run-search-set.py`; targeted after check also PASS with `python3
+  scripts/run-search-set.py --case SS-006`.
+- Multi-review required: yes; repository self-application trace evidence is
+  durable regression-memory/methodology evidence.
+- Multi-review result: PASS after final isolated re-review.
+- Reviewer scores and VETO handling: initial isolated reviewer 8/10 VETO;
+  blocking findings addressed; final isolated reviewer rerun 9/10 PASS.
+- For each score-9 result, why not 10: final review-record closure was still
+  pending at the moment of final review; accepted as procedural residual because
+  this record now closes it.
+- Backlog items added from score-9 residual risk: none; no actionable
+  repository improvement.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for item 47 commit.
 
 ### 48. P2 add one executable release verification gate
 

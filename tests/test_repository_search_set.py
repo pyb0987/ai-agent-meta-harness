@@ -26,6 +26,7 @@ class RepositorySearchSetTests(unittest.TestCase):
         for relative in (
             "search-set.md",
             "evolution/001-repository-self-application-root.md",
+            "evolution/002-self-application-evidence-review.md",
             "failures/.gitkeep",
             "experiments/.gitkeep",
         ):
@@ -102,6 +103,20 @@ class RepositorySearchSetTests(unittest.TestCase):
         self.assertIn("minimum trace surface is present", text)
         self.assertIn("Legacy Claude-local history remains under `.claude/traces/`", text)
         self.assertIn("Future repository maintenance traces should be\nwritten under `.harness/traces/`", text)
+
+    def test_evolution_review_trace_records_self_application_evidence_boundary(self) -> None:
+        text = (TRACE_ROOT / "evolution/002-self-application-evidence-review.md").read_text(encoding="utf-8")
+
+        for marker in (
+            "iteration: 2",
+            "verdict: improved",
+            "thin tracked\nself-application evidence",
+            "does not copy that\nhistory blindly",
+            "avoids overclaiming richer local\n  self-application evidence",
+            "not synthetic failures",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
 
 
 if __name__ == "__main__":
