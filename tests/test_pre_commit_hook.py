@@ -25,6 +25,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-search-set-evidence.py --staged", text)
 
+    def test_hook_runs_staged_backlog_archive_lifecycle_checker(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
+
     def test_hook_runs_codex_marketplace_metadata_checker(self):
         text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
 
@@ -36,11 +41,18 @@ class PreCommitHookTests(unittest.TestCase):
         self.assertIn("python3 scripts/check-codex-marketplace-metadata.py", text)
         self.assertIn("marketplace metadata readiness", text)
 
+    def test_readme_pre_commit_docs_name_staged_archive_lifecycle_checker(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
+        self.assertIn("completed backlog archive pointers", text)
+
     def test_standard_verification_runs_codex_activation_smoke(self):
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
+        normalized = " ".join(text.split())
 
         self.assertIn("python3 adapters/codex/scripts/smoke-local-plugin-activation.py", text)
-        self.assertIn("heavier Codex local\nplugin activation smoke", text)
+        self.assertIn("heavier Codex local plugin activation smoke", normalized)
         self.assertIn("Codex local plugin activation smoke test passes", text)
         self.assertIn("isolated CLI\n  marketplace registration and enabled-plugin config shape", text)
         self.assertIn("not running Codex\n  Desktop skill surfacing or plugin tool-event delivery", text)

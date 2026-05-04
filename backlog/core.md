@@ -102,13 +102,12 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has three unstarted concrete process items from recent
-  current-main methodology reviews: item 65 should decide whether archive
-  lifecycle validation belongs in pre-commit, item 66 should make required
-  multi-review presence visible for high-impact changed paths, and item 67
-  should tighten the README opening attribution for the 6x harness-sensitivity
-  claim so it matches the paper traceability table.
-  Items 56-64 are complete, so future maintenance should not select them as
+- Active core backlog has two unstarted concrete process items from recent
+  current-main methodology reviews: item 66 should make required multi-review
+  presence visible for high-impact changed paths, and item 67 should tighten
+  the README opening attribution for the 6x harness-sensitivity claim so it
+  matches the paper traceability table.
+  Items 56-65 are complete, so future maintenance should not select them as
   available implementation candidates.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -198,35 +197,8 @@ Status: 완료
 Archived: `backlog/archive/core.md#64-p2-define-action-threshold-for-repeated-nonindependent-multi-review-fallback`
 ### 65. P3 decide whether archive lifecycle validation belongs in pre-commit
 
-Status: 대기
-
-Source review: 2026-05-04 multi-review of local `main` against the
-Meta-Harness methodology.
-
-`scripts/check-backlog-archive-lifecycle.py` is now part of standard and release
-verification, so completed active backlog records are caught before a stable
-handoff. The tracked pre-commit hook does not run it, which means a commit can
-still land with a completed active backlog record that should have been reduced
-to an archive pointer unless the maintainer separately runs the release gate.
-
-Potential improvement:
-
-- Decide whether archive lifecycle validation should be added to
-  `.githooks/pre-commit`, or remain release-only with clearer handoff guidance.
-- If added to pre-commit, keep it fast and index-aware enough that unrelated
-  unstaged backlog work does not block focused commits.
-- If kept release-only, document why commit-time archive enforcement would be
-  too noisy and make the Reviewed Commit Loop call out the separate release
-  check.
-- Add focused tests or hook assertions for the chosen policy.
-
-Done when:
-
-- Maintainers can tell whether archive lifecycle is a commit-time or
-  release-time contract.
-- The tracked hook, maintenance docs, and release gate agree on that contract.
-- Completed active backlog records cannot silently survive the intended
-  verification point.
+Status: 완료
+Archived: `backlog/archive/core.md#65-p3-decide-whether-archive-lifecycle-validation-belongs-in-pre-commit`
 ### 66. P2 make required multi-review presence visible for high-impact changes
 
 Status: 대기

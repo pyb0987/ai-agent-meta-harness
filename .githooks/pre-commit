@@ -10,3 +10,4 @@ python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-maintenance-review.py
 python3 scripts/check-search-set-evidence.py --staged
+python3 scripts/check-backlog-archive-lifecycle.py --staged

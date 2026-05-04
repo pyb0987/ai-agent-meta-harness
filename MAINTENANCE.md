@@ -355,9 +355,9 @@ generic unittest runner cannot report a zero-test false green. Use the three
 explicit unittest discovery roots in the Standard verification set instead.
 
 The tracked pre-commit hook runs the drift, artifact smoke, maintenance review,
-and staged search-set evidence checks, but not the full unit test suites or the
-heavier Codex local
-plugin activation smoke:
+staged search-set evidence, and staged backlog archive lifecycle checks, but
+not the full unit test suites or the heavier Codex local plugin activation
+smoke:
 
 ```bash
 git config core.hooksPath .githooks
@@ -371,10 +371,12 @@ python3 scripts/check-clean-worktree.py
 ```
 
 This command is intentionally not part of pre-commit. Pre-commit validates the
-Git index so unrelated unstaged work does not block commit-time checks; the
-release/handoff gate validates that no tracked, staged, or untracked worktree
-state is being hidden outside the checked index. A dirty result is a release
-blocker unless the handoff notes explicitly record the exception.
+Git index so unrelated unstaged work does not block commit-time checks; staged
+archive lifecycle validation catches completed active backlog records before
+they enter a commit. The release/handoff gate validates that no tracked, staged,
+or untracked worktree state is being hidden outside the checked index. A dirty
+result is a release blocker unless the handoff notes explicitly record the
+exception.
 
 For harness-affecting repository changes, run the search-set evidence
 compliance checker before stable handoff. Use the default mode while reviewing

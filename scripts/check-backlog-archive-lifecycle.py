@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -43,8 +45,8 @@ def anchor_for_heading(heading: str) -> str:
     return anchor.strip("-")
 
 
-def sections(path: Path) -> list[Section]:
-    text = path.read_text(encoding="utf-8")
+def sections(path: Path, *, read_text=Path.read_text) -> list[Section]:
+    text = read_text(path, encoding="utf-8")
     matches = list(SECTION_RE.finditer(text))
     parsed: list[Section] = []
     for index, match in enumerate(matches):
@@ -60,25 +62,29 @@ def sections(path: Path) -> list[Section]:
     return parsed
 
 
-def archive_sections(root: Path) -> dict[str, dict[str, Section]]:
+def archive_sections(root: Path, *, read_text=Path.read_text) -> dict[str, dict[str, Section]]:
     archives: dict[str, dict[str, Section]] = {}
     for active in ACTIVE_BACKLOG_FILES:
         archive = root / active.parent / "archive" / active.name
-        if not archive.exists():
+        try:
+            parsed = sections(archive, read_text=read_text)
+        except OSError:
             continue
         relative = archive.relative_to(root).as_posix()
-        archives[relative] = {anchor_for_heading(section.heading): section for section in sections(archive)}
+        archives[relative] = {anchor_for_heading(section.heading): section for section in parsed}
     return archives
 
 
-def validate_root(root: Path = ROOT) -> list[str]:
+def validate_root(root: Path = ROOT, *, read_text=Path.read_text) -> list[str]:
     errors: list[str] = []
-    known_archives = archive_sections(root)
+    known_archives = archive_sections(root, read_text=read_text)
     for relative in ACTIVE_BACKLOG_FILES:
         path = root / relative
-        if not path.exists():
+        try:
+            parsed = sections(path, read_text=read_text)
+        except OSError:
             continue
-        for section in sections(path):
+        for section in parsed:
             if not STATUS_DONE_RE.search(section.text):
                 continue
             label = f"{relative.as_posix()}:{section.start_line} ({section.heading})"
@@ -102,16 +108,37 @@ def validate_root(root: Path = ROOT) -> list[str]:
     return errors
 
 
+def read_index_text(path: Path, *, encoding: str = "utf-8", root: Path = ROOT) -> str:
+    relative = path.relative_to(root).as_posix()
+    result = subprocess.run(
+        ["git", "show", f":{relative}"],
+        cwd=root,
+        encoding=encoding,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise FileNotFoundError(result.stderr.strip() or f"missing staged file: {relative}")
+    return result.stdout
+
+
 def main(argv: list[str] | None = None) -> int:
-    if argv:
-        print("usage: check-backlog-archive-lifecycle.py", file=sys.stderr)
-        return 2
-    errors = validate_root()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--staged",
+        action="store_true",
+        help="validate backlog archive lifecycle using Git index contents",
+    )
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    read_text = read_index_text if args.staged else Path.read_text
+    errors = validate_root(read_text=read_text)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    print("Backlog archive lifecycle is valid.")
+    mode = "staged " if args.staged else ""
+    print(f"Backlog archive lifecycle is valid for {mode}content.")
     return 0
 
 

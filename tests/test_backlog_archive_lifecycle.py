@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -16,6 +17,18 @@ assert spec and spec.loader
 check_backlog_archive_lifecycle = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = check_backlog_archive_lifecycle
 spec.loader.exec_module(check_backlog_archive_lifecycle)
+
+
+def git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
 
 
 class BacklogArchiveLifecycleTests(unittest.TestCase):
@@ -181,6 +194,66 @@ Completion Gate:
             shutil.copytree(ROOT / "backlog", root / "backlog")
 
             errors = check_backlog_archive_lifecycle.validate_root(root)
+
+        self.assertEqual(errors, [])
+
+    def test_staged_reader_ignores_unstaged_invalid_backlog_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git(root, "init")
+            backlog = root / "backlog"
+            archive = backlog / "archive"
+            archive.mkdir(parents=True)
+            (backlog / "core.md").write_text(
+                """# Core Backlog
+
+### 1. Example
+
+Status: 완료
+Archived: `backlog/archive/core.md#1-example`
+""",
+                encoding="utf-8",
+            )
+            for name in ("claude-adapter.md", "codex-adapter.md"):
+                (backlog / name).write_text(f"# {name}\n", encoding="utf-8")
+            (archive / "core.md").write_text(
+                """# Core Backlog Archive
+
+### 1. Example
+
+Status: 완료
+
+Completion Gate:
+
+- Accepted: yes
+""",
+                encoding="utf-8",
+            )
+            for name in ("claude-adapter.md", "codex-adapter.md"):
+                (archive / name).write_text(f"# {name} Archive\n", encoding="utf-8")
+            git(root, "add", "backlog")
+            (backlog / "core.md").write_text(
+                """# Core Backlog
+
+### 1. Example
+
+Status: 완료
+
+Completion Gate:
+
+- Accepted: yes
+""",
+                encoding="utf-8",
+            )
+
+            errors = check_backlog_archive_lifecycle.validate_root(
+                root,
+                read_text=lambda path, encoding="utf-8": check_backlog_archive_lifecycle.read_index_text(
+                    path,
+                    encoding=encoding,
+                    root=root,
+                ),
+            )
 
         self.assertEqual(errors, [])
 

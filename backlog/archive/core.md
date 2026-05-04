@@ -5819,3 +5819,149 @@ Multi-review:
   for historical accepted records; this item uses independent multi-review and
   adds no new fallback dependence.
 - Final acceptance: yes.
+### 65. P3 decide whether archive lifecycle validation belongs in pre-commit
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- .githooks/pre-commit
+- MAINTENANCE.md
+- README.md
+- scripts/check-backlog-archive-lifecycle.py
+- tests/test_pre_commit_hook.py
+- tests/test_backlog_archive_lifecycle.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-04 multi-review of local `main` against the
+Meta-Harness methodology.
+
+`scripts/check-backlog-archive-lifecycle.py` is now part of standard and release
+verification, so completed active backlog records are caught before a stable
+handoff. The tracked pre-commit hook does not run it, which means a commit can
+still land with a completed active backlog record that should have been reduced
+to an archive pointer unless the maintainer separately runs the release gate.
+
+Potential improvement:
+
+- Decide whether archive lifecycle validation should be added to
+  `.githooks/pre-commit`, or remain release-only with clearer handoff guidance.
+- If added to pre-commit, keep it fast and index-aware enough that unrelated
+  unstaged backlog work does not block focused commits.
+- If kept release-only, document why commit-time archive enforcement would be
+  too noisy and make the Reviewed Commit Loop call out the separate release
+  check.
+- Add focused tests or hook assertions for the chosen policy.
+
+Done when:
+
+- Maintainers can tell whether archive lifecycle is a commit-time or
+  release-time contract.
+- The tracked hook, maintenance docs, and release gate agree on that contract.
+- Completed active backlog records cannot silently survive the intended
+  verification point.
+
+Decision implemented:
+
+- Archive lifecycle validation is now a commit-time staged-index contract and a
+  release-time worktree contract.
+- `.githooks/pre-commit` runs
+  `python3 scripts/check-backlog-archive-lifecycle.py --staged` so completed
+  active backlog records cannot enter a focused commit while unrelated
+  unstaged user backlog work remains out of scope.
+- `scripts/check-backlog-archive-lifecycle.py` now supports `--staged` by
+  reading active backlog and archive files from the Git index.
+- `MAINTENANCE.md` and `README.md` document the staged pre-commit archive
+  lifecycle check separately from the clean-worktree release gate.
+- Focused tests cover staged archive lifecycle reading and the pre-commit/README
+  command wiring.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`.
+- BEFORE: PASS `python3 -m unittest tests/test_pre_commit_hook.py`.
+- BEFORE: PASS `sh .githooks/pre-commit`.
+- BEFORE: PASS `python3 scripts/check-backlog-archive-lifecycle.py`.
+- AFTER: PASS `python3 -m unittest tests/test_backlog_archive_lifecycle.py tests/test_pre_commit_hook.py`.
+- AFTER: PASS `python3 scripts/check-backlog-archive-lifecycle.py`.
+- AFTER: PASS `python3 scripts/check-backlog-archive-lifecycle.py --staged`.
+- AFTER: PASS `sh .githooks/pre-commit`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md` after VETO
+  recovery re-review passed.
+- Changed files: `.githooks/pre-commit`; `MAINTENANCE.md`; `README.md`;
+  `scripts/check-backlog-archive-lifecycle.py`;
+  `tests/test_backlog_archive_lifecycle.py`; `tests/test_pre_commit_hook.py`;
+  `backlog/core.md`; `backlog/archive/core.md`.
+- Scope deviations: `README.md`, `scripts/check-backlog-archive-lifecycle.py`,
+  and `tests/test_backlog_archive_lifecycle.py` were added to scope before
+  editing because the selected pre-commit policy required staged-index checker
+  support and public quick-check documentation. `backlog/archive/core.md` was
+  added for normal completed-item archival. Existing dirty `backlog/README.md`
+  and `backlog/codex-adapter.md` are unrelated user-added backlog changes and
+  must remain unstaged.
+- Verification results: PASS
+  `python3 -m unittest tests/test_backlog_archive_lifecycle.py tests/test_pre_commit_hook.py`;
+  PASS `sh .githooks/pre-commit`; PASS
+  `python3 scripts/check-backlog-archive-lifecycle.py`; PASS
+  `python3 scripts/check-backlog-archive-lifecycle.py --staged`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS
+  `python3 -m unittest tests/test_backlog_heading_uniqueness.py tests/test_backlog_archive_lifecycle.py tests/test_pre_commit_hook.py`;
+  PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`;
+  PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/verify-release.py --skip-clean-worktree --base-ref origin/main`.
+- Multi-review required: yes; pre-commit/release gate contract changed.
+- Multi-review result: PASS after process VETO recovery and re-review.
+- Reviewer scores and VETO handling: staged checker semantics 9 PASS; hook/docs
+  policy 9 PASS; maintenance process 8 VETO. The process VETO is handled by
+  this Completion Gate, explicit dirty-file treatment, and score/VETO handling
+  record; affected critic re-review scored 9 PASS with no blocking findings.
+- For each score 9, why not 10: staged checker semantics was 9 because tests
+  exercise the staged reader through `validate_root` and a manual CLI smoke,
+  but not `main(["--staged"])` directly; accepted because both direct staged
+  command and pre-commit run passed. Hook/docs policy was 9 because tests are
+  mostly substring checks and do not assert the release command list path
+  structurally; accepted because `verify-release.py --skip-clean-worktree --base-ref origin/main`
+  passed and includes archive lifecycle validation.
+  Process re-review was 9 because final administrative acceptance/archive was
+  intentionally pending during re-review; this final record completes that
+  closure.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: no follow-up. The staged pre-commit path and
+  release worktree path are both exercised by verification; optional future
+  exact command-list tests are not required for this policy decision.
+- Accepted: yes.
+
+Multi-review:
+
+- Required: yes; this changes pre-commit/release gate behavior.
+- Staged checker semantics critic: score 9, verdict PASS. Blocking findings:
+  none. Why not 10: tests exercise the staged reader through `validate_root`,
+  but do not directly invoke `main(["--staged"])` or the script subprocess path.
+- Hook/docs policy critic: score 9, verdict PASS. Blocking findings: none. Why
+  not 10: tests prove staged hook and README wording are present, but do not
+  directly assert release validation includes archive lifecycle through the
+  Standard verification/release gate path.
+- Maintenance-process critic: score 8, verdict VETO. Blocking findings:
+  Completion Gate was missing and dirty out-of-scope `backlog/README.md` and
+  `backlog/codex-adapter.md` needed explicit handling. This result is not
+  accepted until affected critic re-review reaches the required threshold.
+- Score handling: score 9 why-not-10 reasons are recorded above and accepted as
+  residual risk without follow-up. Score 8 is treated as a VETO and not
+  accepted until affected critic re-review reaches at least nine.
+- Rerun status: maintenance-process critic re-review scored 9, verdict PASS.
+  Blocking findings: none.
+- Follow-up/residual risk: optional exact CLI/command-list tests are not
+  required because focused tests plus direct command, pre-commit, and release
+  verification cover the selected contract.
+- Final acceptance: yes.
