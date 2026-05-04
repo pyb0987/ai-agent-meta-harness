@@ -257,6 +257,35 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
 
+    def test_init_harness_sub_agent_boundary_matches_core_policy(self):
+        text = INIT_HARNESS.read_text(encoding="utf-8")
+
+        for marker in (
+            "two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence)",
+            "Generic sub-agent uses (parallel Explore, context firewall) are Claude Code runtime tactics, not harness methodology",
+            "use them only when they materially preserve independence or unblock bounded parallel work",
+            "Temporary subagents are allowed only as bounded Claude Code runtime tactics for the two core isolation triggers",
+            "extra runtime routing when it materially preserves independence or unblocks bounded parallel work",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+        self.assertNotIn("Prefer over-invoking to under-invoking", text)
+        self.assertNotIn("three trigger categories", text)
+
+    def test_compatibility_mirror_has_sub_agent_boundary_wording(self):
+        canonical = INIT_HARNESS.read_text(encoding="utf-8")
+        mirror = MIRROR_INIT_HARNESS.read_text(encoding="utf-8")
+
+        for marker in (
+            "Claude Code runtime tactics, not harness methodology",
+            "Temporary subagents are allowed only as bounded Claude Code runtime tactics for the two core isolation triggers",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, mirror)
+                self.assertEqual(canonical.count(marker), mirror.count(marker))
+        self.assertNotIn("Prefer over-invoking to under-invoking", mirror)
+        self.assertNotIn("three trigger categories", mirror)
+
 
 if __name__ == "__main__":
     unittest.main()

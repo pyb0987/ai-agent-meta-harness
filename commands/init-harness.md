@@ -95,7 +95,7 @@ Write or enhance project CLAUDE.md:
    - .claude/traces/ structure
    - **Change strategy**: Additive first -> Subtractive -> Structural (one at a time, confounding variable isolation)
    - **Failure escalation loop**: a `resolved: true` entry in `.claude/traces/failures/*.md` must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
-   - **Sub-agent triggers**: reference `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" — two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence). Generic sub-agent uses (parallel Explore, context firewall) are Claude Code patterns, not harness policy. Prefer over-invoking to under-invoking
+   - **Sub-agent triggers**: reference `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" — two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence). Generic sub-agent uses (parallel Explore, context firewall) are Claude Code runtime tactics, not harness methodology; use them only when they materially preserve independence or unblock bounded parallel work
    - Protected files (if applicable)
 
 ### Step 5: Configure Hooks
@@ -229,7 +229,7 @@ All items below must pass for init-harness to be complete:
 
 - Start with minimal viable harness — incrementally strengthen via feedback loop
 - Include only "agent will fail without this", not "nice to have"
-- **Do NOT create agent teams/orchestrators/agent definition files (.claude/agents/)** — Meta-Harness focuses on single-agent environment optimization. Subagents (evaluator, explore, multi-review critics, etc.) are allowed for context isolation and tactical decision support — this is single-agent tool usage, not multi-persona collaboration. See `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" for the three trigger categories
+- **Do NOT create agent teams/orchestrators/agent definition files (.claude/agents/)** — Meta-Harness focuses on single-agent environment optimization. Temporary subagents are allowed only as bounded Claude Code runtime tactics for the two core isolation triggers, or for extra runtime routing when it materially preserves independence or unblocks bounded parallel work. This is single-agent tool usage, not multi-persona collaboration
 - Achieve full coverage via hooks + explicit done conditions. Avoid over-installing hooks
 
 ## Hook Configuration Example (`.claude/settings.local.json`)

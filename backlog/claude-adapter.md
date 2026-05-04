@@ -402,7 +402,34 @@ Completion Gate:
 
 ### 14. P2 align Claude init sub-agent trigger wording with core isolation policy
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- adapters/claude/commands/init-harness.md
+- commands/init-harness.md
+- tests/test_claude_init_harness_fixture.py
+- backlog/claude-adapter.md
+
+Start Gate:
+
+- Selected item: `backlog/claude-adapter.md` item 14, align Claude init
+  sub-agent trigger wording with core isolation policy.
+- Status block added: yes, item 14 marked `진행중`.
+- Harness-affecting: yes; Claude init guidance changes adapter
+  methodology/runtime boundary behavior.
+- Multi-review required: yes; this changes adapter behavior and core
+  methodology boundary semantics.
+- Minimum verification commands: `python3 scripts/check-compat-mirrors.py`;
+  `python3 scripts/check-claude-adapter-paths.py`; `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py`; `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`; `python3
+  scripts/check-search-set-evidence.py`; `python3 scripts/run-search-set.py`;
+  `python3 scripts/verify-release.py --skip-clean-worktree`; `git diff
+  --check`.
+- Expected scope: Claude init-harness canonical command, root compatibility
+  mirror, focused Claude init fixture tests, and this backlog record.
 
 Source review: 2026-05-04 adapter/plugin alignment critic in the current-main
 methodology multi-review.
@@ -435,6 +462,96 @@ Done when:
 - Claude-specific sub-agent tactics are clearly runtime policy, not paper-core
   Meta-Harness claims.
 - Mirror/path checks pass after the wording update.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because the
+  first edit happened after focused baseline checks only. Focused baseline gates
+  passed: `python3 scripts/check-compat-mirrors.py`, `python3
+  scripts/check-claude-adapter-paths.py`, `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py`, `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`, and `python3
+  scripts/check-search-set-evidence.py` before the evidence record was needed.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Updated Claude `/init-harness` guidance to name the two core isolation
+  triggers: multi-review for qualitative judgment and Fixed Evaluator for
+  evaluator independence.
+- Reframed generic parallel Explore/context firewall usage as Claude Code
+  runtime tactics, not harness methodology, and bounded them to material
+  independence or bounded parallel work.
+- Removed the old "Prefer over-invoking to under-invoking" and "three trigger
+  categories" wording from the canonical command and compatibility mirror.
+- Added focused tests that pin the two-trigger/runtime-policy boundary and
+  reject the legacy phrases in both canonical and mirror command files.
+
+Multi-review:
+
+- Methodology-boundary critic: score 9/10, PASS. Blocking findings: none. Why
+  not 10: the first revision still had a broad "context isolation and tactical
+  decision support" sentence; fixed in this item by narrowing temporary
+  subagents to bounded runtime tactics.
+- Mirror/test enforceability critic: score 8/10, VETO. Blocking findings:
+  mirror-specific tests did not reject the legacy phrases in the root mirror;
+  not accepted.
+- Process-compliance critic: score 9/10, PASS. Blocking findings: none. Why not
+  10: the backlog record initially lacked explicit Start Gate fields; fixed in
+  this item by adding the full Start Gate.
+- Score handling: the score below 9 was treated as VETO. The mirror/test VETO
+  was fixed by adding forbidden-phrase assertions for the mirror. The
+  methodology-boundary score-9 concern was fixed by narrowing the broad
+  subagent allowance. The process score-9 concern was fixed by recording the
+  full Start Gate.
+- Affected methodology-boundary critic rerun: score 10/10, PASS. Blocking
+  findings: none.
+- Affected mirror/test critic rerun: score 10/10, PASS. Blocking findings:
+  none.
+- Affected process-compliance critic rerun: score 10/10, PASS. Blocking
+  findings: none.
+- Rerun status: all affected critics reran; final scores are 10/10, 10/10, and
+  10/10 PASS.
+- Follow-up/residual risk: none; actionable score-9 reasons were handled in
+  this item.
+- Final acceptance: accepted after VETO fix and affected critic reruns.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `adapters/claude/commands/init-harness.md`,
+  `commands/init-harness.md`, `tests/test_claude_init_harness_fixture.py`,
+  `backlog/claude-adapter.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_claude_init_harness_fixture.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3
+  scripts/check-claude-adapter-paths.py`; PASS `python3
+  scripts/check-maintenance-review.py backlog/claude-adapter.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3 scripts/run-search-set.py`;
+  PASS `python3 scripts/verify-release.py --skip-clean-worktree`; PASS `git
+  diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED full Active search-set before implementation with reason
+    above; focused baseline gates passed.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; this changes Claude adapter behavior and
+  core-methodology boundary semantics.
+- Multi-review result: PASS after three-critic multi-review, VETO fix, and
+  affected critic reruns.
+- Reviewer scores and VETO handling: methodology-boundary critic 9/10 PASS
+  rerun to 10/10 PASS; mirror/test enforceability critic 8/10 VETO fixed and
+  rerun to 10/10 PASS; process-compliance critic 9/10 PASS rerun to 10/10 PASS.
+- For each score-9 result, why not 10:
+  - Methodology-boundary critic: not 10 because broad temporary-subagent wording
+    still remained; fixed in this item and rerun to 10/10 PASS.
+  - Process-compliance critic: not 10 because Start Gate fields were not
+    recorded in the backlog item yet; fixed in this item and rerun to 10/10
+    PASS.
+- Backlog items added from score-9 residual risk: none; all actionable score-9
+  reasons were fixed here.
+- Residual risk/follow-up: none.
+- Accepted: yes.
 
 ### 15. P2 align Claude multi-review threshold with repository governance
 
