@@ -10,13 +10,17 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import textwrap
 
 
 FIXTURES = ("typescript-app", "python-research", "migrated-claude-history")
+VERIFY_RE = re.compile(r"^- \*\*verify\*\*: `([^`]+)`\s*$", re.MULTILINE)
+VERIFY_TIMEOUT_SECONDS = 20
 
 
 def write(path: Path, text: str) -> None:
@@ -108,12 +112,18 @@ def create_typescript_fixture(root: Path) -> Path:
         """
         {
           "scripts": {
-            "typecheck": "tsc --noEmit",
+            "typecheck": "node ./scripts/typecheck.js",
             "test": "vitest run",
             "lint": "eslint .",
             "build": "vite build"
           }
         }
+        """,
+    )
+    write(
+        project / "scripts/typecheck.js",
+        """
+        console.log("fixture typecheck passed");
         """,
     )
     trace_root = ".harness/traces"
@@ -138,6 +148,7 @@ def create_python_fixture(root: Path) -> Path:
         testpaths = ["tests"]
         """,
     )
+    write(project / "pytest.py", "print('fixture pytest passed')\n")
     trace_root = ".harness/traces"
     command = "python3 -m pytest"
     write(project / f"{trace_root}/search-set.md", search_set(command, "pyproject.toml pytest config"))
@@ -150,7 +161,8 @@ def create_python_fixture(root: Path) -> Path:
 
 def create_migrated_fixture(root: Path) -> Path:
     project = root / "migrated-claude-history"
-    write(project / "package.json", '{"scripts":{"test":"npm test -- --runInBand"}}\n')
+    write(project / "package.json", '{"scripts":{"test":"node ./test-runner.js"}}\n')
+    write(project / "test-runner.js", "console.log('fixture migrated npm test passed')\n")
     trace_root = ".claude/traces"
     command = "npm test -- --runInBand"
     write(project / f"{trace_root}/search-set.md", search_set(command, "existing Claude Active case"))
@@ -177,6 +189,38 @@ def rel(project: Path, path: Path) -> str:
     return path.relative_to(project).as_posix()
 
 
+def active_verify_commands(search_set_text: str) -> list[str]:
+    active = search_set_text.split("## Archived", 1)[0]
+    return [match.group(1).strip() for match in VERIFY_RE.finditer(active)]
+
+
+def command_masks_exit_status(command: str) -> bool:
+    return any(marker in command for marker in ("| tail", "|| true", "; echo $?", "&& echo $?"))
+
+
+def run_verify_command(project: Path, command: str) -> str | None:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=project,
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=VERIFY_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return f"{project.name}: VERIFY COMMAND TIMED OUT: {command}"
+    if result.returncode != 0:
+        output = "\n".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+        if len(output) > 500:
+            output = output[:500] + "...<truncated>"
+        detail = f": {output}" if output else ""
+        return f"{project.name}: VERIFY COMMAND FAILED ({result.returncode}): {command}{detail}"
+    return None
+
+
 def validate_trace_root(project: Path, trace_root: str, command: str, *, migrated: bool) -> list[str]:
     errors: list[str] = []
     root = project / trace_root
@@ -194,8 +238,16 @@ def validate_trace_root(project: Path, trace_root: str, command: str, *, migrate
                 errors.append(f"{project.name}: SEARCH SET MISSING MARKER: {marker}")
         if f"- **verify**: `{command}`" not in text:
             errors.append(f"{project.name}: SEARCH SET DOES NOT USE EXPECTED VERIFY: {command}")
-        if any(info_only in text for info_only in ("echo $?", "| tail", "|| true")):
-            errors.append(f"{project.name}: SEARCH SET VERIFY MUST NOT MASK EXIT STATUS")
+        commands = active_verify_commands(text)
+        if not commands:
+            errors.append(f"{project.name}: SEARCH SET HAS NO ACTIVE VERIFY COMMANDS")
+        for verify_command in commands:
+            if command_masks_exit_status(verify_command):
+                errors.append(f"{project.name}: SEARCH SET VERIFY MUST NOT MASK EXIT STATUS")
+                continue
+            failure = run_verify_command(project, verify_command)
+            if failure:
+                errors.append(failure)
     evolution = root / "evolution" / "001-initial-codex-harness.md"
     if not evolution.is_file():
         errors.append(f"{project.name}: MISSING INITIAL EVOLUTION TRACE: {rel(project, evolution)}")

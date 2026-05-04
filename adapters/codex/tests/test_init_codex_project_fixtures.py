@@ -81,6 +81,26 @@ class InitCodexProjectFixtureSmokeTests(unittest.TestCase):
 
             self.assertTrue(any("MUST NOT MASK EXIT STATUS" in error for error in errors), errors)
 
+    def test_rejects_verify_command_that_fails_in_fixture_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = fixtures.create_typescript_fixture(Path(tmp))
+            (project / "scripts" / "typecheck.js").unlink()
+
+            errors = fixtures.validate_project(project)
+
+            self.assertTrue(any("VERIFY COMMAND FAILED" in error for error in errors), errors)
+
+    def test_rejects_missing_active_verify_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = fixtures.create_python_fixture(Path(tmp))
+            search_set = project / ".harness" / "traces" / "search-set.md"
+            text = search_set.read_text(encoding="utf-8")
+            search_set.write_text(text.replace("- **verify**: `python3 -m pytest`", ""), encoding="utf-8")
+
+            errors = fixtures.validate_project(project)
+
+            self.assertTrue(any("NO ACTIVE VERIFY COMMANDS" in error for error in errors), errors)
+
     def test_rejects_split_trace_root_for_migrated_project(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             project = fixtures.create_migrated_fixture(Path(tmp))

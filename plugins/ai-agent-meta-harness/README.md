@@ -189,8 +189,11 @@ The init project fixture smoke creates representative TypeScript, Python, and
 migrated-Claude-history project fixtures and validates the expected
 `init-codex-harness` contract: trace-root selection, Active executable
 search-set verifier, AGENTS.md harness policy, initial evolution trace, and no
-Claude-only hook assumptions. It does not run a live Codex model against an
-external project.
+Claude-only hook assumptions. It also runs each generated Active
+`search-set.md` verify command inside the fixture project, so masked exit
+statuses, missing command dependencies, and non-running verifier text fail the
+smoke. It does not run a live Codex model against an external project or prove
+Codex Desktop skill surfacing.
 
 The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
 
