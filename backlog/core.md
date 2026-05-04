@@ -124,11 +124,9 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has unstarted concrete items from the 2026-05-04
-  current-main methodology reviews: item 48 should bundle release verification
-  into one executable gate. Items 41-47 and 49-52 are complete or ready for
-  maintainer review, so future maintenance should not select them as available
-  implementation candidates.
+- Active core backlog currently has no unstarted concrete core implementation
+  item. Items 41-52 are complete or ready for maintainer review, so future
+  maintenance should not select them as available implementation candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -463,7 +461,15 @@ Completion Gate:
 
 ### 48. P2 add one executable release verification gate
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/verify-release.py
+- tests/test_verify_release.py
+- MAINTENANCE.md
+- backlog/core.md
 
 Source review: 2026-05-04 executable-implementation critic in the current-main
 methodology multi-review.
@@ -499,6 +505,79 @@ Done when:
 - Focused tests or a dry-run/list mode protect the command list from drifting
   away from `MAINTENANCE.md`.
 - Multi-review checks the result because this changes release-gate semantics.
+
+Decision implemented:
+
+- Added `scripts/verify-release.py` as the executable stable-handoff gate.
+- The release gate runs the documented Standard verification commands, the
+  repository Active search-set runner, and `python3 scripts/check-clean-worktree.py`.
+- Added `--list` so maintainers and tests can inspect the exact command list
+  without running it.
+- Added `--skip-clean-worktree` for validating an in-progress maintenance diff
+  before the final clean handoff; the default release path still includes the
+  clean-worktree gate.
+- Added focused tests that protect the command list, ensure plain root-level
+  `python3 -m unittest discover` is not used, verify clean-worktree skipping
+  only removes the clean gate, and check that `MAINTENANCE.md` documents the
+  preferred stable-handoff command.
+- Documented `python3 scripts/verify-release.py` in `MAINTENANCE.md`.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because this
+  release-gate item started from a clean `main`; baseline
+  `python3 scripts/run-search-set.py --list`, `python3
+  scripts/check-maintenance-review.py backlog/core.md`, and `python3
+  scripts/check-search-set-evidence.py` passed before edits.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Multi-review:
+
+- First isolated release-gate reviewer: score 8/10, VETO. Blocking findings:
+  P1 `scripts/verify-release.py` had a shebang but lacked executable file mode;
+  P2 command-list tests duplicated expected strings instead of deriving the
+  Standard verification block from `MAINTENANCE.md`, and did not protect the
+  autoresearch hook smoke command against drift. Not accepted.
+- Score handling: score below 9 was treated as VETO. Blocking findings were
+  fixed by making `scripts/verify-release.py` executable and updating
+  `tests/test_verify_release.py` to parse the Standard verification block from
+  `MAINTENANCE.md` and require every documented command in the release gate.
+- Affected reviewer rerun: score 9/10, PASS. Blocking findings: none. Why not
+  10: the rerun happened while this record still said final acceptance was
+  blocked pending that rerun; final closure was still needed after receiving the
+  rerun result.
+- Score handling: the score-9 why-not-10 reason was procedural and is addressed
+  by this Completion Gate; no backlog follow-up is needed.
+- Rerun status: affected reviewer rerun reached score 9/10 PASS.
+- Follow-up/residual risk: none.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `scripts/verify-release.py`, `tests/test_verify_release.py`,
+  `MAINTENANCE.md`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest tests/test_verify_release.py`;
+  PASS `python3 scripts/verify-release.py --list`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `python3
+  scripts/run-search-set.py`; PASS `python3 scripts/check-maintenance-review.py
+  backlog/core.md`; PASS `python3 scripts/check-maintenance-review.py`; PASS
+  `python3 scripts/check-search-set-evidence.py`; PASS `python3 -m unittest
+  tests/test_backlog_heading_uniqueness.py`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED with reason above.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: yes; release/stable-handoff gate semantics.
+- Multi-review result: PASS after VETO fix and affected reviewer rerun.
+- Reviewer scores and VETO handling: see Multi-review records above; initial
+  VETO blocking findings were fixed and the affected reviewer rerun passed.
+- For each score-9 result, why not 10: final backlog closure was still pending
+  at the moment of rerun; addressed by this Completion Gate.
+- Backlog items added from score-9 residual risk: none; procedural closure was
+  completed in this item.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for commit.
 
 ### 49. P3 guard against root unittest discovery false greens
 
