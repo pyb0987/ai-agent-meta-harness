@@ -579,6 +579,85 @@ Completion Gate:
 - Residual risk/follow-up: none.
 - Accepted: yes; ready for commit.
 
+Follow-up multi-review revalidation, 2026-05-04:
+
+- Reason: maintainer clarified that required multi-review should use multiple
+  reviewers/critics rather than the earlier single isolated reviewer path. This
+  follow-up revalidates item 48 under the clarified policy without changing the
+  implementation files.
+- Changed files for this follow-up: `backlog/core.md`.
+- Verification results: PASS `python3 -m unittest tests/test_verify_release.py`;
+  PASS `python3 scripts/verify-release.py --list`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED; follow-up is review-record-only and does not change
+    harness behavior. Existing item 48 search-set implementation evidence is
+    recorded above.
+  - AFTER: SKIPPED; follow-up is review-record-only and does not change harness
+    behavior.
+- Multi-review required: yes; item 48 changes release/stable-handoff gate
+  semantics and is being revalidated under the clarified multi-review policy.
+
+Follow-up multi-review:
+
+- Release-gate command coverage critic: score 10/10, PASS. Blocking findings:
+  none.
+- Test/drift-protection critic: score 9/10, PASS. Blocking findings: none. Why
+  not 10: tests protect Standard verification inclusion plus search-set and
+  clean-worktree gates, but do not assert exact command ordering or exact
+  command-list equality beyond those required gates.
+- Process-compliance critic: score 8/10, VETO. Blocking findings: item 48 still
+  recorded the old single-review path rather than the true multi-review
+  revalidation, and `Status: 진행중` conflicted with the existing Completion Gate.
+  Not accepted.
+- Score handling: the score below 9 was treated as VETO. Blocking findings were
+  fixed by adding this follow-up multi-review record with critic scopes, scores,
+  verdicts, why-not-10 handling, VETO handling, rerun status, and a consistent
+  `리뷰대기` status.
+- Affected process-compliance critic rerun: score 9/10, PASS. Blocking
+  findings: none. Why not 10: final closure still depended on recording this
+  rerun result and updating final acceptance from blocked to accepted.
+- Rerun status: affected process-compliance critic rerun reached score 9/10
+  PASS.
+- Follow-up/residual risk: the test/drift-protection score-9 reason is accepted
+  as residual risk for this revalidation because item 48's current contract is
+  Standard command inclusion plus explicit search-set and clean-worktree gates,
+  not a frozen total order. No backlog item added.
+- Final acceptance: accepted after this follow-up Completion Gate.
+
+Follow-up Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `backlog/core.md`.
+- Scope deviations: none; follow-up revalidation changed only the item 48
+  record.
+- Verification results: PASS `python3 -m unittest tests/test_verify_release.py`;
+  PASS `python3 scripts/verify-release.py --list`; PASS `python3
+  scripts/verify-release.py --skip-clean-worktree`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED; record-only follow-up, no harness behavior changed.
+  - AFTER: SKIPPED; record-only follow-up, no harness behavior changed.
+- Multi-review required: yes; follow-up revalidates release-gate semantics under
+  the clarified multi-review policy.
+- Multi-review result: PASS after three-critic multi-review, VETO fix, and
+  affected process-compliance critic rerun.
+- Reviewer scores and VETO handling: command-coverage critic 10/10 PASS;
+  test/drift-protection critic 9/10 PASS; process-compliance critic 8/10 VETO,
+  fixed and rerun to 9/10 PASS.
+- For each score-9 result, why not 10: test/drift-protection critic noted the
+  tests do not enforce exact command ordering or exact command-list equality
+  beyond Standard inclusion plus explicit release-only gates; process-compliance
+  critic noted final closure was pending at rerun time, addressed by this gate.
+- Backlog items added from score-9 residual risk: none; ordering/equality is
+  accepted as residual risk for the current release-gate contract, and
+  procedural closure is completed here.
+- Residual risk/follow-up: accepted command-order/equality residual risk.
+- Accepted: yes; ready for commit.
+
 ### 49. P3 guard against root unittest discovery false greens
 
 Status: 리뷰대기
