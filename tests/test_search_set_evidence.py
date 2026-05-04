@@ -305,6 +305,11 @@ Completion Gate:
         self.assertIn("search-set evidence compliance", lower)
         self.assertIn("git index", lower)
         self.assertIn("ref...head", lower)
+        self.assertIn("shape-only", lower)
+        self.assertIn("does not parse `.harness/traces/search-set.md`", text)
+        self.assertIn("prove that a recorded command is\ncurrently Active", text)
+        self.assertIn("prove that `python3 scripts/run-search-set.py` actually\nran", text)
+        self.assertIn("Active-case execution is enforced by the separate verification policy", text)
 
     def test_staged_mode_uses_index_paths_and_records(self) -> None:
         original_staged_paths = check_search_set_evidence.git_staged_paths

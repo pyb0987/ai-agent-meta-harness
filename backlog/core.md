@@ -124,16 +124,14 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has five unstarted concrete process items from recent
+- Active core backlog has three unstarted concrete process items from recent
   current-main methodology reviews: item 56 should track and reduce repeated
   nonindependent multi-review fallback use for durable-contract decisions; item
-  57 should make search-set evidence enforcement meaningful for staged or
-  release candidate diffs; item 58 should decide how far evidence records should
-  be tied to actual Active search-set commands; item 59 should capture future
-  qualifying repository raw traces when real failures, VETOs, or experiment
-  episodes occur; item 60 should make the archive lifecycle operational for
-  completed active backlog records.
-  Item 61 is complete, so future maintenance should not select it as an
+  59 should capture future qualifying repository raw traces when real failures,
+  VETOs, or experiment episodes occur; item 60 should make the archive
+  lifecycle operational for completed active backlog records.
+  Items 57, 58, and 61 are complete, so future maintenance should not select
+  them as available implementation candidates.
   available implementation candidate.
   Items 41-55 are complete, so future maintenance should not select them as
   available implementation candidates.
@@ -1617,7 +1615,32 @@ Completion Gate:
 
 ### 58. P3 decide whether search-set evidence records must reference Active cases
 
-Status: 대기
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- tests/test_search_set_evidence.py
+- backlog/core.md
+
+Start Gate:
+
+- Selected item: `backlog/core.md` item 58, decide whether search-set evidence
+  records must reference Active cases.
+- Status block added: yes, item 58 marked `진행중`.
+- Harness-affecting: yes; this clarifies release/evidence-check policy for
+  harness-affecting changes.
+- Multi-review required: no; this documents the checker's existing boundary
+  rather than changing checker enforcement semantics.
+- Minimum verification commands: `python3 -m unittest
+  tests/test_search_set_evidence.py`; `python3 scripts/check-search-set-evidence.py`;
+  `python3 scripts/check-search-set-evidence.py --base-ref origin/main`;
+  `python3 scripts/check-maintenance-review.py backlog/core.md`; `python3
+  scripts/run-search-set.py`; `python3 scripts/verify-release.py
+  --skip-clean-worktree`; `git diff --check`.
+- Expected scope: maintenance policy text, focused checker-policy test, and
+  this backlog record.
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -1649,6 +1672,60 @@ Done when:
 - `MAINTENANCE.md` and checker tests match that decision.
 - The policy still allows practical skipped reasons for docs-only, unsafe,
   unavailable, or intentionally narrowed verification.
+
+Search-set verification:
+
+- BEFORE: PASS `python3 scripts/run-search-set.py`; focused baseline gates
+  passed: `python3 -m unittest tests/test_search_set_evidence.py`, `python3
+  scripts/check-search-set-evidence.py`, and `python3
+  scripts/check-maintenance-review.py backlog/core.md`.
+- AFTER: PASS `python3 scripts/run-search-set.py`.
+
+Decision implemented:
+
+- Kept `scripts/check-search-set-evidence.py` intentionally shape-only: it
+  checks structured `BEFORE:` / `AFTER:` or `SKIPPED:` evidence shape, not
+  whether commands are current Active cases or actually executed.
+- Documented that Active-case execution remains a separate verification policy:
+  run `python3 scripts/run-search-set.py` for harness-affecting repository
+  changes, or record a precise skipped/narrowed reason in the Completion Gate.
+- Added focused documentation coverage in `tests/test_search_set_evidence.py`
+  so the shape-only boundary and separate Active execution policy remain
+  explicit.
+
+Completion Gate:
+
+- Backlog status: `완료`.
+- Changed files: `MAINTENANCE.md`; `tests/test_search_set_evidence.py`;
+  `backlog/core.md`.
+- Scope deviations: `backlog/core.md` Current Status was updated within the
+  selected backlog file so completed items 57 and 58 are no longer listed as
+  active `should` candidates. Unrelated dirty `backlog/README.md` remains
+  outside item 58 and will not be staged or committed with it.
+- Verification results: PASS `python3 -m unittest tests/test_search_set_evidence.py`;
+  PASS `python3 scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/check-search-set-evidence.py --base-ref origin/main`; PASS `python3
+  scripts/check-maintenance-review.py backlog/core.md`; PASS `python3
+  scripts/run-search-set.py`; PASS `python3 scripts/verify-release.py
+  --skip-clean-worktree`; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py`.
+- Multi-review required: no; this documents the checker boundary without
+  changing checker enforcement semantics.
+- Multi-review result: not required. Single isolated reviewer scored 9/10 PASS
+  for stable handoff hygiene.
+- Reviewer scores and VETO handling: isolated reviewer 9/10 PASS; no VETO.
+- For each score 9, why not 10: reviewer noted that enforcement remains split
+  between documented process and `run-search-set.py` rather than adding
+  end-to-end mechanical proof that every Completion Gate followed the policy.
+  This is accepted as residual risk because item 58 explicitly chose the
+  shape-only checker boundary instead of changing checker semantics.
+- Backlog items added from score-9 residual risk: none; adding end-to-end
+  semantic enforcement would reverse the explicit item 58 policy decision
+  rather than follow from it.
+- Residual risk/follow-up: accepted shape-only checker boundary.
+- Accepted: yes.
 
 ### 59. P2 capture future qualifying repository raw traces
 
