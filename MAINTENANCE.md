@@ -350,6 +350,23 @@ search-set before/after evidence or an explicit skipped reason. It does not try
 to prove full methodology compliance, and it leaves pre-commit index semantics
 unchanged.
 
+Use structured evidence lines so the checker can reject vague prose and
+accidental keywords:
+
+```md
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+```
+
+If search-set execution is not applicable or not practical, record a structured
+skipped reason instead:
+
+```md
+- Search-set verification:
+  - SKIPPED: docs-only cleanup; no harness-affecting behavior changed.
+```
+
 Search-set verification is project-contextual rather than repo-global: use the
 active trace root for the project whose harness behavior is changing. If this
 repository is the target harnessed project and no trace root exists, record that

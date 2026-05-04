@@ -29,8 +29,8 @@ Status: 리뷰대기
 
 Completion Gate:
 - Search-set verification:
-  - BEFORE PASS: `python3 scripts/check-maintenance-review.py`
-  - AFTER PASS: `python3 scripts/check-maintenance-review.py`
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py`
+  - AFTER: PASS `python3 scripts/check-maintenance-review.py`
 - Multi-review required: yes
 """
 
@@ -48,16 +48,83 @@ Completion Gate:
 Status: 리뷰대기
 
 Completion Gate:
-- Search-set verification: SKIPPED; not harness-affecting cleanup.
+- Search-set verification:
+  - SKIPPED: not harness-affecting cleanup.
 - Multi-review required: no
 """
 
         errors = check_search_set_evidence.validate(
-            ["scripts/check-clean-worktree.py", "backlog/core.md"],
+            ["MAINTENANCE.md", "backlog/core.md"],
             read_text=read_text,
         )
 
         self.assertEqual(errors, [])
+
+    def test_not_skipped_keyword_does_not_satisfy_gate(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification: not skipped, still TODO before and after.
+- Multi-review required: yes
+"""
+
+        self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
+
+    def test_prose_before_after_without_status_does_not_satisfy_gate(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification: before and after commands will be run during review.
+- Multi-review required: yes
+"""
+
+        self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
+
+    def test_structured_pass_without_command_does_not_satisfy_gate(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification:
+  - BEFORE: PASS reviewed locally
+  - AFTER: PASS will rerun later
+- Multi-review required: yes
+"""
+
+        self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
+
+    def test_legacy_no_colon_shape_does_not_satisfy_gate(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification:
+  - BEFORE PASS: `cmd`
+  - AFTER PASS: `cmd`
+- Multi-review required: yes
+"""
+
+        self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
+
+    def test_todo_inside_structured_evidence_does_not_satisfy_gate(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification:
+  - BEFORE: PASS `cmd`
+  - AFTER: PASS TODO rerun
+- Multi-review required: yes
+"""
+
+        self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
 
     def test_backlog_only_cleanup_is_not_harness_affecting(self) -> None:
         errors = check_search_set_evidence.validate(["backlog/core.md"])

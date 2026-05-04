@@ -35,6 +35,15 @@ RECORD_PATH_PREFIXES = (
     "backlog/",
 )
 BACKLOG_SECTION_RE = re.compile(r"^### \d+\. .+?(?=^### \d+\. |\Z)", re.MULTILINE | re.DOTALL)
+EVIDENCE_LINE_RE = re.compile(
+    r"^\s*(?:-\s*)?(BEFORE|AFTER):\s+(PASS|FAIL|SKIPPED)\b(.+)",
+    re.IGNORECASE,
+)
+SKIPPED_LINE_RE = re.compile(r"^\s*(?:-\s*)?SKIPPED\s*:\s+\S.+", re.IGNORECASE)
+AMBIGUOUS_EVIDENCE_RE = re.compile(
+    r"\bnot\s+skipped\b|\bTODO\b|\bTBD\b|\bunchecked\b",
+    re.IGNORECASE,
+)
 
 
 def git_changed_paths() -> list[str]:
@@ -79,10 +88,28 @@ def has_search_set_evidence(text: str) -> bool:
     stop = section.find("\n- Multi-review")
     if stop != -1:
         section = section[:stop]
-    lower = section.lower()
-    if "skipped" in lower:
+    if AMBIGUOUS_EVIDENCE_RE.search(section):
+        return False
+    has_before = False
+    has_after = False
+    for line in section.splitlines():
+        if SKIPPED_LINE_RE.match(line):
+            return True
+        match = EVIDENCE_LINE_RE.match(line)
+        if not match:
+            continue
+        status = match.group(2).lower()
+        detail = match.group(3)
+        if status in {"pass", "fail"} and "`" not in detail:
+            continue
+        if status == "skipped" and not detail.strip():
+            continue
+        label = match.group(1).lower()
+        has_before = has_before or label == "before"
+        has_after = has_after or label == "after"
+    if has_before and has_after:
         return True
-    return "before" in lower and "after" in lower
+    return False
 
 
 def sections_with_status(text: str, status: str) -> list[str]:

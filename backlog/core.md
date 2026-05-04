@@ -612,7 +612,15 @@ Completion Gate:
 
 ### 50. P2 harden search-set evidence checker text matching
 
-Status: 대기
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- scripts/check-search-set-evidence.py
+- tests/test_search_set_evidence.py
+- MAINTENANCE.md
+- backlog/core.md
 
 Source review: 2026-05-04 multi-review of local `main` against the
 Meta-Harness methodology.
@@ -641,6 +649,89 @@ Done when:
   vague prose or accidental keywords.
 - `MAINTENANCE.md` and backlog Completion Gate examples use the accepted shape.
 - Focused tests prove both valid and invalid evidence text.
+
+Decision implemented:
+
+- Tightened `scripts/check-search-set-evidence.py` so `Search-set verification`
+  records must use structured `BEFORE:` / `AFTER:` evidence lines with
+  PASS/FAIL/SKIPPED status, or a structured `SKIPPED:` reason.
+- Ambiguous text such as `not skipped`, `TODO`, `TBD`, or `unchecked` invalidates
+  the record instead of satisfying it by keyword accident.
+- Updated `MAINTENANCE.md` with the accepted structured evidence examples.
+- Added focused tests for valid before/after evidence, valid skipped reasons,
+  `not skipped` false positives, vague before/after prose, and TODO text inside
+  otherwise structured evidence.
+
+Search-set verification:
+
+- BEFORE: SKIPPED full Active search-set before implementation because this
+  checker-hardening item started from a clean `main`, baseline `python3 -m
+  unittest tests/test_search_set_evidence.py` passed, baseline `python3
+  scripts/check-search-set-evidence.py` passed, and `python3
+  scripts/run-search-set.py --list` confirmed the Active case inventory before
+  edits.
+- AFTER: PASS `python3 scripts/run-search-set.py`; PASS rerun after VETO fixes
+  with the same command.
+
+Multi-review:
+
+- First isolated release-gate reviewer: score 8/10, VETO. Blocking findings:
+  P1 structured PASS evidence still accepted prose-only lines without command
+  evidence; P2 legacy no-colon `BEFORE PASS` / `AFTER PASS` shape still matched
+  despite docs requiring `BEFORE:` / `AFTER:`. Not accepted.
+- Score handling: score below 9 was treated as VETO. Blocking findings were
+  fixed by requiring colons in `BEFORE:` / `AFTER:` lines and requiring
+  backticked command evidence for PASS/FAIL before-after records.
+- Affected reviewer rerun: score 9/10, PASS. Blocking findings: none. Why not
+  10: the checker is intentionally syntactic; it confirms structured evidence
+  and backticked command text, but does not prove the command is the correct
+  Active search-set command or that it actually ran.
+- Score handling: the score-9 why-not-10 reason is accepted as residual risk
+  because `MAINTENANCE.md` explicitly says the checker is lightweight and does
+  not prove full methodology compliance.
+- Rerun status: affected reviewer rerun reached score 9/10 PASS.
+- Follow-up/residual risk: accepted syntactic-checker limitation; no backlog
+  item added because stronger semantic proof is outside this checker's stated
+  policy.
+- Final acceptance: accepted after this Completion Gate.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `scripts/check-search-set-evidence.py`,
+  `tests/test_search_set_evidence.py`, `MAINTENANCE.md`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 -m unittest
+  tests/test_search_set_evidence.py`; PASS `python3 scripts/check-search-set-evidence.py`;
+  PASS `python3 scripts/check-maintenance-review.py backlog/core.md`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS `python3 -m unittest
+  discover -s tests`; PASS `python3 -m unittest discover -s
+  adapters/claude/tests`; PASS `python3 -m unittest discover -s
+  adapters/codex/tests`; PASS `python3 scripts/check-compat-mirrors.py`; PASS
+  `python3 scripts/check-claude-adapter-paths.py`; PASS `python3
+  scripts/sync-codex-plugin.py --check`; PASS `python3
+  adapters/codex/scripts/check-codex-hook-schema-drift.py`; PASS `python3
+  adapters/codex/scripts/smoke-autoresearch-hooks.py --checker
+  adapters/codex/scripts/check-autoresearch-protected.py --protected-file
+  adapters/codex/templates/autoresearch-protected.txt`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin.py`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; PASS `python3
+  scripts/check-codex-marketplace-metadata.py` with deferred publication
+  manifest note; PASS `git diff --check`.
+- Search-set verification:
+  - BEFORE: SKIPPED with reason above.
+  - AFTER: PASS `python3 scripts/run-search-set.py`, including rerun after
+    VETO fixes.
+- Multi-review required: yes; release/search-set evidence checker semantics.
+- Multi-review result: PASS after VETO fix and affected reviewer rerun.
+- Reviewer scores and VETO handling: see Multi-review records above; initial
+  VETO blocking findings were fixed and the affected reviewer rerun passed.
+- For each score-9 result, why not 10: checker remains intentionally syntactic
+  and does not prove command correctness or execution.
+- Backlog items added from score-9 residual risk: none; accepted as the
+  lightweight checker policy documented in `MAINTENANCE.md`.
+- Residual risk/follow-up: accepted syntactic-checker limitation.
+- Accepted: yes; ready for commit.
 
 ### 51. P3 keep active core Current Status aligned with completed items
 
