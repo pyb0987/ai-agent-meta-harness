@@ -48,14 +48,14 @@ the adapter behavior truly differs.
 
 | Theme | What It Covers | Related Items |
 |-------|----------------|---------------|
-| Distribution and install UX | How users install, activate, migrate, and eventually publish adapter bundles | `core.md` 8-9; `claude-adapter.md` 1 old install smoke; `codex-adapter.md` 4-5, 16-19, 39-40, 43-44, 46 |
+| Distribution and install UX | How users install, activate, migrate, and eventually publish adapter bundles | `core.md` 8-9; `claude-adapter.md` 1 old install smoke; `codex-adapter.md` 4-5, 16-19, 39-40, 43-44, 46-48 |
 | Hook and protection enforcement | Runtime hooks, pre-commit/CI guardrails, protected-file checks, schema drift, and honest protection-level reporting | `claude-adapter.md` 1 hook/runtime follow-ups; `codex-adapter.md` 3, 12-15, 28, 40, 45; `core.md` 10 |
-| Verification and release gates | Deterministic verify commands, adapter smoke tests, release checklist, and staged/index semantics for repository checks | `core.md` 3, 9-10, 43, 46, 48-49, 57-58, 62-63, 65; `claude-adapter.md` 1 fixture/temp-git follow-ups; `codex-adapter.md` 6, 11, 18-19, 38 |
+| Verification and release gates | Deterministic verify commands, adapter smoke tests, release checklist, and staged/index semantics for repository checks | `core.md` 3, 9-10, 43, 46, 48-49, 57-58, 62-63, 65, 72; `claude-adapter.md` 1 fixture/temp-git follow-ups; `codex-adapter.md` 6, 11, 18-19, 38 |
 | Trace lifecycle and migration | Trace-root selection, partial initialization, history tie-breakers, archive restore, and `.claude/traces` to `.harness/traces` migration | `core.md` 2, 4-5, 47, 59; `claude-adapter.md` 1 path contract, 16-17; `codex-adapter.md` 2 |
-| Autoresearch semantics | Detecting autoresearch projects, preserving evaluator boundaries, experiment episode traces, rejection history, and local-only protection states | `core.md` 1, 6; `codex-adapter.md` 12, 15 |
+| Autoresearch semantics | Detecting autoresearch projects, preserving evaluator boundaries, experiment episode traces, rejection history, rejected candidate diffs, and local-only protection states | `core.md` 1, 6, 70; `codex-adapter.md` 12, 15 |
 | Codex execution model | Codex sandbox, permissions, sub-agent availability, MCP/tool policy, browser/web usage, and skipped verification reporting | `codex-adapter.md` 1, 7-9 |
-| Maintenance process control | Review-summary enforcement, score handling, fallback review quality, archive lifecycle, and whether backlog work runs in one session or parallel worktrees | `core.md` 11, 15-17, 54-56, 60, 64, 66 |
-| Documentation boundary and examples | Keeping core as what/why, adapters as runtime how, and adding realistic examples without duplicating methodology | `core.md` 7, 42, 44-45, 67; `claude-adapter.md` 14; `codex-adapter.md` 10-11; adapter README/example follow-ups |
+| Maintenance process control | Review-summary enforcement, score handling, fallback review quality, archive lifecycle, and whether backlog work runs in one session or parallel worktrees | `core.md` 11, 15-17, 54-56, 60, 64, 66, 69, 73 |
+| Documentation boundary and examples | Keeping core as what/why, adapters as runtime how, and adding realistic examples without duplicating methodology | `core.md` 7, 42, 44-45, 67, 71; `claude-adapter.md` 14; `codex-adapter.md` 10-11; adapter README/example follow-ups |
 
 ## Consolidation Notes
 

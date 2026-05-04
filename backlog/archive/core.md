@@ -6946,3 +6946,61 @@ Multi-review:
 - Follow-up/residual risk: no backlog follow-up from score-9 residuals; final
   closure is complete in this record.
 - Final acceptance: yes.
+
+### 73. P3 refresh backlog summaries after Codex runtime evidence blocks
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/README.md
+- backlog/codex-adapter.md
+- backlog/core.md
+- backlog/archive/core.md
+
+Source: follow-up status cleanup after Codex adapter items 47 and 48 were
+recorded as blocked runtime-evidence attempts.
+
+Potential improvement:
+
+- Keep the backlog theme index aligned with completed or blocked follow-up
+  records.
+- Keep the Codex distribution epic summary aligned with items 47 and 48.
+- Preserve the active core backlog readability around recently archived item
+  pointers.
+
+Done when:
+
+- `backlog/README.md` references the new completed/blocked item ranges where
+  relevant.
+- `backlog/codex-adapter.md` summarizes item 47 and item 48 without implying
+  runtime evidence was accepted.
+- `backlog/core.md` remains mechanically valid and readable.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `backlog/README.md`, `backlog/codex-adapter.md`,
+  `backlog/core.md`, `backlog/archive/core.md`.
+- Scope deviations: added `backlog/archive/core.md` to preserve the completed
+  record per archive policy.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py
+  backlog/README.md backlog/core.md backlog/codex-adapter.md`; PASS `python3
+  scripts/check-backlog-archive-lifecycle.py`; PASS `git diff --check`.
+- Search-set verification: SKIPPED; backlog summary/status cleanup only, no
+  harness behavior, adapter runtime contract, hook semantics, trace schema, or
+  release gate changed.
+- Multi-review required: no; routine backlog/status cleanup only.
+- Multi-review result: not required.
+- Reviewer scores and VETO handling: isolated reviewer 8 VETO on incomplete
+  archive lifecycle; VETO handled by moving the completed record to
+  `backlog/archive/core.md` and leaving only the active compact pointer.
+  Affected reviewer re-review: 9 PASS, no blocking findings.
+- For each score 9, why not 10: affected reviewer re-review was not 10 because
+  the archive record still needed to record the final re-review result; fixed in
+  this Completion Gate.
+- Backlog items added from score-9 residual risk: none; the score-9 residual
+  was resolved in this item by recording the final re-review result.
+- Residual risk/follow-up: none.
+- Accepted: yes.

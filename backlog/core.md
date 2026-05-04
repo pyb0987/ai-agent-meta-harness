@@ -206,22 +206,32 @@ Archived: `backlog/archive/core.md#67-p2-tighten-readme-6x-harness-sensitivity-a
 
 Status: 완료
 Archived: `backlog/archive/core.md#68-p3-refresh-backlog-theme-index-after-completed-maintenance-items`
+
 ### 69. P2 make fallback-threshold disposition discoverable at stable handoff
 
 Status: 완료
 Archived: `backlog/archive/core.md#69-p2-make-fallback-threshold-disposition-discoverable-at-stable-handoff`
+
 ### 70. P2 evaluate preserving diffs for all fixed-evaluator rejected candidates
 
 Status: 완료
 Archived: `backlog/archive/core.md#70-p2-evaluate-preserving-diffs-for-all-fixed-evaluator-rejected-candidates`
+
 ### 71. P3 tighten residual paper-claim wording and citation granularity
 
 Status: 완료
 Archived: `backlog/archive/core.md#71-p3-tighten-residual-paper-claim-wording-and-citation-granularity`
+
 ### 72. P2 harden search-set runner command execution
 
 Status: 완료
 Archived: `backlog/archive/core.md#72-p2-harden-search-set-runner-command-execution`
+
+### 73. P3 refresh backlog summaries after Codex runtime evidence blocks
+
+Status: 완료
+Archived: `backlog/archive/core.md#73-p3-refresh-backlog-summaries-after-codex-runtime-evidence-blocks`
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

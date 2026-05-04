@@ -43,11 +43,17 @@ Remaining follow-up work:
 - Direct-copy fallback limitation reporting is completed in item 27, and
   runtime hook manifest fields remain intentionally gated by item 28.
 - Item 40 records the current runtime-delivery evidence boundary, while item 44
-  keeps the actual future Desktop/runtime delivery smoke open until a
-  product-supported smoke or reviewed manual gate exists.
+  defines the reviewed manual evidence gate for Desktop/runtime delivery while
+  product-supported smoke coverage is unavailable. Item 47 tracks the first
+  real runtime evidence packet or automated smoke when a suitable runtime
+  surface exists.
 - Item 42 tracks an optional local Codex CLI surface probe so documentation can
   mechanically pin the observed `plugin marketplace` and `app-server` surface
   without claiming Desktop runtime delivery.
+- Item 48 tracks a narrower live-init evidence gap: the fixture smoke proves
+  expected generated files, but not that a running Codex session can invoke the
+  `init-codex-harness` skill end to end.
+
 ### 5. Define Codex plugin bundle scope
 
 Status: 완료
