@@ -349,3 +349,130 @@ Completion Gate:
   can surface the generated `ai-agent-meta-harness` plugin skills or provides a
   product-supported noninteractive smoke for model-visible skill delivery.
 - Accepted: no.
+
+### 48. P3 record live init-codex-harness execution evidence when possible
+
+Status: 보류
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- backlog/codex-adapter.md
+
+Originating source review: 2026-05-04 multi-review of clean local `main`
+against the Meta-Harness methodology.
+
+The Codex init fixture smoke is useful contract coverage: it proves the expected
+trace root, `AGENTS.md`, search-set, and evolution output shape for a
+representative project fixture. It does not prove that a running Codex session
+can load the generated plugin or direct-copy skill, execute
+`init-codex-harness`, inspect a real target project, and produce those artifacts
+from the live skill instructions.
+
+Potential improvement:
+
+- When a practical Codex runtime surface exists, run `init-codex-harness` against
+  an isolated sample project and record the runtime, installation mode, input
+  project, generated files, selected trace root, Active verify command, and
+  transcript or exported trace evidence.
+- Keep this separate from item 47 if item 47 proves only plugin skill surfacing;
+  live init execution should prove the skill's workflow, not just availability.
+- If live automation is unavailable, define a reviewed manual evidence packet
+  analogous to the runtime-delivery gate and keep the fixture smoke as contract
+  coverage rather than operability proof.
+- Update README/plugin-scope wording only after the evidence exists.
+
+Done when:
+
+- The repository contains either an automated smoke or reviewed manual evidence
+  that a live Codex session executed `init-codex-harness` on an isolated target
+  project.
+- The evidence distinguishes fixture contract coverage from live runtime
+  operability.
+- Existing fixture smoke remains as deterministic regression coverage even if
+  live runtime evidence is manual or environment-dependent.
+
+Start Gate:
+
+- Selected item: `backlog/codex-adapter.md` item 48, P3 record live
+  `init-codex-harness` execution evidence when possible.
+- Status block added: yes, `진행중` reservation was added before
+  implementation edits; this record is now `보류` because live skill execution
+  evidence is unavailable.
+- Harness-affecting: yes, because the item concerns Codex adapter live-init
+  operability claims and evidence boundaries.
+- Multi-review required: yes for accepting a live-init evidence packet or
+  runtime-operability claim; if no live execution evidence exists, the correct
+  outcome is non-acceptance rather than substituting fixture evidence.
+- Minimum verification commands: `python3 scripts/check-maintenance-review.py
+  backlog/codex-adapter.md`; `python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py`;
+  `python3 adapters/codex/scripts/smoke-local-plugin.py`; `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; `python3
+  adapters/codex/scripts/check-codex-cli-surface.py`; `python3
+  scripts/sync-codex-plugin.py --check`.
+- Expected scope: item 48 backlog evidence/status only unless a true live
+  `init-codex-harness` invocation surface is available; fixture smoke and
+  manually reading `SKILL.md` are not live skill execution evidence.
+
+Attempted in 2026-05-04 single-session maintenance pass:
+
+- Deterministic init project fixture smoke passed for TypeScript, Python, and
+  migrated Claude-history fixtures.
+- Local artifact smoke passed.
+- Isolated local Codex CLI marketplace activation smoke passed.
+- Local Codex CLI surface probe passed for `plugin marketplace` and
+  `app-server` help markers.
+- Current Codex runtime did not expose `init-codex-harness` as an active
+  runtime skill, and no direct-copy `init-codex-harness` installation was found
+  under the active `~/.codex/skills` or plugin cache skill roots.
+- This pass did not run the local `SKILL.md` instructions manually as a
+  substitute, because that would prove the agent can read repository docs, not
+  that a live Codex session invoked the installed skill.
+
+Completion Gate:
+
+- Backlog status: `보류`; prerequisite evidence was refreshed, but the item is
+  not accepted because live `init-codex-harness` execution evidence is
+  unavailable in this session.
+- Changed files: `backlog/codex-adapter.md`.
+- Scope deviations: none for item 48. Unrelated dirty work remains
+  intentionally unstaged in `backlog/README.md`, `backlog/core.md`, and
+  pre-existing `backlog/codex-adapter.md` hunks outside item 48, including the
+  top-level distribution-summary refresh.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py
+  backlog/codex-adapter.md`; PASS `python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py`;
+  PASS `python3 adapters/codex/scripts/smoke-local-plugin.py`; PASS `python3
+  adapters/codex/scripts/smoke-local-plugin-activation.py`; PASS `python3
+  adapters/codex/scripts/check-codex-cli-surface.py`; PASS `python3
+  scripts/sync-codex-plugin.py --check`; SKIPPED live runtime invocation because
+  the active runtime does not expose the skill.
+- Search-set verification: SKIPPED because this pass made no accepted harness
+  behavior or adapter contract change; it records that the required live-init
+  runtime evidence is still absent.
+- Multi-review required: yes for acceptance of a live-init runtime evidence
+  packet; this pass will run multiple reviewers on the non-acceptance/blocked
+  handoff record instead.
+- Multi-review result: PASS for the blocked/non-acceptance handoff; no live-init
+  runtime evidence packet was accepted.
+- Reviewer scores and VETO handling: live-init evidence-boundary critic 9 PASS;
+  blocked-item appropriateness critic 9 PASS; maintenance-process critic 8 VETO
+  on pending multi-review closure fields. VETO handled by replacing the pending
+  placeholders with concrete multi-review results, score-9 reasons, and backlog
+  residual-risk disposition. Maintenance-process re-review remained 8 VETO
+  because the rerun score was not yet recorded; this was fixed by recording the
+  rerun-result issue in this field. Final maintenance-process re-review: 9 PASS,
+  no blocking findings.
+- For each score 9, why not 10: evidence-boundary critic was not 10 because the
+  review bookkeeping fields were still pending at review time; blocked-item
+  appropriateness critic was not 10 for the same pending-field reason. This was
+  actionable within the item and fixed before handoff. Final maintenance-process
+  re-review was not 10 because the Completion Gate still needed to record that
+  final rerun result and staging still required precise hunk selection; the
+  rerun result is recorded here, and staging will be checked before commit.
+- Backlog items added from score-9 residual risk: none; the score-9 residual was
+  resolved in this item by closing the review bookkeeping fields.
+- Residual risk/follow-up: rerun this item only when the active Codex runtime
+  can invoke `init-codex-harness` from the generated plugin or a direct-copy
+  skill installation against an isolated target project, or when a
+  product-supported noninteractive smoke exists for live skill execution.
+- Accepted: no.
