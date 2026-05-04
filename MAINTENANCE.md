@@ -144,6 +144,42 @@ If the work must expand beyond the recorded scope, update the backlog item
 before touching the new area. If a session abandons an item, it must change
 `진행중` to `보류` or back to `대기` and record what happened.
 
+### Reviewed Commit Loop
+
+When a maintenance session is expected to commit a backlog item, use this
+repeatable loop so future sessions can reproduce the handoff discipline:
+
+1. Start from local `main` and inspect `git status --short --branch`.
+2. Pick exactly one concrete `Status: 대기` backlog item.
+3. Add the reservation block and report the Start Gate before implementation
+   edits.
+4. Run the relevant baseline verification, including Active search-set commands
+   for harness-affecting changes.
+5. Implement only the selected item. If scope expands, update the item's Scope
+   before editing the new path.
+6. Run focused verification, then the relevant standard verification for the
+   changed contract.
+7. Ask an isolated reviewer to review the item-specific diff before acceptance
+   when multi-review is required or when the item will be committed as a
+   stable handoff. The reviewer must not edit files.
+8. Treat every reviewer score below 9 as VETO. Fix the blocking findings,
+   record the VETO and handling in the backlog item, and rerun the affected
+   reviewer until the score is at least 9.
+9. For every score of 9, record why it was not 10. If the reason is an
+   actionable repository improvement, add a follow-up backlog item before
+   acceptance; otherwise record why it is accepted as residual risk.
+10. Complete the Completion Gate, mark the item `리뷰대기`, rerun the maintenance
+    review and search-set evidence checkers, and record the results.
+11. Stage only the selected item's intended files or hunks. If the worktree has
+    unrelated dirty backlog additions or user edits, leave them unstaged and
+    mention them in the Completion Gate or final handoff.
+12. Inspect the staged patch with `git diff --cached`, verify the staged file
+    list with `git diff --cached --name-status`, run `git diff --cached
+    --check`, then commit.
+13. After commit, run `python3 scripts/check-clean-worktree.py` when a clean
+    stable handoff is expected. If unrelated work intentionally remains dirty,
+    record that exception instead of claiming a clean handoff.
+
 ## Exceptional Parallel Worktree Recovery
 
 Parallel worktree maintenance is discouraged for routine backlog work. It should

@@ -628,6 +628,80 @@ Done when:
 - The trace-root completeness tests and `core/reference.md` agree on the accepted
   shape.
 
+### 53. P2 document the reviewed commit loop
+
+Status: 리뷰대기
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-04
+Scope:
+- MAINTENANCE.md
+- backlog/core.md
+
+Source discussion: 2026-05-04 maintainer request to make the current
+single-item, isolated-review, why-not-10, verification, and commit procedure
+reproducible for future sessions.
+
+The maintenance policy already required Start Gate, Completion Gate,
+multi-review, VETO handling, and score-9 why-not-10 recording. It did not yet
+state the new stable handoff loop as one repeatable sequence that includes
+isolated reviewer review, rerun after VETO, item-only staging, staged diff
+checks, commit, and clean-worktree handling.
+
+Decision implemented:
+
+- Added `MAINTENANCE.md` `Reviewed Commit Loop` under Single-Session
+  Maintenance.
+- The loop explicitly tells future sessions to pick exactly one item, reserve
+  it, run baseline/focused/standard verification, use an isolated reviewer
+  before acceptance, treat scores below 9 as VETO, record every score-9
+  why-not-10 reason, complete the Completion Gate, stage only the selected
+  item's files or hunks, inspect and verify the staged diff, commit, and run or
+  record the clean-worktree handoff check.
+
+Search-set verification:
+
+- SKIPPED: this was a direct maintainer-requested governance documentation
+  clarification started before a backlog record existed. After the record was
+  added, `python3 scripts/check-search-set-evidence.py` passed, confirming the
+  skipped reason is explicit.
+
+Multi-review:
+
+- Result: PASS after isolated reviewer check.
+- Isolated governance reviewer: score 9/10; verdict PASS; Blocking findings:
+  none. Why not 10: the staged-diff step originally required
+  `git diff --cached --name-status` and `git diff --cached --check`, but did
+  not explicitly require inspecting the staged patch itself. This was fixed in
+  this item by adding `git diff --cached`.
+- Score handling: score 9 accepted after recording why not 10 and folding the
+  actionable improvement into this item.
+- Blocking findings: none.
+- Follow-up/residual risk: none.
+- Rerun status: no VETO, so no rerun required.
+- Final acceptance: accepted; ready for commit.
+
+Completion Gate:
+
+- Backlog status: `리뷰대기`.
+- Changed files: `MAINTENANCE.md`, `backlog/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py`;
+  PASS `git diff --check`; PASS `python3 scripts/check-search-set-evidence.py`
+  after this backlog record was added.
+- Search-set verification: SKIPPED with reason above.
+- Multi-review required: yes; maintenance governance / reviewed commit
+  procedure.
+- Multi-review result: PASS.
+- Reviewer scores and VETO handling: isolated governance reviewer 9/10 PASS; no
+  VETO.
+- For each score-9 result, why not 10: staged patch inspection was not explicit
+  enough in the first draft; fixed in this item by adding `git diff --cached`.
+- Backlog items added from score-9 residual risk: none; actionable improvement
+  was handled in this item.
+- Residual risk/follow-up: none.
+- Accepted: yes; ready for commit.
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료
