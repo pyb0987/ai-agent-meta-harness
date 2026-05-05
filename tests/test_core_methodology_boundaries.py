@@ -135,6 +135,26 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, mirror)
                 self.assertEqual(canonical.count(marker), mirror.count(marker))
 
+    def test_isolated_reviewer_raw_evidence_boundary_is_mirrored(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+        normalized_canonical = " ".join(canonical.split())
+        normalized_mirror = " ".join(mirror.split())
+
+        for marker in (
+            "Distilled findings are enough for routine governance review",
+            "underlying diff and command output are available in the parent session",
+            "Preserve or link raw transcripts, command output, screenshots, exported traces, or evidence packets",
+            "core methodology change, evaluator-boundary change, runtime delivery proof, release gate, or public evidence claim",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, normalized_canonical)
+                self.assertIn(marker, normalized_mirror)
+                self.assertEqual(normalized_canonical.count(marker), normalized_mirror.count(marker))
+
+        self.assertNotIn("Raw transcripts are secondary", canonical)
+        self.assertNotIn("Raw transcripts are secondary", mirror)
+
     def test_trace_schema_is_framed_as_repository_convention(self) -> None:
         methodology = text(CORE)
         reference = text(REFERENCE)

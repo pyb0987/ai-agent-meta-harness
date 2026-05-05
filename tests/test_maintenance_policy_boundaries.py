@@ -94,6 +94,22 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             text,
         )
 
+    def test_raw_evidence_expectations_for_review_records_are_bounded(self) -> None:
+        text = normalized_text()
+
+        for marker in (
+            "Distilled reviewer findings are acceptable for routine maintenance records",
+            "reviewed files, commands, scores, blocking findings, and residual risk",
+            "Preserve or link stronger raw evidence when a review is used to support a "
+            "core methodology boundary, evaluator-boundary change, runtime delivery proof, "
+            "release gate, or public evidence claim",
+            "transcript excerpt, command output, screenshot, exported trace, or reviewed "
+            "evidence packet",
+            "record the skipped reason when the runtime cannot export it",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
     def test_accepted_completed_items_are_marked_complete(self) -> None:
         text = normalized_text()
 

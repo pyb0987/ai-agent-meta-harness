@@ -561,6 +561,14 @@ item does not require multi-review, the Reviewed Commit Loop uses a single
 isolated reviewer as the required handoff hygiene check; that check must still
 not be recorded as satisfying required multi-review.
 
+Distilled reviewer findings are acceptable for routine maintenance records when
+they name the reviewed files, commands, scores, blocking findings, and residual
+risk. Preserve or link stronger raw evidence when a review is used to support a
+core methodology boundary, evaluator-boundary change, runtime delivery proof,
+release gate, or public evidence claim. Stronger raw evidence can be a transcript
+excerpt, command output, screenshot, exported trace, or reviewed evidence packet;
+record the skipped reason when the runtime cannot export it.
+
 The maintenance review checker emits a review-quality signal, not a validation
 failure, when staged high-impact paths have no recorded `Multi-review:` section
 or explicit `Multi-review not required:` reason in the staged backlog/review

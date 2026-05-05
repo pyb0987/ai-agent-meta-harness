@@ -7588,3 +7588,135 @@ Completion Gate:
 - Residual risk/follow-up: no new follow-up. The durable clean-handoff marker is
   intentionally advisory and applies only with no staged changes.
 - Accepted: yes.
+
+### 78. P3 clarify raw-evidence expectations for isolated reviewer outputs
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- core/methodology.md
+- docs/methodology.md
+- MAINTENANCE.md
+- tests/test_core_methodology_boundaries.py
+- tests/test_maintenance_policy_boundaries.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+The methodology critic accepted the current sub-agent/isolation framing but
+noted a residual concern: `core/methodology.md` said isolated reviewers return
+distilled findings tied to files, commands, scores, and residual risk, with raw
+transcripts secondary. That was defensible for compact multi-review reports, but
+it could read as weaker than the repository's "raw over summaries" principle if
+future reviewers used distilled outputs as durable methodology evidence without
+preserving enough raw context.
+
+Potential improvement:
+
+- Clarify when distilled reviewer findings are sufficient and when raw
+  transcripts, command output, screenshots, exported traces, or reviewed
+  evidence packets must be preserved.
+- Keep sub-agent isolation outputs lightweight for routine governance review,
+  but require stronger raw evidence preservation for claims that change core
+  methodology, evaluator boundaries, runtime delivery proof, or release gates.
+- Decide whether the rule belongs in `core/methodology.md`, `MAINTENANCE.md`, or
+  adapter-specific multi-review skills.
+- Add focused tests only if durable public/core wording or checker behavior is
+  changed.
+
+Done when:
+
+- The raw-evidence-over-summary principle remains compatible with compact
+  multi-review reporting.
+- Future methodology/release reviews know when distilled findings are enough and
+  when the underlying raw evidence must be retained or linked.
+- Item 13 can return to completed status without leaving this residual
+  conceptual concern.
+
+Multi-review:
+
+- Core methodology critic: score 9/10, PASS. Blocking findings: none. Why not
+  10: "available in the parent session" remains somewhat session-scoped and
+  less durable than a trace/log policy, but the following sentence requires
+  durable evidence for higher-risk claim types. No backlog follow-up; accepted
+  as small residual ambiguity unless future reviews show misuse.
+- Maintenance policy/tests critic: score 9/10, PASS. Blocking findings: none.
+  Verified `python3 -m unittest tests/test_core_methodology_boundaries.py
+  tests/test_maintenance_policy_boundaries.py` PASS, 19 tests. Why not 10: the
+  tests use fairly exact prose fragments, so benign wording edits may require
+  test updates. No backlog follow-up; accepted as normal residual risk for
+  documentation-boundary tests.
+- Process/scope critic: initial score 8/10, VETO. Blocking findings:
+  out-of-scope `backlog/README.md` changes were dirty, and dirty
+  `backlog/core.md` contained broader backlog churn beyond item 78. Resolution:
+  this Completion Gate records those dirty paths explicitly, final staging
+  leaves `backlog/README.md` unstaged, and `backlog/core.md` is staged as an
+  item-78 compact pointer from `HEAD` rather than by adding the dirty
+  working-tree file.
+- Score handling: two initial reviewers scored 9 with why-not-10 and
+  residual-risk dispositions recorded above; the low process/scope score was
+  treated as a VETO until selective staging and dirty-file handling were
+  recorded and re-reviewed.
+- Rerun status: process/scope critic re-review score 9/10, PASS. Blocking
+  findings: none. Why not 10: the archive record still needed to be updated
+  with the re-review score and final verification; addressed by this final
+  record update and final verification reruns.
+- Follow-up/residual risk: no actionable backlog follow-up. The remaining risk
+  is routine hunk-level staging discipline in a dirty worktree, handled by
+  staged patch inspection before commit.
+- Final acceptance: accepted after process/scope VETO recovery re-review,
+  final staged patch inspection, and final verification reruns.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `MAINTENANCE.md`, `core/methodology.md`,
+  `docs/methodology.md`, `tests/test_core_methodology_boundaries.py`,
+  `tests/test_maintenance_policy_boundaries.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: `tests/test_maintenance_policy_boundaries.py` was added to
+  scope after MAINTENANCE policy assertions became necessary. Out-of-scope dirty
+  `backlog/README.md` remains unstaged. Dirty working-tree `backlog/core.md`
+  contains broader backlog/index context beyond item 78; final staging must use
+  a compact item-78 pointer generated from `HEAD:backlog/core.md` and leave the
+  broader working-tree hunks unstaged.
+- Verification results: PASS `python3 -m unittest
+  tests/test_core_methodology_boundaries.py
+  tests/test_maintenance_policy_boundaries.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-search-set-evidence.py --staged`; PASS `python3
+  scripts/check-backlog-archive-lifecycle.py --staged`; PASS `git diff
+  --cached --check`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`.
+  - AFTER: PASS `python3 scripts/run-search-set.py` after archive and
+    staged-pointer closure; the first AFTER attempt failed only because this
+    review record was still missing checker-required re-review fields, then
+    passed after the record was completed.
+- Multi-review required: yes; this changes core methodology boundary wording
+  and maintenance multi-review evidence policy.
+- Multi-review result: PASS after affected process/scope re-review and staged
+  patch inspection.
+- Reviewer scores and VETO handling: see the Multi-review records above. The
+  process/scope VETO on dirty out-of-scope backlog files and hunk-level staging
+  risk was addressed by this Completion Gate plus selective staged-index
+  closure; affected process/scope re-review passed with no blocking findings.
+- For each score-nine review, why not 10: core methodology critic was not 10 because
+  "available in the parent session" is slightly session-scoped, accepted because
+  durable evidence is required for higher-risk claim types. Maintenance
+  policy/tests critic was not 10 because exact prose-fragment tests can need
+  updates after benign wording edits, accepted as normal documentation-boundary
+  test residual risk. Process/scope re-review was not 10 because final record
+  update and final verification reruns still had to happen at review time;
+  addressed by this final Completion Gate update and verification reruns.
+- Backlog items added from score-9 residual risk: none; both score-9 residuals
+  are accepted as non-actionable unless future reviews expose misuse or
+  excessive test churn.
+- Residual risk/follow-up: no new follow-up. Score-nine residuals are accepted
+  as non-actionable unless future reviews expose misuse or excessive test churn.
+- Accepted: yes.

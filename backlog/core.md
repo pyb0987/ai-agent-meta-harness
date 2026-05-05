@@ -252,6 +252,11 @@ Archived: `backlog/archive/core.md#75-p3-tighten-public-efficacy-and-aphoristic-
 Status: 완료
 Archived: `backlog/archive/core.md#76-p3-evaluate-optional-run-attestation-for-search-set-evidence`
 
+### 78. P3 clarify raw-evidence expectations for isolated reviewer outputs
+
+Status: 완료
+Archived: `backlog/archive/core.md#78-p3-clarify-raw-evidence-expectations-for-isolated-reviewer-outputs`
+
 ### 79. P3 evaluate argv execution for the static release gate
 
 Status: 완료

@@ -242,7 +242,12 @@ look like paper claims.
 - **No orchestrator persistence**: do not create persistent agent-team
   definitions.
 - **Traceable conclusions**: isolated reviewers return distilled findings tied
-  to files, commands, scores, and residual risk. Raw transcripts are secondary.
+  to files, commands, scores, and residual risk. Distilled findings are enough
+  for routine governance review when the underlying diff and command output are
+  available in the parent session. Preserve or link raw transcripts, command
+  output, screenshots, exported traces, or evidence packets when the review
+  supports a core methodology change, evaluator-boundary change, runtime
+  delivery proof, release gate, or public evidence claim.
 - **Adapter ownership**: concrete routing, model choice, and tool availability
   belong in adapter docs because they vary by runtime.
 
