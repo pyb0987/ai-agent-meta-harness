@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import importlib.util
 import io
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -16,6 +17,10 @@ assert spec and spec.loader
 verify_release = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = verify_release
 spec.loader.exec_module(verify_release)
+
+
+def subprocess_result(returncode: int) -> subprocess.CompletedProcess[tuple[str, ...]]:
+    return subprocess.CompletedProcess(args=("python3",), returncode=returncode)
 
 
 def maintenance_standard_commands() -> list[str]:
@@ -39,6 +44,17 @@ class VerifyReleaseTests(unittest.TestCase):
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, commands)
+
+    def test_release_commands_are_stored_as_argv(self) -> None:
+        for command in verify_release.RELEASE_COMMANDS:
+            with self.subTest(command=command.name):
+                self.assertIsInstance(command.argv, tuple)
+                self.assertGreater(len(command.argv), 1)
+                self.assertTrue(all(isinstance(part, str) and part for part in command.argv))
+
+    def test_release_command_rejects_shell_c_argv(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must not use shell -c"):
+            verify_release.ReleaseCommand("unsafe", ("sh", "-c", "python3 scripts/check-compat-mirrors.py"))
 
     def test_release_commands_do_not_use_plain_root_unittest_discovery(self) -> None:
         commands = [command.command for command in verify_release.RELEASE_COMMANDS]
@@ -74,13 +90,49 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertIn("python3 scripts/run-search-set.py", commands.values())
         self.assertNotIn("python3 scripts/check-clean-worktree.py", commands.values())
 
+    def test_base_ref_wrapper_preserves_command_flags(self) -> None:
+        command = verify_release.ReleaseCommand(
+            "local evidence",
+            ("python3", "scripts/check-search-set-evidence.py"),
+            search_set_evidence=True,
+            ci_local_only=True,
+        )
+
+        rewritten = verify_release.with_search_set_evidence_mode(command, base_ref="origin/main")
+
+        self.assertTrue(rewritten.search_set_evidence)
+        self.assertTrue(rewritten.ci_local_only)
+        self.assertEqual(rewritten.argv, (*command.argv, "--base-ref", "origin/main"))
+
+
     def test_base_ref_is_shell_quoted_in_search_set_evidence_command(self) -> None:
         selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="feature/ref with space")
         commands = {command.name: command.command for command in selected}
+        argv = {command.name: command.argv for command in selected}
 
         self.assertEqual(
             commands["search-set evidence records (base-ref: feature/ref with space)"],
             "python3 scripts/check-search-set-evidence.py --base-ref 'feature/ref with space'",
+        )
+        self.assertEqual(
+            argv["search-set evidence records (base-ref: feature/ref with space)"],
+            ("python3", "scripts/check-search-set-evidence.py", "--base-ref", "feature/ref with space"),
+        )
+
+    def test_run_command_executes_argv_without_shell(self) -> None:
+        command = verify_release.ReleaseCommand("example", ("python3", "-c", "print('ok')"))
+        completed = subprocess_result(returncode=0)
+
+        with mock.patch.object(verify_release.subprocess, "run", return_value=completed) as run:
+            status = verify_release.run_command(command, timeout=5)
+
+        self.assertEqual(status, 0)
+        run.assert_called_once_with(
+            command.argv,
+            cwd=verify_release.ROOT,
+            text=True,
+            timeout=5,
+            check=False,
         )
 
     def test_list_mode_prints_commands_without_running(self) -> None:

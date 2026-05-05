@@ -242,6 +242,11 @@ Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gat
 Status: 완료
 Archived: `backlog/archive/core.md#74-p2-make-fallback-disposition-durable-for-clean-handoffs`
 
+### 79. P3 evaluate argv execution for the static release gate
+
+Status: 완료
+Archived: `backlog/archive/core.md#79-p3-evaluate-argv-execution-for-the-static-release-gate`
+
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
 Status: 완료

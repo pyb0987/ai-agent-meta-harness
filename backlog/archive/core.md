@@ -5669,6 +5669,142 @@ Multi-review:
   legacy exception body/date fields, but no follow-up backlog item is required
   for the current explicit-exception contract.
 - Final acceptance: yes.
+
+### 79. P3 evaluate argv execution for the static release gate
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- scripts/verify-release.py
+- tests/test_verify_release.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Item 72 hardened `scripts/run-search-set.py` so markdown-authored Active verify
+commands are parsed into argv lists and rejected before subprocess execution when
+they contain shell syntax. The release gate still runs its internal static
+command list through `subprocess.run(..., shell=True)`. This is lower risk than
+the old markdown-sourced search-set path because the command list is repository
+owned, but the latest trace/evaluator review noted that it remains a weaker
+execution model than the hardened search-set runner.
+
+Potential improvement:
+
+- Decide whether `scripts/verify-release.py` should store release commands as
+  argv lists or parse them through a shared safe command helper.
+- Preserve readable `--list` output and existing command labels if the execution
+  model changes.
+- Keep shell execution only for commands that truly need shell semantics, and
+  document any such exception explicitly.
+- Add focused `tests/test_verify_release.py` coverage for argv execution,
+  rejected unsafe command shapes, and unchanged command-list semantics if the
+  implementation changes.
+
+Done when:
+
+- The repository has an explicit decision on whether static release-gate commands
+  should use argv execution rather than `shell=True`.
+- If argv execution is adopted, release-gate tests prove commands are not routed
+  through a shell unnecessarily.
+- If `shell=True` is retained, `MAINTENANCE.md` or the script documents why the
+  static repository-owned command list is an accepted boundary.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `scripts/verify-release.py`, `tests/test_verify_release.py`,
+  `backlog/core.md`, `backlog/archive/core.md`.
+- Scope deviations: `MAINTENANCE.md` was removed from expected scope because
+  the adopted decision moved release commands to argv execution; no retained
+  `shell=True` exception needed policy documentation. Existing dirty
+  out-of-scope `backlog/README.md` and `backlog/core.md` additions remain
+  unstaged outside item 79.
+- Verification results: PASS `python3 -m unittest tests/test_verify_release.py`;
+  PASS `python3 scripts/verify-release.py --list`; PASS `python3
+  scripts/verify-release.py --list --ci --skip-clean-worktree --base-ref
+  origin/main`; PASS `python3 scripts/run-search-set.py` after staging the
+  selected item files and process-review closure text; FAIL `python3
+  scripts/verify-release.py --ci --skip-clean-worktree --base-ref origin/main`
+  because full repository tests read unstaged out-of-scope `backlog/core.md`
+  Current Status text that still lists completed items 74 and 79 as active
+  candidates; PASS `git diff --check` before Completion Gate.
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py` after staging the selected item
+  files. An intermediate AFTER attempt failed while this archive still recorded
+  open process re-review text; the failure was governance-record state, not argv
+  execution behavior.
+- Multi-review required: yes; release-gate execution semantics are durable
+  repository verification behavior.
+- Multi-review result: MIXED during process VETO recovery; release-execution and
+  test critics passed after fixes, while process closure required an additional
+  AFTER search-set run.
+- Reviewer scores and VETO handling: release-execution critic scored 9 PASS,
+  then after `ci_local_only` preservation and `sh -c` rejection were added,
+  affected re-review scored 10 PASS. Test/backward-compatibility critic scored
+  9 PASS, then affected re-review scored 10 PASS after shell-wrapper rejection
+  and wrapper-flag tests were added. Process/scope critic scored 6 VETO because
+  the reservation was initially recorded on the wrong item, search-set evidence
+  and multi-review records were absent, and dirty backlog files made staging
+  risky; fixed by moving the reservation to item 79, recording this Completion
+  Gate, preserving BEFORE search-set evidence, and using selective staging.
+  Process affected re-review scored 8 VETO because AFTER search-set evidence was
+  still open; not accepted until that AFTER run is recorded and affected process
+  re-review reaches at least 9.
+- For each score 9, why not 10: release-execution 9 noted
+  `with_search_set_evidence_mode` did not preserve `ci_local_only` for a future
+  command that was both search-set-evidence and local-only; fixed and rerun to
+  10. Test/backward-compatibility 9 noted tests did not reject explicit
+  shell-like static command shapes such as `sh -c`; fixed and rerun to 10.
+  Process/scope affected re-review scored 9 PASS after AFTER search-set evidence
+  was recorded; why not 10 was that final acceptance still needed this archive
+  update, which is resolved here.
+- Backlog items added from score-9 residual risk: none; actionable score-9
+  residuals were fixed in this item, and the process/scope 9 was administrative
+  record closure with no repository follow-up needed.
+- Residual risk/follow-up: no follow-up. The static release gate now stores
+  commands as argv tuples, prints them with `shlex.join()`, rejects `sh -c`
+  release commands, and executes them without `shell=True`.
+- Follow-up/residual risk: no backlog follow-up. AFTER search-set evidence and
+  affected process re-review are closed.
+- Accepted: yes.
+
+Multi-review:
+
+- Release-execution critic: score 9, PASS. Blocking findings: none. Why not
+  10: base-ref wrapper did not preserve `ci_local_only` for future dual-flag
+  commands. Follow-up/residual risk: fixed in this item and rerun.
+- Release-execution affected re-review: score 10, PASS. Blocking findings:
+  none.
+- Test/backward-compatibility critic: score 9, PASS. Blocking findings: none.
+  Why not 10: tests did not reject `sh -c` static command shapes. Follow-up:
+  fixed in this item and rerun.
+- Test/backward-compatibility affected re-review: score 10, PASS. Blocking
+  findings: none.
+- Process/scope critic: score 6, VETO. Blocking findings: reservation was on
+  the wrong item at review time, search-set evidence and multi-review records
+  were absent, and dirty backlog files require careful staging. Not accepted
+  until affected process re-review reaches at least 9.
+- Process/scope affected re-review: score 8, VETO. Blocking findings: AFTER
+  search-set evidence was still open in the archive record. Not accepted until
+  the AFTER run is recorded and the affected process critic reaches at least 9.
+- Process/scope final affected re-review: score 9, PASS. Blocking findings:
+  none. Why not 10: final acceptance still needed this archive update at review
+  time. Follow-up/residual risk: no backlog item; this administrative record
+  closure is completed here.
+- Score handling: score 6 triggered VETO recovery and was followed by an
+  affected process re-review; score 8 remains a VETO because AFTER search-set
+  evidence still needed closure.
+- Rerun status: execution and test critics reran to 10; process critic affected
+  re-review scored 8, then AFTER search-set evidence was recorded and final
+  affected process re-review scored 9 PASS.
+- Follow-up/residual risk: no backlog follow-up. Final process closure is
+  resolved by this record and selective staging.
+- Final acceptance: yes.
 ### 64. P2 define action threshold for repeated nonindependent multi-review fallback
 
 Status: 완료
