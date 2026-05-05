@@ -5795,6 +5795,125 @@ Multi-review:
 - Follow-up/residual risk: no backlog follow-up.
 - Final acceptance: yes.
 
+### 76. P3 evaluate optional run attestation for search-set evidence
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- MAINTENANCE.md
+- scripts/check-search-set-evidence.py
+- tests/test_search_set_evidence.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Item 58 intentionally kept `scripts/check-search-set-evidence.py` shape-only:
+it verifies that harness-affecting changes record BEFORE/AFTER/SKIPPED evidence,
+while actual Active execution is enforced by release discipline and
+`scripts/run-search-set.py`. The latest trace/evaluator review accepted that
+boundary but noted that optional assurance could be useful for high-impact
+methodology, checker, or release-gate changes.
+
+Decision implemented:
+
+- Kept the default checker mode shape-only, so routine staged and base-ref
+  handoffs do not become heavyweight release procedures.
+- Added optional `--require-active-run` strict mode. When enabled, recorded
+  BEFORE/AFTER commands must match either the aggregate repository search-set
+  runner or current Active `search-set.md` verify commands.
+- Threaded staged/base-ref readers through the Active command parser so strict
+  mode reads the same source view as the selected evidence mode.
+- Documented strict mode as lightweight run attestation, not proof that the
+  command actually executed.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `MAINTENANCE.md`, `scripts/check-search-set-evidence.py`,
+  `tests/test_search_set_evidence.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none for item 76. Existing out-of-scope dirty
+  `backlog/README.md` remains unstaged and is not part of this item. The working
+  tree `backlog/core.md` contains broader user-added backlog context; the staged
+  `backlog/core.md` entry is restricted to the item 76 completed/archive
+  pointer.
+- Verification results: BEFORE PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 -m unittest tests/test_search_set_evidence.py` (29 tests); PASS `python3
+  scripts/check-search-set-evidence.py --help`; PASS `python3
+  scripts/check-search-set-evidence.py --staged`; PASS `python3
+  scripts/check-search-set-evidence.py --staged --require-active-run`; PASS
+  `python3 scripts/run-search-set.py`; final maintenance/archive verification
+  to be rerun after this record is staged.
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py` after the selected item files
+  were staged.
+- Multi-review required: yes; this changes checker semantics and maintenance
+  evidence policy.
+- Multi-review result: PASS after score-9 improvements. Checker semantics
+  critic initially scored 9 PASS, then reran to 10 after source-consistent
+  strict-mode reading was added. Tests/policy critic initially scored 9 PASS,
+  then reran to 10 after strict-mode documentation was moved out of the routine
+  command block. Process/scope critic scored 9 PASS.
+- Reviewer scores and VETO handling: checker semantics 9 PASS, no blocking
+  findings; fixed score-9 source-consistency concern and affected re-review
+  scored 10 PASS. A second checker-semantics affected re-review also scored 10
+  PASS after strict mode was taught to consider affected completed records when
+  historical in-progress archive sections exist. Tests/policy 9 PASS, no
+  blocking findings; fixed score-9
+  routine-command-list clarity concern and affected re-review scored 10 PASS.
+  Process/scope 9 PASS, no blocking findings. No VETO remained.
+- For each score 9, why not 10: checker semantics was not 10 because strict
+  mode originally read the Active allowlist from the worktree even under staged
+  or base-ref evidence modes; fixed in this item and rerun to 10. Tests/policy
+  was not 10 because the strict-mode command was initially listed beside
+  routine examples; fixed in this item and rerun to 10. Process/scope was not
+  10 because out-of-scope dirty backlog files and broad `backlog/core.md`
+  working-tree context make precise staging important; accepted as residual
+  process risk because the Completion Gate records the dirty paths and the
+  staged patch is restricted to this item.
+- Backlog items added from score-9 residual risk: none; actionable score-9
+  concerns were fixed within this item, and the process/scope risk is handled by
+  selective staging.
+- Residual risk/follow-up: no follow-up. Strict mode is only lightweight
+  attestation that recorded commands correspond to current Active or aggregate
+  search-set commands; actual execution remains enforced by release discipline
+  and recorded search-set BEFORE/AFTER results.
+- Accepted: yes.
+
+Multi-review:
+
+- Checker semantics critic: score 9, PASS. Blocking findings: none. Why not 10:
+  strict mode initially used the worktree Active allowlist even under staged or
+  base-ref evidence modes. Follow-up/residual risk: fixed in this item.
+- Checker semantics affected re-review: score 10, PASS. Blocking findings:
+  none.
+- Checker semantics second affected re-review: score 10, PASS. Blocking
+  findings: none. Confirmed strict-mode selection handles historical
+  in-progress archive records while still requiring affected completed records.
+- Tests/policy critic: score 9, PASS. Blocking findings: none. Why not 10:
+  strict mode was initially listed beside routine command examples before the
+  paragraph explained it was high-impact-only. Follow-up/residual risk: fixed
+  in this item.
+- Tests/policy affected re-review: score 10, PASS. Blocking findings: none.
+- Process/scope critic: score 9, PASS. Blocking findings: none. Why not 10:
+  out-of-scope dirty `backlog/README.md` and broader working-tree
+  `backlog/core.md` context require careful staging. Follow-up/residual risk:
+  no backlog item; this is handled by selective staging and Completion Gate
+  disclosure.
+- Score handling: all score-9 reasons are recorded above. Actionable score-9
+  concerns were fixed and rerun to 10; process/scope residual risk is accepted
+  without a backlog item.
+- Rerun status: checker semantics reran to 10 after source-consistency and
+  historical-section selection fixes; tests/policy critic reran to 10 after
+  documentation clarity fixes. Process/scope remained 9 PASS with no blocking
+  findings.
+- Follow-up/residual risk: no backlog follow-up.
+- Final acceptance: yes.
+
 ### 79. P3 evaluate argv execution for the static release gate
 
 Status: 완료

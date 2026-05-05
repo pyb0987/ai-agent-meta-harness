@@ -165,6 +165,149 @@ Completion Gate:
 
         self.assertFalse(check_search_set_evidence.has_current_record_evidence(text))
 
+    def test_evidence_commands_extracts_before_after_backticks(self) -> None:
+        text = """
+### 43. Example
+Status: 진행중
+
+Completion Gate:
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - AFTER: FAIL `python3 scripts/check-maintenance-review.py`
+- Multi-review required: yes
+"""
+
+        self.assertEqual(
+            check_search_set_evidence.evidence_commands(text),
+            [
+                "python3 scripts/run-search-set.py",
+                "python3 scripts/check-maintenance-review.py",
+            ],
+        )
+
+    def test_active_search_set_commands_extracts_active_verify_lines(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            return """
+## Active
+
+### SS-001: Active case
+- **verify**: `python3 scripts/check-maintenance-review.py`
+
+## Archived
+
+### SS-000: Old case
+- **verify**: `python3 old.py`
+"""
+
+        commands = check_search_set_evidence.active_search_set_commands(
+            read_text=read_text,
+            search_set_path=ROOT / ".harness/traces/search-set.md",
+        )
+
+        self.assertEqual(commands, {"python3 scripts/check-maintenance-review.py"})
+
+    def test_require_active_run_accepts_aggregate_runner(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            return evidence_record()
+
+        errors = check_search_set_evidence.validate(
+            ["core/methodology.md", "backlog/core.md"],
+            read_text=read_text,
+            require_active_run=True,
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_require_active_run_accepts_current_active_verify_command(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            if path.relative_to(ROOT).as_posix() == ".harness/traces/search-set.md":
+                return """
+## Active
+
+### SS-001: Active case
+- **verify**: `python3 scripts/check-maintenance-review.py`
+
+## Archived
+"""
+            return """
+### 57. Current item
+Status: 진행중
+Completion Gate:
+- Changed files: `core/methodology.md`, `backlog/core.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/check-maintenance-review.py`
+  - AFTER: PASS `python3 scripts/check-maintenance-review.py`
+- Multi-review required: yes
+"""
+
+        errors = check_search_set_evidence.validate(
+            ["core/methodology.md", "backlog/core.md"],
+            read_text=read_text,
+            require_active_run=True,
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_require_active_run_rejects_non_active_command(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            return """
+### 57. Current item
+Status: 진행중
+Completion Gate:
+- Changed files: `core/methodology.md`, `backlog/core.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/not-active.py`
+  - AFTER: PASS `python3 scripts/not-active.py`
+- Multi-review required: yes
+"""
+
+        errors = check_search_set_evidence.validate(
+            ["core/methodology.md", "backlog/core.md"],
+            read_text=read_text,
+            require_active_run=True,
+        )
+
+        self.assertTrue(errors)
+        self.assertIn("active search-set run attestation", errors[0])
+        self.assertIn("Allowed commands:", errors)
+
+    def test_require_active_run_ignores_unrelated_historical_in_progress_sections(self) -> None:
+        def read_text(path: Path, *, encoding: str) -> str:
+            if path.relative_to(ROOT).as_posix() == ".harness/traces/search-set.md":
+                return """
+## Active
+
+### SS-001: Active case
+- **verify**: `python3 scripts/run-search-set.py`
+
+## Archived
+"""
+            return """
+### 12. Historical archived item
+Status: 진행중
+Completion Gate:
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/not-active.py`
+  - AFTER: PASS `python3 scripts/not-active.py`
+
+### 76. Current completed item
+Status: 완료
+Completion Gate:
+- Changed files: `scripts/check-search-set-evidence.py`, `backlog/core.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/run-search-set.py`
+  - AFTER: PASS `python3 scripts/run-search-set.py`
+- Multi-review required: yes
+"""
+
+        errors = check_search_set_evidence.validate(
+            ["scripts/check-search-set-evidence.py", "backlog/core.md"],
+            read_text=read_text,
+            require_active_run=True,
+        )
+
+        self.assertEqual(errors, [])
+
     def test_backlog_only_cleanup_is_not_harness_affecting(self) -> None:
         errors = check_search_set_evidence.validate(["backlog/core.md"])
 
@@ -298,6 +441,7 @@ Completion Gate:
     def test_standard_verification_documents_checker(self) -> None:
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
         lower = text.lower()
+        normalized = " ".join(text.split())
 
         self.assertIn("python3 scripts/check-search-set-evidence.py", text)
         self.assertIn("python3 scripts/check-search-set-evidence.py --staged", text)
@@ -306,10 +450,12 @@ Completion Gate:
         self.assertIn("git index", lower)
         self.assertIn("ref...head", lower)
         self.assertIn("shape-only", lower)
-        self.assertIn("does not parse `.harness/traces/search-set.md`", text)
-        self.assertIn("prove that a recorded command is\ncurrently Active", text)
+        self.assertIn("parses `.harness/traces/search-set.md`", text)
+        self.assertIn("requires recorded BEFORE/AFTER commands to match", normalized)
         self.assertIn("prove that `python3 scripts/run-search-set.py` actually\nran", text)
         self.assertIn("Active-case execution is enforced by the separate verification policy", text)
+        self.assertIn("optional strict mode", lower)
+        self.assertIn("python3 scripts/check-search-set-evidence.py --staged --require-active-run", text)
 
     def test_staged_mode_uses_index_paths_and_records(self) -> None:
         original_staged_paths = check_search_set_evidence.git_staged_paths
@@ -371,8 +517,14 @@ Completion Gate:
                 "backlog/core.md",
             ]
 
-            def validate(changed_paths: list[str], *, read_text=Path.read_text) -> list[str]:
+            def validate(
+                changed_paths: list[str],
+                *,
+                read_text=Path.read_text,
+                require_active_run: bool = False,
+            ) -> list[str]:
                 calls.append((changed_paths, read_text))
+                self.assertFalse(require_active_run)
                 return []
 
             check_search_set_evidence.validate = validate
@@ -419,6 +571,67 @@ Completion Gate:
             try:
                 check_search_set_evidence.ROOT = repo
                 self.assertEqual(run_main_silently(["--staged"]), 0)
+            finally:
+                check_search_set_evidence.ROOT = original_root
+
+    def test_staged_strict_mode_uses_index_search_set_allowlist(self) -> None:
+        original_root = check_search_set_evidence.ROOT
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            run_git(repo, "init")
+            run_git(repo, "config", "user.email", "test@example.com")
+            run_git(repo, "config", "user.name", "Test User")
+            write(repo / "core/methodology.md", "baseline\n")
+            write(repo / ".harness/traces/search-set.md", """
+# Search Set
+
+## Active
+
+### SS-001: Active staged command
+- **verify**: `python3 scripts/index-active.py`
+
+## Archived
+""")
+            write(repo / "backlog/core.md", "# Backlog\n")
+            run_git(repo, "add", ".")
+            run_git(repo, "commit", "-m", "baseline")
+
+            write(repo / "core/methodology.md", "changed\n")
+            write(repo / "backlog/core.md", """
+### 57. Current item
+Status: 진행중
+Completion Gate:
+- Changed files: `core/methodology.md`, `backlog/core.md`.
+- Search-set verification:
+  - BEFORE: PASS `python3 scripts/index-active.py`
+  - AFTER: PASS `python3 scripts/index-active.py`
+- Multi-review required: yes
+""")
+            write(repo / ".harness/traces/search-set.md", """
+# Search Set
+
+## Active
+
+### SS-001: Active staged command
+- **verify**: `python3 scripts/index-active.py`
+
+## Archived
+""")
+            run_git(repo, "add", "core/methodology.md", "backlog/core.md", ".harness/traces/search-set.md")
+            write(repo / ".harness/traces/search-set.md", """
+# Search Set
+
+## Active
+
+### SS-001: Dirty worktree command
+- **verify**: `python3 scripts/worktree-only.py`
+
+## Archived
+""")
+
+            try:
+                check_search_set_evidence.ROOT = repo
+                self.assertEqual(run_main_silently(["--staged", "--require-active-run"]), 0)
             finally:
                 check_search_set_evidence.ROOT = original_root
 

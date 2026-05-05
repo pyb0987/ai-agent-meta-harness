@@ -247,6 +247,11 @@ Archived: `backlog/archive/core.md#74-p2-make-fallback-disposition-durable-for-c
 Status: 완료
 Archived: `backlog/archive/core.md#75-p3-tighten-public-efficacy-and-aphoristic-methodology-wording`
 
+### 76. P3 evaluate optional run attestation for search-set evidence
+
+Status: 완료
+Archived: `backlog/archive/core.md#76-p3-evaluate-optional-run-attestation-for-search-set-evidence`
+
 ### 79. P3 evaluate argv execution for the static release gate
 
 Status: 완료

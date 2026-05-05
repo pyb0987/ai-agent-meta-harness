@@ -427,16 +427,25 @@ python3 scripts/check-search-set-evidence.py --base-ref origin/main
 This checker is intentionally lightweight. It detects common harness-affecting
 changed paths and requires a touched backlog, review, or trace record to include
 search-set before/after evidence or an explicit skipped reason. It does not try
-to prove full methodology compliance and intentionally remains shape-only: it
-does not parse `.harness/traces/search-set.md`, prove that a recorded command is
-currently Active, or prove that `python3 scripts/run-search-set.py` actually
+to prove full methodology compliance and intentionally remains shape-only by
+default: it does not prove that `python3 scripts/run-search-set.py` actually
 ran. Active-case execution is enforced by the separate verification policy: run
 `python3 scripts/run-search-set.py` for harness-affecting repository changes, or
-record a precise skipped/narrowed reason in the Completion Gate. The staged mode
-reads both changed paths and backlog/trace records from the Git index so
-unstaged user work does not hide or satisfy commit-time evidence. The base-ref
-mode compares `REF...HEAD` so a clean release candidate still checks the
-committed harness-affecting diff.
+record a precise skipped/narrowed reason in the Completion Gate. For high-impact
+methodology, checker, or release-gate changes, add the optional strict mode
+`--require-active-run`, for example:
+
+```bash
+python3 scripts/check-search-set-evidence.py --staged --require-active-run
+```
+
+Strict mode parses `.harness/traces/search-set.md` and requires recorded
+BEFORE/AFTER commands to match the aggregate runner or current Active verify
+commands. This is a lightweight run-attestation check, not proof of execution.
+The staged mode reads both changed paths and backlog/trace records from the Git
+index so unstaged user work does not hide or satisfy commit-time evidence. The
+base-ref mode compares `REF...HEAD` so a clean release candidate still checks
+the committed harness-affecting diff.
 
 Use structured evidence lines so the checker can reject vague prose and
 accidental keywords:
