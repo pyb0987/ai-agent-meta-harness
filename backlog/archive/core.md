@@ -7720,3 +7720,97 @@ Completion Gate:
 - Residual risk/follow-up: no new follow-up. Score-nine residuals are accepted
   as non-actionable unless future reviews expose misuse or excessive test churn.
 - Accepted: yes.
+
+### 80. P3 reconcile stale active backlog recheck markers after completed follow-ups
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- backlog/core.md
+- backlog/README.md
+- backlog/archive/core.md
+
+Source: current active backlog after items 74-79 completed.
+
+The working active backlog still showed several `재검토 필요` markers and an
+item 78 `진행중` block that were useful while recent follow-ups were open, but
+the follow-up items have since been completed and archived. Leaving these
+markers active made the next maintenance handoff look like there was ongoing
+core methodology work when the concrete follow-up items were already closed.
+
+Potential improvement:
+
+- Return completed recheck parent items to compact completed pointers where
+  their narrower follow-up item is now complete.
+- Replace the stale item 78 `진행중` block with its completed archive pointer.
+- Refresh the active backlog status summary and theme index so they describe
+  the current completed state without advertising already-closed work as active.
+
+Done when:
+
+- Active core backlog status no longer lists completed items 74-79 as open
+  current-main follow-ups.
+- Item 13, 42, 69, 71, and 78 active records point cleanly to their completed
+  archive or completed follow-up state.
+- The change is recorded as backlog-only cleanup with verification and a
+  reviewed handoff.
+
+Review outcome:
+
+- Backlog status reviewer: initial score 8/10, VETO. Blocking findings: item
+  80 still needed Completion Gate and archive closure before acceptance, with
+  `backlog/core.md` still showing `Status: 진행중` and no item 80 record in
+  `backlog/archive/core.md`. The reviewer confirmed the cleanup content itself
+  was mostly right, stayed within backlog-only scope, removed stale parent
+  recheck markers, replaced item 78 with a compact completed pointer, and did
+  not introduce a misleading active-work claim.
+- Score handling: the score below 9 was treated as VETO. The blocking lifecycle
+  finding was addressed by adding this archive record and replacing the active
+  item 80 block with a compact completed pointer.
+- Rerun status: affected backlog status reviewer re-review score 9/10, PASS.
+  Blocking findings: none. Why not 10: the archive record still contained
+  temporary re-review/final acceptance placeholders and needed this PASS
+  result, score-nine explanation, final acceptance, and rerun status recorded
+  before the maintenance review checker could pass. Addressed by this final
+  record update.
+- Follow-up/residual risk: no new backlog follow-up needed; the score-9
+  residual was final bookkeeping within this item and is resolved here.
+- Final acceptance: accepted after affected reviewer re-review, final record
+  update, and final verification.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `backlog/core.md`, `backlog/README.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none.
+- Verification results: PASS `python3 scripts/check-maintenance-review.py
+  backlog/core.md backlog/README.md`; PASS `python3
+  scripts/check-backlog-archive-lifecycle.py`; PASS `python3
+  scripts/check-search-set-evidence.py`; PASS `python3
+  scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-backlog-archive-lifecycle.py --staged`; PASS `python3
+  scripts/check-search-set-evidence.py --staged`; PASS `git diff --cached
+  --check`.
+- Search-set verification:
+  - SKIPPED: backlog-only status/index cleanup; no harness-affecting behavior
+    changed.
+- Multi-review required: no; this is backlog/status cleanup only and does not
+  change adapter behavior, release gates, hook semantics, core methodology
+  boundaries, or durable runtime contracts.
+- Multi-review result: not required. Stable-handoff isolated reviewer gate used
+  instead.
+- Reviewer scores and VETO handling: see Review outcome above. The initial
+  backlog status reviewer VETO was addressed by archive closure and compact
+  active pointer; affected reviewer re-review passed with no blocking findings.
+- For each score-nine review, why not 10: affected backlog status reviewer
+  re-review was not 10 because final record placeholders still needed to be
+  replaced with the re-review result, score-nine explanation, final acceptance,
+  and rerun status;
+  addressed by this final record update.
+- Backlog items added from score-9 residual risk: none.
+- Residual risk/follow-up: no new follow-up. Final staged patch inspection and
+  verification remain before commit.
+- Accepted: yes.

@@ -102,10 +102,11 @@ Archived: `backlog/archive/core.md#27-p3-refresh-core-backlog-current-status-gui
 - Completed core records with `Status: 완료` or legacy `Decision implemented`
   summaries now live in `backlog/archive/core.md` with short pointers retained
   here.
-- Active core backlog has no unstarted core items from recent current-main
-  methodology reviews.
-  Items 41-72 are complete, so future maintenance should not select them as
-  available implementation candidates.
+- Active core backlog has no unstarted core implementation items from the latest
+  current-main methodology reviews. Items 74-79 have completed the follow-ups
+  that previously caused items 13, 42, 69, and 71 to need recheck markers, so
+  those parent records should remain compact completed pointers rather than
+  active candidates.
 - Recent adapter follow-ups in `backlog/claude-adapter.md` items 10-12,
   `backlog/codex-adapter.md` items 27-34, and core process item 31 are
   complete; use new backlog entries for newly discovered work rather than
@@ -232,11 +233,6 @@ Archived: `backlog/archive/core.md#72-p2-harden-search-set-runner-command-execut
 Status: 완료
 Archived: `backlog/archive/core.md#73-p3-refresh-backlog-summaries-after-codex-runtime-evidence-blocks`
 
-### 77. P1 add repository-level CI for release-gate invariants
-
-Status: 완료
-Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gate-invariants`
-
 ### 74. P2 make fallback disposition durable for clean handoffs
 
 Status: 완료
@@ -252,6 +248,11 @@ Archived: `backlog/archive/core.md#75-p3-tighten-public-efficacy-and-aphoristic-
 Status: 완료
 Archived: `backlog/archive/core.md#76-p3-evaluate-optional-run-attestation-for-search-set-evidence`
 
+### 77. P1 add repository-level CI for release-gate invariants
+
+Status: 완료
+Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gate-invariants`
+
 ### 78. P3 clarify raw-evidence expectations for isolated reviewer outputs
 
 Status: 완료
@@ -261,6 +262,11 @@ Archived: `backlog/archive/core.md#78-p3-clarify-raw-evidence-expectations-for-i
 
 Status: 완료
 Archived: `backlog/archive/core.md#79-p3-evaluate-argv-execution-for-the-static-release-gate`
+
+### 80. P3 reconcile stale active backlog recheck markers after completed follow-ups
+
+Status: 완료
+Archived: `backlog/archive/core.md#80-p3-reconcile-stale-active-backlog-recheck-markers-after-completed-follow-ups`
 
 ### 35. P2 separate paper-result claims from repository implementation evidence
 
