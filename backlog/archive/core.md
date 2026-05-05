@@ -5670,6 +5670,131 @@ Multi-review:
   for the current explicit-exception contract.
 - Final acceptance: yes.
 
+### 75. P3 tighten public efficacy and aphoristic methodology wording
+
+Status: 완료
+Owner: Codex single-session maintenance pass
+Branch: main
+Started: 2026-05-05
+Scope:
+- README.md
+- core/methodology.md
+- docs/methodology.md
+- tests/test_readme_methodology_boundaries.py
+- tests/test_core_methodology_boundaries.py
+- backlog/core.md
+- backlog/archive/core.md
+
+Source review: 2026-05-05 multi-review of clean local `main` against the
+Meta-Harness methodology.
+
+Items 42 and 71 improved claim boundaries, but the latest paper-fidelity review
+still found wording that can travel out of context as stronger than the local
+evidence: README described "reliable AI-assisted development environments" and
+"Harness gradually improves over time", while `core/methodology.md` kept
+aphoristic cues such as "The bottleneck is environment design, not model
+intelligence" and "Richer diagnostic context produces better harnesses." These
+were useful methodology cues, but they needed to remain clearly framed as
+paper-inspired repository guidance rather than local proof of reliability or a
+universal scientific claim.
+
+Decision implemented:
+
+- Reworded the README tagline from locally reliable environments to maintaining
+  trace-backed AI-assisted development environments.
+- Reworded the daily-flow summary from monotonic harness improvement to
+  trace-backed harness changes accumulating for future maintenance.
+- Replaced the opening methodology aphorisms with repository-scoped shorthand:
+  improve the environment before blaming model capability, and prefer richer
+  trace context when changing harnesses.
+- Mirrored the methodology boundary text in `docs/methodology.md`.
+- Added focused README and core-methodology boundary tests that reject the old
+  stronger slogans and preserve the paper-inspired/local-evidence distinction.
+
+Completion Gate:
+
+- Backlog status: `완료`; archived to `backlog/archive/core.md`.
+- Changed files: `README.md`, `core/methodology.md`, `docs/methodology.md`,
+  `tests/test_readme_methodology_boundaries.py`,
+  `tests/test_core_methodology_boundaries.py`, `backlog/core.md`,
+  `backlog/archive/core.md`.
+- Scope deviations: none for item 75. Existing out-of-scope dirty
+  `backlog/README.md` remains unstaged and is not part of this item. The working
+  tree `backlog/core.md` also contains unrelated user-added backlog context; the
+  staged `backlog/core.md` entry is restricted to the item 75 completed/archive
+  pointer.
+- Verification results: BEFORE PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 -m unittest tests/test_readme_methodology_boundaries.py
+  tests/test_core_methodology_boundaries.py`; PASS `python3
+  scripts/check-compat-mirrors.py`; PASS no-match scan for the old public/core
+  overclaim phrases; AFTER PASS `python3 scripts/run-search-set.py`; PASS
+  `python3 scripts/check-maintenance-review.py`; PASS `python3
+  scripts/check-search-set-evidence.py --staged`; PASS `python3
+  scripts/check-backlog-archive-lifecycle.py --staged`; PASS `git diff
+  --cached --check`.
+- Search-set verification: BEFORE PASS `python3 scripts/run-search-set.py`;
+  AFTER PASS `python3 scripts/run-search-set.py` after selected item files were
+  staged.
+- Multi-review required: yes; this changes core methodology boundary wording
+  and public claim framing.
+- Multi-review result: PASS after process VETO recovery. Public README critic
+  scored 9 PASS; core methodology/mirror critic scored 9 PASS; process/scope
+  critic scored 8 VETO, then affected process/scope re-review scored 9 PASS
+  after dirty out-of-scope backlog handling and staged scope were recorded.
+- Reviewer scores and VETO handling: public README critic scored 9 PASS with no
+  blocking findings. Core methodology/mirror critic scored 9 PASS with no
+  blocking findings. Process/scope critic scored 8 VETO because
+  `backlog/README.md` was dirty outside the reservation and needed explicit
+  out-of-scope treatment before acceptance; fixed by recording it as unstaged
+  unrelated work here and staging only the item 75 intended files. Affected
+  process/scope re-review scored 9 PASS with no blocking findings.
+- For each score 9, why not 10: public README critic was not 10 because
+  "trace-backed AI-assisted development environments" remains broad, but the
+  surrounding evidence categories and non-reproduction language bound it enough
+  for this public README surface. Core methodology/mirror critic was not 10
+  because "before blaming model capability" still has some aphoristic edge and
+  the tests use phrase-level guards rather than an exact opening-block mirror
+  check; this is accepted as residual risk because the phrase is scoped to "In
+  this repository" and stricter exact-text mirroring would make prose edits
+  unnecessarily brittle. Process/scope re-review was not 10 because final
+  acceptance still needed this archive update at review time; that bookkeeping
+  is completed here and does not require a backlog follow-up.
+- Backlog items added from score-9 residual risk: none; both score-9 reasons
+  are accepted residual documentation risk, not actionable repository
+  improvements.
+- Residual risk/follow-up: no follow-up. The public and core wording now avoid
+  the old local reliability, monotonic improvement, and universal model-capacity
+  readings while preserving the operational rules around raw traces, evaluator
+  boundaries, additive-first changes, and trace reuse.
+- Accepted: yes.
+
+Multi-review:
+
+- Public README critic: score 9, PASS. Blocking findings: none. Why not 10:
+  "trace-backed AI-assisted development environments" remains broad, but is
+  bounded by the surrounding README evidence table and explicit
+  non-reproduction language. Follow-up/residual risk: no backlog item needed.
+- Core methodology/mirror critic: score 9, PASS. Blocking findings: none. Why
+  not 10: "before blaming model capability" keeps a little aphoristic edge and
+  the tests are phrase-level guards, but the "In this repository" boundary is
+  acceptable. Follow-up/residual risk: no backlog item needed.
+- Process/scope critic: score 8, VETO. Blocking findings: dirty
+  `backlog/README.md` was outside the reservation and needed explicit
+  out-of-scope handling before acceptance. Not accepted until affected
+  process/scope re-review reaches at least 9 after staged scope is confirmed.
+- Process/scope affected re-review: score 9, PASS. Blocking findings: none.
+  Why not 10: the staged archive still needed to record this re-review result
+  and flip final acceptance. Follow-up/residual risk: no backlog item; this is
+  final bookkeeping completed in this record.
+- Score handling: score 8 is treated as VETO and is not accepted until the
+  affected process/scope critic re-review reaches at least 9. The affected
+  process/scope critic re-review reached 9 PASS. Score-9 why-not-10 reasons are
+  recorded above and accepted as residual risk without new backlog items.
+- Rerun status: affected process/scope re-review scored 9 PASS with no blocking
+  findings.
+- Follow-up/residual risk: no backlog follow-up.
+- Final acceptance: yes.
+
 ### 79. P3 evaluate argv execution for the static release gate
 
 Status: 완료

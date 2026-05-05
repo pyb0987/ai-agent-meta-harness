@@ -242,6 +242,11 @@ Archived: `backlog/archive/core.md#77-p1-add-repository-level-ci-for-release-gat
 Status: 완료
 Archived: `backlog/archive/core.md#74-p2-make-fallback-disposition-durable-for-clean-handoffs`
 
+### 75. P3 tighten public efficacy and aphoristic methodology wording
+
+Status: 완료
+Archived: `backlog/archive/core.md#75-p3-tighten-public-efficacy-and-aphoristic-methodology-wording`
+
 ### 79. P3 evaluate argv execution for the static release gate
 
 Status: 완료

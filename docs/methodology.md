@@ -3,11 +3,13 @@
 # Harness Engineering Methodology — Core
 
 Runtime-neutral core principles. For detailed reference in an installed Claude setup, see `~/.claude/docs/harness-reference.md`. Repository source: `core/reference.md`.
-The opening cues below are paper-backed motivation for this repository's
-applied harness toolkit, not local benchmark reproduction claims.
+The opening cues below are repository shorthand inspired by paper-backed
+motivation for this repository's applied harness toolkit, not local benchmark
+reproduction claims or universal claims about model capability.
 
-> The bottleneck is environment design, not model intelligence.
-> Richer diagnostic context produces better harnesses. (Meta-Harness, Lee et al. 2026)
+> In this repository, improve the environment before blaming model capability.
+> Prefer richer trace context when changing harnesses. (Repository shorthand
+> inspired by Meta-Harness, Lee et al. 2026)
 
 ## Trace-Based Diagnosis — The Core of Diagnosis
 

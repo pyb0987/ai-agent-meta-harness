@@ -95,6 +95,14 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
                 else:
                     self.assertNotIn(forbidden, combined)
 
+        self.assertIn(
+            "a practical framework for maintaining trace-backed ai-assisted development environments",
+            readme.lower(),
+        )
+        self.assertNotIn("building reliable ai-assisted development environments", readme.lower())
+        self.assertIn("Trace-backed harness changes accumulate for future maintenance", readme)
+        self.assertNotIn("Harness gradually improves over time", readme)
+
     def test_readme_has_compact_paper_claim_traceability_map(self) -> None:
         text = normalized_readme()
 

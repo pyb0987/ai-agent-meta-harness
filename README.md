@@ -1,6 +1,6 @@
 # AI Agent Meta-Harness
 
-A practical framework for building reliable AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
+A practical framework for maintaining trace-backed AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
 
 The Meta-Harness paper frames harness design as a major factor in agent performance, and its introduction cites prior harness-sensitivity evidence that changing only the harness can produce a 6x performance gap on the same benchmark. This project operationalizes Meta-Harness paper principles into a practical harness toolkit, runtime adapters, and verification gates. It combines published findings with repository-local engineering practices and checks for documentation, adapters, generated assets, and self-application traces, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
 
@@ -226,7 +226,7 @@ The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scr
 2. Work normally with the coding agent
 3. On failure → harness-engineer diagnoses from traces
 4. Fix applied → recorded in traces/evolution/
-5. Harness gradually improves over time
+5. Trace-backed harness changes accumulate for future maintenance
 ```
 
 ### Multi-review flow

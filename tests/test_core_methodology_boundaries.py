@@ -46,28 +46,47 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
 
         for document in (methodology, mirror):
             with self.subTest(document=document[:20]):
-                self.assertIn("paper-backed motivation for this repository's", document)
-                self.assertIn("not local benchmark reproduction claims", document)
+                normalized = " ".join(document.split())
+                self.assertIn("repository shorthand inspired by paper-backed", normalized)
+                self.assertIn("not local benchmark reproduction claims", normalized)
+                self.assertIn(
+                    "not local benchmark reproduction claims or universal claims about model capability",
+                    normalized,
+                )
+                self.assertIn(
+                    "In this repository, improve the environment before blaming model capability",
+                    normalized,
+                )
+                self.assertIn("Prefer richer trace context when changing harnesses", normalized)
                 self.assertIn("Repository hardening shorthand", document)
                 self.assertIn("repeated trace evidence can be turned into mechanical guardrails", document)
+                self.assertNotIn("The bottleneck is environment design, not model intelligence", document)
+                self.assertNotIn("Richer diagnostic context produces better harnesses", document)
                 self.assertNotIn('> "Don\'t do this" fails. "Can\'t do this" succeeds.', document)
 
     def test_compatibility_mirror_has_same_boundary_language(self) -> None:
         canonical = text(CORE)
         mirror = text(MIRROR)
+        normalized_canonical = " ".join(canonical.split())
+        normalized_mirror = " ".join(mirror.split())
 
         for marker in (
             "### Applied Repository Hardening",
             "not a separate paper claim",
             "not local benchmark reproduction claims",
+            "not local benchmark reproduction claims or universal claims about model capability",
             "**Repository hardening ladder**",
             "Repository hardening shorthand",
             "Applied hardening check",
             "Drift is mechanically prevented or detected",
         ):
             with self.subTest(marker=marker):
-                self.assertIn(marker, mirror)
-                self.assertEqual(canonical.count(marker), mirror.count(marker))
+                if "\n" in marker or len(marker.split()) > 3:
+                    self.assertIn(marker, normalized_mirror)
+                    self.assertEqual(normalized_canonical.count(marker), normalized_mirror.count(marker))
+                else:
+                    self.assertIn(marker, mirror)
+                    self.assertEqual(canonical.count(marker), mirror.count(marker))
 
     def test_prompt_as_code_example_uses_runtime_neutral_instruction_file(self) -> None:
         canonical = text(CORE)
