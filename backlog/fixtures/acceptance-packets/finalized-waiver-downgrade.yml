@@ -102,9 +102,30 @@ AcceptancePacket:
           target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
         - origin: generated
           relation: review-provenance
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
           status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          target: "backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
+      review_imports:
+        - source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
+          format: acceptance-packet-review-import/v1
+          source_digest: "3aa9795229eb3ccd224f83e0f582afb5ce33c9e5067daf592d30bc684fc4acc4"
+          status: imported
+          review_ids:
+            - review-waiver-archive-boundary
+          target_binding:
+            packet_id: pkt-finalized-waiver-downgrade-example
+            packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+            review_target_digest: 0185f06bd1b622fd8879fac89fbd62d58831b8486efc23ee45ecf9856a5560ae
+            baseline_ref: HEAD
+            comparison_ref: HEAD
+            source_refs:
+              - archive/v1/README.md
+              - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+            changed_paths:
+              - archive/v1/README.md
+            required_review:
+              - archive boundary
+              - full v1 archive fidelity
       trace_refs:
         search_set_before: null
         search_set_after: null
@@ -126,15 +147,28 @@ AcceptancePacket:
           source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
     judgment:
       reviews:
-        - critic: "archive boundary"
+        - review_id: review-waiver-archive-boundary
+          critic: "archive boundary"
+          scope: "Archive index wording repair and v1 archive boundary handling."
+          anti_scope: "Full v1 archive fidelity, which is handled by targeted waiver."
           actor: "reviewer"
           role: "reviewer"
           date: 2026-05-06
           score: 9
           veto: false
+          false_green_risk: "Archive repair could be treated as routine without waiver provenance."
+          invariant_checked: "Required archive review and waiver targets are checked separately."
+          evidence:
+            - "Archive boundary review is represented as structured lineage."
+          source_refs:
+            - "archive/v1/README.md"
+            - "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+          blocking_findings: []
           why_not_10: "The example relies on source refs rather than embedding full review transcript."
           disposition: "Accepted because raw review source is referenced."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
+          rerun_of: null
+          fixed_finding_ids: []
       waivers:
         - actor: "maintainer"
           role: "maintainer"

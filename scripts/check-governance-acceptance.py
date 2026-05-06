@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib.util
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -36,6 +38,55 @@ FINALIZED_INFERENCE_FIELDS = (
 )
 PROVENANCE_FIELDS = ("actor", "role", "date", "reason", "source_ref")
 REVIEW_PROVENANCE_FIELDS = ("actor", "role", "date", "source_ref")
+REVIEW_IMPORT_KEY = "AcceptancePacketReviewImport"
+REVIEW_IMPORT_SCHEMA_VERSION = "acceptance-packet-review-import/v1"
+REVIEW_IMPORT_FIELDS = {"schema_version", "target_binding", "MultiReviewResult", "review_lineage"}
+REVIEW_IMPORT_RECORD_FIELDS = {"source_ref", "format", "source_digest", "status", "review_ids", "target_binding"}
+TARGET_BINDING_FIELDS = {
+    "packet_id",
+    "packet_ref",
+    "review_target_digest",
+    "baseline_ref",
+    "comparison_ref",
+    "source_refs",
+    "changed_paths",
+    "required_review",
+}
+REVIEW_LINEAGE_FIELDS = {
+    "review_id",
+    "critic",
+    "scope",
+    "anti_scope",
+    "score",
+    "veto",
+    "actor",
+    "role",
+    "date",
+    "source_ref",
+    "false_green_risk",
+    "invariant_checked",
+    "evidence",
+    "source_refs",
+    "blocking_findings",
+    "why_not_10",
+    "disposition",
+    "rerun_of",
+    "fixed_finding_ids",
+}
+REVIEW_MIRROR_FIELDS = REVIEW_LINEAGE_FIELDS
+VACUOUS_REVIEW_VALUES = {
+    "",
+    "none",
+    "n/a",
+    "na",
+    "ok",
+    "checked",
+    "generic",
+    "not applicable",
+    "self-attested",
+    "self attested",
+    "read the plan",
+}
 LIFECYCLES = {"start", "finalized", "blocked"}
 MODES = {"staged", "base-ref", "worktree"}
 PROTECTED_PREFIXES = (
@@ -255,6 +306,100 @@ def stable_required_evidence(packet: dict) -> tuple[set[str], list[str]]:
     return required, errors
 
 
+def path_mentions_scope_boundary(root: Path, path: str) -> bool:
+    lowered_path = path.casefold()
+    if path.startswith("archive/v1/"):
+        return False
+    if "multi-review" in lowered_path or "review" in lowered_path:
+        return True
+    if any(marker in lowered_path for marker in ("waiver", "downgrade", "not-required", "not_required")):
+        return True
+    if not path.endswith(".md"):
+        return False
+    try:
+        text = (root / path).read_text(encoding="utf-8").casefold()
+    except OSError:
+        return False
+    return any(
+        phrase in text
+        for phrase in (
+            "waiver",
+            "downgrade",
+            "not required",
+            "deferred",
+            "out of scope",
+            "review-governance",
+            "review governance",
+        )
+    )
+
+
+def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
+    result = packet.get("result", {})
+    inference = result.get("inference", {}) if isinstance(result, dict) else {}
+    changed_paths = [path for path in inference.get("changed_paths", []) if isinstance(path, str)]
+    required: set[str] = set()
+
+    archive_paths = [path for path in changed_paths if path.startswith("archive/v1/")]
+    if archive_paths:
+        required.update({"archive boundary", "full v1 archive fidelity"})
+    protected_paths = [path for path in changed_paths if requires_review_for_path(path) and not path.startswith("archive/v1/")]
+    if protected_paths:
+        required.add("checker correctness")
+    if inference.get("protected_boundary_changed") is True and not archive_paths:
+        required.add("checker correctness")
+    if inference.get("impact") == "high" and not required:
+        required.add("checker correctness")
+
+    if any(
+        path.startswith(".githooks/")
+        or path in {"scripts/verify-release.py", "scripts/check-v1-archive-boundary.py"}
+        or "pre-commit" in path
+        or "release" in path
+        or "archive-boundary" in path
+        or "stable" in path
+        for path in changed_paths
+    ):
+        required.add("release integration")
+
+    if any(
+        path in {"MAINTENANCE.md", "README.md", "backlog/v2-roadmap.md"}
+        or path == "scripts/check-v1-archive-boundary.py"
+        or path.startswith("backlog/plans/")
+        or path.startswith("core/")
+        for path in changed_paths
+    ):
+        required.add("methodology fidelity")
+
+    evidence_surfaces = (
+        "source_ref",
+        "source_refs",
+        "artifact_ref",
+        "artifact_refs",
+        "trace_ref",
+        "trace_refs",
+        "review-provenance",
+        "waiver-provenance",
+        "acceptance-packets",
+        "check-governance-acceptance",
+        "governance_evidence",
+    )
+    if any(
+        any(surface in path for surface in evidence_surfaces)
+        and path != "backlog/fixtures/acceptance-packets/README.md"
+        for path in changed_paths
+    ):
+        required.add("evidence auditability")
+
+    if any(path_mentions_scope_boundary(root, path) for path in changed_paths):
+        required.add("scope boundary")
+
+    if any(path.endswith(".md") and path_has_proof_like_claim(root, path) for path in changed_paths):
+        required.add("claim evidence")
+
+    return required
+
+
 def exception_target(record: dict) -> tuple[str, str] | None:
     targets = [(field, record[field]) for field in ("evidence", "review", "from") if record.get(field)]
     if len(targets) != 1:
@@ -469,6 +614,101 @@ def normalize_review_field(value: object) -> str:
     return normalized
 
 
+def review_value_is_substantive(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return normalize_review_field(value) not in VACUOUS_REVIEW_VALUES
+    if isinstance(value, dt.date):
+        return True
+    if isinstance(value, list):
+        return any(review_value_is_substantive(item) for item in value)
+    if isinstance(value, dict):
+        return any(review_value_is_substantive(item) for item in value.values())
+    return True
+
+
+def sorted_string_values(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    return sorted({str(value) for value in values if isinstance(value, str) and value})
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    def normalize(item: object) -> object:
+        if isinstance(item, dt.datetime):
+            return item.date().isoformat()
+        if isinstance(item, dt.date):
+            return item.isoformat()
+        if isinstance(item, dict):
+            return {str(key): normalize(item[key]) for key in sorted(item)}
+        if isinstance(item, list):
+            return [normalize(element) for element in item]
+        return item
+
+    return json.dumps(normalize(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+
+
+def review_target_context(packet: dict, *, root: Path, packet_ref: str | None) -> dict:
+    meta = packet["meta"]
+    input_data = packet["input"]
+    result = packet["result"]
+    inference = result["inference"]
+    evidence = result["evidence"]
+    evaluator_boundary = evidence.get("evaluator_boundary", {})
+    commands = evaluator_boundary.get("commands") if isinstance(evaluator_boundary, dict) else []
+    return {
+        "packet_id": meta.get("packet_id"),
+        "schema_version": meta.get("schema_version"),
+        "lifecycle": meta.get("lifecycle"),
+        "mode": meta.get("mode"),
+        "packet_ref": packet_ref or "",
+        "input": {
+            "intent": input_data.get("intent"),
+            "actor": input_data.get("actor"),
+            "source_refs": sorted_string_values(input_data.get("source_refs")),
+        },
+        "inference": {
+            "change_class": inference.get("change_class"),
+            "impact": inference.get("impact"),
+            "changed_paths": sorted_string_values(inference.get("changed_paths")),
+            "intended_scope": inference.get("intended_scope"),
+            "actual_scope": inference.get("actual_scope"),
+            "deviations": sorted_string_values(inference.get("deviations")),
+            "isolation": inference.get("isolation"),
+            "protected_boundary_changed": inference.get("protected_boundary_changed"),
+            "required_evidence": sorted_string_values(inference.get("required_evidence")),
+            "required_review": sorted(checker_required_review(packet, root=root)),
+        },
+        "evidence": {
+            "baseline_ref": evidence.get("baseline_ref"),
+            "comparison_ref": evidence.get("comparison_ref"),
+            "evaluator_boundary_commands": sorted_string_values(commands),
+            "source_refs": sorted_string_values(evidence.get("source_refs")),
+        },
+    }
+
+
+def review_target_digest(packet: dict, *, root: Path, packet_ref: str | None) -> str:
+    return hashlib.sha256(canonical_json_bytes(review_target_context(packet, root=root, packet_ref=packet_ref))).hexdigest()
+
+
+def review_target_binding(packet: dict, *, root: Path, packet_ref: str | None) -> dict:
+    result = packet["result"]
+    evidence = result["evidence"]
+    inference = result["inference"]
+    return {
+        "packet_id": packet["meta"].get("packet_id"),
+        "packet_ref": packet_ref or "",
+        "review_target_digest": review_target_digest(packet, root=root, packet_ref=packet_ref),
+        "baseline_ref": evidence.get("baseline_ref"),
+        "comparison_ref": evidence.get("comparison_ref"),
+        "source_refs": sorted_string_values(packet["input"].get("source_refs")),
+        "changed_paths": sorted_string_values(inference.get("changed_paths")),
+        "required_review": sorted(checker_required_review(packet, root=root)),
+    }
+
+
 def markdown_field_sections(text: str) -> list[dict[str, str]]:
     sections: list[dict[str, str]] = []
     current: dict[str, str] | None = None
@@ -494,6 +734,35 @@ def review_source_ref_records_review(root: Path, ref: str, review: dict, *, pack
     text = ref_text(root, ref)
     if text is None:
         return False
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError:
+        loaded = None
+    if isinstance(loaded, dict) and REVIEW_IMPORT_KEY in loaded:
+        wrapper = loaded.get(REVIEW_IMPORT_KEY)
+        if not isinstance(wrapper, dict):
+            return False
+        binding = wrapper.get("target_binding") if isinstance(wrapper.get("target_binding"), dict) else {}
+        if normalize_review_field(binding.get("packet_id", "")) != normalize_review_field(packet_id):
+            return False
+        for record in wrapper.get("review_lineage", []):
+            if not isinstance(record, dict):
+                continue
+            if review.get("review_id") and record.get("review_id") != review.get("review_id"):
+                continue
+            expected = {
+                "critic": normalize_review_field(review.get("critic", "")),
+                "actor": normalize_review_field(review.get("actor", "")),
+                "role": normalize_review_field(review.get("role", "")),
+                "date": normalize_review_field(review.get("date", "")),
+                "score": normalize_review_field(review.get("score", "")),
+                "veto": normalize_review_field(review.get("veto", "")),
+            }
+            if any(not value for value in expected.values()):
+                return False
+            if all(normalize_review_field(record.get(field, "")) == value for field, value in expected.items()):
+                return True
+        return False
     expected = {
         "record_type": "governance-review",
         "packet_id": normalize_review_field(packet_id),
@@ -510,6 +779,379 @@ def review_source_ref_records_review(root: Path, ref: str, review: dict, *, pack
         if review.get(field):
             expected[field] = normalize_review_field(review[field])
     return any(all(section.get(field) == value for field, value in expected.items()) for section in markdown_field_sections(text))
+
+
+def local_ref_path(root: Path, ref: str) -> Path | None:
+    resolved = resolve_ref(root, ref)
+    if resolved is None or ref.startswith("git:"):
+        return None
+    if "#" in resolved:
+        resolved = resolved.split("#", 1)[0]
+    path = (root / resolved).resolve()
+    root_resolved = root.resolve()
+    if path != root_resolved and root_resolved not in path.parents:
+        return None
+    return path if path.is_file() else None
+
+
+def load_review_import_wrapper(root: Path, source_ref: str) -> tuple[dict | None, list[str]]:
+    path = local_ref_path(root, source_ref)
+    if path is None:
+        return None, [f"review import source_ref does not resolve to a local file: {source_ref}"]
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, [f"cannot read review import source_ref {source_ref}: {exc}"]
+    try:
+        loaded = json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
+    except (json.JSONDecodeError, yaml.YAMLError) as exc:
+        return None, [f"invalid review import artifact syntax: {source_ref}: {exc}"]
+    if not isinstance(loaded, dict) or REVIEW_IMPORT_KEY not in loaded:
+        return None, [f"review import artifact missing {REVIEW_IMPORT_KEY}: {source_ref}"]
+    wrapper = loaded[REVIEW_IMPORT_KEY]
+    if not isinstance(wrapper, dict):
+        return None, [f"{REVIEW_IMPORT_KEY} must be a mapping: {source_ref}"]
+    return wrapper, []
+
+
+def derive_multi_review_result(root: Path, result: dict) -> tuple[str, list[str]]:
+    script = ROOT / "scripts" / "check-multi-review-result.py"
+    spec = importlib.util.spec_from_file_location("check_multi_review_result_for_acceptance", script)
+    if spec is None or spec.loader is None:
+        return "VETO", [f"cannot load multi-review validator: {script}"]
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    original_root = getattr(module, "ROOT", None)
+    module.ROOT = root
+    try:
+        return module.derive_verdict(result)
+    finally:
+        if original_root is not None:
+            module.ROOT = original_root
+
+
+def review_lineage_ids(lineage: list[dict]) -> list[str]:
+    return [str(record.get("review_id")) for record in lineage if isinstance(record, dict) and record.get("review_id")]
+
+
+def finding_ids(record: dict) -> set[str]:
+    ids: set[str] = set()
+    findings = record.get("blocking_findings", [])
+    if not isinstance(findings, list):
+        return ids
+    for finding in findings:
+        if isinstance(finding, dict) and review_value_is_substantive(finding.get("finding_id")):
+            ids.add(str(finding["finding_id"]))
+        elif isinstance(finding, str) and review_value_is_substantive(finding):
+            ids.add(markdown_anchor(finding))
+    return ids
+
+
+def review_is_blocking(record: dict) -> bool:
+    score = record.get("score")
+    return record.get("veto") is True or not isinstance(score, (int, float)) or score < 9 or bool(record.get("blocking_findings"))
+
+
+def review_is_open_passing(record: dict, closed_blocking_ids: set[str]) -> bool:
+    if record.get("review_id") in closed_blocking_ids:
+        return False
+    score = record.get("score")
+    return isinstance(score, (int, float)) and score >= 9 and record.get("veto") is False and not record.get("blocking_findings")
+
+
+def normalize_for_mirror(value: object) -> object:
+    if isinstance(value, dt.datetime):
+        return value.date().isoformat()
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    if isinstance(value, list):
+        return [normalize_for_mirror(item) for item in value]
+    if isinstance(value, dict):
+        return {key: normalize_for_mirror(value[key]) for key in sorted(value)}
+    return value
+
+
+def validate_review_lineage_record(record: object, *, source: str, import_source_ref: str, root: Path) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(record, dict):
+        return [f"{source}: review lineage record must be a mapping"]
+    if set(record) != REVIEW_LINEAGE_FIELDS:
+        missing = sorted(REVIEW_LINEAGE_FIELDS - set(record))
+        extra = sorted(set(record) - REVIEW_LINEAGE_FIELDS)
+        if missing:
+            errors.append(f"{source}: missing fields: {missing}")
+        if extra:
+            errors.append(f"{source}: extra fields: {extra}")
+    for field in ("review_id", "critic", "scope", "anti_scope", "actor", "role", "source_ref"):
+        if not review_value_is_substantive(record.get(field)):
+            errors.append(f"{source}: {field} is required")
+    if record.get("source_ref") != import_source_ref:
+        errors.append(f"{source}: source_ref must match review import source_ref: {import_source_ref}")
+    if record.get("date") and not date_like(record["date"]):
+        errors.append(f"{source}: date must be an ISO date")
+    score = record.get("score")
+    if not isinstance(score, int) or isinstance(score, bool) or score < 1 or score > 10:
+        errors.append(f"{source}: score must be an integer from 1 to 10")
+    if not isinstance(record.get("veto"), bool):
+        errors.append(f"{source}: veto must be a boolean")
+    for field in ("false_green_risk", "invariant_checked"):
+        if not review_value_is_substantive(record.get(field)):
+            errors.append(f"{source}: {field} must be substantive")
+    if not isinstance(record.get("evidence"), list) or not review_value_is_substantive(record.get("evidence")):
+        errors.append(f"{source}: evidence must be a non-empty substantive list")
+    source_refs = record.get("source_refs")
+    if not isinstance(source_refs, list) or not source_refs:
+        errors.append(f"{source}: source_refs must be a non-empty list")
+    else:
+        for index, ref in enumerate(source_refs):
+            if not isinstance(ref, str) or not review_value_is_substantive(ref):
+                errors.append(f"{source}: source_refs[{index}] must be a non-empty string")
+            elif resolve_ref(root, ref) is None:
+                errors.append(f"{source}: source_refs[{index}] does not resolve: {ref}")
+    if not isinstance(record.get("blocking_findings"), list):
+        errors.append(f"{source}: blocking_findings must be a list")
+    else:
+        for index, finding in enumerate(record["blocking_findings"]):
+            if not isinstance(finding, dict):
+                errors.append(f"{source}: blocking_findings[{index}] must be a mapping with finding_id and summary")
+                continue
+            if not review_value_is_substantive(finding.get("finding_id")):
+                errors.append(f"{source}: blocking_findings[{index}].finding_id is required")
+            if not review_value_is_substantive(finding.get("summary")):
+                errors.append(f"{source}: blocking_findings[{index}].summary is required")
+    if review_is_blocking(record) and not finding_ids(record):
+        errors.append(f"{source}: blocking review requires blocking_findings with stable finding_id values")
+    if score == 9:
+        if not review_value_is_substantive(record.get("why_not_10")):
+            errors.append(f"{source}: score 9 requires why_not_10")
+        if not review_value_is_substantive(record.get("disposition")):
+            errors.append(f"{source}: score 9 requires disposition")
+    fixed = record.get("fixed_finding_ids")
+    if not isinstance(fixed, list):
+        errors.append(f"{source}: fixed_finding_ids must be a list")
+    elif any(not isinstance(item, str) or not review_value_is_substantive(item) for item in fixed):
+        errors.append(f"{source}: fixed_finding_ids must contain only substantive string ids")
+    if record.get("rerun_of"):
+        if not isinstance(record.get("rerun_of"), str):
+            errors.append(f"{source}: rerun_of must be a review_id string")
+        if not fixed:
+            errors.append(f"{source}: rerun requires fixed_finding_ids")
+    elif fixed:
+        errors.append(f"{source}: fixed_finding_ids require rerun_of")
+    return errors
+
+
+def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tuple[set[str], list[str]]:
+    errors: list[str] = []
+    by_id: dict[str, dict] = {}
+    index_by_id: dict[str, int] = {}
+    for index, record in enumerate(lineage):
+        review_id = record.get("review_id") if isinstance(record, dict) else None
+        if not isinstance(review_id, str) or not review_id:
+            continue
+        if review_id in by_id:
+            errors.append(f"{source}: duplicate review_id: {review_id}")
+        by_id[review_id] = record
+        index_by_id[review_id] = index
+
+    closed_blocking_ids: set[str] = set()
+    for index, record in enumerate(lineage):
+        if not isinstance(record, dict) or not record.get("rerun_of"):
+            continue
+        rerun_id = record.get("review_id")
+        target_id = record.get("rerun_of")
+        target = by_id.get(target_id)
+        if target is None:
+            errors.append(f"{source}: rerun {rerun_id} references missing review_id: {target_id}")
+            continue
+        if index_by_id.get(target_id, len(lineage)) >= index:
+            errors.append(f"{source}: rerun {rerun_id} must appear after rerun_of review: {target_id}")
+            continue
+        if not review_is_blocking(target):
+            errors.append(f"{source}: rerun {rerun_id} references nonblocking review: {target_id}")
+            continue
+        if record.get("critic") != target.get("critic"):
+            errors.append(f"{source}: rerun {rerun_id} must use same critic as {target_id}")
+        if not review_is_open_passing(record, set()):
+            errors.append(f"{source}: rerun {rerun_id} must be score >= 9, veto false, and nonblocking")
+            continue
+        target_findings = finding_ids(target)
+        fixed = set(record.get("fixed_finding_ids", []))
+        if not target_findings:
+            errors.append(f"{source}: rerun target {target_id} has no stable finding ids")
+            continue
+        if fixed != target_findings:
+            errors.append(f"{source}: rerun {rerun_id} fixed_finding_ids must exactly cover {target_id}: {sorted(target_findings)}")
+            continue
+        if target_id in closed_blocking_ids:
+            errors.append(f"{source}: multiple reruns close review_id: {target_id}")
+            continue
+        closed_blocking_ids.add(target_id)
+
+    for record in lineage:
+        if not isinstance(record, dict):
+            continue
+        review_id = record.get("review_id")
+        if review_is_blocking(record) and review_id not in closed_blocking_ids:
+            errors.append(f"{source}: unclosed blocking review: {review_id}")
+
+    open_passing = {
+        record["critic"]
+        for record in lineage
+        if isinstance(record, dict)
+        and isinstance(record.get("critic"), str)
+        and review_is_open_passing(record, closed_blocking_ids)
+    }
+    return open_passing, errors
+
+
+def validate_review_imports(
+    packet: dict,
+    *,
+    root: Path,
+    packet_ref: str | None,
+    ref_index: dict[tuple[str, str], list[dict]],
+) -> tuple[set[str], list[str]]:
+    errors: list[str] = []
+    evidence = packet["result"]["evidence"]
+    packet_reviews = packet["result"]["judgment"].get("reviews", [])
+    imports = evidence.get("review_imports", [])
+    if not isinstance(imports, list):
+        return set(), ["result.evidence.review_imports must be a list"]
+    if packet_reviews and not imports:
+        return set(), ["stable packet reviews require result.evidence.review_imports"]
+
+    expected_binding = review_target_binding(packet, root=root, packet_ref=packet_ref)
+    imported_source_refs: set[str] = set()
+    imported_lineage_by_id: dict[str, dict] = {}
+    open_passing_reviews: set[str] = set()
+    for import_index, import_record in enumerate(imports):
+        source = f"result.evidence.review_imports[{import_index}]"
+        if not isinstance(import_record, dict):
+            errors.append(f"{source}: review import must be a mapping")
+            continue
+        if set(import_record) != REVIEW_IMPORT_RECORD_FIELDS:
+            missing = sorted(REVIEW_IMPORT_RECORD_FIELDS - set(import_record))
+            extra = sorted(set(import_record) - REVIEW_IMPORT_RECORD_FIELDS)
+            if missing:
+                errors.append(f"{source}: missing fields: {missing}")
+            if extra:
+                errors.append(f"{source}: extra fields: {extra}")
+        source_ref = import_record.get("source_ref")
+        if not isinstance(source_ref, str) or not source_ref:
+            errors.append(f"{source}: source_ref is required")
+            continue
+        imported_source_refs.add(source_ref)
+        if import_record.get("format") != REVIEW_IMPORT_SCHEMA_VERSION:
+            errors.append(f"{source}: format must be {REVIEW_IMPORT_SCHEMA_VERSION}")
+        if import_record.get("status") != "imported":
+            errors.append(f"{source}: status must be imported")
+        if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref):
+            errors.append(f"{source}: source_ref lacks resolved review-provenance relation: {source_ref}")
+        if ref_is_acceptance_packet(root, source_ref):
+            errors.append(f"{source}: review import source_ref cannot be an acceptance packet: {source_ref}")
+        path = local_ref_path(root, source_ref)
+        if path is None:
+            errors.append(f"{source}: source_ref does not resolve to a local file: {source_ref}")
+            continue
+        digest = file_sha256(path)
+        if import_record.get("source_digest") != digest:
+            errors.append(f"{source}: source_digest does not match current artifact bytes: {source_ref}")
+
+        binding = import_record.get("target_binding")
+        if not isinstance(binding, dict) or set(binding) != TARGET_BINDING_FIELDS:
+            errors.append(f"{source}: target_binding fields must be exactly {sorted(TARGET_BINDING_FIELDS)}")
+        elif normalize_for_mirror(binding) != normalize_for_mirror(expected_binding):
+            errors.append(f"{source}: target_binding does not match current packet review target")
+
+        wrapper, wrapper_errors = load_review_import_wrapper(root, source_ref)
+        errors.extend(f"{source}: {item}" for item in wrapper_errors)
+        if wrapper is None:
+            continue
+        if set(wrapper) != REVIEW_IMPORT_FIELDS:
+            missing = sorted(REVIEW_IMPORT_FIELDS - set(wrapper))
+            extra = sorted(set(wrapper) - REVIEW_IMPORT_FIELDS)
+            if missing:
+                errors.append(f"{source}: wrapper missing fields: {missing}")
+            if extra:
+                errors.append(f"{source}: wrapper extra fields: {extra}")
+        if wrapper.get("schema_version") != REVIEW_IMPORT_SCHEMA_VERSION:
+            errors.append(f"{source}: wrapper schema_version must be {REVIEW_IMPORT_SCHEMA_VERSION}")
+        wrapper_binding = wrapper.get("target_binding")
+        if not isinstance(wrapper_binding, dict) or set(wrapper_binding) != TARGET_BINDING_FIELDS:
+            errors.append(f"{source}: wrapper target_binding fields must be exactly {sorted(TARGET_BINDING_FIELDS)}")
+        elif normalize_for_mirror(wrapper_binding) != normalize_for_mirror(expected_binding):
+            errors.append(f"{source}: wrapper target_binding does not match current packet review target")
+        if isinstance(binding, dict) and isinstance(wrapper_binding, dict) and normalize_for_mirror(binding) != normalize_for_mirror(wrapper_binding):
+            errors.append(f"{source}: packet import target_binding must match wrapper target_binding")
+
+        multi_review = wrapper.get("MultiReviewResult")
+        if not isinstance(multi_review, dict):
+            errors.append(f"{source}: wrapper MultiReviewResult must be a mapping")
+        else:
+            derived, derived_errors = derive_multi_review_result(root, multi_review)
+            if derived != "PASS":
+                errors.append(f"{source}: imported MultiReviewResult must freshly derive governance PASS: {derived}")
+            for item in derived_errors:
+                errors.append(f"{source}: imported MultiReviewResult error: {item}")
+
+        lineage = wrapper.get("review_lineage")
+        if not isinstance(lineage, list) or not lineage:
+            errors.append(f"{source}: review_lineage must be a non-empty list")
+            continue
+        for index, record in enumerate(lineage):
+            errors.extend(
+                validate_review_lineage_record(
+                    record,
+                    source=f"{source}.review_lineage[{index}]",
+                    import_source_ref=source_ref,
+                    root=root,
+                )
+            )
+        ids = review_lineage_ids(lineage)
+        if len(ids) != len(set(ids)):
+            errors.append(f"{source}: review_lineage contains duplicate review_id values")
+        review_ids = import_record.get("review_ids")
+        if not isinstance(review_ids, list) or sorted(review_ids) != sorted(ids):
+            errors.append(f"{source}: review_ids must match imported review_lineage ids")
+        for record in lineage:
+            if isinstance(record, dict) and isinstance(record.get("review_id"), str):
+                review_id = record["review_id"]
+                if review_id in imported_lineage_by_id:
+                    errors.append(f"{source}: duplicate imported review_id across imports: {review_id}")
+                imported_lineage_by_id[review_id] = record
+        passing, closure_errors = validate_review_lineage_closure(lineage, source=source)
+        open_passing_reviews |= passing
+        errors.extend(closure_errors)
+
+    packet_reviews_by_id: dict[str, dict] = {}
+    for index, review in enumerate(packet_reviews):
+        source = f"result.judgment.reviews[{index}]"
+        if not isinstance(review, dict):
+            errors.append(f"{source}: review record must be a mapping")
+            continue
+        review_id = review.get("review_id")
+        if not isinstance(review_id, str) or not review_id:
+            errors.append(f"{source}: review_id is required")
+            continue
+        if review_id in packet_reviews_by_id:
+            errors.append(f"{source}: duplicate review_id: {review_id}")
+        packet_reviews_by_id[review_id] = review
+        if review.get("source_ref") not in imported_source_refs:
+            errors.append(f"{source}: source_ref must point to an imported structured review artifact")
+        imported = imported_lineage_by_id.get(review_id)
+        if imported is None:
+            errors.append(f"{source}: imported source_ref review is missing from review_lineage: {review_id}")
+            continue
+        for field in REVIEW_MIRROR_FIELDS:
+            if normalize_for_mirror(review.get(field)) != normalize_for_mirror(imported.get(field)):
+                errors.append(f"{source}: field does not mirror imported review_lineage[{review_id}]: {field}")
+
+    missing_from_packet = sorted(set(imported_lineage_by_id) - set(packet_reviews_by_id))
+    if missing_from_packet:
+        errors.append(f"result.judgment.reviews missing imported review_lineage records: {missing_from_packet}")
+
+    return open_passing_reviews, errors
 
 
 def resolved_targets(records: list[dict], *, relation: str) -> set[str]:
@@ -626,11 +1268,19 @@ def validate_packet(
     decision = result["decision"]
     accepted = decision.get("accepted")
     stable = decision.get("stable_handoff_eligible")
-    declared_required_evidence, required_review = required_targets(packet)
+    declared_required_evidence, declared_required_review = required_targets(packet)
+    required_review = declared_required_review
     required_evidence = declared_required_evidence
     stable_required_evidence_errors: list[str] = []
+    stable_required_review_errors: list[str] = []
     if stable:
         required_evidence, stable_required_evidence_errors = stable_required_evidence(packet)
+        required_review = checker_required_review(packet, root=root)
+        if declared_required_review != required_review:
+            stable_required_review_errors.append(
+                "stable packet required_review must match checker-derived required reviews: "
+                f"{sorted(required_review)}"
+            )
 
     if lifecycle != "start":
         for field in FINALIZED_INFERENCE_FIELDS:
@@ -712,12 +1362,10 @@ def validate_packet(
 
     reviews = judgment.get("reviews", [])
     for review in reviews:
-        if review.get("veto") is True and stable:
-            errors.append("stable-handoff packet cannot include VETO review")
         score = review.get("score")
-        if stable and (not isinstance(score, (int, float)) or score < 9):
-            errors.append("stable-handoff packet cannot include review score below 9")
-        if stable:
+        if stable and not review.get("review_id"):
+            errors.append("stable review requires review_id")
+        if stable and not review.get("rerun_of"):
             errors.extend(validate_review_record(review, source="result.judgment.reviews"))
         if isinstance(score, (int, float)) and score == 9:
             if not review.get("why_not_10") or not review.get("disposition"):
@@ -725,6 +1373,7 @@ def validate_packet(
 
     if stable:
         errors.extend(stable_required_evidence_errors)
+        errors.extend(stable_required_review_errors)
         if not required_evidence:
             errors.append("stable packet must declare checker-derived required evidence")
         if declared_required_evidence != required_evidence:
@@ -740,6 +1389,13 @@ def validate_packet(
         for record in resolved_refs:
             errors.extend(validate_resolved_ref_record(record, root=root, source="result.evidence.resolved_refs"))
         ref_index = resolved_ref_index(resolved_refs)
+        open_passing_review_targets, review_import_errors = validate_review_imports(
+            packet,
+            root=root,
+            packet_ref=packet_ref,
+            ref_index=ref_index,
+        )
+        errors.extend(review_import_errors)
 
         evidence_source_refs = evidence.get("source_refs", [])
         if not isinstance(evidence_source_refs, list):
@@ -890,18 +1546,13 @@ def validate_packet(
         if missing_evidence:
             errors.append(f"stable packet missing required evidence: {sorted(missing_evidence)}")
 
-        passing_reviews = {
-            item.get("critic")
-            for item in reviews
-            if item.get("score", 0) >= 9 and item.get("veto") is False and item.get("critic")
-        }
         waived_reviews = {item.get("review") for item in judgment.get("waivers", []) if item.get("review")}
         downgraded_reviews = {
             item.get("from")
             for item in judgment.get("downgrades", [])
             if item.get("kind") == "review" and item.get("from")
         }
-        missing_reviews = required_review - passing_reviews - waived_reviews - downgraded_reviews
+        missing_reviews = required_review - open_passing_review_targets - waived_reviews - downgraded_reviews
         if missing_reviews:
             errors.append(f"stable packet missing required review: {sorted(missing_reviews)}")
 
@@ -973,7 +1624,6 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
         diff_command = ["git", "diff", "--check"]
         evidence_command = "git diff --check"
     required_evidence = [evidence_command]
-    required_review = ["checker correctness"] if protected else []
     diff_check = git(root, diff_command[1:])
     diff_status = "pass" if diff_check.returncode == 0 else "fail"
     resolved_refs = []
@@ -1012,7 +1662,7 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "isolation": "isolated" if paths else "no-op",
             "protected_boundary_changed": protected,
             "required_evidence": required_evidence,
-            "required_review": required_review,
+            "required_review": [],
         },
         "evidence": {
             "baseline_ref": baseline_ref,
@@ -1055,6 +1705,7 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "Plan 03 cannot accept protected changes yet; review import and protected-change stable promotion are out of scope."
         )
         packet["result"]["decision"]["next_action"] = "Use a later review-import plan before protected stable handoff."
+    packet["result"]["inference"]["required_review"] = sorted(checker_required_review(packet, root=root))
     if mode == "worktree":
         packet["result"]["decision"]["stable_handoff_eligible"] = False
         packet["result"]["decision"]["next_action"] = "Finalize with --staged or --base-ref before stable handoff."

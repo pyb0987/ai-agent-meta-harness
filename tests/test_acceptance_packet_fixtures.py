@@ -244,6 +244,24 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
                         self.assertTrue(review["why_not_10"], name)
                         self.assertTrue(review["disposition"], name)
 
+    def test_stable_reviewed_packets_use_structured_review_imports(self) -> None:
+        for name, packet in self.fixture_packets().items():
+            with self.subTest(path=name):
+                if not packet["result"]["decision"]["stable_handoff_eligible"]:
+                    continue
+                reviews = packet["result"]["judgment"].get("reviews", [])
+                if not reviews:
+                    continue
+                imports = packet["result"]["evidence"].get("review_imports", [])
+                self.assertTrue(imports, name)
+                imported_refs = {item.get("source_ref") for item in imports}
+                for item in imports:
+                    self.assertEqual("acceptance-packet-review-import/v1", item.get("format"), name)
+                    self.assertEqual("imported", item.get("status"), name)
+                    self.assertIn("target_binding", item, name)
+                for review in reviews:
+                    self.assertIn(review.get("source_ref"), imported_refs, name)
+
     def test_fixtures_are_documented_as_non_active_packets(self) -> None:
         readme = (FIXTURE_ROOT / "README.md").read_text(encoding="utf-8")
         plan = (ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md").read_text(

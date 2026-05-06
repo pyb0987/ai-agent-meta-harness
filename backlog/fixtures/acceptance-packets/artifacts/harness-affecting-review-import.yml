@@ -1,0 +1,178 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-finalized-harness-affecting-example
+    packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+    review_target_digest: bc5597092b3ca87df73b2947246641b17c11185575ef68b589f499fd2178b979
+    baseline_ref: origin/main
+    comparison_ref: origin/main
+    source_refs:
+      - scripts/check-v1-archive-boundary.py
+      - scripts/verify-release.py
+    changed_paths:
+      - scripts/check-v1-archive-boundary.py
+      - scripts/verify-release.py
+    required_review:
+      - checker correctness
+      - methodology fidelity
+      - release integration
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-finalized-harness-affecting-example
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: AcceptancePacket review import for the harness-affecting fixture.
+      source_refs:
+        - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+        - scripts/check-governance-acceptance.py
+    required_critics:
+      - validation-layer
+      - review-quality
+      - scope-c-contract
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+    critics:
+      - critic_id: validation-layer
+        name: Validation Layer Critic
+        critic_type: validation_layer
+        scope: Confirm review closure is computed from wrapper lineage.
+        required: true
+        actor: codex
+        date: 2026-05-06
+        score: 9
+        verdict: pass
+        veto: false
+        blocking_findings: []
+        false_green_risk: Packet-local review summaries could omit imported failed lineage.
+        invariant_checked: The checker mirrors wrapper review_lineage into packet reviews.
+        validation_layer: structured-validator
+        probe_run: true
+        probe_command: python3 scripts/check-governance-acceptance.py check --packet backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml --require-stable
+        probe_result: Stable checker derives review closure from structured wrapper lineage.
+        probe_interpretation: The AcceptancePacket checker owns stable review closure.
+        reason_no_probe: null
+        evidence:
+          - Wrapper lineage is required for stable review closure.
+        source_refs:
+          - scripts/check-governance-acceptance.py
+        why_not_10: Fixture is illustrative and does not represent an archived packet.
+        residual_risk_disposition: Accepted for local fixture validation only.
+      - critic_id: review-quality
+        name: Review Quality Meta-Critic
+        critic_type: review_quality
+        scope: Confirm imported review artifacts remain independently checkable.
+        required: true
+        actor: codex
+        date: 2026-05-06
+        score: 9
+        verdict: pass
+        veto: false
+        blocking_findings: []
+        false_green_risk: A stale PASS synthesis could be replayed against another packet.
+        invariant_checked: Target binding includes packet id, refs, changed paths, and digest.
+        validation_layer: derived-verdict
+        probe_run: true
+        probe_command: python3 -m unittest tests/test_governance_acceptance_cli.py
+        probe_result: Governance acceptance CLI fixture tests cover stable packet validation.
+        probe_interpretation: Local tests exercise the fixture contract.
+        reason_no_probe: null
+        evidence:
+          - The wrapper carries a non-self-referential target binding.
+        source_refs:
+          - tests/test_governance_acceptance_cli.py
+        why_not_10: Scope C does not prove conversation-history completeness.
+        residual_risk_disposition: Accepted because wrapper completeness is the Scope C boundary.
+      - critic_id: scope-c-contract
+        name: Structured Contract Critic
+        critic_type: domain
+        scope: Confirm Scope C keeps Scope B schema intact.
+        required: true
+        actor: codex
+        date: 2026-05-06
+        score: 9
+        verdict: pass
+        veto: false
+        blocking_findings: []
+        false_green_risk: Target binding could be added to MultiReviewResult and weaken its schema.
+        invariant_checked: Target binding lives in the AcceptancePacketReviewImport wrapper.
+        validation_layer: raw-artifact
+        probe_run: true
+        probe_command: Inspect wrapper schema and nested MultiReviewResult fields.
+        probe_result: Wrapper target_binding is separate from the nested MultiReviewResult.
+        probe_interpretation: Scope C owns packet binding while Scope B owns synthesis consistency.
+        reason_no_probe: null
+        evidence:
+          - Nested MultiReviewResult keeps its v1 field set.
+        source_refs:
+          - backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        why_not_10: The fixture does not include failed review lineage.
+        residual_risk_disposition: Failed lineage is covered by negative tests.
+  review_lineage:
+    - review_id: review-harness-checker-correctness
+      critic: checker correctness
+      scope: Release-gate checker behavior and stable evidence boundaries.
+      anti_scope: Archive storage, immutable packet hashes, and release integration beyond fixture wiring.
+      score: 9
+      veto: false
+      actor: reviewer
+      role: reviewer
+      date: 2026-05-06
+      source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+      false_green_risk: A hand-authored packet could claim checker correctness while omitting boundary evidence.
+      invariant_checked: Required evidence and review obligations are recomputed by the checker.
+      evidence:
+        - Release-gate commands and artifacts are represented in packet evidence.
+      source_refs:
+        - scripts/verify-release.py
+        - scripts/check-v1-archive-boundary.py
+      blocking_findings: []
+      why_not_10: Full committed release-candidate path still requires final clean branch verification.
+      disposition: Accepted residual risk for bootstrap; final release uses --base-ref.
+      rerun_of: null
+      fixed_finding_ids: []
+    - review_id: review-harness-release-integration
+      critic: release integration
+      scope: Release command wiring and archive-boundary command coverage.
+      anti_scope: Pre-commit replacement and packet archive publication.
+      score: 9
+      veto: false
+      actor: reviewer
+      role: reviewer
+      date: 2026-05-06
+      source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+      false_green_risk: Release integration could point to unrelated command artifacts.
+      invariant_checked: Stable command artifacts record packet id, packet ref, digest, command, and status.
+      evidence:
+        - Release integration command artifacts are durable local files.
+      source_refs:
+        - scripts/verify-release.py
+        - scripts/check-v1-archive-boundary.py
+      blocking_findings: []
+      why_not_10: Current fixture is illustrative and not an executable packet.
+      disposition: Covered by checker validation for local fixture semantics.
+      rerun_of: null
+      fixed_finding_ids: []
+    - review_id: review-harness-methodology-fidelity
+      critic: methodology fidelity
+      scope: Methodology boundary for v1 archive compatibility examples.
+      anti_scope: New archive storage or immutable transcript indexing.
+      score: 9
+      veto: false
+      actor: reviewer
+      role: reviewer
+      date: 2026-05-06
+      source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+      false_green_risk: The fixture could imply archive immutability before Plan 06.
+      invariant_checked: Packet decision keeps archive storage as next action.
+      evidence:
+        - Methodology residual risk is recorded in packet decision and review disposition.
+      source_refs:
+        - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+      blocking_findings: []
+      why_not_10: Fixture references trace anchors rather than embedding full transcripts.
+      disposition: Accepted because source refs and trace refs are explicit.
+      rerun_of: null
+      fixed_finding_ids: []

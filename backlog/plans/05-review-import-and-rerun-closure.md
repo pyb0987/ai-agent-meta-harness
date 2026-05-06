@@ -135,13 +135,30 @@ truth for stable handoff.
 Stable packets that rely on review records must include structured import
 material under `result.evidence.review_imports`:
 
-- `source_ref`: durable local structured review artifact
-- `format`: initially `multi-review-json-v1`
+- `source_ref`: durable local structured review-import wrapper artifact
+- `format`: initially `acceptance-packet-review-import/v1`
 - `review_ids`: all review IDs found in the artifact
 - `source_digest`: SHA-256 digest of the imported artifact bytes
 - `status`: `imported`
+- `target_binding`: packet id, packet ref, non-self-referential review target
+  digest, baseline/comparison refs, source refs, changed paths, and
+  checker-derived required review targets
 
-The checker must parse each imported review artifact and verify:
+The imported artifact uses a wrapper rather than adding fields to
+`MultiReviewResult` directly:
+
+- `schema_version`: `acceptance-packet-review-import/v1`
+- `target_binding`: the same binding recorded by `review_imports`
+- `MultiReviewResult`: the final synthesis artifact; it must freshly derive
+  governance `PASS` under the structured multi-review validator
+- `review_lineage`: every imported review outcome/attempt, including failed,
+  VETO, and rerun records
+
+`review_target_digest` is computed from a canonical packet target context and
+excludes `result.evidence.review_imports`, `result.judgment.reviews`, packet
+decision fields, and import artifact digests to avoid circular hashing.
+
+The checker must parse each imported wrapper artifact and verify:
 
 - every artifact review outcome appears exactly once in
   `result.judgment.reviews`
@@ -149,12 +166,19 @@ The checker must parse each imported review artifact and verify:
 - `review_id` values are unique within the packet
 - `review_imports.review_ids` equals the parsed artifact IDs
 - `review_imports.source_digest` matches the current artifact bytes
+- `review_imports.target_binding`, wrapper `target_binding`, and the freshly
+  computed packet target binding match exactly
+- packet review records mirror wrapper `review_lineage` audit-critical fields
 - failed and VETO reviews remain present even when a later rerun closes them
 
 This is intentionally weaker than Plan 06 immutable archive integrity, but it is
 strong enough to prevent stable handoff from deleting a failed review while
 claiming that the surviving packet-local summary is complete, or from drifting
 away from the current structured review artifact.
+
+Completeness here means completeness of the imported structured wrapper
+artifact for this packet target. Plan 05 does not prove that every chat-only or
+conversation-only review attempt was imported.
 
 ## Required Review Inference
 
@@ -263,6 +287,13 @@ python3 scripts/check-governance-acceptance.py check --packet backlog/fixtures/a
 python3 scripts/check-governance-acceptance.py check --packet backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml --require-stable
 git diff --check
 ```
+
+Search-set verification:
+
+- BEFORE: SKIPPED no pre-change search-set run was captured before implementing
+  Scope C review import/rerun closure.
+- AFTER: PASS `python3 scripts/run-search-set.py` after adding the Scope C
+  structured review-import wrapper, lineage closure, and tests.
 
 ## Multi-Review Requirements
 

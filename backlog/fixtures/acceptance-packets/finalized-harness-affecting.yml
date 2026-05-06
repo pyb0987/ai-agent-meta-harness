@@ -99,9 +99,34 @@ AcceptancePacket:
           target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
         - origin: generated
           relation: review-provenance
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
           status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          target: "backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+      review_imports:
+        - source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+          format: acceptance-packet-review-import/v1
+          source_digest: "108ca75eb2711484240e0c961c89a32b6e54cf13739fb4299f3617988b07cac4"
+          status: imported
+          review_ids:
+            - review-harness-checker-correctness
+            - review-harness-release-integration
+            - review-harness-methodology-fidelity
+          target_binding:
+            packet_id: pkt-finalized-harness-affecting-example
+            packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+            review_target_digest: bc5597092b3ca87df73b2947246641b17c11185575ef68b589f499fd2178b979
+            baseline_ref: origin/main
+            comparison_ref: origin/main
+            source_refs:
+              - scripts/check-v1-archive-boundary.py
+              - scripts/verify-release.py
+            changed_paths:
+              - scripts/check-v1-archive-boundary.py
+              - scripts/verify-release.py
+            required_review:
+              - checker correctness
+              - methodology fidelity
+              - release integration
       trace_refs:
         search_set_before: "trace:.harness/traces/search-set.md#active"
         search_set_after: "trace:.harness/traces/search-set.md#active"
@@ -112,33 +137,71 @@ AcceptancePacket:
       skipped: []
     judgment:
       reviews:
-        - critic: "checker correctness"
+        - review_id: review-harness-checker-correctness
+          critic: "checker correctness"
+          scope: "Release-gate checker behavior and stable evidence boundaries."
+          anti_scope: "Archive storage, immutable packet hashes, and release integration beyond fixture wiring."
           actor: "reviewer"
           role: "reviewer"
           date: 2026-05-06
           score: 9
           veto: false
+          false_green_risk: "A hand-authored packet could claim checker correctness while omitting boundary evidence."
+          invariant_checked: "Required evidence and review obligations are recomputed by the checker."
+          evidence:
+            - "Release-gate commands and artifacts are represented in packet evidence."
+          source_refs:
+            - "scripts/verify-release.py"
+            - "scripts/check-v1-archive-boundary.py"
+          blocking_findings: []
           why_not_10: "Full committed release-candidate path still requires final clean branch verification."
           disposition: "Accepted residual risk for bootstrap; final release uses --base-ref."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
-        - critic: "release integration"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+          rerun_of: null
+          fixed_finding_ids: []
+        - review_id: review-harness-release-integration
+          critic: "release integration"
+          scope: "Release command wiring and archive-boundary command coverage."
+          anti_scope: "Pre-commit replacement and packet archive publication."
           actor: "reviewer"
           role: "reviewer"
           date: 2026-05-06
           score: 9
           veto: false
+          false_green_risk: "Release integration could point to unrelated command artifacts."
+          invariant_checked: "Stable command artifacts record packet id, packet ref, digest, command, and status."
+          evidence:
+            - "Release integration command artifacts are durable local files."
+          source_refs:
+            - "scripts/verify-release.py"
+            - "scripts/check-v1-archive-boundary.py"
+          blocking_findings: []
           why_not_10: "Current fixture is illustrative and not an executable packet."
-          disposition: "Covered by next checker implementation."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
-        - critic: "methodology fidelity"
+          disposition: "Covered by checker validation for local fixture semantics."
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+          rerun_of: null
+          fixed_finding_ids: []
+        - review_id: review-harness-methodology-fidelity
+          critic: "methodology fidelity"
+          scope: "Methodology boundary for v1 archive compatibility examples."
+          anti_scope: "New archive storage or immutable transcript indexing."
           actor: "reviewer"
           role: "reviewer"
           date: 2026-05-06
           score: 9
           veto: false
+          false_green_risk: "The fixture could imply archive immutability before Plan 06."
+          invariant_checked: "Packet decision keeps archive storage as next action."
+          evidence:
+            - "Methodology residual risk is recorded in packet decision and review disposition."
+          source_refs:
+            - "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml"
+          blocking_findings: []
           why_not_10: "Fixture references trace anchors rather than embedding full transcripts."
           disposition: "Accepted because source refs and trace refs are explicit."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+          rerun_of: null
+          fixed_finding_ids: []
       waivers: []
       downgrades: []
       residual_risk:

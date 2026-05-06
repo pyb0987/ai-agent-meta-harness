@@ -149,7 +149,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             result = run_cli("check", "--packet", str(packet_path))
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("must infer required review", result.stderr)
+        self.assertIn("required_review must match checker-derived required reviews", result.stderr)
 
     def test_check_rejects_stable_protected_path_with_falsified_low_risk_inference(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -241,7 +241,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             result = run_cli("check", "--packet", str(packet_path))
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("review score below 9", result.stderr)
+        self.assertIn("field does not mirror imported review_lineage", result.stderr)
 
     def test_check_rejects_stable_review_without_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

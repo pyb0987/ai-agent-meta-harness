@@ -1,6 +1,6 @@
 packet_id: pkt-finalized-harness-affecting-example
 packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-packet_sha256: 18b6fc00b9c622bb882b058e23a99d82180bdbda7acc7b23569b854acd0d24f1
+packet_sha256: e96634451b8aeaf12fa659e68b54e0ae200c1892f8986dcb0f91fab6171ea263
 command: python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
 status: pass
 summary: fixture artifact for focused v1 boundary release tests
