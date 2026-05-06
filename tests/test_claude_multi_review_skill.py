@@ -62,7 +62,6 @@ def is_vacuous_false_green_value(value: str | None) -> bool:
         "not applicable",
     }
 
-
 class ClaudeMultiReviewSkillTests(unittest.TestCase):
     def test_repository_governance_mode_uses_local_score_threshold(self) -> None:
         text = normalized(CANONICAL)
@@ -96,11 +95,15 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
             "Auditability Critic",
             "Adversarial Artifact Critic",
             "Scope Boundary Critic",
+            "Validation Layer Critic",
             "coverage prompts, not a requirement to spawn more agents",
             "do not report PASS if no Critic covered an adversarial false-acceptance path",
+            "semantic policy being approximated with natural-language markers, word lists, or regex",
+            "structured validator computes the acceptance verdict",
             "Does every out-of-scope risk have a durable carry-over location?",
             "Generic adversarial examples:",
             "A generated summary is edited by hand to say success.",
+            "A natural-language instruction is marker-scanned to prove a policy",
             "A status label says pass while the body describes a blocked condition.",
             "reviewer, evaluator, or run provenance is missing.",
             "A waiver or skip applies to a broad category instead of a specific failed requirement.",
@@ -118,12 +121,17 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
         prompt_shape = section_between(text, "**Prompt structure passed to each Critic**:", "**Execution rules**")
         convergence = section_between(text, "### Phase 4: Convergence Check", "### Phase 5: Synthesis")
         prompt_shape_normalized = " ".join(prompt_shape.split())
+        convergence_normalized = " ".join(convergence.split())
 
         self.assertIn("Invariant lens:", critic_design)
         self.assertIn("false-green question", critic_design)
         self.assertIn("## False-Green Check", prompt_shape)
         self.assertIn("stale, misleading, or hand-authored version that could falsely pass", prompt_shape_normalized)
         self.assertIn("durable carry-over", prompt_shape_normalized)
+        self.assertIn("answer the validation-layer question before proposing more cases", prompt_shape_normalized)
+        self.assertIn("structured data, raw artifacts, executable validators, or a derived verdict", prompt_shape_normalized)
+        self.assertIn("natural-language markers, word lists, regex, or summaries", prompt_shape_normalized)
+        self.assertIn('"validation_layer"', prompt_shape)
         self.assertIn("Coverage quality gate", prompt_shape_normalized)
         self.assertIn("concrete stale, misleading, or hand-authored false-pass mechanism", prompt_shape_normalized)
         self.assertIn("concrete invariant, recomputation, or audit check", prompt_shape_normalized)
@@ -137,7 +145,55 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("Treat null, empty, or generic", convergence)
         self.assertIn("listed no-coverage values", convergence)
         self.assertIn("contradictory wording", convergence)
+        self.assertIn("Validation Layer Critic checked that acceptance is enforced at the right layer", convergence_normalized)
+        self.assertIn("wrong-layer validation finding is VETO", convergence_normalized)
+        self.assertIn("structured validator or derived verdict computes PASS", convergence_normalized)
         self.assertTrue(has_substantive_false_green_coverage(prompt_shape, convergence))
+
+    def test_adversarial_probe_is_required_for_durable_governance_reviews(self) -> None:
+        text = CANONICAL.read_text(encoding="utf-8")
+        critic_design = section_between(text, "### Phase 2: Critic Design", "### Phase 3: Parallel Execution")
+        invariant_section = section_between(text, "### Invariant and Adversarial Review", "**Model assignment criteria**")
+        prompt_shape = section_between(text, "**Prompt structure passed to each Critic**:", "**Execution rules**")
+        convergence = section_between(text, "### Phase 4: Convergence Check", "### Phase 5: Synthesis")
+        normalized_text = " ".join(text.split())
+        critic_design_normalized = " ".join(critic_design.split())
+        invariant_normalized = " ".join(invariant_section.split())
+        prompt_normalized = " ".join(prompt_shape.split())
+
+        for marker in (
+            "Attack surface:",
+            "Adversarial probe:",
+            "Validation Layer Critic",
+            "Review Quality Meta-Critic",
+            "Treat existing acceptance records, implementation review outcomes, generated summaries, and score labels as artifacts under review",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, critic_design_normalized)
+
+        for marker in (
+            "Adversarial probe examples:",
+            "Delete or weaken a generated obligation and confirm validation fails.",
+            "Replace a durable artifact reference with an unrelated existing file.",
+            "alternate parser form, escaping path, stale pointer, or unsupported scheme",
+            "validation command named by the artifact",
+            "Probe requirement:",
+            "`probe_run`, `probe_command`, `probe_result`, and `probe_interpretation`",
+            "`reason_no_probe` is not coverage by itself",
+            "existing review says PASS",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, invariant_normalized)
+
+        self.assertIn("## Adversarial Probe", prompt_shape)
+        self.assertIn("temporary mutation, negative fixture, parser variant, stale/ref mismatch", prompt_normalized)
+        self.assertIn("Existing acceptance records, generated review outcomes, and PASS summaries are not evidence", prompt_normalized)
+        self.assertIn("validation_layer", prompt_shape)
+        self.assertIn("check-multi-review-result.py", normalized_text)
+        self.assertIn("validator-derived verdict", normalized_text)
+        self.assertIn("artifact-internal consistency only", normalized_text)
+        self.assertIn("does not prove probe execution", normalized_text)
+        self.assertIn("Review Quality Meta-Critic checked review independence", normalized_text)
 
     def test_false_green_fixture_rejects_vacuous_coverage(self) -> None:
         prompt_shape = """

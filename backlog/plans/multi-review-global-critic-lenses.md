@@ -238,6 +238,36 @@ Multi-review:
 - Follow-up/residual risk: before commit or release, keep the staged evidence record with the skill/test changes and rerun staged/index gates so the accepted artifact boundary is auditable.
 - Final acceptance: accepted for the global multi-review critic-lens implementation.
 
+## Adversarial Probe Hardening Outcome
+
+Follow-up review found that marker-based tests could still pass after
+contradictory probe-waiver wording such as allowing `probe_run=false` or
+`reason_no_probe`-only coverage. The protocol text already rejected those cases,
+but the test helper did not.
+
+- Correction: Claude and Codex multi-review tests now reject exact and
+  synonymous contradictory probe coverage wording, including generic probe
+  entries satisfying coverage, `reason_no_probe` by itself being sufficient, and
+  `probe_run=false` still passing. The gate treats un-negated generic probe,
+  `probe_run=false`, `reason_no_probe` substitution, and self-attestation
+  clauses as forbidden instead of relying on a PASS-word list. `reason_no_probe`
+  is treated as a sensitive field outside schema or explicit downgrade wording,
+  and `probe_run` is treated as sensitive outside schema, explicit requirement,
+  or downgrade wording rather than chasing every no-run synonym. Spaced field
+  variants such as `probe run` and `reason no probe`, and requirement sentences
+  that add PASS exceptions, normalize into the same forbidden gate. The gate also
+  treats acceptance, sign-off, greenlight, validity, or proceed wording around
+  waived, bypassed, cancelled, suspended, deferred, postponed, or skipped
+  adversarial probes/checks/exercises as forbidden. It rejects common vacuous
+  probe values such as `none`, `n/a`, `ok`, `checked`, `generic`, `not
+  applicable`, `read the plan`, and existing PASS self-attestation.
+- Hardening detail: the final helper shape is default-deny for sensitive probe
+  sentences; only schema/output, explicit requirement, explicit downgrade, and
+  known safe operational probe-summary/instruction sentences are allowed.
+- Rerun requirement: durable/governance multi-review acceptance remains VETO
+  unless the affected probe-gate critic reruns to at least 9 with a substantive
+  adversarial probe.
+
 ## Open Questions
 
 - Whether the Claude and Codex skill variants should converge further in wording

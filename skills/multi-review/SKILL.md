@@ -56,6 +56,19 @@ Design 2-4 Critics fitted to the problem on the spot.
 - Each Critic's evaluation scope must be **explicitly disjoint** (overlap creates redundancy, not consensus)
 - Assign each Critic a **natural persona** (a perspective, not a role title)
 - One Critic may hold **Veto authority** (forcing rejection if its perspective sees a fatal flaw)
+- For durable, governance, or high-stakes artifacts, assign concrete attack
+  surfaces, not only abstract viewpoints. Each required Critic must try to
+  falsify the artifact from its own scope with an adversarial probe when tools
+  or raw artifacts are available.
+- Treat existing acceptance records, implementation review outcomes, generated
+  summaries, and score labels as artifacts under review, not as evidence that
+  the review already succeeded.
+- Include a **Review Quality Meta-Critic** for durable or governance reviews.
+  Its scope is the review itself: independence, probe quality, validation
+  command existence/executability, and whether PASS relies on self-attestation.
+- Include or assign a **Validation Layer Critic** for durable, governance, or
+  high-stakes acceptance. Its scope is whether each invariant is checked at the
+  right layer before anyone spends effort enumerating wording variants.
 - For durable or high-stakes artifacts, assign at least one invariant/adversarial lens and include the false-green question in the assigned Critic prompts. If no Critic covers adversarial false acceptance, the final synthesis is incomplete, not PASS.
 
 **Critic design template**:
@@ -65,6 +78,8 @@ Critic N: [name]
   Scope: [evaluation scope — only this is examined]
   Anti-scope: [explicitly excluded — what is NOT evaluated]
   Invariant lens: [if durable/high-stakes, which false-green or auditability invariant this Critic covers]
+  Attack surface: [specific false-pass mechanism this Critic will try to trigger]
+  Adversarial probe: [temp mutation, command, fixture, or manual check to run]
   Veto: [if any, under what condition it triggers]
 ```
 
@@ -85,11 +100,24 @@ cover several lenses explicitly.
   that could falsely pass; identifier collisions and ambiguous targets.
 - **Scope Boundary Critic**: future-scope behavior smuggled in, or deferred risk
   lost instead of carried to a durable artifact.
+- **Validation Layer Critic**: the acceptance invariant is enforced by the
+  correct artifact and mechanism: structured data, raw evidence, executable
+  validator, or derived verdict, not regex/marker scans of natural-language
+  instructions, summaries, or hand-authored PASS prose. VETO when governance
+  acceptance depends on prose semantics unless that prose check is only a
+  smoke/drift detector and the actual PASS is computed elsewhere.
+- **Review Quality Meta-Critic**: the review itself is auditable, independent,
+  and probe-backed; validation commands exist and can be rerun; PASS is not
+  copied from a hand-authored acceptance record.
 
 Invariant questions:
 
 - Are generated, derived, scored, or summarized fields recomputed or checked
   against primary facts?
+- Is the current validation target at the right layer, or is a semantic policy
+  being approximated with natural-language markers, word lists, or regex?
+- If prose, docs, or summaries are checked, are they only smoke/drift detectors
+  while a structured validator computes the acceptance verdict?
 - Are validity, acceptance, stability, readiness, and success labels separated
   when they mean different things?
 - Does every waiver, exception, skip, downgrade, and residual risk have a
@@ -101,12 +129,52 @@ Invariant questions:
 Generic adversarial examples:
 
 - A generated summary is edited by hand to say success.
+- A natural-language instruction is marker-scanned to prove a policy that should
+  be enforced by structured results or a validator.
 - A status label says pass while the body describes a blocked condition.
 - A score or threshold is present but reviewer, evaluator, or run provenance is
   missing.
 - A waiver or skip applies to a broad category instead of a specific failed
   requirement.
 - The same identifier names both an evidence item and a review item.
+
+Adversarial probe examples:
+
+- Delete or weaken a generated obligation and confirm validation fails.
+- Replace a durable artifact reference with an unrelated existing file.
+- Use an alternate parser form, escaping path, stale pointer, or unsupported
+  scheme that should not satisfy the contract.
+- Change a status label to success while preserving body evidence for a blocked
+  state.
+- Run each validation command named by the artifact, or verify that the command
+  target exists and is executable when execution is unavailable.
+
+Probe requirement:
+
+- For durable or governance reviews, each required Critic must report
+  `probe_run`, `probe_command`, `probe_result`, and `probe_interpretation`, or a
+  specific `reason_no_probe`.
+- `reason_no_probe` is not coverage by itself. It only explains why a Critic
+  could not run a probe; the final synthesis must downgrade to incomplete,
+  FALLBACK_NONINDEPENDENT, or VETO unless the Review Quality Meta-Critic records
+  why the residual review gap is acceptable for a non-acceptance advisory review.
+- Values such as null, empty string, none, n/a, ok, checked, generic, not
+  applicable, "read the plan", or "existing review says PASS" are no probe
+  coverage.
+
+Structured result requirement:
+
+- For governance acceptance, produce a `MultiReviewResult` artifact using schema
+  `multi-review-result/v1` and validate it with
+  `python3 scripts/check-multi-review-result.py --result <path>
+  --require-governance-pass` before reporting PASS.
+- Treat `reported_final_verdict` and Critic prose verdict labels as advisory;
+  the validator-derived verdict is the only acceptance authority.
+- Treat the validator-derived verdict as artifact-internal consistency only. It
+  does not prove probe execution, command provenance, source relevance, or
+  command output truth by itself.
+- A validator-derived verdict is not AcceptancePacket stable-handoff evidence
+  until a later review-provenance/import step durably references the artifact.
 
 **Model assignment criteria**:
 - High-stakes / complex judgment (architecture, strategy, irreversible decisions) → **opus**
@@ -136,6 +204,11 @@ stale, misleading, or hand-authored version that could falsely pass. Identify
 the invariant that catches it and any deferred risk that needs durable
 carry-over. `false_green_risk` and `invariant_checked` must be non-null and
 specific; null, empty, or generic answers do not count as adversarial coverage.
+For durable, governance, or high-stakes acceptance: answer the validation-layer
+question before proposing more cases: is this invariant checked by structured
+data, raw artifacts, executable validators, or a derived verdict? If acceptance
+depends on natural-language markers, word lists, regex, or summaries, treat that
+as a wrong-layer risk unless it is explicitly only a smoke/drift detector.
 Any prompt or synthesis wording that allows null, empty, generic, or unverified
 false-green values to pass conflicts with this protocol and must be treated as
 no coverage.
@@ -145,6 +218,15 @@ a concrete invariant, recomputation, or audit check. Values such as null, empty
 string, whitespace, none, n/a, ok, checked, generic, or not applicable are no
 coverage.
 
+## Adversarial Probe
+For durable or governance artifacts: run a concrete probe for your assigned
+attack surface when tools or raw artifacts are available. Prefer a temporary
+mutation, negative fixture, parser variant, stale/ref mismatch, or command
+existence/executability check. Existing acceptance records, generated review
+outcomes, and PASS summaries are not evidence; they are artifacts to probe.
+If you cannot run a probe, set `probe_run` to false and give a specific
+`reason_no_probe`; do not claim PASS from that gap.
+
 ## Output Format (JSON)
 {
   "score": 1-10,
@@ -153,7 +235,13 @@ coverage.
   "evidence": ["supporting evidence for each finding"],
   "veto_reason": null | "veto rationale (if applicable)",
   "false_green_risk": null | "how a stale, misleading, or hand-authored artifact could falsely pass",
-  "invariant_checked": null | "the invariant used to catch that false green"
+  "invariant_checked": null | "the invariant used to catch that false green",
+  "validation_layer": null | "structured-validator | raw-artifact | derived-verdict | prose-smoke | wrong-layer",
+  "probe_run": true | false,
+  "probe_command": null | "command, temp mutation, fixture, or manual probe performed",
+  "probe_result": null | "observed result, including exit status when applicable",
+  "probe_interpretation": null | "why this probe supports or rejects the artifact",
+  "reason_no_probe": null | "specific blocker if probe_run is false"
 }
 ```
 
@@ -190,6 +278,17 @@ an assigned invariant/adversarial lens. Treat null, empty, or generic
 `false_green_risk` or `invariant_checked` values, and any contradictory wording
 that allows them to pass, as no coverage. Also treat listed no-coverage values
 as no coverage.
+
+For durable or governance artifacts, do not report PASS unless required Critics
+ran scope-specific adversarial probes, a Validation Layer Critic checked that
+acceptance is enforced at the right layer, and a Review Quality Meta-Critic
+checked review independence, probe substance, validation command existence, and
+executability where possible. A wrong-layer validation finding is VETO for
+governance acceptance unless the natural-language check is only a smoke/drift
+detector and a structured validator or derived verdict computes PASS. A
+probe-less durable/governance review is incomplete, FALLBACK_NONINDEPENDENT, or
+VETO, not PASS. Treat null, empty, generic, not applicable, or self-attestation
+probe fields as no coverage.
 
 ### Phase 5: Synthesis (when MIXED/FAIL)
 

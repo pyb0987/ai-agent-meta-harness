@@ -53,7 +53,6 @@ def is_vacuous_false_green_value(value: str | None) -> bool:
         "not applicable",
     }
 
-
 class CodexMultiReviewSkillTests(unittest.TestCase):
     def test_governance_reviews_use_maintenance_threshold(self):
         text = SKILL.read_text(encoding="utf-8")
@@ -75,11 +74,15 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
             "Auditability Critic",
             "Adversarial Artifact Critic",
             "Scope Boundary Critic",
+            "Validation Layer Critic",
             "coverage prompts, not a requirement to spawn more agents",
             "mark the review incomplete instead of PASS if no critic covered an adversarial false-acceptance path",
+            "semantic policy being approximated with natural-language markers, word lists, or regex",
+            "structured validator computes the acceptance verdict",
             "Does every out-of-scope risk have a durable carry-over location?",
             "Generic adversarial examples:",
             "A generated summary is edited by hand to say success.",
+            "A natural-language instruction is marker-scanned to prove a policy",
             "A status label says pass while the body describes a blocked condition.",
             "reviewer, evaluator, or run provenance is missing.",
             "A waiver or skip applies to a broad category instead of a specific failed requirement.",
@@ -96,11 +99,16 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
         protocol = text[text.index("## Protocol"): text.index("## Invariant and Adversarial Review")]
         prompt_shape = text[text.index("## Critic Prompt Shape"): text.index("## Model Routing")]
         output = text[text.index("## Output"):]
+        prompt_normalized = " ".join(prompt_shape.split())
 
         self.assertIn("false-green question", protocol)
         self.assertIn("adversarial false-acceptance path", protocol)
         self.assertIn("stale, misleading, or hand-authored version that could falsely pass", prompt_shape)
         self.assertIn("durable carry-over", prompt_shape)
+        self.assertIn("answer the validation-layer question before proposing more cases", prompt_normalized)
+        self.assertIn("structured data, raw artifacts, executable validators, or a derived verdict", prompt_normalized)
+        self.assertIn("natural-language markers, word lists, regex, or summaries", prompt_normalized)
+        self.assertIn("validation_layer", prompt_shape)
         self.assertIn("Coverage quality gate", prompt_shape)
         self.assertIn("concrete stale, misleading, or hand-authored false-pass mechanism", prompt_shape)
         self.assertIn("concrete invariant, recomputation, or audit check", prompt_shape)
@@ -114,7 +122,50 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("null, empty, or generic", output)
         self.assertIn("listed no-coverage values", output)
         self.assertIn("contradictory wording", output)
+        self.assertIn("Validation Layer Critic", output)
+        self.assertIn("acceptance is computed at the correct layer", output)
         self.assertTrue(has_substantive_false_green_coverage(prompt_shape, output))
+
+    def test_adversarial_probe_is_required_for_durable_governance_reviews(self):
+        text = SKILL.read_text(encoding="utf-8")
+        protocol = text[text.index("## Protocol"): text.index("## Invariant and Adversarial Review")]
+        invariant_section = text[text.index("## Invariant and Adversarial Review"): text.index("## Critic Prompt Shape")]
+        prompt_shape = text[text.index("## Critic Prompt Shape"): text.index("## Model Routing")]
+        output = text[text.index("## Output"):]
+        combined_normalized = " ".join((protocol + invariant_section + output).split())
+        invariant_normalized = " ".join(invariant_section.split())
+        prompt_normalized = " ".join(prompt_shape.split())
+
+        for marker in (
+            "concrete attack",
+            "adversarial probe",
+            "existing acceptance records",
+            "Validation Layer Critic",
+            "Review Quality Meta-Critic",
+            "validation command",
+            "self-attestation",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, combined_normalized)
+
+        for marker in (
+            "Delete or weaken a generated obligation and confirm validation fails.",
+            "Replace a durable artifact reference with an unrelated existing file.",
+            "alternate parser form, escaping path, stale pointer, or unsupported scheme",
+            "`reason_no_probe` is not coverage by itself",
+            "existing review says PASS",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, invariant_normalized)
+
+        self.assertIn("temporary mutation, negative fixture, parser variant, stale/ref mismatch", prompt_normalized)
+        self.assertIn("probe_run, probe_command, probe_result, probe_interpretation, reason_no_probe", prompt_shape)
+        self.assertIn("Probe quality gate", prompt_shape)
+        self.assertIn("validation_layer", prompt_shape)
+        self.assertIn("check-multi-review-result.py", combined_normalized)
+        self.assertIn("validator-derived verdict", combined_normalized)
+        self.assertIn("artifact-internal consistency only", combined_normalized)
+        self.assertIn("does not prove probe execution", combined_normalized)
 
     def test_false_green_fixture_rejects_vacuous_coverage(self):
         prompt_shape = "Return JSON with false_green_risk and invariant_checked."

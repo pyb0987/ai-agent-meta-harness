@@ -1,0 +1,44 @@
+{
+  "MultiReviewResult": {
+    "schema_version": "multi-review-result/v1",
+    "review_id": "mr-advisory-pass-fixture",
+    "lifecycle": "finalized",
+    "review_mode": "advisory",
+    "independence": "independent",
+    "target": {
+      "summary": "Structured multi-review advisory fixture.",
+      "source_refs": ["scripts/check-multi-review-result.py"]
+    },
+    "required_critics": ["advisory-critic"],
+    "reported_final_verdict": "PASS",
+    "derived_verdict": null,
+    "derivation_errors": [],
+    "critics": [
+      {
+        "critic_id": "advisory-critic",
+        "name": "Advisory Critic",
+        "critic_type": "domain",
+        "scope": "Validate advisory-mode behavior.",
+        "required": true,
+        "actor": "codex",
+        "date": "2026-05-06",
+        "score": 7,
+        "verdict": "pass",
+        "veto": false,
+        "blocking_findings": [],
+        "false_green_risk": "An advisory result could claim PASS without typed evidence.",
+        "invariant_checked": "Advisory acceptance is still derived from typed facts.",
+        "validation_layer": "raw-artifact",
+        "probe_run": true,
+        "probe_command": "python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/advisory-pass.json",
+        "probe_result": "Derived advisory pass from structured fields.",
+        "probe_interpretation": "JSON input path is covered.",
+        "reason_no_probe": null,
+        "evidence": ["JSON fixture is parsed."],
+        "source_refs": ["backlog/fixtures/multi-review/advisory-pass.json"],
+        "why_not_10": null,
+        "residual_risk_disposition": null
+      }
+    ]
+  }
+}
