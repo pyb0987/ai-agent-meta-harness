@@ -34,27 +34,77 @@ AcceptancePacket:
         - "release integration"
         - "methodology fidelity"
     evidence:
+      baseline_ref: "origin/main"
+      comparison_ref: "origin/main"
       evaluator_boundary:
         status: intentionally-changed
         reason: "Release gate now compares archive changes in REF...HEAD mode."
         commands:
           - "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
+          - "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
+          - "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
       command_results:
         - command: "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
           status: pass
-          artifact_ref: "terminal:verify-release-list-base-ref"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
         - command: "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
           status: pass
-          artifact_ref: "terminal:v1-archive-boundary-base-ref"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
         - command: "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
           status: pass
-          artifact_ref: "terminal:v1-boundary-release-tests"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
       source_refs:
         - "scripts/verify-release.py"
         - "scripts/check-v1-archive-boundary.py"
+      resolved_refs:
+        - origin: input
+          relation: source
+          ref: "scripts/verify-release.py"
+          status: resolved
+          target: "scripts/verify-release.py"
+        - origin: input
+          relation: source
+          ref: "scripts/check-v1-archive-boundary.py"
+          status: resolved
+          target: "scripts/check-v1-archive-boundary.py"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
+        - origin: generated
+          relation: trace
+          ref: "trace:.harness/traces/search-set.md#active"
+          status: resolved
+          target: ".harness/traces/search-set.md#active"
+        - origin: generated
+          relation: waiver-provenance
+          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+          status: resolved
+          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        - origin: generated
+          relation: waiver-provenance
+          ref: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+          status: resolved
+          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        - origin: generated
+          relation: review-provenance
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/review-records.md"
       trace_refs:
-        search_set_before: ".harness/traces/search-set.md#before-plan-01"
-        search_set_after: ".harness/traces/search-set.md#after-plan-01"
+        search_set_before: "trace:.harness/traces/search-set.md#active"
+        search_set_after: "trace:.harness/traces/search-set.md#active"
         evolution:
           - ".harness/traces/evolution/001-repository-self-application-root.md"
         failures: []
@@ -70,7 +120,7 @@ AcceptancePacket:
           veto: false
           why_not_10: "Full committed release-candidate path still requires final clean branch verification."
           disposition: "Accepted residual risk for bootstrap; final release uses --base-ref."
-          source_ref: "terminal:multi-review-checker-correctness"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
         - critic: "release integration"
           actor: "reviewer"
           role: "reviewer"
@@ -79,7 +129,7 @@ AcceptancePacket:
           veto: false
           why_not_10: "Current fixture is illustrative and not an executable packet."
           disposition: "Covered by next checker implementation."
-          source_ref: "terminal:multi-review-release-integration"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
         - critic: "methodology fidelity"
           actor: "reviewer"
           role: "reviewer"
@@ -88,7 +138,7 @@ AcceptancePacket:
           veto: false
           why_not_10: "Fixture references trace anchors rather than embedding full transcripts."
           disposition: "Accepted because source refs and trace refs are explicit."
-          source_ref: "terminal:multi-review-methodology-fidelity"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
       waivers: []
       downgrades: []
       residual_risk:

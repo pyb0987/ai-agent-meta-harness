@@ -290,7 +290,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("refusing to overwrite", second.stderr)
         self.assertEqual(check.returncode, 0, check.stderr)
 
-    def test_finalize_staged_routine_packet_becomes_stable(self) -> None:
+    def test_finalize_staged_routine_packet_remains_nonstable_without_durable_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
@@ -316,10 +316,11 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertEqual(start.returncode, 0, start.stderr)
         self.assertEqual(finalize.returncode, 0, finalize.stderr)
-        self.assertEqual(stable.returncode, 0, stable.stderr)
+        self.assertNotEqual(stable.returncode, 0)
         self.assertEqual(packet_data["meta"]["lifecycle"], "finalized")
         self.assertEqual(packet_data["result"]["inference"]["change_class"], "routine")
-        self.assertTrue(packet_data["result"]["decision"]["stable_handoff_eligible"])
+        self.assertFalse(packet_data["result"]["decision"]["stable_handoff_eligible"])
+        self.assertIn("durable artifact refs", packet_data["result"]["decision"]["reason"])
 
     def test_finalize_base_ref_must_match_start_baseline_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

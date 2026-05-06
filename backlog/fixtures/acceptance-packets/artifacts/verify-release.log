@@ -1,0 +1,6 @@
+packet_id: pkt-finalized-waiver-downgrade-example
+packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+packet_sha256: 1a88d7d4d16b42f35417abb68cc1ae3abee7d7bd65a0d5e37e9408beaa056059
+command: python3 scripts/verify-release.py
+status: pass
+summary: fixture artifact for release verification

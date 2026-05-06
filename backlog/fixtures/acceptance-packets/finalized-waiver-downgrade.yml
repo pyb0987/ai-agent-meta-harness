@@ -31,7 +31,7 @@ AcceptancePacket:
         source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
   result:
     inference:
-      change_class: archive-boundary
+      change_class: harness-affecting
       impact: high
       changed_paths:
         - "archive/v1/README.md"
@@ -48,31 +48,82 @@ AcceptancePacket:
         - "archive boundary"
         - "full v1 archive fidelity"
     evidence:
+      baseline_ref: "HEAD"
+      comparison_ref: "HEAD"
       evaluator_boundary:
         status: unchanged
         commands:
           - "python3 scripts/check-v1-archive-boundary.py --staged"
+          - "python3 scripts/verify-release.py"
           - "git diff --check"
       command_results:
         - command: "python3 scripts/check-v1-archive-boundary.py --staged"
           status: pass
-          artifact_ref: "terminal:v1-archive-boundary-staged"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
         - command: "python3 scripts/verify-release.py"
           status: pass
-          artifact_ref: "terminal:verify-release"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
         - command: "git diff --check"
           status: pass
-          artifact_ref: "terminal:git-diff-check"
+          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
       source_refs:
         - "archive/v1/README.md"
         - "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      resolved_refs:
+        - origin: input
+          relation: source
+          ref: "archive/v1/README.md"
+          status: resolved
+          target: "archive/v1/README.md"
+        - origin: input
+          relation: source
+          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+          status: resolved
+          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
+        - origin: generated
+          relation: artifact
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
+        - origin: generated
+          relation: waiver-provenance
+          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+          status: resolved
+          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        - origin: generated
+          relation: review-provenance
+          ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
+          status: resolved
+          target: "backlog/fixtures/acceptance-packets/artifacts/review-records.md"
       trace_refs:
         search_set_before: null
         search_set_after: null
         evolution: []
         failures: []
         disposition: "Not required for archive index wording repair; waiver provenance recorded."
-      skipped: []
+      skipped:
+        - evidence: "search_set_before"
+          actor: "maintainer"
+          role: "maintainer"
+          date: 2026-05-06
+          reason: "Archive index wording repair does not reuse search-set before evidence."
+          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        - evidence: "search_set_after"
+          actor: "maintainer"
+          role: "maintainer"
+          date: 2026-05-06
+          reason: "Archive index wording repair does not reuse search-set after evidence."
+          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
     judgment:
       reviews:
         - critic: "archive boundary"
@@ -83,7 +134,7 @@ AcceptancePacket:
           veto: false
           why_not_10: "The example relies on source refs rather than embedding full review transcript."
           disposition: "Accepted because raw review source is referenced."
-          source_ref: "terminal:multi-review-archive-boundary"
+          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/review-records.md"
       waivers:
         - actor: "maintainer"
           role: "maintainer"

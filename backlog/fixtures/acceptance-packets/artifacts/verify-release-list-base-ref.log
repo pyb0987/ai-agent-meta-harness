@@ -1,0 +1,6 @@
+packet_id: pkt-finalized-harness-affecting-example
+packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+packet_sha256: 18b6fc00b9c622bb882b058e23a99d82180bdbda7acc7b23569b854acd0d24f1
+command: python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree
+status: pass
+summary: fixture artifact for base-ref release command listing

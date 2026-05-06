@@ -1,0 +1,9 @@
+packet_id: pkt-finalized-routine-example
+packet_ref: backlog/fixtures/acceptance-packets/finalized-routine.yml
+packet_sha256: 45ae694bfe47e9926dfc0e0318a8d0682410fb2218d8a1feb2ece4b1d2d221ff
+packet_id: pkt-finalized-waiver-downgrade-example
+packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+packet_sha256: 1a88d7d4d16b42f35417abb68cc1ae3abee7d7bd65a0d5e37e9408beaa056059
+command: git diff --check
+status: pass
+summary: fixture artifact for routine whitespace verification

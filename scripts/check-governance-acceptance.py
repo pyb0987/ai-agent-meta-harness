@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 from pathlib import Path
+import re
 import subprocess
 import sys
 import uuid
@@ -39,6 +41,7 @@ MODES = {"staged", "base-ref", "worktree"}
 PROTECTED_PREFIXES = (
     ".githooks/",
     "adapters/",
+    "archive/v1/",
     "commands/",
     "core/",
     "plugins/",
@@ -50,6 +53,22 @@ PROTECTED_PATHS = {
     "MAINTENANCE.md",
     "README.md",
 }
+REQUIRED_RESOLVED_REF_FIELDS = ("origin", "relation", "ref", "status", "target")
+RESOLVED_REF_ORIGINS = {"input", "generated"}
+RESOLVED_REF_RELATIONS = {
+    "source",
+    "artifact",
+    "trace",
+    "claim-evidence",
+    "review-provenance",
+    "waiver-provenance",
+    "observation",
+}
+ANCHOR_RE = re.compile(r"[^a-z0-9]+")
+PROOF_LIKE_RE = re.compile(
+    r"\b(verified|guaranteed|proves?|runtime|public API|release-ready|production-ready)\b",
+    re.IGNORECASE,
+)
 
 class PacketError(ValueError):
     pass
@@ -90,6 +109,67 @@ def load_packet(path: Path) -> dict:
     return packet
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def markdown_anchor(text: str) -> str:
+    return ANCHOR_RE.sub("-", text.strip().lower()).strip("-")
+
+
+def has_markdown_anchor(path: Path, anchor: str) -> bool:
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#") and markdown_anchor(line.lstrip("#").strip()) == anchor:
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def resolve_repo_path(root: Path, ref_path: str) -> str | None:
+    path = Path(ref_path)
+    if path.is_absolute() or ".." in path.parts:
+        return None
+    candidate = (root / path).resolve()
+    root_resolved = root.resolve()
+    if candidate != root_resolved and root_resolved not in candidate.parents:
+        return None
+    if not candidate.exists():
+        return None
+    return candidate.relative_to(root_resolved).as_posix()
+
+
+def resolve_ref(root: Path, ref: str) -> str | None:
+    if not isinstance(ref, str) or not ref:
+        return None
+    if ref.startswith("terminal:"):
+        return None
+    if ref.startswith("file:"):
+        rel = ref.removeprefix("file:")
+        return resolve_repo_path(root, rel)
+    if ref.startswith("trace:"):
+        body = ref.removeprefix("trace:")
+        rel, sep, anchor = body.partition("#")
+        resolved = resolve_repo_path(root, rel)
+        if resolved is None:
+            return None
+        path = root / resolved
+        if sep and not has_markdown_anchor(path, anchor):
+            return None
+        return body
+    if ref.startswith("git:"):
+        spec = ref.removeprefix("git:")
+        result = git(root, ["rev-parse", "--verify", spec])
+        if result.returncode == 0:
+            return spec
+        result = git(root, ["cat-file", "-e", spec])
+        return spec if result.returncode == 0 else None
+    if "://" in ref:
+        return None
+    return resolve_repo_path(root, ref)
+
+
 def write_packet(path: Path, packet: dict, *, overwrite: bool = False) -> None:
     if path.exists() and not overwrite:
         raise PacketError(f"{path}: already exists; refusing to overwrite")
@@ -115,6 +195,64 @@ def date_like(value: object, *, allow_none: bool = False) -> bool:
 def required_targets(packet: dict) -> tuple[set[str], set[str]]:
     inference = packet["result"]["inference"]
     return set(inference.get("required_evidence", [])), set(inference.get("required_review", []))
+
+
+def checker_required_evidence(packet: dict) -> set[str]:
+    meta = packet["meta"]
+    inference = packet["result"]["inference"]
+    evidence = packet["result"]["evidence"]
+    mode = meta.get("mode")
+    comparison_ref = evidence.get("comparison_ref")
+    changed_paths = [path for path in inference.get("changed_paths", []) if isinstance(path, str)]
+    changed = set(changed_paths)
+
+    archive_changed = any(path.startswith("archive/v1/") for path in changed)
+    release_gate_changed = bool({"scripts/verify-release.py", "scripts/check-v1-archive-boundary.py"} & changed)
+
+    if release_gate_changed and mode == "base-ref" and comparison_ref:
+        return {
+            f"python3 scripts/verify-release.py --list --base-ref {comparison_ref} --skip-clean-worktree",
+            f"python3 scripts/check-v1-archive-boundary.py --base-ref {comparison_ref}",
+            "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py",
+        }
+
+    required: set[str] = set()
+    if archive_changed:
+        if mode == "staged":
+            required.add("python3 scripts/check-v1-archive-boundary.py --staged")
+        elif mode == "base-ref" and comparison_ref:
+            required.add(f"python3 scripts/check-v1-archive-boundary.py --base-ref {comparison_ref}")
+        required.add("python3 scripts/verify-release.py")
+
+    if mode == "staged":
+        required.add("git diff --check")
+    elif mode == "base-ref" and comparison_ref and not required:
+        required.add(f"git diff --check {comparison_ref}...HEAD")
+    elif mode == "worktree":
+        required.add("git diff --check")
+    return required
+
+
+def stable_required_evidence(packet: dict) -> tuple[set[str], list[str]]:
+    evidence = packet["result"]["evidence"]
+    required = checker_required_evidence(packet)
+    boundary = evidence.get("evaluator_boundary")
+    errors: list[str] = []
+    if not isinstance(boundary, dict):
+        return required, ["result.evidence.evaluator_boundary must be a mapping for stable packets"]
+    commands = boundary.get("commands")
+    if not isinstance(commands, list):
+        return required, ["result.evidence.evaluator_boundary.commands must be a list for stable packets"]
+    invalid_commands = [command for command in commands if not isinstance(command, str) or not command]
+    boundary_required = {command for command in commands if isinstance(command, str) and command}
+    if invalid_commands:
+        errors.append("result.evidence.evaluator_boundary.commands must contain only non-empty strings")
+    if boundary_required != required:
+        errors.append(
+            "result.evidence.evaluator_boundary.commands must match checker-derived required evidence: "
+            f"{sorted(required)}"
+        )
+    return required, errors
 
 
 def exception_target(record: dict) -> tuple[str, str] | None:
@@ -199,7 +337,238 @@ def validate_exception_record(
     return errors
 
 
-def validate_packet(packet: dict, *, require_stable: bool = False) -> list[str]:
+def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(record, dict):
+        return [f"{source}: resolved ref record must be a mapping"]
+    for field in REQUIRED_RESOLVED_REF_FIELDS:
+        if not record.get(field):
+            errors.append(f"{source}: {field} is required")
+    if errors:
+        return errors
+    if record["origin"] not in RESOLVED_REF_ORIGINS:
+        errors.append(f"{source}: origin must be input or generated")
+    if record["relation"] not in RESOLVED_REF_RELATIONS:
+        errors.append(f"{source}: relation is invalid: {record['relation']}")
+    resolved = resolve_ref(root, record["ref"])
+    if record["status"] == "resolved":
+        if resolved is None:
+            errors.append(f"{source}: resolved ref does not resolve: {record['ref']}")
+        elif record["target"] != resolved:
+            errors.append(f"{source}: target does not match resolved ref: {record['ref']}")
+    elif record["status"] == "local-placeholder":
+        if not str(record["ref"]).startswith("terminal:") or record["relation"] != "observation":
+            errors.append(f"{source}: local-placeholder is only valid for terminal observation refs")
+    else:
+        errors.append(f"{source}: status must be resolved or local-placeholder")
+    return errors
+
+
+def resolved_ref_index(records: list[dict]) -> dict[tuple[str, str], list[dict]]:
+    index: dict[tuple[str, str], list[dict]] = {}
+    for record in records:
+        if isinstance(record, dict):
+            index.setdefault((record.get("relation"), record.get("ref")), []).append(record)
+    return index
+
+
+def has_resolved_relation(
+    index: dict[tuple[str, str], list[dict]],
+    *,
+    relation: str,
+    ref: str,
+    origin: str | None = None,
+) -> bool:
+    return any(
+        record.get("status") == "resolved" and (origin is None or record.get("origin") == origin)
+        for record in index.get((relation, ref), [])
+    )
+
+
+def command_base_ref(command: str) -> str | None:
+    parts = command.split()
+    if "--base-ref" in parts:
+        index = parts.index("--base-ref")
+        if index + 1 < len(parts):
+            return parts[index + 1]
+    for part in parts:
+        if part.startswith("--base-ref="):
+            return part.split("=", 1)[1]
+        if "...HEAD" in part:
+            return part.split("...HEAD", 1)[0]
+    return None
+
+
+def artifact_text(root: Path, artifact_ref: str) -> str | None:
+    if not isinstance(artifact_ref, str) or not artifact_ref.startswith("file:"):
+        return None
+    resolved = resolve_ref(root, artifact_ref)
+    if resolved is None:
+        return None
+    try:
+        return (root / resolved).read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def artifact_has_field(text: str, field: str, value: str) -> bool:
+    return any(line.strip() == f"{field}: {value}" for line in text.splitlines())
+
+
+def artifact_records_command(
+    root: Path,
+    artifact_ref: str,
+    command: str,
+    status: str,
+    *,
+    packet_id: str,
+    packet_ref: str,
+    packet_sha256: str,
+) -> bool:
+    text = artifact_text(root, artifact_ref)
+    if text is None:
+        return False
+    return (
+        artifact_has_field(text, "packet_id", packet_id)
+        and artifact_has_field(text, "packet_ref", packet_ref)
+        and artifact_has_field(text, "packet_sha256", packet_sha256)
+        and artifact_has_field(text, "command", command)
+        and artifact_has_field(text, "status", status)
+    )
+
+
+def ref_text(root: Path, ref: str) -> str | None:
+    resolved = resolve_ref(root, ref)
+    if resolved is None or ref.startswith("git:"):
+        return None
+    if "#" in resolved:
+        resolved = resolved.split("#", 1)[0]
+    try:
+        return (root / resolved).read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def ref_is_acceptance_packet(root: Path, ref: str) -> bool:
+    text = ref_text(root, ref)
+    if text is None:
+        return False
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return False
+    return isinstance(loaded, dict) and PACKET_KEY in loaded
+
+
+def normalize_review_field(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    normalized = " ".join(str(value).strip().strip("\"'").casefold().split())
+    return normalized
+
+
+def markdown_field_sections(text: str) -> list[dict[str, str]]:
+    sections: list[dict[str, str]] = []
+    current: dict[str, str] | None = None
+    field_re = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
+    for line in text.splitlines():
+        if line.startswith("#"):
+            if current:
+                sections.append(current)
+            current = {}
+            continue
+        if current is None:
+            continue
+        match = field_re.match(line)
+        if match:
+            key = match.group(1).casefold().replace("-", "_")
+            current[key] = normalize_review_field(match.group(2))
+    if current:
+        sections.append(current)
+    return sections
+
+
+def review_source_ref_records_review(root: Path, ref: str, review: dict, *, packet_id: str) -> bool:
+    text = ref_text(root, ref)
+    if text is None:
+        return False
+    expected = {
+        "record_type": "governance-review",
+        "packet_id": normalize_review_field(packet_id),
+        "critic": normalize_review_field(review.get("critic", "")),
+        "actor": normalize_review_field(review.get("actor", "")),
+        "role": normalize_review_field(review.get("role", "")),
+        "date": normalize_review_field(review.get("date", "")),
+        "score": normalize_review_field(review.get("score", "")),
+        "veto": normalize_review_field(review.get("veto", "")),
+    }
+    if any(not value for value in expected.values()):
+        return False
+    for field in ("why_not_10", "disposition"):
+        if review.get(field):
+            expected[field] = normalize_review_field(review[field])
+    return any(all(section.get(field) == value for field, value in expected.items()) for section in markdown_field_sections(text))
+
+
+def resolved_targets(records: list[dict], *, relation: str) -> set[str]:
+    return {
+        record["target"]
+        for record in records
+        if isinstance(record, dict)
+        and record.get("relation") == relation
+        and record.get("status") == "resolved"
+        and isinstance(record.get("target"), str)
+    }
+
+
+def git_ref_commit(root: Path, ref: str) -> str | None:
+    result = git(root, ["rev-parse", "--verify", f"{ref}^{{commit}}"])
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def same_git_boundary(root: Path, left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    if left == right:
+        return True
+    left_commit = git_ref_commit(root, left)
+    right_commit = git_ref_commit(root, right)
+    return left_commit is not None and left_commit == right_commit
+
+
+def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
+    result = packet["result"]
+    refs: list[tuple[str, str]] = []
+    for source, records in (
+        ("result.evidence.skipped", result["evidence"].get("skipped", [])),
+        ("result.judgment.waivers", result["judgment"].get("waivers", [])),
+        ("result.judgment.downgrades", result["judgment"].get("downgrades", [])),
+        ("result.judgment.residual_risk", result["judgment"].get("residual_risk", [])),
+    ):
+        for index, record in enumerate(records):
+            if isinstance(record, dict) and record.get("source_ref"):
+                refs.append((f"{source}[{index}]", record["source_ref"]))
+    return refs
+
+
+def review_source_refs(packet: dict) -> list[tuple[str, str, dict]]:
+    refs: list[tuple[str, str, dict]] = []
+    for index, record in enumerate(packet["result"]["judgment"].get("reviews", [])):
+        if isinstance(record, dict) and record.get("source_ref"):
+            refs.append((f"result.judgment.reviews[{index}]", record["source_ref"], record))
+    return refs
+
+
+def validate_packet(
+    packet: dict,
+    *,
+    require_stable: bool = False,
+    root: Path = ROOT,
+    packet_ref: str | None = None,
+    packet_sha256: str | None = None,
+) -> list[str]:
     errors: list[str] = []
     if set(packet) != set(PUBLIC_SECTIONS):
         errors.append(f"packet public sections must be exactly {', '.join(PUBLIC_SECTIONS)}")
@@ -255,7 +624,13 @@ def validate_packet(packet: dict, *, require_stable: bool = False) -> list[str]:
     evidence = result["evidence"]
     judgment = result["judgment"]
     decision = result["decision"]
-    required_evidence, required_review = required_targets(packet)
+    accepted = decision.get("accepted")
+    stable = decision.get("stable_handoff_eligible")
+    declared_required_evidence, required_review = required_targets(packet)
+    required_evidence = declared_required_evidence
+    stable_required_evidence_errors: list[str] = []
+    if stable:
+        required_evidence, stable_required_evidence_errors = stable_required_evidence(packet)
 
     if lifecycle != "start":
         for field in FINALIZED_INFERENCE_FIELDS:
@@ -320,8 +695,6 @@ def validate_packet(packet: dict, *, require_stable: bool = False) -> list[str]:
             )
         )
 
-    accepted = decision.get("accepted")
-    stable = decision.get("stable_handoff_eligible")
     if lifecycle == "start":
         if accepted is not None:
             errors.append("start packet decision.accepted must be null")
@@ -351,6 +724,71 @@ def validate_packet(packet: dict, *, require_stable: bool = False) -> list[str]:
                 errors.append("score 9 review requires why_not_10 and disposition")
 
     if stable:
+        errors.extend(stable_required_evidence_errors)
+        if not required_evidence:
+            errors.append("stable packet must declare checker-derived required evidence")
+        if declared_required_evidence != required_evidence:
+            errors.append(
+                "stable packet required_evidence must match checker-derived required evidence: "
+                f"{sorted(required_evidence)}"
+            )
+
+        resolved_refs = evidence.get("resolved_refs", [])
+        if not isinstance(resolved_refs, list):
+            errors.append("stable packet evidence.resolved_refs must be a list")
+            resolved_refs = []
+        for record in resolved_refs:
+            errors.extend(validate_resolved_ref_record(record, root=root, source="result.evidence.resolved_refs"))
+        ref_index = resolved_ref_index(resolved_refs)
+
+        evidence_source_refs = evidence.get("source_refs", [])
+        if not isinstance(evidence_source_refs, list):
+            errors.append("stable packet evidence.source_refs must be a list")
+            evidence_source_refs = []
+        input_source_refs = input_data.get("source_refs", [])
+        if not isinstance(input_source_refs, list):
+            input_source_refs = []
+        for ref in input_source_refs:
+            if ref not in evidence_source_refs:
+                errors.append(f"stable packet input source_ref missing from evidence.source_refs: {ref}")
+            if not has_resolved_relation(ref_index, relation="source", ref=ref, origin="input"):
+                errors.append(f"stable packet input source_ref lacks resolved input source relation: {ref}")
+        for ref in evidence_source_refs:
+            if not has_resolved_relation(ref_index, relation="source", ref=ref):
+                errors.append(f"stable packet source_ref lacks resolved source relation: {ref}")
+        source_targets = resolved_targets(resolved_refs, relation="source")
+        changed_paths = {
+            path for path in inference.get("changed_paths", []) if isinstance(path, str)
+        }
+        missing_changed_sources = sorted(path for path in changed_paths if path not in source_targets)
+        if missing_changed_sources:
+            errors.append(f"stable packet changed_paths lack resolved source refs: {missing_changed_sources}")
+        protected_source_targets = sorted(
+            target for target in source_targets if requires_review_for_path(target) and target not in changed_paths
+        )
+        if protected_source_targets:
+            errors.append(
+                f"stable packet source_ref points to protected path outside changed_paths: {protected_source_targets}"
+            )
+
+        for boundary_ref_name in ("baseline_ref", "comparison_ref"):
+            boundary_ref = evidence.get(boundary_ref_name)
+            if not boundary_ref:
+                errors.append(f"stable packet {boundary_ref_name} is required")
+            elif resolve_ref(root, f"git:{boundary_ref}") is None:
+                errors.append(f"stable packet {boundary_ref_name} does not resolve: {boundary_ref}")
+
+        for source, source_ref in provenance_source_refs(packet):
+            if not has_resolved_relation(ref_index, relation="waiver-provenance", ref=source_ref):
+                errors.append(f"{source}: source_ref lacks resolved waiver-provenance relation: {source_ref}")
+        for source, source_ref, review in review_source_refs(packet):
+            if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref):
+                errors.append(f"{source}: source_ref lacks resolved review-provenance relation: {source_ref}")
+            elif ref_is_acceptance_packet(root, source_ref):
+                errors.append(f"{source}: review-provenance source_ref cannot be an acceptance packet: {source_ref}")
+            elif not review_source_ref_records_review(root, source_ref, review, packet_id=meta["packet_id"]):
+                errors.append(f"{source}: review-provenance source_ref lacks matching review record: {source_ref}")
+
         protected_review_required = (
             inference.get("protected_boundary_changed") is True
             or inference.get("change_class") == "harness-affecting"
@@ -365,6 +803,83 @@ def validate_packet(packet: dict, *, require_stable: bool = False) -> list[str]:
             for item in evidence.get("command_results", [])
             if item.get("status") == "pass" and item.get("command")
         }
+        for item in evidence.get("command_results", []):
+            if item.get("status") != "pass":
+                continue
+            base_ref = command_base_ref(item.get("command", ""))
+            if base_ref:
+                for boundary_ref_name in ("baseline_ref", "comparison_ref"):
+                    if not same_git_boundary(root, evidence.get(boundary_ref_name), base_ref):
+                        errors.append(
+                            f"stable command base-ref {base_ref} must match evidence.{boundary_ref_name}: "
+                            f"{evidence.get(boundary_ref_name)}"
+                        )
+            artifact_ref = item.get("artifact_ref")
+            if not artifact_ref:
+                errors.append(f"stable command evidence lacks artifact_ref: {item.get('command')}")
+            elif str(artifact_ref).startswith("terminal:"):
+                errors.append(f"terminal placeholder cannot satisfy stable evidence: {artifact_ref}")
+            elif not has_resolved_relation(ref_index, relation="artifact", ref=artifact_ref):
+                errors.append(f"stable command artifact lacks resolved artifact relation: {artifact_ref}")
+            elif not artifact_records_command(
+                root,
+                artifact_ref,
+                item.get("command", ""),
+                item.get("status", ""),
+                packet_id=meta["packet_id"],
+                packet_ref=packet_ref or "",
+                packet_sha256=packet_sha256 or "",
+            ):
+                errors.append(f"stable command artifact does not record command evidence: {artifact_ref}")
+
+        if protected_review_required:
+            trace_refs = evidence.get("trace_refs", {})
+            for trace_name in ("search_set_before", "search_set_after"):
+                trace_ref = trace_refs.get(trace_name) if isinstance(trace_refs, dict) else None
+                skipped_targets = {
+                    item.get("evidence")
+                    for item in evidence.get("skipped", [])
+                    if isinstance(item, dict) and item.get("evidence")
+                }
+                if not trace_ref and trace_name in skipped_targets:
+                    continue
+                if not trace_ref:
+                    errors.append(f"stable protected packet missing {trace_name}")
+                elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref):
+                    errors.append(f"stable protected packet {trace_name} lacks resolved trace relation: {trace_ref}")
+
+        for skipped in evidence.get("skipped", []):
+            errors.extend(validate_provenance_record(skipped, source="result.evidence.skipped"))
+            evidence_target = skipped.get("evidence") if isinstance(skipped, dict) else None
+            allowed_skips = required_evidence | {"search_set_before", "search_set_after"}
+            if not evidence_target:
+                errors.append("result.evidence.skipped: evidence is required")
+            elif evidence_target not in allowed_skips:
+                errors.append(f"result.evidence.skipped: skipped evidence is not required: {evidence_target}")
+
+        proof_like_paths = [
+            path
+            for path in inference.get("changed_paths", [])
+            if path.endswith(".md") and path_has_proof_like_claim(root, path)
+        ]
+        claims = evidence.get("claims", [])
+        if proof_like_paths and not claims:
+            errors.append(f"stable packet has proof-like changed docs without claim evidence: {proof_like_paths}")
+        if claims and not isinstance(claims, list):
+            errors.append("result.evidence.claims must be a list")
+            claims = []
+        for claim in claims:
+            if not isinstance(claim, dict):
+                errors.append("result.evidence.claims: claim must be a mapping")
+                continue
+            raw_refs = claim.get("raw_evidence_refs")
+            if not isinstance(raw_refs, list) or not raw_refs:
+                errors.append("result.evidence.claims: raw_evidence_refs is required")
+                continue
+            for raw_ref in raw_refs:
+                if not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref):
+                    errors.append(f"claim evidence ref lacks resolved claim-evidence relation: {raw_ref}")
+
         waived_evidence = {item.get("evidence") for item in judgment.get("waivers", []) if item.get("evidence")}
         downgraded_evidence = {
             item.get("from")
@@ -434,6 +949,14 @@ def requires_review_for_path(path: str) -> bool:
     return is_protected(path)
 
 
+def path_has_proof_like_claim(root: Path, path: str) -> bool:
+    try:
+        text = (root / path).read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return bool(PROOF_LIKE_RE.search(text))
+
+
 def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | None) -> dict:
     paths = changed_paths(root, mode=mode, base_ref=base_ref)
     baseline_ref = packet["result"].get("evidence", {}).get("baseline_ref")
@@ -453,6 +976,28 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
     required_review = ["checker correctness"] if protected else []
     diff_check = git(root, diff_command[1:])
     diff_status = "pass" if diff_check.returncode == 0 else "fail"
+    resolved_refs = []
+    for ref in packet["input"].get("source_refs", []):
+        resolved = resolve_ref(root, ref)
+        if resolved:
+            resolved_refs.append(
+                {
+                    "origin": "input",
+                    "relation": "source",
+                    "ref": ref,
+                    "status": "resolved",
+                    "target": resolved,
+                }
+            )
+    resolved_refs.append(
+        {
+            "origin": "generated",
+            "relation": "observation",
+            "ref": "terminal:git-diff-check",
+            "status": "local-placeholder",
+            "target": "terminal:git-diff-check",
+        }
+    )
 
     packet["meta"]["lifecycle"] = "finalized"
     packet["meta"]["finalized_at"] = today()
@@ -484,6 +1029,7 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
                 }
             ],
             "source_refs": list(packet["input"].get("source_refs", [])),
+            "resolved_refs": resolved_refs,
             "trace_refs": {
                 "search_set_before": None,
                 "search_set_after": None,
@@ -499,9 +1045,9 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
         ),
         "decision": {
             "accepted": diff_status == "pass" and not protected,
-            "stable_handoff_eligible": diff_status == "pass" and not protected and mode != "worktree",
-            "reason": "Skeleton finalization computed from local command status only.",
-            "next_action": "Run check before stable handoff.",
+            "stable_handoff_eligible": False,
+            "reason": "Plan 04 requires durable artifact refs before stable handoff.",
+            "next_action": "Add durable evidence refs and run check --require-stable.",
         },
     }
     if protected:
@@ -565,7 +1111,7 @@ def start_packet(args: argparse.Namespace) -> int:
             },
         },
     }
-    errors = validate_packet(packet)
+    errors = validate_packet(packet, root=root)
     if errors:
         raise PacketError("; ".join(errors))
     write_packet(root / output if not output.is_absolute() else output, packet)
@@ -588,7 +1134,7 @@ def finalize_packet(args: argparse.Namespace) -> int:
         if packet_base_ref != base_ref:
             raise PacketError(f"{packet_path}: finalize base-ref must match start baseline_ref: {packet_base_ref}")
     packet = infer_packet_result(root, packet, mode=mode, base_ref=base_ref)
-    errors = validate_packet(packet)
+    errors = validate_packet(packet, root=root)
     if errors:
         raise PacketError("; ".join(errors))
     write_packet(packet_path, packet, overwrite=True)
@@ -601,7 +1147,17 @@ def check_packet(args: argparse.Namespace) -> int:
     path = Path(args.packet)
     packet_path = root / path if not path.is_absolute() else path
     packet = load_packet(packet_path)
-    errors = validate_packet(packet, require_stable=args.require_stable)
+    try:
+        packet_ref = packet_path.resolve().relative_to(root).as_posix()
+    except ValueError:
+        packet_ref = packet_path.resolve().as_posix()
+    errors = validate_packet(
+        packet,
+        require_stable=args.require_stable,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=file_sha256(packet_path),
+    )
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
