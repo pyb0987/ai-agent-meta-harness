@@ -156,11 +156,17 @@ Initial high-risk surfaces:
    durable packet judgment/evidence before accepted archive edits rely on v2
    governance. Add content rules so runtime, public, or proof-like documentation
    claims infer high-risk evidence requirements even when the changed paths are
-   otherwise routine docs paths.
-5. Review import: add structured review records with score, VETO, rerun, and
-   score-9 handling. The checker must infer mandatory-review categories from
-   changed paths and change content; `not required` is a waiver/downgrade, not a
-   generic bypass, and must record actor, role, date, reason, and source.
+   otherwise routine docs paths. Stable packets must use generated resolved-ref
+   records with origin, relation, resolved status, and durable target; terminal
+   placeholders alone cannot satisfy stable evidence, and baseline/comparison
+   refs must resolve to the finalized evidence boundary.
+5. Review import: add structured review records with score, VETO, rerun,
+   false-green coverage, durable review provenance, and score-9 handling. The
+   checker must infer mandatory-review categories from changed paths and change
+   content; `not required` is a waiver/downgrade, not a generic bypass, and must
+   record actor, role, date, reason, and source. Failed reviews must remain in
+   the packet and can be closed only by same-target reruns that score at least 9
+   with `veto: false`.
 6. Archive integration: add packet archive pointers and validation.
    Post-import `archive/v1/` waiver provenance must move from bootstrap CLI input
    into durable packet judgment/evidence before accepted archive edits are
