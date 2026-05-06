@@ -79,13 +79,17 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertNotIn("codex local plugin activation smoke", commands)
         self.assertIn("codex local plugin smoke", commands)
 
-    def test_base_ref_rewrites_only_search_set_evidence_command(self) -> None:
+    def test_base_ref_rewrites_diff_sensitive_commands(self) -> None:
         selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="origin/main")
         commands = {command.name: command.command for command in selected}
 
         self.assertEqual(
             commands["search-set evidence records (base-ref: origin/main)"],
             "python3 scripts/check-search-set-evidence.py --base-ref origin/main",
+        )
+        self.assertEqual(
+            commands["v1 archive boundary (base-ref: origin/main)"],
+            "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main",
         )
         self.assertIn("python3 scripts/run-search-set.py", commands.values())
         self.assertNotIn("python3 scripts/check-clean-worktree.py", commands.values())
@@ -98,7 +102,7 @@ class VerifyReleaseTests(unittest.TestCase):
             ci_local_only=True,
         )
 
-        rewritten = verify_release.with_search_set_evidence_mode(command, base_ref="origin/main")
+        rewritten = verify_release.with_base_ref_mode(command, base_ref="origin/main")
 
         self.assertTrue(rewritten.search_set_evidence)
         self.assertTrue(rewritten.ci_local_only)
@@ -113,6 +117,10 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertEqual(
             commands["search-set evidence records (base-ref: feature/ref with space)"],
             "python3 scripts/check-search-set-evidence.py --base-ref 'feature/ref with space'",
+        )
+        self.assertEqual(
+            commands["v1 archive boundary (base-ref: feature/ref with space)"],
+            "python3 scripts/check-v1-archive-boundary.py --base-ref 'feature/ref with space'",
         )
         self.assertEqual(
             argv["search-set evidence records (base-ref: feature/ref with space)"],

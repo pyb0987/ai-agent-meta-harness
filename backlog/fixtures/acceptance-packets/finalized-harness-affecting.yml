@@ -1,0 +1,104 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-finalized-harness-affecting-example
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-06
+    finalized_at: 2026-05-06
+  input:
+    intent: "Change release-gate wiring for v1 archive boundary validation."
+    actor: "codex"
+    source_refs:
+      - "scripts/verify-release.py"
+      - "scripts/check-v1-archive-boundary.py"
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+        - "scripts/verify-release.py"
+        - "scripts/check-v1-archive-boundary.py"
+      intended_scope: "Release-gate and v1 archive boundary validation only."
+      actual_scope: "Release command wiring plus archive-boundary checker behavior."
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence:
+        - "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
+        - "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
+        - "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
+      required_review:
+        - "checker correctness"
+        - "release integration"
+        - "methodology fidelity"
+    evidence:
+      evaluator_boundary:
+        status: intentionally-changed
+        reason: "Release gate now compares archive changes in REF...HEAD mode."
+        commands:
+          - "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
+      command_results:
+        - command: "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
+          status: pass
+          artifact_ref: "terminal:verify-release-list-base-ref"
+        - command: "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
+          status: pass
+          artifact_ref: "terminal:v1-archive-boundary-base-ref"
+        - command: "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
+          status: pass
+          artifact_ref: "terminal:v1-boundary-release-tests"
+      source_refs:
+        - "scripts/verify-release.py"
+        - "scripts/check-v1-archive-boundary.py"
+      trace_refs:
+        search_set_before: ".harness/traces/search-set.md#before-plan-01"
+        search_set_after: ".harness/traces/search-set.md#after-plan-01"
+        evolution:
+          - ".harness/traces/evolution/001-repository-self-application-root.md"
+        failures: []
+        disposition: "Search-set before/after evidence reused for harness-affecting release wiring."
+      skipped: []
+    judgment:
+      reviews:
+        - critic: "checker correctness"
+          actor: "reviewer"
+          role: "reviewer"
+          date: 2026-05-06
+          score: 9
+          veto: false
+          why_not_10: "Full committed release-candidate path still requires final clean branch verification."
+          disposition: "Accepted residual risk for bootstrap; final release uses --base-ref."
+          source_ref: "terminal:multi-review-checker-correctness"
+        - critic: "release integration"
+          actor: "reviewer"
+          role: "reviewer"
+          date: 2026-05-06
+          score: 9
+          veto: false
+          why_not_10: "Current fixture is illustrative and not an executable packet."
+          disposition: "Covered by next checker implementation."
+          source_ref: "terminal:multi-review-release-integration"
+        - critic: "methodology fidelity"
+          actor: "reviewer"
+          role: "reviewer"
+          date: 2026-05-06
+          score: 9
+          veto: false
+          why_not_10: "Fixture references trace anchors rather than embedding full transcripts."
+          disposition: "Accepted because source refs and trace refs are explicit."
+          source_ref: "terminal:multi-review-methodology-fidelity"
+      waivers: []
+      downgrades: []
+      residual_risk:
+        - actor: "maintainer"
+          role: "maintainer"
+          date: 2026-05-06
+          reason: "Fixture demonstrates evidence shape but is not yet enforced by a packet checker."
+          source_ref: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: "Required evidence and multi-review passed with no VETO."
+      next_action: "Archive finalized packet when packet storage exists."

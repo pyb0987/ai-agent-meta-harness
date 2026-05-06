@@ -1,0 +1,56 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-finalized-routine-example
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: staged
+    created_at: 2026-05-06
+    finalized_at: 2026-05-06
+  input:
+    intent: "Update low-risk documentation wording."
+    actor: "codex"
+    source_refs:
+      - "docs/usage.md"
+    user_judgment: {}
+  result:
+    inference:
+      change_class: routine
+      impact: low
+      changed_paths:
+        - "docs/usage.md"
+      intended_scope: "Documentation wording only."
+      actual_scope: "docs/usage.md only."
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: false
+      required_evidence:
+        - "git diff --check"
+      required_review: []
+    evidence:
+      evaluator_boundary:
+        status: unchanged
+        commands:
+          - "git diff --check"
+      command_results:
+        - command: "git diff --check"
+          status: pass
+          artifact_ref: "terminal:git-diff-check"
+      source_refs:
+        - "docs/usage.md"
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: "Not required for isolated low-risk documentation wording."
+      skipped: []
+    judgment:
+      reviews: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: "Required routine evidence passed."
+      next_action: "Ready for stable handoff."

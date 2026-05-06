@@ -77,6 +77,12 @@ def git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 class CheckMaintenanceReviewTests(unittest.TestCase):
+    def test_default_paths_include_v2_plan_records(self):
+        paths = {path.relative_to(ROOT).as_posix() for path in check_maintenance_review.default_paths()}
+
+        self.assertIn("backlog/v2-roadmap.md", paths)
+        self.assertIn("backlog/plans/01-compatibility-checker-migration.md", paths)
+
     def test_accepts_score_9_review_summary(self):
         errors = check_maintenance_review.validate_text(
             summary(
@@ -526,7 +532,11 @@ Potential improvement:
             git(root, "add", "MAINTENANCE.md", "backlog", "scripts/example.py")
             git(root, "commit", "-m", "clean handoff disposition")
             script.write_text("print('new')\n", encoding="utf-8")
-            git(root, "add", "scripts/example.py")
+            (backlog / "core.md").write_text(
+                "# Core Backlog\n\nMulti-review not required: staged fallback-disposition fixture.\n",
+                encoding="utf-8",
+            )
+            git(root, "add", "scripts/example.py", "backlog/core.md")
 
             check_maintenance_review.ROOT = root
             self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
@@ -754,7 +764,7 @@ Potential improvement:
 
         self.assertIsNone(signal)
 
-    def test_main_prints_missing_multi_review_signal_for_staged_high_impact_change(self):
+    def test_main_rejects_missing_multi_review_for_staged_high_impact_change(self):
         original_root = check_maintenance_review.ROOT
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -777,13 +787,13 @@ Potential improvement:
 
             check_maintenance_review.ROOT = root
             self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
-            stdout = io.StringIO()
+            stderr = io.StringIO()
 
-            with contextlib.redirect_stdout(stdout):
+            with contextlib.redirect_stderr(stderr):
                 result = check_maintenance_review.main([])
 
-        self.assertEqual(result, 0)
-        self.assertIn("high-impact changed path", stdout.getvalue())
+        self.assertEqual(result, 1)
+        self.assertIn("high-impact changed path", stderr.getvalue())
 
     def test_staged_missing_multi_review_signal_ignores_historical_archive_markers(self):
         original_root = check_maintenance_review.ROOT
@@ -815,13 +825,13 @@ Potential improvement:
 
             check_maintenance_review.ROOT = root
             self.addCleanup(setattr, check_maintenance_review, "ROOT", original_root)
-            stdout = io.StringIO()
+            stderr = io.StringIO()
 
-            with contextlib.redirect_stdout(stdout):
+            with contextlib.redirect_stderr(stderr):
                 result = check_maintenance_review.main([])
 
-        self.assertEqual(result, 0)
-        self.assertIn("high-impact changed path", stdout.getvalue())
+        self.assertEqual(result, 1)
+        self.assertIn("high-impact changed path", stderr.getvalue())
 
     def test_staged_missing_multi_review_signal_accepts_changed_not_required_record(self):
         original_root = check_maintenance_review.ROOT

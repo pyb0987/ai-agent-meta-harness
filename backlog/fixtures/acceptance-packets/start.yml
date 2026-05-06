@@ -1,0 +1,39 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-start-example
+    schema_version: v2.0-draft
+    lifecycle: start
+    mode: staged
+    created_at: 2026-05-06
+    finalized_at: null
+  input:
+    intent: "Define the v2 packet schema fixture set."
+    actor: "codex"
+    source_refs:
+      - "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+    user_judgment: {}
+  result:
+    inference:
+      status: pending-finalize
+      changed_paths: []
+      intended_scope: "Define packet schema fixtures only."
+      actual_scope: "Not computed until finalize."
+      deviations: []
+      isolation: pending-finalize
+      required_evidence: []
+      required_review: []
+    evidence:
+      baseline_ref: "HEAD"
+      before_refs: []
+      after_refs: []
+      skipped: []
+    judgment:
+      reviews: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: null
+      stable_handoff_eligible: false
+      reason: "Start packet only; finalization has not run."
+      next_action: "Run finalize before stable handoff."

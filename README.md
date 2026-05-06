@@ -6,6 +6,10 @@ The Meta-Harness paper frames harness design as a major factor in agent performa
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 
+The current active roadmap is the **AI Agent Meta-Harness v2** transition in
+`backlog/v2-roadmap.md`. The previous human-authored gate/backlog model is
+frozen as v1 historical evidence under `archive/v1/`.
+
 ## What's Inside
 
 | Component | Description | Path |
@@ -13,7 +17,8 @@ The repository is split into a shared core plus thin runtime adapters. The metho
 | **Core methodology** | Runtime-neutral principles and trace formats | `core/` |
 | **Claude adapter** | Claude Code commands, skills, examples, hooks guidance | `adapters/claude/` |
 | **Codex adapter** | Codex skills and project instruction templates | `adapters/codex/` |
-| **Backlog** | Non-blocking core and adapter improvement items | `backlog/` |
+| **Backlog** | Active v2 transition roadmap | `backlog/` |
+| **v1 archive** | Frozen v1 backlog, review, and maintenance evidence | `archive/v1/` |
 | **Maintenance plan** | Repository upkeep, tests, release checks, review policy | `MAINTENANCE.md` |
 
 ## Core Principles
@@ -31,7 +36,7 @@ Evidence categories used in this repository:
 | Paper results and benchmark claims | Published Meta-Harness findings, such as benchmark deltas, ablations, tables, and appendix observations | Cited as paper context only; not local reproduction evidence |
 | Repository methodology and documentation correctness | This repository's interpretation of runtime-neutral harness principles, trace formats, and claim boundaries | `core/`, `docs/`, README boundary tests, compatibility mirror checks, and multi-review records |
 | Adapter and generated-artifact operability | Claude/Codex adapter instructions, hook templates, generated plugin assets, and smoke-tested local workflows | Adapter unit tests, drift checks, plugin sync checks, hook smoke tests, and local activation smoke |
-| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | `.harness/traces/search-set.md`, `.harness/traces/evolution/`, backlog Completion Gates, and Active search-set verification |
+| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | v2 target: AcceptancePacket artifacts, packet-linked traces, and checker-computed eligibility; v1 archive evidence: `.harness/traces/search-set.md`, `.harness/traces/evolution/`, backlog Completion Gates, and Active search-set verification |
 
 Paper claim traceability:
 
@@ -59,10 +64,13 @@ core/
 ├── methodology.md          # Runtime-neutral principles
 └── reference.md            # Trace formats and analysis workflow
 backlog/
-├── README.md               # Backlog ownership guide
-├── core.md                 # Agent-agnostic follow-ups
-├── claude-adapter.md       # Claude Code-specific follow-ups
-└── codex-adapter.md        # Codex-specific follow-ups
+├── README.md               # Active v2 planning guide
+└── v2-roadmap.md           # v2 transition roadmap and meta-plan
+archive/v1/
+├── README.md               # v1 archive index
+├── IMPORT.md               # initial import manifest and hash record
+├── MAINTENANCE.md          # v1 maintenance policy snapshot
+└── backlog/                # Frozen v1 backlog and review records
 adapters/
 ├── claude/
 │   ├── commands/
@@ -191,8 +199,9 @@ python3 scripts/verify-release.py --base-ref origin/main
 
 That release gate runs the Standard verification set plus this repository's
 Active search-set and clean-worktree gate. The `--base-ref` flag makes the
-search-set evidence check compare committed changes against `REF...HEAD`, which
-is the intended mode for a clean release candidate. During an in-progress
+search-set evidence and v1 archive boundary checks compare committed changes
+against `REF...HEAD`, which is the intended mode for a clean release candidate.
+During an in-progress
 maintenance diff, use `python3 scripts/verify-release.py --skip-clean-worktree`
 without `--base-ref` to validate the worktree-status command list before the
 final clean handoff.
@@ -215,7 +224,7 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-search-set-evidence.py --staged`, and `python3 scripts/check-backlog-archive-lifecycle.py --staged` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, maintenance review records, search-set evidence, and completed backlog archive pointers cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
+The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-v1-archive-boundary.py --staged`, `python3 scripts/check-search-set-evidence.py --staged`, and `python3 scripts/check-backlog-archive-lifecycle.py --staged` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, maintenance review records, the frozen v1 archive boundary, search-set evidence, and completed backlog archive pointers cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
 
 ## How It Works
 

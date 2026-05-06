@@ -20,6 +20,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-maintenance-review.py", text)
 
+    def test_hook_runs_staged_v1_archive_boundary_checker(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-v1-archive-boundary.py --staged", text)
+
     def test_hook_runs_staged_search_set_evidence_checker(self):
         text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
 
@@ -45,7 +50,9 @@ class PreCommitHookTests(unittest.TestCase):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
+        self.assertIn("python3 scripts/check-v1-archive-boundary.py --staged", text)
         self.assertIn("completed backlog archive pointers", text)
+        self.assertIn("frozen v1 archive boundary", text)
 
     def test_standard_verification_runs_codex_activation_smoke(self):
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")

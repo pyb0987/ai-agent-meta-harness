@@ -1,0 +1,71 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-worktree-nonstable-example
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: worktree
+    created_at: 2026-05-06
+    finalized_at: 2026-05-06
+  input:
+    intent: "Inspect an in-progress packet checker change."
+    actor: "codex"
+    source_refs:
+      - "scripts/check-governance-acceptance.py"
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+        - "scripts/check-governance-acceptance.py"
+      intended_scope: "Explore packet checker behavior before staging."
+      actual_scope: "Unstaged worktree inspection only."
+      deviations: []
+      isolation: exploratory-worktree
+      protected_boundary_changed: true
+      required_evidence:
+        - "python3 -m unittest tests/test_acceptance_packet_fixtures.py"
+      required_review:
+        - "checker correctness"
+    evidence:
+      evaluator_boundary:
+        status: exploratory
+        commands:
+          - "python3 -m unittest tests/test_acceptance_packet_fixtures.py"
+      command_results:
+        - command: "python3 -m unittest tests/test_acceptance_packet_fixtures.py"
+          status: pass
+          artifact_ref: "terminal:acceptance-packet-fixture-tests"
+      source_refs:
+        - "scripts/check-governance-acceptance.py"
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: "Worktree packet is exploratory and cannot satisfy stable handoff."
+      skipped: []
+    judgment:
+      reviews:
+        - critic: "checker correctness"
+          actor: "reviewer"
+          role: "reviewer"
+          date: 2026-05-06
+          score: 9
+          veto: false
+          why_not_10: "Worktree packet is not stable-handoff evidence."
+          disposition: "Accepted only as exploratory packet evidence."
+          source_ref: "terminal:multi-review-checker-correctness"
+      waivers: []
+      downgrades: []
+      residual_risk:
+        - actor: "maintainer"
+          role: "maintainer"
+          date: 2026-05-06
+          reason: "Worktree mode is intentionally non-stable even when local evidence passes."
+          source_ref: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+    decision:
+      accepted: true
+      stable_handoff_eligible: false
+      reason: "Worktree packets are not stable-handoff eligible in v2.0."
+      next_action: "Finalize with --staged or --base-ref before stable handoff."

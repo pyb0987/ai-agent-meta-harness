@@ -20,6 +20,7 @@ class ReleaseCommand:
     argv: tuple[str, ...]
     clean_worktree: bool = False
     search_set_evidence: bool = False
+    v1_archive_boundary: bool = False
     ci_local_only: bool = False
 
     def __post_init__(self) -> None:
@@ -58,6 +59,11 @@ RELEASE_COMMANDS = (
     ReleaseCommand("codex marketplace metadata", ("python3", "scripts/check-codex-marketplace-metadata.py")),
     ReleaseCommand("maintenance review records", ("python3", "scripts/check-maintenance-review.py")),
     ReleaseCommand(
+        "v1 archive boundary",
+        ("python3", "scripts/check-v1-archive-boundary.py"),
+        v1_archive_boundary=True,
+    ),
+    ReleaseCommand(
         "search-set evidence records",
         ("python3", "scripts/check-search-set-evidence.py"),
         search_set_evidence=True,
@@ -71,14 +77,15 @@ RELEASE_COMMANDS = (
 )
 
 
-def with_search_set_evidence_mode(command: ReleaseCommand, *, base_ref: str | None) -> ReleaseCommand:
-    if not command.search_set_evidence or base_ref is None:
+def with_base_ref_mode(command: ReleaseCommand, *, base_ref: str | None) -> ReleaseCommand:
+    if base_ref is None or not (command.search_set_evidence or command.v1_archive_boundary):
         return command
     return ReleaseCommand(
         name=f"{command.name} (base-ref: {base_ref})",
         argv=(*command.argv, "--base-ref", base_ref),
         clean_worktree=command.clean_worktree,
         search_set_evidence=command.search_set_evidence,
+        v1_archive_boundary=command.v1_archive_boundary,
         ci_local_only=command.ci_local_only,
     )
 
@@ -95,7 +102,7 @@ def selected_commands(
         commands = tuple(command for command in RELEASE_COMMANDS if not command.clean_worktree)
     if ci:
         commands = tuple(command for command in commands if not command.ci_local_only)
-    return tuple(with_search_set_evidence_mode(command, base_ref=base_ref) for command in commands)
+    return tuple(with_base_ref_mode(command, base_ref=base_ref) for command in commands)
 
 
 def print_command_list(commands: tuple[ReleaseCommand, ...]) -> None:

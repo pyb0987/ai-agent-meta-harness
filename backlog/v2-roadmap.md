@@ -1,0 +1,193 @@
+# AI Agent Meta-Harness v2 Roadmap
+
+v2 replaces human-authored maintenance gates with generated acceptance packets.
+The goal is a smaller operator surface and stronger mechanical governance:
+humans provide intent, exceptions, waiver requests, and residual-risk acceptance;
+the harness infers requirements, captures evidence, and computes eligibility.
+
+## Target Shape
+
+```yaml
+AcceptancePacket:
+  meta: {}
+  input: {}
+  result:
+    inference: {}
+    evidence: {}
+    judgment: {}
+    decision: {}
+```
+
+CLI surface:
+
+```bash
+governance start --intent "..."
+governance finalize --packet <packet> --staged
+governance check --packet <packet>
+```
+
+Stable handoff should use `--staged` or `--base-ref`; `--worktree` is
+exploratory unless explicitly marked non-stable.
+
+Search-set verification:
+
+- SKIPPED: this roadmap records the v2 transition target and archives v1
+  planning evidence; no v2 acceptance-packet checker or runtime harness behavior
+  exists yet to execute before/after search-set evidence for this planning-only
+  restructure.
+
+## Methodology Plan
+
+v2 must preserve the Meta-Harness essentials:
+
+- Fixed evaluator boundary: packet records evaluator commands, protected paths,
+  boundary changes, and disposition. Candidate evidence must state whether the
+  evaluator stayed fixed, was intentionally changed with disposition, or is not
+  eligible as fixed-evaluator evidence.
+- Trace reuse: packet records search-set before/after evidence, evolution trace
+  disposition, and failure trace disposition.
+- Confounder isolation: packet records intended scope, actual changed files,
+  deviations, and isolation status.
+- Evidence honesty: runtime/public/proof claims require structured claim records;
+  verified claims require raw artifact, log, screenshot, or exported trace refs.
+- Human judgment boundary: residual risk, skipped required evidence, review
+  waiver, or downgrade acceptance requires actor, role, date, reason, and
+  source reference.
+
+## Architecture Plan
+
+1. Define the `AcceptancePacket` schema with the three public sections:
+   `meta`, `input`, and `result`.
+2. Define `result.inference`, `result.evidence`, `result.judgment`, and
+   `result.decision` as stable machine-readable sub-sections.
+3. Define canonical packet hashing. The hash must avoid self-reference, either
+   by excluding the hash field from canonical serialization or by storing the
+   hash only in the active pointer.
+4. Define source reference validation. Allowed references are packet input,
+   review artifacts, trace artifacts, log files, commits, or maintainer-authored
+   notes that exist in the repository or recorded evidence directory.
+5. Define packet archive paths, initially `archive/v2/packets/<packet_id>.yml`
+   unless implementation review chooses a stronger location such as
+   `.harness/governance/packets/`, plus active pointer format and optional hash
+   validation.
+
+## Governance Checker Plan
+
+Create one checker command:
+
+```bash
+python3 scripts/check-governance-acceptance.py start --output <packet>
+python3 scripts/check-governance-acceptance.py finalize --packet <packet> --staged
+python3 scripts/check-governance-acceptance.py check --packet <packet>
+```
+
+Required behavior:
+
+- `start` captures baseline git state, trace-root state, human intent, checker
+  version, inference rules version, and any available before evidence.
+- `finalize` updates packet evidence, infers class/impact from git diff and
+  content rules, computes required evidence/review/traces, and computes
+  `result.decision.eligibility`.
+- `check` is read-only and never changes packet lifecycle state.
+- Harness-affecting finalization fails closed without a start packet unless an
+  exact skipped-before reason and maintainer/reviewer disposition are recorded.
+- Verified runtime claims fail without raw evidence refs.
+- Score below 9 fails unless the same review scope reruns at 9 or above, or the
+  packet is not accepted.
+- Score 9 requires why-not-10 and residual/follow-up disposition.
+
+## Inference Plan
+
+Keep inference explicit and inspectable.
+
+- Maintain a small path/content rule table for durable-contract and
+  harness-affecting changes.
+- Default high-risk paths to stricter requirements, then allow downgrade only
+  with recorded disposition.
+- Keep non-harness exemptions explicit and tested.
+- Version the inference rule table separately from checker implementation.
+
+Initial high-risk surfaces:
+
+- `core/`
+- `adapters/`
+- `scripts/`
+- `.githooks/`
+- `.harness/traces/search-set.md`
+- `commands/`
+- `skills/`
+- `plugins/`
+- `MAINTENANCE.md`
+- `README.md`
+- runtime adapter docs, install docs, release notes, and public evidence claims
+
+## Migration Plan
+
+1. Treat `archive/v1/` as frozen historical trace evidence.
+2. Do not carry v1 backlog items forward by default.
+3. Extract only v2 requirements that correspond to repeated v1 failure modes:
+   manual class declaration, missing before evidence, review waiver ambiguity,
+   runtime proof overclaiming, score/VETO drift, and archive record drift.
+4. Keep legacy archive compatibility while v2 packet archive validation is added:
+   `scripts/check-v1-archive-boundary.py` reports that `archive/v1/` is frozen
+   historical evidence, allows the initial import, and blocks later archive
+   changes unless a maintainer/reviewer waiver records a concrete reason.
+5. After packet validation exists, require new completed active work to point to
+   finalized accepted packets.
+
+## Implementation Plan
+
+1. Compatibility checker migration: keep frozen `archive/v1/` records
+   intentionally exempt from active v1 record-shape validation, report that
+   boundary explicitly, and add tests so legacy checks cannot create false
+   confidence about unvalidated archive paths.
+2. Schema and fixtures: add packet schema examples for start, finalized routine,
+   finalized harness-affecting, finalized waiver/downgrade, runtime evidence, and
+   blocked packets. Plan 02 owns the first fixture set under
+   `backlog/fixtures/acceptance-packets/`; those examples are not active packets
+   and do not satisfy stable handoff.
+3. Packet CLI skeleton: implement `start`, `finalize`, and `check` without
+   replacing release gates. Plan 03 owns the repository-local
+   `scripts/check-governance-acceptance.py` skeleton and keeps packet validity
+   separate from stable-handoff eligibility via `--require-stable`.
+4. Evidence capture: add search-set before/after capture and source-ref
+   validation. Carry forward Plan 03's residual requirement that post-import
+   `archive/v1/` waiver provenance must move from bootstrap CLI strings into
+   durable packet judgment/evidence before accepted archive edits rely on v2
+   governance. Add content rules so runtime, public, or proof-like documentation
+   claims infer high-risk evidence requirements even when the changed paths are
+   otherwise routine docs paths.
+5. Review import: add structured review records with score, VETO, rerun, and
+   score-9 handling. The checker must infer mandatory-review categories from
+   changed paths and change content; `not required` is a waiver/downgrade, not a
+   generic bypass, and must record actor, role, date, reason, and source.
+6. Archive integration: add packet archive pointers and validation.
+   Post-import `archive/v1/` waiver provenance must move from bootstrap CLI input
+   into durable packet judgment/evidence before accepted archive edits are
+   allowed.
+7. Release integration: wire packet checks into pre-commit/release once the v2
+   checker covers v1 review/search/archive invariants.
+8. Documentation transition: update README and maintenance guidance from v1 gates
+   to v2 packet lifecycle.
+
+## Validation Plan
+
+Validate v2 using the method it introduces:
+
+- Until `governance start` exists, use the bootstrap transition note required by
+  `MAINTENANCE.md` and label it explicitly as non-packet evidence.
+- Create a start packet before each harness-affecting implementation step once
+  the packet CLI exists.
+- Preserve before/after search-set evidence where relevant.
+- Run multi-review for packet schema, checker semantics, archive integration, and
+  release gate wiring.
+- Treat any critic score below 9 as blocking until fixed and rerun.
+- Preserve v2 packet examples as trace artifacts.
+
+## Open Decisions
+
+- Whether packet hash lives inside the packet or only in active pointers.
+- How `--worktree` packets are labeled so they cannot satisfy stable handoff.
+- How old packets are evaluated when checker or inference rule versions change.
+- Whether the public CLI name should be `governance` or a repository-local
+  script name first.

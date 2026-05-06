@@ -17,10 +17,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REVIEW_GLOB = "backlog/review-*.md"
+DEFAULT_PLAN_GLOB = "backlog/plans/*.md"
 DEFAULT_BACKLOG_FILES = (
     "backlog/core.md",
     "backlog/claude-adapter.md",
     "backlog/codex-adapter.md",
+    "backlog/v2-roadmap.md",
     "backlog/archive/core.md",
     "backlog/archive/claude-adapter.md",
     "backlog/archive/codex-adapter.md",
@@ -518,7 +520,7 @@ def indexed_default_paths() -> list[Path]:
     indexed = [path for path in result.stdout.split("\0") if path]
     wanted = set(DEFAULT_BACKLOG_FILES)
     for path in indexed:
-        if fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB):
+        if fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB) or fnmatch.fnmatch(path, DEFAULT_PLAN_GLOB):
             wanted.add(path)
     return sorted(ROOT / path for path in wanted if path in indexed)
 
@@ -527,7 +529,9 @@ def staged_record_paths(changed_paths: list[str]) -> list[Path]:
     return [
         ROOT / path
         for path in changed_paths
-        if path in DEFAULT_BACKLOG_FILES or fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB)
+        if path in DEFAULT_BACKLOG_FILES
+        or fnmatch.fnmatch(path, DEFAULT_REVIEW_GLOB)
+        or fnmatch.fnmatch(path, DEFAULT_PLAN_GLOB)
     ]
 
 
@@ -577,6 +581,7 @@ def default_paths(*, use_index: bool = False) -> list[Path]:
     if use_index:
         return indexed_default_paths()
     paths = set(ROOT.glob(DEFAULT_REVIEW_GLOB))
+    paths.update(ROOT.glob(DEFAULT_PLAN_GLOB))
     paths.update(path for relative in DEFAULT_BACKLOG_FILES if (path := ROOT / relative).exists())
     return sorted(paths)
 
@@ -627,10 +632,12 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
+    if missing_multi_review is not None:
+        for line in missing_multi_review_summary(missing_multi_review):
+            print(line, file=sys.stderr)
+        return 1
     print("Maintenance review summaries are valid.")
     for line in quality_signal_summary(quality_signals, dispositions=fallback_dispositions):
-        print(line)
-    for line in missing_multi_review_summary(missing_multi_review):
         print(line)
     return 0
 
