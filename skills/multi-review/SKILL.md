@@ -56,6 +56,7 @@ Design 2-4 Critics fitted to the problem on the spot.
 - Each Critic's evaluation scope must be **explicitly disjoint** (overlap creates redundancy, not consensus)
 - Assign each Critic a **natural persona** (a perspective, not a role title)
 - One Critic may hold **Veto authority** (forcing rejection if its perspective sees a fatal flaw)
+- For durable or high-stakes artifacts, assign at least one invariant/adversarial lens and include the false-green question in the assigned Critic prompts. If no Critic covers adversarial false acceptance, the final synthesis is incomplete, not PASS.
 
 **Critic design template**:
 ```
@@ -63,8 +64,49 @@ Critic N: [name]
   Persona: [whose perspective this is]
   Scope: [evaluation scope — only this is examined]
   Anti-scope: [explicitly excluded — what is NOT evaluated]
+  Invariant lens: [if durable/high-stakes, which false-green or auditability invariant this Critic covers]
   Veto: [if any, under what condition it triggers]
 ```
+
+### Invariant and Adversarial Review
+
+Use these lenses for durable artifacts, public claims, release confidence,
+acceptance criteria, generated outputs, exceptions, or handoff records. They are
+coverage prompts, not a requirement to spawn more agents; a 2-4 Critic review can
+cover several lenses explicitly.
+
+- **Contract Fidelity Critic**: public shape, inputs/outputs, schema, and the
+  boundary between user-authored and derived/generated values.
+- **Decision Correctness Critic**: false greens, thresholds, score rules, status
+  labels, exit semantics, negative cases, and success computed from facts.
+- **Auditability Critic**: final artifact preserves criteria, evidence, source
+  references, provenance, and rationale without relying on conversation context.
+- **Adversarial Artifact Critic**: stale, misleading, or hand-authored artifacts
+  that could falsely pass; identifier collisions and ambiguous targets.
+- **Scope Boundary Critic**: future-scope behavior smuggled in, or deferred risk
+  lost instead of carried to a durable artifact.
+
+Invariant questions:
+
+- Are generated, derived, scored, or summarized fields recomputed or checked
+  against primary facts?
+- Are validity, acceptance, stability, readiness, and success labels separated
+  when they mean different things?
+- Does every waiver, exception, skip, downgrade, and residual risk have a
+  specific target, kind, actor, reason, date, and durable source?
+- If the same identifier appears in multiple meaning spaces, is type, kind, or
+  namespace preserved?
+- Does every out-of-scope risk have a durable carry-over location?
+
+Generic adversarial examples:
+
+- A generated summary is edited by hand to say success.
+- A status label says pass while the body describes a blocked condition.
+- A score or threshold is present but reviewer, evaluator, or run provenance is
+  missing.
+- A waiver or skip applies to a broad category instead of a specific failed
+  requirement.
+- The same identifier names both an evidence item and a review item.
 
 **Model assignment criteria**:
 - High-stakes / complex judgment (architecture, strategy, irreversible decisions) → **opus**
@@ -88,13 +130,30 @@ Do NOT evaluate [Anti-scope].
 ## Input
 [Problem framing + relevant materials]
 
+## False-Green Check
+For durable or high-stakes artifacts: before trusting the artifact, imagine a
+stale, misleading, or hand-authored version that could falsely pass. Identify
+the invariant that catches it and any deferred risk that needs durable
+carry-over. `false_green_risk` and `invariant_checked` must be non-null and
+specific; null, empty, or generic answers do not count as adversarial coverage.
+Any prompt or synthesis wording that allows null, empty, generic, or unverified
+false-green values to pass conflicts with this protocol and must be treated as
+no coverage.
+Coverage quality gate: `false_green_risk` must name a concrete stale,
+misleading, or hand-authored false-pass mechanism; `invariant_checked` must name
+a concrete invariant, recomputation, or audit check. Values such as null, empty
+string, whitespace, none, n/a, ok, checked, generic, or not applicable are no
+coverage.
+
 ## Output Format (JSON)
 {
   "score": 1-10,
   "verdict": "pass" | "concern" | "veto",
   "key_findings": ["up to 3 key findings"],
   "evidence": ["supporting evidence for each finding"],
-  "veto_reason": null | "veto rationale (if applicable)"
+  "veto_reason": null | "veto rationale (if applicable)",
+  "false_green_risk": null | "how a stale, misleading, or hand-authored artifact could falsely pass",
+  "invariant_checked": null | "the invariant used to catch that false green"
 }
 ```
 
@@ -124,6 +183,13 @@ reviews where the repository maintenance policy is not the acceptance contract.
 | Any Critic vetoes | **VETO** — present veto rationale + that Critic's full output |
 | Mean ≥ 7 BUT some < 7 | **MIXED** → Phase 5 Synthesis |
 | Mean < 7 | **FAIL** → Phase 5 Synthesis |
+
+For durable or high-stakes artifacts, do not report PASS if no Critic covered an
+adversarial false-acceptance path. Report the review as incomplete and rerun with
+an assigned invariant/adversarial lens. Treat null, empty, or generic
+`false_green_risk` or `invariant_checked` values, and any contradictory wording
+that allows them to pass, as no coverage. Also treat listed no-coverage values
+as no coverage.
 
 ### Phase 5: Synthesis (when MIXED/FAIL)
 
