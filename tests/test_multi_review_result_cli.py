@@ -52,8 +52,19 @@ class MultiReviewResultCliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DERIVED: PASS", result.stdout)
-        self.assertIn("artifact-internal consistency only", result.stdout)
-        self.assertIn("not probe execution or stable evidence", result.stdout)
+        self.assertIn("linked probe transcripts", result.stdout)
+        self.assertIn("stable handoff evidence", result.stdout)
+
+    def test_replays_probe_commands_when_requested(self) -> None:
+        result = run_cli(
+            "--result",
+            str(FIXTURE_ROOT / "governance-pass.yml"),
+            "--require-governance-pass",
+            "--verify-probe-commands",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("replayed probe commands", result.stdout)
 
     def test_accepts_advisory_pass_json_but_not_as_governance(self) -> None:
         result = run_cli("--result", str(FIXTURE_ROOT / "advisory-pass.json"))
@@ -149,6 +160,33 @@ class MultiReviewResultCliTests(unittest.TestCase):
         self.assertIn("probe_command must be substantive", completed.stderr)
         self.assertIn("probe_result must be substantive", completed.stderr)
         self.assertIn("probe_interpretation must be substantive", completed.stderr)
+
+    def test_rejects_probe_exit_failure_for_acceptance(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][0]["probe_exit_code"] = 1
+
+        self.assert_rejected(result, "probe_exit_code must be 0")
+
+    def test_rejects_probe_without_matching_transcript(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        critic = result["MultiReviewResult"]["critics"][0]
+        critic["probe_command"] = "python3 missing-probe.py --claim-pass"
+        critic["probe_result"] = "Plausible hand-authored success text."
+
+        self.assert_rejected(result, "probe_evidence_refs must include a transcript matching probe_command")
+
+    def test_rejects_fabricated_transcript_when_replayed(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        critic = result["MultiReviewResult"]["critics"][0]
+        critic["probe_command"] = "python3 missing-probe.py --claim-pass"
+        critic["probe_result"] = "Plausible hand-authored success text."
+        critic["probe_evidence_refs"] = ["backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt"]
+        path = self.write_result(result)
+
+        completed = run_cli("--result", str(path), "--require-governance-pass", "--verify-probe-commands")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_command exit mismatch", completed.stderr)
 
     def test_rejects_known_no_coverage_probe_values(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
@@ -248,6 +286,33 @@ class MultiReviewResultCliTests(unittest.TestCase):
         result["MultiReviewResult"]["independence"] = "fallback_nonindependent"
 
         self.assert_rejected(result, "fallback_nonindependent cannot derive governance PASS")
+
+    def test_rejects_missing_frame_challenge_for_governance_pass(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        for critic in result["MultiReviewResult"]["critics"]:
+            critic["frame_challenge"] = False
+
+        self.assert_rejected(result, "missing required frame_challenge critic")
+
+    def test_rejects_redundant_required_critic_frames(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][1]["scope"] = result["MultiReviewResult"]["critics"][0]["scope"]
+
+        self.assert_rejected(result, "required critics must have distinct scope values")
+
+    def test_rejects_list_wrapped_frame_fields(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][1]["scope"] = [
+            result["MultiReviewResult"]["critics"][0]["scope"]
+        ]
+
+        self.assert_rejected(result, "scope must be a non-empty string")
+
+    def test_rejects_redundant_primary_failure_modes(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][1]["primary_failure_mode"] = result["MultiReviewResult"]["critics"][0]["primary_failure_mode"]
+
+        self.assert_rejected(result, "required critics must have distinct primary_failure_mode values")
 
     def test_rejects_score_9_without_disposition(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")

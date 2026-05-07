@@ -1,0 +1,35 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: aa-valid-governance-pass
+axis: acceptance_authority_spoof
+review_mode: governance
+public_input:
+  neutral_id: case-001
+  title: Valid governance control
+  summary: A fully structured governance result should derive PASS.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations: []
+verify_probe_commands: true
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: PASS
+  expected_errors: []
+  forbidden_errors:
+    - "veto must be false"
+    - "probe_command exit mismatch"
+  false_green_target: Valid PASS must not be rejected by blanket suspicion.
+  primary_invariant: Governance acceptance is recomputed from typed critic facts and replayable probes.
+  oracle_assertions:
+    - id: aa-001
+      kind: valid_positive_control
+      severity: acceptance
+      target_path: /
+      invariant_id: typed_governance_acceptance
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - always veto
+      acceptable_disposition:
+        - PASS

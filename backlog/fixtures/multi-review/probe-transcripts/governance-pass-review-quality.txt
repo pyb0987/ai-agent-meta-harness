@@ -1,0 +1,4 @@
+COMMAND: python3 -m unittest tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_probe_without_matching_transcript
+EXIT_CODE: 0
+OUTPUT:
+OK

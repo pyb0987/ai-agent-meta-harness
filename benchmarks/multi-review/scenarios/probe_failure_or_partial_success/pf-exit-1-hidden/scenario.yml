@@ -1,0 +1,37 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: pf-exit-1-hidden
+axis: probe_failure_or_partial_success
+review_mode: governance
+public_input:
+  neutral_id: case-008
+  title: Failed probe hidden by prose
+  summary: A nonzero probe exit code must block governance PASS.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/0/probe_exit_code
+    value: 1
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "probe_exit_code must be 0 for derived acceptance"
+    - "probe_evidence_refs must include a transcript matching probe_command and probe_exit_code"
+  false_green_target: Probe failure is summarized as acceptable coverage.
+  primary_invariant: Required probes must record successful exit codes and matching transcripts.
+  oracle_assertions:
+    - id: pf-001
+      kind: failed_probe_hidden
+      severity: blocking
+      target_path: /critics/0/probe_exit_code
+      invariant_id: successful_probe_required
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - probe_result says success
+      acceptable_disposition:
+        - VETO

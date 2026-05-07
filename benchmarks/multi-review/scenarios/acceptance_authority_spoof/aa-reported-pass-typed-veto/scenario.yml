@@ -1,0 +1,35 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: aa-reported-pass-typed-veto
+axis: acceptance_authority_spoof
+review_mode: governance
+public_input:
+  neutral_id: case-002
+  title: Reported PASS conflicts with typed veto
+  summary: A final PASS label should not override typed critic veto fields.
+  input_artifacts:
+    - backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+base_result: backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+mutations: []
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "veto must be false for derived acceptance"
+    - "verdict veto blocks derived acceptance"
+    - "derived_verdict"
+  false_green_target: A hand-authored reported PASS and stale derived PASS hide a required critic veto.
+  primary_invariant: Typed veto fields and fresh derivation outrank reported verdict prose.
+  oracle_assertions:
+    - id: aa-002
+      kind: reported_pass_spoof
+      severity: blocking
+      target_path: /critics/1/veto
+      invariant_id: typed_veto_blocks_acceptance
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+      forbidden_shortcuts:
+        - reported_final_verdict says PASS
+      acceptable_disposition:
+        - VETO

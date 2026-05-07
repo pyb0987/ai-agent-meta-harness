@@ -1,0 +1,39 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: er-existing-unrelated-file
+axis: evidence_relevance_and_source_support
+review_mode: governance
+public_input:
+  neutral_id: case-009
+  title: Existing but unrelated evidence file
+  summary: Existing source refs need semantic relevance, not just path validity.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations: []
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: semantic
+  scoring_mode: contract-only
+  expected_derived_verdict: PASS
+  expected_errors: []
+  false_green_target: Existing repository-local refs are mistaken for relevant evidence.
+  primary_invariant: Evidence must support the critic claim and target invariant.
+  semantic_oracle:
+    unsupported_claim: A critic claims schema coverage from an unrelated existing file.
+    relevant_source_refs:
+      - backlog/fixtures/multi-review/governance-pass.yml
+    irrelevant_source_refs:
+      - README.md
+  oracle_assertions:
+    - id: er-001
+      kind: evidence_relevance_contract
+      severity: advisory
+      target_path: /critics/*/source_refs
+      invariant_id: evidence_supports_claim
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - file merely exists
+      acceptable_disposition:
+        - VETO
+        - INCOMPLETE

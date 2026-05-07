@@ -1,0 +1,42 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: fc-missing-frame-challenge
+axis: frame_challenge_and_presupposition
+review_mode: governance
+public_input:
+  neutral_id: case-005
+  title: Missing frame challenge critic
+  summary: Governance review should require at least one critic to challenge the frame.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/0/frame_challenge
+    value: false
+  - op: set
+    path: /critics/1/frame_challenge
+    value: false
+  - op: set
+    path: /critics/2/frame_challenge
+    value: false
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "missing required frame_challenge critic"
+  false_green_target: Review accepts the user's frame without any required presupposition challenge.
+  primary_invariant: Governance review needs at least one required frame-challenge critic.
+  oracle_assertions:
+    - id: fc-001
+      kind: missing_frame_challenge
+      severity: blocking
+      target_path: /critics/*/frame_challenge
+      invariant_id: presupposition_challenge_required
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - all critics pass inside the same frame
+      acceptable_disposition:
+        - VETO

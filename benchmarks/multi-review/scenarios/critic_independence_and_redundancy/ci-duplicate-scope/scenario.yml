@@ -1,0 +1,36 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: ci-duplicate-scope
+axis: critic_independence_and_redundancy
+review_mode: governance
+public_input:
+  neutral_id: case-004
+  title: Duplicate required critic scope
+  summary: Required critics with the same scope should not count as independent review frames.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/1/scope
+    value: Validate that acceptance is computed by a structured validator.
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "required critics must have distinct scope values"
+  false_green_target: Renamed critics repeat the same frame and still receive governance PASS.
+  primary_invariant: Required critic scopes must be distinct.
+  oracle_assertions:
+    - id: ci-001
+      kind: duplicate_required_frame
+      severity: blocking
+      target_path: /critics/1/scope
+      invariant_id: required_critics_are_disjoint
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - different critic names
+      acceptable_disposition:
+        - VETO

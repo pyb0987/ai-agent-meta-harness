@@ -19,7 +19,12 @@ MultiReviewResult:
     - critic_id: validation-layer
       name: Validation Layer Critic
       critic_type: validation_layer
+      persona: Release gate engineer who trusts only recomputed verdicts.
       scope: Validate that acceptance is computed by a structured validator.
+      anti_scope: Does not evaluate review independence or schema-field completeness.
+      attack_surface: Reported PASS prose or stale derived_verdict bypasses typed critic facts.
+      primary_failure_mode: Reported verdict bypasses structured recomputation.
+      frame_challenge: false
       required: true
       actor: codex
       date: 2026-05-06
@@ -32,8 +37,11 @@ MultiReviewResult:
       validation_layer: structured-validator
       probe_run: true
       probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml --require-governance-pass
+      probe_exit_code: 0
       probe_result: Derived governance PASS from structured fields.
       probe_interpretation: The checker, not the reported verdict, owns acceptance.
+      probe_evidence_refs:
+        - backlog/fixtures/multi-review/probe-transcripts/governance-pass-validation-layer.txt
       reason_no_probe: null
       evidence:
         - Validator requires typed critic facts.
@@ -44,7 +52,12 @@ MultiReviewResult:
     - critic_id: review-quality
       name: Review Quality Meta-Critic
       critic_type: review_quality
+      persona: Audit reviewer looking for self-attestation and redundant critic frames.
       scope: Validate independence, probes, and review adequacy.
+      anti_scope: Does not decide the validator schema contract directly.
+      attack_surface: Overlapping critics or fabricated probe strings create a theatrical PASS.
+      primary_failure_mode: Review passes despite redundant critics or self-attested probes.
+      frame_challenge: true
       required: true
       actor: codex
       date: 2026-05-06
@@ -56,9 +69,12 @@ MultiReviewResult:
       invariant_checked: Required critic ids and probe fields are checked exactly.
       validation_layer: derived-verdict
       probe_run: true
-      probe_command: python3 -m unittest tests/test_multi_review_result_cli.py
-      probe_result: Focused structured validator tests passed.
+      probe_command: python3 -m unittest tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_probe_without_matching_transcript
+      probe_exit_code: 0
+      probe_result: Focused probe-transcript negative test passed.
       probe_interpretation: Executable tests own the negative coverage.
+      probe_evidence_refs:
+        - backlog/fixtures/multi-review/probe-transcripts/governance-pass-review-quality.txt
       reason_no_probe: null
       evidence:
         - Required critic ids are exact.
@@ -69,7 +85,12 @@ MultiReviewResult:
     - critic_id: schema-contract
       name: Structured Contract Critic
       critic_type: domain
+      persona: Schema maintainer checking field-level contract fidelity.
       scope: Validate schema fields and derived verdict rules.
+      anti_scope: Does not evaluate critic independence or command provenance.
+      attack_surface: A partial result omits required fields while still appearing complete.
+      primary_failure_mode: Partial schema artifact omits required typed fields.
+      frame_challenge: false
       required: true
       actor: codex
       date: 2026-05-06
@@ -81,9 +102,12 @@ MultiReviewResult:
       invariant_checked: Required fields, score threshold, and no-veto facts are checked.
       validation_layer: raw-artifact
       probe_run: true
-      probe_command: Inspect governance-pass.yml fields against schema.
-      probe_result: Required fields are present and non-vacuous.
-      probe_interpretation: The raw artifact carries the facts the validator needs.
+      probe_command: python3 -m unittest tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_accepts_governance_pass_yaml
+      probe_exit_code: 0
+      probe_result: Governance pass fixture acceptance test passed.
+      probe_interpretation: The raw artifact carries the facts the validator and tests need.
+      probe_evidence_refs:
+        - backlog/fixtures/multi-review/probe-transcripts/governance-pass-schema-contract.txt
       reason_no_probe: null
       evidence:
         - Fixture includes all required CriticResult fields.

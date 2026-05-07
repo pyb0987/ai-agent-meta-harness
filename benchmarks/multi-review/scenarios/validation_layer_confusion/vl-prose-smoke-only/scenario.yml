@@ -1,0 +1,42 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: vl-prose-smoke-only
+axis: validation_layer_confusion
+review_mode: governance
+public_input:
+  neutral_id: case-003
+  title: Prose smoke checks only
+  summary: A result with only prose-smoke validation layers must not derive governance PASS.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/0/validation_layer
+    value: prose-smoke
+  - op: set
+    path: /critics/1/validation_layer
+    value: prose-smoke
+  - op: set
+    path: /critics/2/validation_layer
+    value: prose-smoke
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "prose-smoke requires another structured/raw/derived validation layer"
+  false_green_target: PASS is accepted from prose-level review markers without a primary validation layer.
+  primary_invariant: Governance acceptance needs at least one structured, raw-artifact, or derived-verdict validation layer.
+  oracle_assertions:
+    - id: vl-001
+      kind: wrong_validation_layer
+      severity: blocking
+      target_path: /critics/*/validation_layer
+      invariant_id: primary_validation_layer_required
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - prose says PASS
+      acceptable_disposition:
+        - VETO

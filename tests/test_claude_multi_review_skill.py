@@ -178,7 +178,8 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
             "alternate parser form, escaping path, stale pointer, or unsupported scheme",
             "validation command named by the artifact",
             "Probe requirement:",
-            "`probe_run`, `probe_command`, `probe_result`, and `probe_interpretation`",
+            "`probe_run`, `probe_command`, `probe_exit_code`, `probe_result`,",
+            "`probe_evidence_refs` must point to repository-local transcript artifacts",
             "`reason_no_probe` is not coverage by itself",
             "existing review says PASS",
         ):
@@ -189,11 +190,20 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("temporary mutation, negative fixture, parser variant, stale/ref mismatch", prompt_normalized)
         self.assertIn("Existing acceptance records, generated review outcomes, and PASS summaries are not evidence", prompt_normalized)
         self.assertIn("validation_layer", prompt_shape)
+        self.assertIn("persona", prompt_shape)
+        self.assertIn("anti_scope", prompt_shape)
+        self.assertIn("attack_surface", prompt_shape)
+        self.assertIn("primary_failure_mode", prompt_shape)
+        self.assertIn("frame_challenge", prompt_shape)
+        self.assertIn("probe_exit_code", prompt_shape)
+        self.assertIn("probe_evidence_refs", prompt_shape)
+        self.assertIn("--verify-probe-commands", normalized_text)
         self.assertIn("check-multi-review-result.py", normalized_text)
         self.assertIn("validator-derived verdict", normalized_text)
-        self.assertIn("artifact-internal consistency only", normalized_text)
-        self.assertIn("does not prove probe execution", normalized_text)
-        self.assertIn("Review Quality Meta-Critic checked review independence", normalized_text)
+        self.assertIn("artifact-internal consistency plus linked probe transcript references", normalized_text)
+        self.assertIn("critic frame disjointness", normalized_text)
+        self.assertIn("missing or mismatched probe transcript refs", normalized_text)
+        self.assertIn("primary failure mode", normalized_text)
 
     def test_false_green_fixture_rejects_vacuous_coverage(self) -> None:
         prompt_shape = """

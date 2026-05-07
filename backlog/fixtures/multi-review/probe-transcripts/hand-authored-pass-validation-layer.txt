@@ -1,0 +1,4 @@
+COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+EXIT_CODE: 1
+OUTPUT:
+DERIVED: VETO (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml

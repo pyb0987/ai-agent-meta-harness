@@ -1,0 +1,36 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: lc-draft-result-accepted
+axis: lifecycle_and_rerun_closure
+review_mode: governance
+public_input:
+  neutral_id: case-010
+  title: Draft result treated as final
+  summary: Draft lifecycle status must prevent final governance PASS.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /lifecycle
+    value: draft
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: INCOMPLETE
+  expected_errors:
+    - "draft results are incomplete"
+  false_green_target: Draft review output is accepted as final governance approval.
+  primary_invariant: Only finalized review artifacts can derive final acceptance.
+  oracle_assertions:
+    - id: lc-001
+      kind: lifecycle_not_finalized
+      severity: blocking
+      target_path: /lifecycle
+      invariant_id: finalized_lifecycle_required
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - reported_final_verdict says PASS
+      acceptable_disposition:
+        - INCOMPLETE

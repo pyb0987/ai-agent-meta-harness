@@ -160,12 +160,22 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
 
         self.assertIn("temporary mutation, negative fixture, parser variant, stale/ref mismatch", prompt_normalized)
         self.assertIn("probe_run, probe_command, probe_result, probe_interpretation, reason_no_probe", prompt_shape)
+        self.assertIn("persona", prompt_shape)
+        self.assertIn("anti_scope", prompt_shape)
+        self.assertIn("attack_surface", prompt_shape)
+        self.assertIn("primary_failure_mode", prompt_shape)
+        self.assertIn("frame_challenge", prompt_shape)
+        self.assertIn("probe_exit_code", prompt_shape)
+        self.assertIn("probe_evidence_refs", prompt_shape)
+        self.assertIn("--verify-probe-commands", combined_normalized)
         self.assertIn("Probe quality gate", prompt_shape)
         self.assertIn("validation_layer", prompt_shape)
         self.assertIn("check-multi-review-result.py", combined_normalized)
         self.assertIn("validator-derived verdict", combined_normalized)
-        self.assertIn("artifact-internal consistency only", combined_normalized)
-        self.assertIn("does not prove probe execution", combined_normalized)
+        self.assertIn("structured consistency plus linked probe transcript references", combined_normalized)
+        self.assertIn("critic frames were non-redundant", combined_normalized)
+        self.assertIn("matching transcript", combined_normalized)
+        self.assertIn("primary failure mode", combined_normalized)
 
     def test_false_green_fixture_rejects_vacuous_coverage(self):
         prompt_shape = "Return JSON with false_green_risk and invariant_checked."

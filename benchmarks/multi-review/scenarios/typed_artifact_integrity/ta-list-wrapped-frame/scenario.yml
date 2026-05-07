@@ -1,0 +1,37 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: ta-list-wrapped-frame
+axis: typed_artifact_integrity
+review_mode: governance
+public_input:
+  neutral_id: case-006
+  title: List-wrapped frame field
+  summary: A required frame field wrapped in a list must fail schema validation.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/1/scope
+    value:
+      - Validate that acceptance is computed by a structured validator.
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "scope must be a non-empty string"
+  false_green_target: Type smuggling hides frame duplication inside a list value.
+  primary_invariant: Required frame fields must be non-empty strings.
+  oracle_assertions:
+    - id: ta-001
+      kind: typed_field_violation
+      severity: blocking
+      target_path: /critics/1/scope
+      invariant_id: frame_fields_are_scalar_strings
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - list contains plausible text
+      acceptable_disposition:
+        - VETO

@@ -7,6 +7,8 @@ import argparse
 import datetime as dt
 import json
 from pathlib import Path
+import shlex
+import subprocess
 import sys
 from typing import Any
 
@@ -34,7 +36,12 @@ CRITIC_FIELDS = {
     "critic_id",
     "name",
     "critic_type",
+    "persona",
     "scope",
+    "anti_scope",
+    "attack_surface",
+    "primary_failure_mode",
+    "frame_challenge",
     "required",
     "actor",
     "date",
@@ -47,8 +54,10 @@ CRITIC_FIELDS = {
     "validation_layer",
     "probe_run",
     "probe_command",
+    "probe_exit_code",
     "probe_result",
     "probe_interpretation",
+    "probe_evidence_refs",
     "reason_no_probe",
     "evidence",
     "source_refs",
@@ -217,6 +226,16 @@ def validate_source_refs(refs: Any, *, source: str, errors: list[str]) -> None:
             error(errors, item_source, f"must resolve to an existing repository-local file: {ref}")
 
 
+def source_ref_text(ref: str) -> str | None:
+    resolved = resolve_source_ref(ROOT, ref)
+    if resolved is None:
+        return None
+    try:
+        return (ROOT / resolved).read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
 def validate_target(target: Any, errors: list[str]) -> None:
     if not isinstance(target, dict):
         error(errors, "MultiReviewResult.target", "must be a mapping")
@@ -250,9 +269,24 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
             error(errors, source, f"missing fields: {missing}")
         if extra:
             error(errors, source, f"extra fields: {extra}")
-    for field in ("critic_id", "name", "critic_type", "scope", "actor", "date"):
-        if not is_substantive(critic.get(field)):
-            error(errors, source, f"{field} is required")
+    string_fields = (
+        "critic_id",
+        "name",
+        "critic_type",
+        "persona",
+        "scope",
+        "anti_scope",
+        "attack_surface",
+        "primary_failure_mode",
+        "actor",
+    )
+    for field in string_fields:
+        if not isinstance(critic.get(field), str) or not is_substantive(critic.get(field)):
+            error(errors, source, f"{field} must be a non-empty string")
+    if not is_substantive(critic.get("date")):
+        error(errors, source, "date is required")
+    if not isinstance(critic.get("frame_challenge"), bool):
+        error(errors, source, "frame_challenge must be a boolean")
     if is_substantive(critic.get("date")) and not date_like(critic.get("date")):
         error(errors, source, "date must be an ISO date on or before today")
     if critic.get("critic_type") not in CRITIC_TYPES:
@@ -272,7 +306,10 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
         error(errors, source, f"validation_layer is invalid: {critic.get('validation_layer')}")
     if not isinstance(critic.get("probe_run"), bool):
         error(errors, source, "probe_run must be a boolean")
+    if not isinstance(critic.get("probe_exit_code"), int) or isinstance(critic.get("probe_exit_code"), bool):
+        error(errors, source, "probe_exit_code must be an integer")
     validate_source_refs(critic.get("source_refs"), source=f"{source}.source_refs", errors=errors)
+    validate_source_refs(critic.get("probe_evidence_refs"), source=f"{source}.probe_evidence_refs", errors=errors)
     if not isinstance(critic.get("evidence"), list) or not critic.get("evidence"):
         error(errors, source, "evidence must be a non-empty list")
     elif not any(is_substantive(item) for item in critic.get("evidence", [])):
@@ -298,6 +335,7 @@ def validate_listed_critic_for_acceptance(
     *,
     source: str,
     review_mode: str,
+    verify_probe_commands: bool,
     errors: list[str],
 ) -> None:
     score = critic.get("score")
@@ -320,13 +358,89 @@ def validate_listed_critic_for_acceptance(
     for field in ("probe_command", "probe_result", "probe_interpretation"):
         if not is_substantive(critic.get(field)):
             error(errors, source, f"{field} must be substantive")
+    if critic.get("probe_exit_code") != 0:
+        error(errors, source, "probe_exit_code must be 0 for derived acceptance")
+    if not probe_has_matching_transcript(critic):
+        error(errors, source, "probe_evidence_refs must include a transcript matching probe_command and probe_exit_code")
+    if verify_probe_commands:
+        verify_probe_command(critic, source=source, errors=errors)
     if score == 9:
         for field in ("why_not_10", "residual_risk_disposition"):
             if not is_substantive(critic.get(field)):
                 error(errors, source, f"score 9 requires {field}")
 
 
-def derive_verdict(result: dict[str, Any]) -> tuple[str, list[str]]:
+def probe_has_matching_transcript(critic: dict[str, Any]) -> bool:
+    command = critic.get("probe_command")
+    exit_code = critic.get("probe_exit_code")
+    refs = critic.get("probe_evidence_refs")
+    if not isinstance(command, str) or not isinstance(exit_code, int) or isinstance(exit_code, bool):
+        return False
+    if not isinstance(refs, list) or not refs:
+        return False
+    command_marker = f"COMMAND: {command}"
+    exit_marker = f"EXIT_CODE: {exit_code}"
+    for ref in refs:
+        if not isinstance(ref, str):
+            continue
+        text = source_ref_text(ref)
+        if text is not None and command_marker in text and exit_marker in text:
+            return True
+    return False
+
+
+def verify_probe_command(critic: dict[str, Any], *, source: str, errors: list[str]) -> None:
+    command = critic.get("probe_command")
+    expected_exit = critic.get("probe_exit_code")
+    if not isinstance(command, str) or not isinstance(expected_exit, int) or isinstance(expected_exit, bool):
+        return
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        error(errors, source, f"probe_command is not shell-parseable: {exc}")
+        return
+    if not argv:
+        error(errors, source, "probe_command must not be empty")
+        return
+    try:
+        completed = subprocess.run(
+            argv,
+            cwd=ROOT,
+            encoding="utf-8",
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=120,
+        )
+    except FileNotFoundError:
+        error(errors, source, f"probe_command executable not found: {argv[0]}")
+        return
+    except subprocess.TimeoutExpired:
+        error(errors, source, "probe_command timed out after 120s")
+        return
+    if completed.returncode != expected_exit:
+        error(errors, source, f"probe_command exit mismatch: expected {expected_exit}, got {completed.returncode}")
+
+
+def validate_governance_frame_disjointness(
+    required_results: list[dict[str, Any]],
+    errors: list[str],
+) -> None:
+    if not any(critic.get("frame_challenge") is True for critic in required_results):
+        error(errors, "MultiReviewResult.required_critics", "missing required frame_challenge critic")
+    for field in ("persona", "scope", "anti_scope", "attack_surface", "primary_failure_mode"):
+        values = [
+            normalize_text(value)
+            for value in (critic.get(field) for critic in required_results)
+            if isinstance(value, str) and is_substantive(value)
+        ]
+        if len(values) != len(required_results):
+            continue
+        if len(set(values)) != len(values):
+            error(errors, "MultiReviewResult.required_critics", f"required critics must have distinct {field} values")
+
+
+def derive_verdict(result: dict[str, Any], *, verify_probe_commands: bool = False) -> tuple[str, list[str]]:
     errors: list[str] = []
     validate_top_level(result, errors)
     validate_target(result.get("target"), errors)
@@ -363,6 +477,7 @@ def derive_verdict(result: dict[str, Any]) -> tuple[str, list[str]]:
             error(errors, "MultiReviewResult.required_critics", "missing required Validation Layer Critic")
         if not any(critic.get("critic_type") == "review_quality" for critic in required_results):
             error(errors, "MultiReviewResult.required_critics", "missing required Review Quality Meta-Critic")
+        validate_governance_frame_disjointness(required_results, errors)
 
     has_primary_validation_layer = any(
         critic.get("critic_id") in required_ids and critic.get("validation_layer") in PRIMARY_VALIDATION_LAYERS
@@ -374,6 +489,7 @@ def derive_verdict(result: dict[str, Any]) -> tuple[str, list[str]]:
                 critic,
                 source=critic_source(critic, index),
                 review_mode=str(review_mode),
+                verify_probe_commands=verify_probe_commands,
                 errors=errors,
             )
         if critic.get("critic_id") in required_ids:
@@ -406,13 +522,18 @@ def derive_verdict(result: dict[str, Any]) -> tuple[str, list[str]]:
     return derived, [] if derived in {"PASS", "ADVISORY_PASS"} and not errors else errors
 
 
-def check_result(path: Path, *, require_governance_pass: bool = False) -> int:
+def check_result(
+    path: Path,
+    *,
+    require_governance_pass: bool = False,
+    verify_probe_commands: bool = False,
+) -> int:
     try:
         result = load_result(path)
     except MultiReviewError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    derived_verdict, errors = derive_verdict(result)
+    derived_verdict, errors = derive_verdict(result, verify_probe_commands=verify_probe_commands)
     if errors:
         for item in errors:
             print(f"ERROR: {item}", file=sys.stderr)
@@ -422,7 +543,12 @@ def check_result(path: Path, *, require_governance_pass: bool = False) -> int:
         not require_governance_pass or derived_verdict == "PASS"
     )
     stream = sys.stdout if success else sys.stderr
-    boundary = "artifact-internal consistency only; not probe execution or stable evidence"
+    boundary = (
+        "artifact-internal consistency with linked probe transcripts and replayed probe commands; "
+        "not stable handoff evidence"
+        if verify_probe_commands
+        else "artifact-internal consistency with linked probe transcripts; not command replay or stable handoff evidence"
+    )
     print(f"DERIVED: {derived_verdict} ({boundary}): {path}", file=stream)
     return 0 if success else 1
 
@@ -431,10 +557,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--result", required=True, help="Path to a MultiReviewResult JSON/YAML artifact")
     parser.add_argument("--require-governance-pass", action="store_true")
+    parser.add_argument(
+        "--verify-probe-commands",
+        action="store_true",
+        help="Replay probe_command values and compare their exit codes to probe_exit_code",
+    )
     args = parser.parse_args(argv)
     path = Path(args.result)
     result_path = ROOT / path if not path.is_absolute() else path
-    return check_result(result_path, require_governance_pass=args.require_governance_pass)
+    return check_result(
+        result_path,
+        require_governance_pass=args.require_governance_pass,
+        verify_probe_commands=args.verify_probe_commands,
+    )
 
 
 if __name__ == "__main__":

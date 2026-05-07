@@ -1,0 +1,36 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: im-fallback-nonindependent-governance-pass
+axis: invocation_and_mode_calibration
+review_mode: governance
+public_input:
+  neutral_id: case-011
+  title: Non-independent fallback accepted as governance
+  summary: Fallback non-independent review must not derive governance PASS.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /independence
+    value: fallback_nonindependent
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: FALLBACK_NONINDEPENDENT
+  expected_errors:
+    - "fallback_nonindependent cannot derive governance PASS"
+  false_green_target: Non-independent fallback output is promoted to governance PASS.
+  primary_invariant: Governance PASS requires independent review.
+  oracle_assertions:
+    - id: im-001
+      kind: fallback_nonindependent_acceptance
+      severity: blocking
+      target_path: /independence
+      invariant_id: governance_requires_independence
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - fallback result says pass
+      acceptable_disposition:
+        - FALLBACK_NONINDEPENDENT

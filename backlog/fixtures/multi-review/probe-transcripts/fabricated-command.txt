@@ -1,0 +1,4 @@
+COMMAND: python3 missing-probe.py --claim-pass
+EXIT_CODE: 0
+OUTPUT:
+Fabricated success text that must not pass command replay.

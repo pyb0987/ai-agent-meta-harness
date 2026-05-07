@@ -1,0 +1,4 @@
+COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml --require-governance-pass
+EXIT_CODE: 0
+OUTPUT:
+DERIVED: PASS (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/governance-pass.yml

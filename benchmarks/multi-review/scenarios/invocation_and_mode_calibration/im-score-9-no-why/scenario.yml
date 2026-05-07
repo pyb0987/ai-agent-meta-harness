@@ -1,0 +1,40 @@
+schema_version: multi-review-benchmark-scenario/v1
+scenario_id: im-score-9-no-why
+axis: invocation_and_mode_calibration
+review_mode: governance
+public_input:
+  neutral_id: case-012
+  title: Score 9 lacks residual explanation
+  summary: Governance score 9 must include why-not-10 and residual risk disposition.
+  input_artifacts:
+    - backlog/fixtures/multi-review/governance-pass.yml
+base_result: backlog/fixtures/multi-review/governance-pass.yml
+mutations:
+  - op: set
+    path: /critics/0/why_not_10
+    value: ""
+  - op: set
+    path: /critics/0/residual_risk_disposition
+    value: ok
+verify_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "score 9 requires why_not_10"
+    - "score 9 requires residual_risk_disposition"
+  false_green_target: Marginal governance PASS omits residual risk explanation.
+  primary_invariant: Score 9 acceptance must document why it is not 10 and how residual risk is disposed.
+  oracle_assertions:
+    - id: im-002
+      kind: governance_calibration_missing_residuals
+      severity: blocking
+      target_path: /critics/0/why_not_10
+      invariant_id: score_9_requires_residual_explanation
+      required_evidence_refs:
+        - backlog/fixtures/multi-review/governance-pass.yml
+      forbidden_shortcuts:
+        - ok
+      acceptable_disposition:
+        - VETO

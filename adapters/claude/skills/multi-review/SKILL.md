@@ -63,7 +63,8 @@ Design 2-4 Critics fitted to the problem on the spot.
   the review already succeeded.
 - Include a **Review Quality Meta-Critic** for durable or governance reviews.
   Its scope is the review itself: independence, probe quality, validation
-  command existence/executability, and whether PASS relies on self-attestation.
+  command existence/executability, critic frame disjointness, and whether PASS
+  relies on self-attestation.
 - Include or assign a **Validation Layer Critic** for durable, governance, or
   high-stakes acceptance. Its scope is whether each invariant is checked at the
   right layer before anyone spends effort enumerating wording variants.
@@ -77,6 +78,8 @@ Critic N: [name]
   Anti-scope: [explicitly excluded — what is NOT evaluated]
   Invariant lens: [if durable/high-stakes, which false-green or auditability invariant this Critic covers]
   Attack surface: [specific false-pass mechanism this Critic will try to trigger]
+  Primary failure mode: [the distinct way this Critic expects the artifact or decision to fail]
+  Frame challenge: [true when this Critic evaluates a listed presupposition or can reject the question frame]
   Adversarial probe: [temp mutation, command, fixture, or manual check to run]
   Veto: [if any, under what condition it triggers]
 ```
@@ -105,8 +108,9 @@ cover several lenses explicitly.
   acceptance depends on prose semantics unless that prose check is only a
   smoke/drift detector and the actual PASS is computed elsewhere.
 - **Review Quality Meta-Critic**: the review itself is auditable, independent,
-  and probe-backed; validation commands exist and can be rerun; PASS is not
-  copied from a hand-authored acceptance record.
+  and probe-backed; validation commands exist and can be rerun; critic frames
+  are materially non-redundant; PASS is not copied from a hand-authored
+  acceptance record.
 
 Invariant questions:
 
@@ -123,6 +127,8 @@ Invariant questions:
 - If the same identifier appears in multiple meaning spaces, is type, kind, or
   namespace preserved?
 - Does every out-of-scope risk have a durable carry-over location?
+- Are required Critics materially distinct by persona, scope, anti-scope,
+  attack surface, and primary failure mode rather than merely differently named?
 
 Generic adversarial examples:
 
@@ -150,8 +156,12 @@ Adversarial probe examples:
 Probe requirement:
 
 - For durable or governance reviews, each required Critic must report
-  `probe_run`, `probe_command`, `probe_result`, and `probe_interpretation`, or a
-  specific `reason_no_probe`.
+  `probe_run`, `probe_command`, `probe_exit_code`, `probe_result`,
+  `probe_interpretation`, and `probe_evidence_refs`, or a specific
+  `reason_no_probe`.
+- `probe_evidence_refs` must point to repository-local transcript artifacts that
+  name the exact `probe_command` and observed `probe_exit_code`. Substantive
+  prose is not enough for governance PASS.
 - `reason_no_probe` is not coverage by itself. It only explains why a Critic
   could not run a probe; the final synthesis must downgrade to incomplete,
   FALLBACK_NONINDEPENDENT, or VETO unless the Review Quality Meta-Critic records
@@ -165,12 +175,12 @@ Structured result requirement:
 - For governance acceptance, produce a `MultiReviewResult` artifact using schema
   `multi-review-result/v1` and validate it with
   `python3 scripts/check-multi-review-result.py --result <path>
-  --require-governance-pass` before reporting PASS.
+  --require-governance-pass --verify-probe-commands` before reporting PASS.
 - Treat `reported_final_verdict` and Critic prose verdict labels as advisory;
   the validator-derived verdict is the only acceptance authority.
-- Treat the validator-derived verdict as artifact-internal consistency only. It
-  does not prove probe execution, command provenance, source relevance, or
-  command output truth by itself.
+- Treat the validator-derived verdict as artifact-internal consistency plus
+  linked probe transcript references only. It is not stable handoff evidence by
+  itself.
 - A validator-derived verdict is not AcceptancePacket stable-handoff evidence
   until a later review-provenance/import step durably references the artifact.
 
@@ -232,13 +242,20 @@ If you cannot run a probe, set `probe_run` to false and give a specific
   "key_findings": ["up to 3 key findings"],
   "evidence": ["supporting evidence for each finding"],
   "veto_reason": null | "veto rationale (if applicable)",
+  "persona": "natural perspective used by this Critic",
+  "anti_scope": "what this Critic explicitly did not evaluate",
+  "attack_surface": "specific false-pass mechanism probed by this Critic",
+  "primary_failure_mode": "the distinct way this Critic expects the artifact or decision to fail",
+  "frame_challenge": true | false,
   "false_green_risk": null | "how a stale, misleading, or hand-authored artifact could falsely pass",
   "invariant_checked": null | "the invariant used to catch that false green",
   "validation_layer": null | "structured-validator | raw-artifact | derived-verdict | prose-smoke | wrong-layer",
   "probe_run": true | false,
   "probe_command": null | "command, temp mutation, fixture, or manual probe performed",
+  "probe_exit_code": null | 0,
   "probe_result": null | "observed result, including exit status when applicable",
   "probe_interpretation": null | "why this probe supports or rejects the artifact",
+  "probe_evidence_refs": ["repository-local transcript refs that contain COMMAND and EXIT_CODE"],
   "reason_no_probe": null | "specific blocker if probe_run is false"
 }
 ```
@@ -280,13 +297,21 @@ as no coverage.
 For durable or governance artifacts, do not report PASS unless required Critics
 ran scope-specific adversarial probes, a Validation Layer Critic checked that
 acceptance is enforced at the right layer, and a Review Quality Meta-Critic
-checked review independence, probe substance, validation command existence, and
-executability where possible. A wrong-layer validation finding is VETO for
+checked review independence, critic frame disjointness, probe substance,
+validation command existence, transcript provenance, and executability where
+possible. Required Critics must be materially distinct by persona, scope,
+anti-scope, attack surface, and primary failure mode, and at least one required
+Critic must be accountable for challenging a listed presupposition or the frame
+itself. A
+wrong-layer validation finding is VETO for
 governance acceptance unless the natural-language check is only a smoke/drift
 detector and a structured validator or derived verdict computes PASS. A
 probe-less durable/governance review is incomplete, FALLBACK_NONINDEPENDENT, or
 VETO, not PASS. Treat null, empty, generic, not applicable, or self-attestation
-probe fields as no coverage.
+probe fields as no coverage. Treat missing or mismatched probe transcript refs
+as no provenance coverage. For governance acceptance, rerun with
+`--verify-probe-commands` so the validator replays commands and compares
+observed exit codes.
 
 ### Phase 5: Synthesis (when MIXED/FAIL)
 

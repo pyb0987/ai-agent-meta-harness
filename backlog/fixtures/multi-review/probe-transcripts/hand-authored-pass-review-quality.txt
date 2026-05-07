@@ -1,0 +1,5 @@
+COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+EXIT_CODE: 1
+OUTPUT:
+ERROR: critics[1:review-quality]: veto must be false for derived acceptance
+DERIVED: VETO (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
