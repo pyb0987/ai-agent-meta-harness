@@ -1,6 +1,7 @@
+# Command Evidence
 packet_id: pkt-finalized-harness-affecting-example
 packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-packet_sha256: e96634451b8aeaf12fa659e68b54e0ae200c1892f8986dcb0f91fab6171ea263
+packet_sha256: 7f99e0d3865ba44a03049075aa8257257e3d765ca67d710fbd091be65c789d99
 command: python3 scripts/check-v1-archive-boundary.py --base-ref origin/main
 status: pass
 summary: fixture artifact for base-ref v1 archive boundary verification

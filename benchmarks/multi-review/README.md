@@ -59,6 +59,10 @@ Run all scenarios:
 python3 benchmarks/multi-review/check-fixtures.py
 ```
 
+Pending scenarios are not green by default. Use `--allow-pending` only for an
+explicitly advisory benchmark pass, and use `--replay-probe-commands` when a
+scenario declares active replay as part of its oracle.
+
 ## Perspective Eval Corpus
 
 `perspective-eval/` is a separate starter corpus for future rubric-based

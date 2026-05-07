@@ -111,9 +111,12 @@ Probe requirement:
 - For durable or governance reviews, each required critic reports `probe_run`,
   `probe_command`, `probe_exit_code`, `probe_result`, `probe_interpretation`,
   and `probe_evidence_refs`, or a specific `reason_no_probe`.
-- `probe_evidence_refs` must point to repository-local transcript artifacts that
-  name the exact `probe_command` and observed `probe_exit_code`. Substantive
-  prose is not enough for governance PASS.
+- `probe_evidence_refs` must point to repository-local structured transcript
+  artifacts that name the exact `probe_command`, observed `probe_exit_code`,
+  result ref/digest, packet ref/hash when packet-bound, source refs, cwd,
+  generator, date, and raw stdout/stderr byte hashes. The transcript text must
+  match the strict UTF-8 decode of those raw bytes; undecodable replay output is
+  VETO. Substantive prose or marker text is not enough for governance PASS.
 - `reason_no_probe` is not coverage by itself. It only explains why a probe
   could not run; final synthesis must downgrade to incomplete,
   FALLBACK_NONINDEPENDENT, or VETO unless the Review Quality Meta-Critic records
@@ -127,7 +130,10 @@ Structured result requirement:
 - For governance acceptance, produce a `MultiReviewResult` artifact using schema
   `multi-review-result/v1` and validate it with
   `python3 scripts/check-multi-review-result.py --result <path>
-  --require-governance-pass --verify-probe-commands` before reporting PASS.
+  --require-governance-pass --replay-probe-commands` before reporting PASS.
+- Do not run artifact-supplied probe commands from AcceptancePacket
+  `check --require-stable`; stable handoff validation is read-only and accepts
+  only durable transcript/source-reference evidence.
 - Treat `reported_final_verdict` and critic prose verdict labels as advisory;
   the validator-derived verdict is the only acceptance authority.
 - Treat the validator-derived verdict as artifact-internal consistency only. It
@@ -135,6 +141,17 @@ Structured result requirement:
   it is not stable handoff evidence by itself.
 - A validator-derived verdict is not AcceptancePacket stable-handoff evidence
   until a later review-provenance/import step durably references the artifact.
+
+Governance complexity check:
+
+- When reviewing a governance guard, schema field, fixture kind, or durable
+  evidence rule, include a required anti-bloat Critic. This Critic should ask
+  which concrete false-green path is closed, whether an existing guard can be
+  generalized instead, whether any user-authored field or multi-file fixture
+  burden is added, and what complexity is removed, generated, or deferred.
+- VETO governance changes that spread one policy across hand-synced fixtures
+  without a helper/generator, or that expand the operator-facing model beyond
+  `meta`, `input`, and `result` without replacing a larger surface.
 
 ## Critic Prompt Shape
 
@@ -166,10 +183,10 @@ Coverage quality gate: `false_green_risk` must name a concrete stale, misleading
 Probe quality gate: `probe_run` must be true for acceptance reviews when tools
 or raw artifacts are available, and `probe_command`, `probe_result`, and
 `probe_interpretation` must be specific. `probe_exit_code` must be 0 for derived
-acceptance, and `probe_evidence_refs` must include a repository-local transcript
-matching the exact command and exit code. For governance acceptance, rerun with
-`--verify-probe-commands` so the validator replays the command and compares the
-observed exit code. If `probe_run` is false,
+acceptance, and `probe_evidence_refs` must include a repository-local structured transcript
+matching the exact command, exit code, and result/source binding. For governance acceptance, rerun with
+`--replay-probe-commands` so the validator replays the command and compares the
+observed exit code and raw stdout/stderr byte hashes. Replay output must strict-decode as UTF-8 to match transcript text. If `probe_run` is false,
 `reason_no_probe` must name the concrete blocker and the final synthesis cannot
 use that critic as probe coverage.
 ```
@@ -201,8 +218,10 @@ Use Codex's available model controls rather than Claude model names:
     regex, summaries, or PASS prose, unless that check is only a smoke/drift
     detector and a structured validator or derived verdict computes PASS
   - VETO: probe execution evidence is only self-attested prose rather than a
-    linked transcript artifact matching the command and exit code, or command
-    replay with `--verify-probe-commands` does not match the recorded exit code
+    linked structured transcript artifact matching the command, exit code, and
+    result/source binding, or
+    explicit replay with `--replay-probe-commands` does not match the recorded
+    exit code or raw stdout/stderr byte hashes
   - Score 9 is acceptable only with why-not-10 handling and either backlog
     follow-up or explicit residual-risk acceptance
   - After a VETO fix, rerun affected critics and record the rerun score before

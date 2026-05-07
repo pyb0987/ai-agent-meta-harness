@@ -7,211 +7,220 @@ AcceptancePacket:
     created_at: 2026-05-06
     finalized_at: 2026-05-06
   input:
-    intent: "Change release-gate wiring for v1 archive boundary validation."
-    actor: "codex"
+    intent: Change release-gate wiring for v1 archive boundary validation.
+    actor: codex
     source_refs:
-      - "scripts/verify-release.py"
-      - "scripts/check-v1-archive-boundary.py"
+    - scripts/verify-release.py
+    - scripts/check-v1-archive-boundary.py
     user_judgment: {}
   result:
     inference:
       change_class: harness-affecting
       impact: high
       changed_paths:
-        - "scripts/verify-release.py"
-        - "scripts/check-v1-archive-boundary.py"
-      intended_scope: "Release-gate and v1 archive boundary validation only."
-      actual_scope: "Release command wiring plus archive-boundary checker behavior."
+      - scripts/verify-release.py
+      - scripts/check-v1-archive-boundary.py
+      intended_scope: Release-gate and v1 archive boundary validation only.
+      actual_scope: Release command wiring plus archive-boundary checker behavior.
       deviations: []
       isolation: isolated
       protected_boundary_changed: true
       required_evidence:
-        - "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
-        - "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
-        - "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
+      - python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree
+      - python3 scripts/check-v1-archive-boundary.py --base-ref origin/main
+      - python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
       required_review:
-        - "checker correctness"
-        - "release integration"
-        - "methodology fidelity"
+      - checker correctness
+      - release integration
+      - methodology fidelity
     evidence:
-      baseline_ref: "origin/main"
-      comparison_ref: "origin/main"
+      baseline_ref: origin/main
+      comparison_ref: origin/main
       evaluator_boundary:
         status: intentionally-changed
-        reason: "Release gate now compares archive changes in REF...HEAD mode."
+        reason: Release gate now compares archive changes in REF...HEAD mode.
         commands:
-          - "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
-          - "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
-          - "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
+        - python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree
+        - python3 scripts/check-v1-archive-boundary.py --base-ref origin/main
+        - python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
       command_results:
-        - command: "python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
-        - command: "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
-        - command: "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
+      - command: python3 scripts/verify-release.py --list --base-ref origin/main --skip-clean-worktree
+        status: pass
+        artifact_ref: file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+      - command: python3 scripts/check-v1-archive-boundary.py --base-ref origin/main
+        status: pass
+        artifact_ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+      - command: python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
+        status: pass
+        artifact_ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
       source_refs:
-        - "scripts/verify-release.py"
-        - "scripts/check-v1-archive-boundary.py"
+      - scripts/verify-release.py
+      - scripts/check-v1-archive-boundary.py
       resolved_refs:
-        - origin: input
-          relation: source
-          ref: "scripts/verify-release.py"
-          status: resolved
-          target: "scripts/verify-release.py"
-        - origin: input
-          relation: source
-          ref: "scripts/check-v1-archive-boundary.py"
-          status: resolved
-          target: "scripts/check-v1-archive-boundary.py"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log"
-        - origin: generated
-          relation: trace
-          ref: "trace:.harness/traces/search-set.md#active"
-          status: resolved
-          target: ".harness/traces/search-set.md#active"
-        - origin: generated
-          relation: waiver-provenance
-          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-          status: resolved
-          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-        - origin: generated
-          relation: waiver-provenance
-          ref: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-          status: resolved
-          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-        - origin: generated
-          relation: review-provenance
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
+      - origin: input
+        relation: source
+        ref: scripts/verify-release.py
+        status: resolved
+        target: scripts/verify-release.py
+      - origin: input
+        relation: source
+        ref: scripts/check-v1-archive-boundary.py
+        status: resolved
+        target: scripts/check-v1-archive-boundary.py
+      - origin: generated
+        relation: artifact
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+      - origin: generated
+        relation: artifact
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+      - origin: generated
+        relation: artifact
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+      - origin: generated
+        relation: trace
+        ref: trace:.harness/traces/search-set.md#active
+        status: resolved
+        target: .harness/traces/search-set.md#active
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+        status: resolved
+        target: backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      - origin: generated
+        relation: review-provenance
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
       review_imports:
-        - source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
-          format: acceptance-packet-review-import/v1
-          source_digest: "108ca75eb2711484240e0c961c89a32b6e54cf13739fb4299f3617988b07cac4"
-          status: imported
-          review_ids:
-            - review-harness-checker-correctness
-            - review-harness-release-integration
-            - review-harness-methodology-fidelity
-          target_binding:
-            packet_id: pkt-finalized-harness-affecting-example
-            packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-            review_target_digest: bc5597092b3ca87df73b2947246641b17c11185575ef68b589f499fd2178b979
-            baseline_ref: origin/main
-            comparison_ref: origin/main
-            source_refs:
-              - scripts/check-v1-archive-boundary.py
-              - scripts/verify-release.py
-            changed_paths:
-              - scripts/check-v1-archive-boundary.py
-              - scripts/verify-release.py
-            required_review:
-              - checker correctness
-              - methodology fidelity
-              - release integration
+      - source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 161c26754cdd0b1452a55c122cd1a5ff7e7326431c10c228fb9a22968a212af6
+        status: imported
+        review_ids:
+        - review-harness-checker-correctness
+        - review-harness-release-integration
+        - review-harness-methodology-fidelity
+        target_binding:
+          packet_id: pkt-finalized-harness-affecting-example
+          packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+          review_target_digest: bc5597092b3ca87df73b2947246641b17c11185575ef68b589f499fd2178b979
+          baseline_ref: origin/main
+          comparison_ref: origin/main
+          source_refs:
+          - scripts/check-v1-archive-boundary.py
+          - scripts/verify-release.py
+          changed_paths:
+          - scripts/check-v1-archive-boundary.py
+          - scripts/verify-release.py
+          required_review:
+          - checker correctness
+          - methodology fidelity
+          - release integration
       trace_refs:
-        search_set_before: "trace:.harness/traces/search-set.md#active"
-        search_set_after: "trace:.harness/traces/search-set.md#active"
+        search_set_before: null
+        search_set_after: trace:.harness/traces/search-set.md#active
         evolution:
-          - ".harness/traces/evolution/001-repository-self-application-root.md"
+        - .harness/traces/evolution/001-repository-self-application-root.md
         failures: []
-        disposition: "Search-set before/after evidence reused for harness-affecting release wiring."
-      skipped: []
+        disposition: Search-set after evidence is recorded; before evidence is explicitly
+          skipped for this stable fixture.
+      skipped:
+      - evidence: search_set_before
+        actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        reason: Plan 02 fixture did not preserve a distinct before search-set trace.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
     judgment:
       reviews:
-        - review_id: review-harness-checker-correctness
-          critic: "checker correctness"
-          scope: "Release-gate checker behavior and stable evidence boundaries."
-          anti_scope: "Archive storage, immutable packet hashes, and release integration beyond fixture wiring."
-          actor: "reviewer"
-          role: "reviewer"
-          date: 2026-05-06
-          score: 9
-          veto: false
-          false_green_risk: "A hand-authored packet could claim checker correctness while omitting boundary evidence."
-          invariant_checked: "Required evidence and review obligations are recomputed by the checker."
-          evidence:
-            - "Release-gate commands and artifacts are represented in packet evidence."
-          source_refs:
-            - "scripts/verify-release.py"
-            - "scripts/check-v1-archive-boundary.py"
-          blocking_findings: []
-          why_not_10: "Full committed release-candidate path still requires final clean branch verification."
-          disposition: "Accepted residual risk for bootstrap; final release uses --base-ref."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
-          rerun_of: null
-          fixed_finding_ids: []
-        - review_id: review-harness-release-integration
-          critic: "release integration"
-          scope: "Release command wiring and archive-boundary command coverage."
-          anti_scope: "Pre-commit replacement and packet archive publication."
-          actor: "reviewer"
-          role: "reviewer"
-          date: 2026-05-06
-          score: 9
-          veto: false
-          false_green_risk: "Release integration could point to unrelated command artifacts."
-          invariant_checked: "Stable command artifacts record packet id, packet ref, digest, command, and status."
-          evidence:
-            - "Release integration command artifacts are durable local files."
-          source_refs:
-            - "scripts/verify-release.py"
-            - "scripts/check-v1-archive-boundary.py"
-          blocking_findings: []
-          why_not_10: "Current fixture is illustrative and not an executable packet."
-          disposition: "Covered by checker validation for local fixture semantics."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
-          rerun_of: null
-          fixed_finding_ids: []
-        - review_id: review-harness-methodology-fidelity
-          critic: "methodology fidelity"
-          scope: "Methodology boundary for v1 archive compatibility examples."
-          anti_scope: "New archive storage or immutable transcript indexing."
-          actor: "reviewer"
-          role: "reviewer"
-          date: 2026-05-06
-          score: 9
-          veto: false
-          false_green_risk: "The fixture could imply archive immutability before Plan 06."
-          invariant_checked: "Packet decision keeps archive storage as next action."
-          evidence:
-            - "Methodology residual risk is recorded in packet decision and review disposition."
-          source_refs:
-            - "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml"
-          blocking_findings: []
-          why_not_10: "Fixture references trace anchors rather than embedding full transcripts."
-          disposition: "Accepted because source refs and trace refs are explicit."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
-          rerun_of: null
-          fixed_finding_ids: []
+      - review_id: review-harness-checker-correctness
+        critic: checker correctness
+        scope: Release-gate checker behavior and stable evidence boundaries.
+        anti_scope: Archive storage, immutable packet hashes, and release integration
+          beyond fixture wiring.
+        actor: reviewer
+        role: reviewer
+        date: 2026-05-06
+        score: 9
+        veto: false
+        false_green_risk: A hand-authored packet could claim checker correctness while
+          omitting boundary evidence.
+        invariant_checked: Required evidence and review obligations are recomputed
+          by the checker.
+        evidence:
+        - Release-gate commands and artifacts are represented in packet evidence.
+        source_refs:
+        - scripts/verify-release.py
+        - scripts/check-v1-archive-boundary.py
+        blocking_findings: []
+        why_not_10: Full committed release-candidate path still requires final clean
+          branch verification.
+        disposition: Accepted residual risk for bootstrap; final release uses --base-ref.
+        source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-harness-release-integration
+        critic: release integration
+        scope: Release command wiring and archive-boundary command coverage.
+        anti_scope: Pre-commit replacement and packet archive publication.
+        actor: reviewer
+        role: reviewer
+        date: 2026-05-06
+        score: 9
+        veto: false
+        false_green_risk: Release integration could point to unrelated command artifacts.
+        invariant_checked: Stable command artifacts record packet id, packet ref,
+          digest, command, and status.
+        evidence:
+        - Release integration command artifacts are durable local files.
+        source_refs:
+        - scripts/verify-release.py
+        - scripts/check-v1-archive-boundary.py
+        blocking_findings: []
+        why_not_10: Current fixture is illustrative and not an executable packet.
+        disposition: Covered by checker validation for local fixture semantics.
+        source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-harness-methodology-fidelity
+        critic: methodology fidelity
+        scope: Methodology boundary for v1 archive compatibility examples.
+        anti_scope: New archive storage or immutable transcript indexing.
+        actor: reviewer
+        role: reviewer
+        date: 2026-05-06
+        score: 9
+        veto: false
+        false_green_risk: The fixture could imply archive immutability before Plan
+          06.
+        invariant_checked: Packet decision keeps archive storage as next action.
+        evidence:
+        - Methodology residual risk is recorded in packet decision and review disposition.
+        source_refs:
+        - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+        blocking_findings: []
+        why_not_10: Fixture references trace anchors rather than embedding full transcripts.
+        disposition: Accepted because source refs and trace refs are explicit.
+        source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        rerun_of: null
+        fixed_finding_ids: []
       waivers: []
       downgrades: []
       residual_risk:
-        - actor: "maintainer"
-          role: "maintainer"
-          date: 2026-05-06
-          reason: "Fixture demonstrates evidence shape but is not yet enforced by a packet checker."
-          source_ref: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      - actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        reason: Fixture demonstrates evidence shape but is not yet enforced by a packet
+          checker.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
     decision:
       accepted: true
       stable_handoff_eligible: true
-      reason: "Required evidence and multi-review passed with no VETO."
-      next_action: "Archive finalized packet when packet storage exists."
+      reason: Required evidence and multi-review passed with no VETO.
+      next_action: Archive finalized packet when packet storage exists.

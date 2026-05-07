@@ -4,36 +4,34 @@ axis: evidence_relevance_and_source_support
 review_mode: governance
 public_input:
   neutral_id: case-009
-  title: Existing but unrelated evidence file
-  summary: Existing source refs need semantic relevance, not just path validity.
+  title: Existing but unbound evidence file
+  summary: Critic source refs must stay bound to the linked probe transcript source refs.
   input_artifacts:
     - backlog/fixtures/multi-review/governance-pass.yml
 base_result: backlog/fixtures/multi-review/governance-pass.yml
-mutations: []
-verify_probe_commands: false
-sealed_oracle:
-  oracle_type: semantic
-  scoring_mode: contract-only
-  expected_derived_verdict: PASS
-  expected_errors: []
-  false_green_target: Existing repository-local refs are mistaken for relevant evidence.
-  primary_invariant: Evidence must support the critic claim and target invariant.
-  semantic_oracle:
-    unsupported_claim: A critic claims schema coverage from an unrelated existing file.
-    relevant_source_refs:
-      - backlog/fixtures/multi-review/governance-pass.yml
-    irrelevant_source_refs:
+mutations:
+  - op: set
+    path: /critics/2/source_refs
+    value:
       - README.md
+replay_probe_commands: false
+sealed_oracle:
+  oracle_type: structural
+  scoring_mode: validator-only
+  expected_derived_verdict: VETO
+  expected_errors:
+    - "probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code"
+  false_green_target: Existing repository-local refs are substituted without matching transcript binding.
+  primary_invariant: Critic source refs must match the structured transcript source refs for the probe evidence.
   oracle_assertions:
     - id: er-001
-      kind: evidence_relevance_contract
-      severity: advisory
+      kind: evidence_source_binding_contract
+      severity: blocking
       target_path: /critics/*/source_refs
-      invariant_id: evidence_supports_claim
+      invariant_id: critic_source_refs_match_probe_transcript_source_refs
       required_evidence_refs:
-        - backlog/fixtures/multi-review/governance-pass.yml
+        - file:backlog/fixtures/multi-review/probe-transcripts/governance-pass-schema-contract.txt
       forbidden_shortcuts:
         - file merely exists
       acceptable_disposition:
         - VETO
-        - INCOMPLETE

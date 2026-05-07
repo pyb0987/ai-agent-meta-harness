@@ -19,7 +19,7 @@ mutations:
   - op: set
     path: /critics/2/frame_challenge
     value: false
-verify_probe_commands: false
+replay_probe_commands: false
 sealed_oracle:
   oracle_type: structural
   scoring_mode: validator-only

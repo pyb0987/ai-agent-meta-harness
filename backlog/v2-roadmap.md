@@ -142,10 +142,12 @@ Initial high-risk surfaces:
    boundary explicitly, and add tests so legacy checks cannot create false
    confidence about unvalidated archive paths.
 2. Schema and fixtures: add packet schema examples for start, finalized routine,
-   finalized harness-affecting, finalized waiver/downgrade, runtime evidence, and
-   blocked packets. Plan 02 owns the first fixture set under
-   `backlog/fixtures/acceptance-packets/`; those examples are not active packets
-   and do not satisfy stable handoff.
+   finalized harness-affecting, finalized waiver/downgrade, runtime evidence,
+   and blocked packets. Plan 02 owns the first fixture set under
+   `backlog/fixtures/acceptance-packets/`; these are checker fixtures, not
+   active archived governance packets. Some finalized fixtures are
+   stable-handoff eligible positive controls, and non-stable fixtures are
+   negative controls.
 3. Packet CLI skeleton: implement `start`, `finalize`, and `check` without
    replacing release gates. Plan 03 owns the repository-local
    `scripts/check-governance-acceptance.py` skeleton and keeps packet validity
@@ -167,13 +169,20 @@ Initial high-risk surfaces:
    record actor, role, date, reason, and source. Failed reviews must remain in
    the packet and can be closed only by same-target reruns that score at least 9
    with `veto: false`.
-6. Archive integration: add packet archive pointers and validation.
-   Post-import `archive/v1/` waiver provenance must move from bootstrap CLI input
-   into durable packet judgment/evidence before accepted archive edits are
-   allowed.
-7. Release integration: wire packet checks into pre-commit/release once the v2
+6. Complexity consolidation: before archive integration, reduce operational
+   complexity from Plans 03-05 by documenting ref taxonomy, adding or specifying
+   fixture regeneration, and making anti-bloat review an explicit governance
+   critic.
+7. Archive integration and deferred integrity backlog: use
+   `backlog/plans/07-packet-archive-and-integrity-backlog.md` to add packet
+   archive pointers, archive-bound freshness, durable plan-approval evidence, and
+   semantic-evidence backlog boundaries without expanding the public packet
+   surface. Post-import `archive/v1/` waiver provenance must move from bootstrap
+   CLI input into durable packet judgment/evidence before accepted archive edits
+   are allowed.
+8. Release integration: wire packet checks into pre-commit/release once the v2
    checker covers v1 review/search/archive invariants.
-8. Documentation transition: update README and maintenance guidance from v1 gates
+9. Documentation transition: update README and maintenance guidance from v1 gates
    to v2 packet lifecycle.
 
 ## Validation Plan
@@ -185,8 +194,8 @@ Validate v2 using the method it introduces:
 - Create a start packet before each harness-affecting implementation step once
   the packet CLI exists.
 - Preserve before/after search-set evidence where relevant.
-- Run multi-review for packet schema, checker semantics, archive integration, and
-  release gate wiring.
+- Run multi-review for packet schema, checker semantics, complexity
+  consolidation, archive integration, and release gate wiring.
 - Treat any critic score below 9 as blocking until fixed and rerun.
 - Preserve v2 packet examples as trace artifacts.
 

@@ -1,0 +1,33 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_review_import.GovernanceReviewImportTests.test_review_target_digest_is_order_insensitive_but_target_sensitive',
+    'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_wrong_packet_or_stale_target_binding'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+    print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+    print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+    sys.exit(0 if result.wasSuccessful() else 1)"
+  probe_exit_code: 0
+  result_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+  result_digest: 161c26754cdd0b1452a55c122cd1a5ff7e7326431c10c228fb9a22968a212af6
+  packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+  packet_sha256: 7f99e0d3865ba44a03049075aa8257257e3d765ca67d710fbd091be65c789d99
+  source_refs:
+  - tests/test_governance_review_import.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'tests=tests.test_governance_review_import.GovernanceReviewImportTests.test_review_target_digest_is_order_insensitive_but_target_sensitive,tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_wrong_packet_or_stale_target_binding
+
+    tests_run=2
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: 86c45ff8b8fe23ed408e0d92cf29309d0b6a4f51ebbf18ca2a0376f090c73092
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

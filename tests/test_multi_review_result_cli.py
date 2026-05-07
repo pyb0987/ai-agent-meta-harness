@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -26,6 +28,39 @@ def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 def load_yaml_fixture(name: str) -> dict:
     return yaml.safe_load((FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+
+
+def probe_transcript(
+    command: str,
+    exit_code: int,
+    stdout: str = "",
+    stderr: str = "",
+    cwd: str = ".",
+    result_ref: str = "backlog/fixtures/multi-review/governance-pass.yml",
+    result_digest: str = "0" * 64,
+    source_refs: list[str] | None = None,
+) -> dict:
+    if source_refs is None:
+        source_refs = ["scripts/check-multi-review-result.py"]
+    return {
+        "ProbeTranscript": {
+            "schema_version": "probe-transcript/v1",
+            "probe_command": command,
+            "probe_exit_code": exit_code,
+            "result_ref": result_ref,
+            "result_digest": result_digest,
+            "packet_ref": None,
+            "packet_sha256": None,
+            "source_refs": source_refs,
+            "cwd": cwd,
+            "generated_by": "test",
+            "date": "2026-05-06",
+            "stdout": stdout,
+            "stderr": stderr,
+            "stdout_sha256": hashlib.sha256(stdout.encode("utf-8")).hexdigest(),
+            "stderr_sha256": hashlib.sha256(stderr.encode("utf-8")).hexdigest(),
+        }
+    }
 
 
 class MultiReviewResultCliTests(unittest.TestCase):
@@ -60,11 +95,22 @@ class MultiReviewResultCliTests(unittest.TestCase):
             "--result",
             str(FIXTURE_ROOT / "governance-pass.yml"),
             "--require-governance-pass",
-            "--verify-probe-commands",
+            "--replay-probe-commands",
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("replayed probe commands", result.stdout)
+
+    def test_rejects_deprecated_verify_probe_alias(self) -> None:
+        result = run_cli(
+            "--result",
+            str(FIXTURE_ROOT / "governance-pass.yml"),
+            "--require-governance-pass",
+            "--verify-probe-commands",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unrecognized arguments: --verify-probe-commands", result.stderr)
 
     def test_accepts_advisory_pass_json_but_not_as_governance(self) -> None:
         result = run_cli("--result", str(FIXTURE_ROOT / "advisory-pass.json"))
@@ -98,7 +144,7 @@ class MultiReviewResultCliTests(unittest.TestCase):
 
     def test_rejects_stored_derived_verdict_mismatch_and_errors(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
-        result["MultiReviewResult"]["derived_verdict"] = "VETO"
+        result["MultiReviewResult"]["derived_verdict"] = "ADVISORY_PASS"
 
         self.assert_rejected(result, "derived_verdict")
         result = load_yaml_fixture("governance-pass.yml")
@@ -173,20 +219,296 @@ class MultiReviewResultCliTests(unittest.TestCase):
         critic["probe_command"] = "python3 missing-probe.py --claim-pass"
         critic["probe_result"] = "Plausible hand-authored success text."
 
-        self.assert_rejected(result, "probe_evidence_refs must include a transcript matching probe_command")
+        self.assert_rejected(result, "probe_evidence_refs must include a structured transcript matching probe_command")
+
+    def test_rejects_bare_probe_transcript_artifact_refs(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        critic = result["MultiReviewResult"]["critics"][0]
+        critic["probe_evidence_refs"] = [
+            critic["probe_evidence_refs"][0].removeprefix("file:")
+        ]
+
+        self.assert_rejected(result, "must use file: scheme for probe transcript artifact refs")
+
+    def test_rejects_marker_only_transcript_even_when_markers_match(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            rel_transcript = (Path(tmpdir) / "marker-only.txt").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            (ROOT / rel_transcript).write_text(
+                f"COMMAND: {critic['probe_command']}\nEXIT_CODE: {critic['probe_exit_code']}\n",
+                encoding="utf-8",
+            )
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            path = self.write_result(result)
+            completed = run_cli("--result", str(path), "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+
+    def test_rejects_structured_transcript_from_non_repo_cwd(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            rel_transcript = (Path(tmpdir) / "foreign-cwd-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        critic["probe_command"],
+                        critic["probe_exit_code"],
+                        cwd="/tmp/other-checkout",
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            path = self.write_result(result)
+            completed = run_cli("--result", str(path), "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+
+    def test_rejects_structured_transcript_from_absolute_repo_cwd(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            rel_transcript = (Path(tmpdir) / "absolute-cwd-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        critic["probe_command"],
+                        critic["probe_exit_code"],
+                        cwd=str(ROOT),
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            path = self.write_result(result)
+            completed = run_cli("--result", str(path), "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+
+    def test_rejects_transcript_bound_to_different_result_ref(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            rel_result = (tmp_path / "multi-review.yml").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "wrong-result-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        critic["probe_command"],
+                        critic["probe_exit_code"],
+                        result_ref="backlog/fixtures/multi-review/governance-pass.yml",
+                        source_refs=critic["source_refs"],
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            (ROOT / rel_result).write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--result", rel_result, "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+
+    def test_rejects_external_result_copy_bound_to_original_transcripts(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["target"]["summary"] = "External copied result should not reuse fixture transcripts."
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "governance-pass-copy.yml"
+            path.write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--result", str(path), "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+
+    def test_rejects_transcript_without_critic_source_refs(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            rel_result = (tmp_path / "multi-review.yml").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "wrong-source-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            (ROOT / rel_result).write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            result_digest = hashlib.sha256((ROOT / rel_result).read_bytes()).hexdigest()
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        critic["probe_command"],
+                        critic["probe_exit_code"],
+                        result_ref=rel_result,
+                        result_digest=result_digest,
+                        source_refs=["README.md"],
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            completed = run_cli("--result", rel_result, "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
 
     def test_rejects_fabricated_transcript_when_replayed(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         critic = result["MultiReviewResult"]["critics"][0]
         critic["probe_command"] = "python3 missing-probe.py --claim-pass"
         critic["probe_result"] = "Plausible hand-authored success text."
-        critic["probe_evidence_refs"] = ["backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt"]
+        critic["probe_evidence_refs"] = ["file:backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt"]
         path = self.write_result(result)
 
-        completed = run_cli("--result", str(path), "--require-governance-pass", "--verify-probe-commands")
+        completed = run_cli("--result", str(path), "--require-governance-pass", "--replay-probe-commands")
 
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("probe_command exit mismatch", completed.stderr)
+
+    def test_probe_replay_launch_errors_become_validator_errors(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            rel_command = (tmp_path / "not-executable-probe").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "non-exec-transcript.txt").relative_to(ROOT).as_posix()
+            (ROOT / rel_command).write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(probe_transcript(rel_command, 0, stdout="not actually executable\n"), sort_keys=False),
+                encoding="utf-8",
+            )
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_command"] = rel_command
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            path = self.write_result(result)
+            completed = run_cli("--result", str(path), "--require-governance-pass", "--replay-probe-commands")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_command launch failed", completed.stderr)
+        self.assertIn("DERIVED: VETO", completed.stderr)
+
+    def test_non_utf8_probe_transcript_ref_becomes_veto_not_traceback(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            rel_binary = (Path(tmpdir) / "binary-transcript.bin").relative_to(ROOT).as_posix()
+            (ROOT / rel_binary).write_bytes(b"\xff\xfe\x00not utf8")
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_evidence_refs"] = [f"file:{rel_binary}"]
+            path = self.write_result(result)
+            completed = run_cli("--result", str(path), "--require-governance-pass")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_evidence_refs must include a structured transcript matching probe_command", completed.stderr)
+        self.assertIn("DERIVED: VETO", completed.stderr)
+
+    def test_probe_replay_non_utf8_output_does_not_traceback(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            command = "python3 -c \"import sys; sys.stdout.buffer.write(bytes([255]))\""
+            rel_result = (tmp_path / "multi-review.yml").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "invalid-output-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_command"] = command
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            (ROOT / rel_result).write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            result_digest = hashlib.sha256((ROOT / rel_result).read_bytes()).hexdigest()
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        command,
+                        0,
+                        stdout="not replayed output\n",
+                        result_ref=rel_result,
+                        result_digest=result_digest,
+                        source_refs=critic["source_refs"],
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            completed = run_cli("--result", rel_result, "--require-governance-pass", "--replay-probe-commands")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_command stdout was not valid UTF-8", completed.stderr)
+        self.assertIn("DERIVED: VETO", completed.stderr)
+
+    def test_probe_replay_hashes_raw_bytes_not_replacement_text(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            command = "python3 -c \"import sys; sys.stdout.buffer.write(bytes([255]))\""
+            rel_result = (tmp_path / "multi-review.yml").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "replacement-output-transcript.yml").relative_to(ROOT).as_posix()
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_command"] = command
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            (ROOT / rel_result).write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            result_digest = hashlib.sha256((ROOT / rel_result).read_bytes()).hexdigest()
+            (ROOT / rel_transcript).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        command,
+                        0,
+                        stdout="\ufffd",
+                        result_ref=rel_result,
+                        result_digest=result_digest,
+                        source_refs=critic["source_refs"],
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            completed = run_cli("--result", rel_result, "--require-governance-pass", "--replay-probe-commands")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_command stdout was not valid UTF-8", completed.stderr)
+        self.assertIn("DERIVED: VETO", completed.stderr)
+
+    def test_probe_replay_compares_against_pre_replay_transcript(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            rel_result = (tmp_path / "multi-review.yml").relative_to(ROOT).as_posix()
+            rel_transcript = (tmp_path / "self-mutating-transcript.json").relative_to(ROOT).as_posix()
+            code = (
+                "from pathlib import Path; import hashlib, json; "
+                f"p=Path({rel_transcript!r}); "
+                "d=json.loads(p.read_text()); "
+                "out='mutated\\n'; "
+                "d['ProbeTranscript']['stdout']=out; "
+                "d['ProbeTranscript']['stdout_sha256']=hashlib.sha256(out.encode()).hexdigest(); "
+                "p.write_text(json.dumps(d)); "
+                "print('mutated')"
+            )
+            command = f"python3 -c {code!r}"
+            critic = result["MultiReviewResult"]["critics"][0]
+            critic["probe_command"] = command
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+            (ROOT / rel_result).write_text(yaml.safe_dump(result, sort_keys=False), encoding="utf-8")
+            result_digest = hashlib.sha256((ROOT / rel_result).read_bytes()).hexdigest()
+            (ROOT / rel_transcript).write_text(
+                json.dumps(
+                    probe_transcript(
+                        command,
+                        0,
+                        stdout="original\n",
+                        result_ref=rel_result,
+                        result_digest=result_digest,
+                        source_refs=critic["source_refs"],
+                    )
+                ),
+                encoding="utf-8",
+            )
+            completed = run_cli("--result", rel_result, "--require-governance-pass", "--replay-probe-commands")
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("probe_command stdout hash mismatch against linked transcript", completed.stderr)
+        self.assertIn("DERIVED: VETO", completed.stderr)
 
     def test_rejects_known_no_coverage_probe_values(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")

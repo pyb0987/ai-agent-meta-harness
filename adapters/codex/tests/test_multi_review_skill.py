@@ -167,7 +167,7 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("frame_challenge", prompt_shape)
         self.assertIn("probe_exit_code", prompt_shape)
         self.assertIn("probe_evidence_refs", prompt_shape)
-        self.assertIn("--verify-probe-commands", combined_normalized)
+        self.assertIn("--replay-probe-commands", combined_normalized)
         self.assertIn("Probe quality gate", prompt_shape)
         self.assertIn("validation_layer", prompt_shape)
         self.assertIn("check-multi-review-result.py", combined_normalized)

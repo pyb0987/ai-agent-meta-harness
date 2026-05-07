@@ -173,8 +173,8 @@ these critic scopes:
   untargeted waivers, sub-threshold reviews, VETO records, or worktree stable
   handoff.
 - implementation minimality: confirms Plan 03 does not smuggle Plan 04 evidence
-  capture, Plan 05 review import, or Plan 06 archive integration into the
-  skeleton.
+  capture, Plan 05 review import, Plan 06 complexity consolidation, or Plan 07
+  archive integration into the skeleton.
 
 All required critic scores must be at least 9. Any VETO requires updating the
 plan or implementation and rerunning the affected critic. Every score 9 must
@@ -203,7 +203,7 @@ Multi-review:
 
 ## Carry-Over Requirements
 
-- Plan 04 or Plan 06 must move any post-import `archive/v1/` waiver provenance
+- Plan 04 or Plan 07 must move any post-import `archive/v1/` waiver provenance
   from bootstrap CLI strings into durable packet `result.judgment` and/or
   `result.evidence` records before accepted archive edits are allowed to rely on
   v2 governance.

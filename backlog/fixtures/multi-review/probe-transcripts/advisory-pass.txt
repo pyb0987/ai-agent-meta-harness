@@ -1,4 +1,20 @@
-COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/advisory-pass.json
-EXIT_CODE: 0
-OUTPUT:
-DERIVED: ADVISORY_PASS (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/advisory-pass.json
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/advisory-pass.json
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/advisory-pass.json
+  result_digest: 253db40d8367d3bf8ad2a4effd63733baa5ff8e972ae432926698a42260d39d4
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - backlog/fixtures/multi-review/advisory-pass.json
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'DERIVED: ADVISORY_PASS (artifact-internal consistency with linked probe
+    transcripts; not command replay or stable handoff evidence): backlog/fixtures/multi-review/advisory-pass.json
+
+    '
+  stderr: ''
+  stdout_sha256: 83bfcc30b9be045b02c5cc62dd6f73eb951dc522e058c412b7ee3f6881f0b490
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

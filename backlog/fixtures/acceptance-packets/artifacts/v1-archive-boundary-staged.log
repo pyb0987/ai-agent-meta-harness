@@ -1,6 +1,7 @@
+# Command Evidence
 packet_id: pkt-finalized-waiver-downgrade-example
 packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-packet_sha256: f49fc27d22ecf064971fb76301e2553f4271b36761a8b868ec0dd985fd06e91d
+packet_sha256: 6d6c03155cd20b09ddbdd8442032cdb6fa9efe69afde69878571b91a223eb42c
 command: python3 scripts/check-v1-archive-boundary.py --staged
 status: pass
 summary: fixture artifact for staged v1 archive boundary verification

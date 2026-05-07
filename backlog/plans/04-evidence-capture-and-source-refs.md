@@ -30,8 +30,8 @@ Constraints:
 - Preserve the public packet surface: `meta`, `input`, and `result`.
 - Do not implement review transcript import; that remains Plan 05.
 - Do not implement packet archive pointers, canonical packet hashes, or active
-  indexes; that remains Plan 06.
-- Do not wire packet checks into release/pre-commit gates; that remains Plan 07.
+  indexes; that remains Plan 07 after Plan 06 complexity consolidation.
+- Do not wire packet checks into release/pre-commit gates; that remains Plan 08.
 - Keep `check` read-only.
 
 Presuppositions:
@@ -240,8 +240,9 @@ Required critic lenses:
 - Adversarial Artifact Critic: stale packet, fake refs, ambiguous terminal refs,
   evidence/review identifier collisions, and unsupported schemes.
 - Scope Boundary Critic: confirms Plan 04 does not implement Plan 05 review
-  import, Plan 06 archive pointers/hashing, or Plan 07 release integration, and
-  that deferred risks are durably carried forward.
+  import, Plan 06 complexity consolidation, Plan 07 archive pointers/hashing, or
+  Plan 08 release integration, and that deferred risks are durably carried
+  forward.
 
 For repository governance work, any score below 9 is VETO until fixed and rerun.
 Every score 9 must record why-not-10 and residual-risk or follow-up disposition.

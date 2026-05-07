@@ -1,0 +1,33 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_advisory_multi_review_import'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+    print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+    print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+    sys.exit(0 if result.wasSuccessful() else 1)"
+  probe_exit_code: 0
+  result_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+  result_digest: 5a443c345e07ca2b138544ea2a9950f2a4b66bb8694a1f36772acc7e70cf5c22
+  packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+  packet_sha256: 6d6c03155cd20b09ddbdd8442032cdb6fa9efe69afde69878571b91a223eb42c
+  source_refs:
+  - backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+  - tests/test_governance_review_import.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'tests=tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_advisory_multi_review_import
+
+    tests_run=1
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: a2957bdf8935372e5d0013ea38cb0c89f37551fa371985b1a3ec9ca3a8153f53
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

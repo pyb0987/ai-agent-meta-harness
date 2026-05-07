@@ -232,16 +232,16 @@ Tests whether probe evidence is real enough for governance acceptance.
 
 MVP oracle:
 
-- `probe_evidence_refs` must resolve to repo-local transcripts matching the exact
-  command and exit code.
-- Governance acceptance should use command replay when available.
+- `probe_evidence_refs` must resolve to repo-local structured transcripts
+  matching the exact command, exit code, cwd, generator/date, and raw output byte hashes.
+- Governance acceptance should use explicit command replay when available.
 
 First variants:
 
 1. `pp-missing-transcript`: probe evidence ref is missing.
 2. `pp-command-mismatch`: transcript command differs from `probe_command`.
 3. `pp-exit-code-mismatch`: transcript exit code differs from recorded value.
-4. `pp-fabricated-transcript`: transcript markers exist but replay fails.
+4. `pp-fabricated-transcript`: structured transcript evidence claims success but replay fails.
 5. `pp-unrelated-transcript`: transcript exists for another scenario.
 6. `pp-absolute-ref`: transcript ref escapes repository.
 7. `pp-url-ref`: transcript ref uses unsupported URL scheme.
@@ -414,7 +414,11 @@ It checks:
 - JSON-pointer mutation application over existing result fixtures;
 - fresh `derive_verdict()` output from `scripts/check-multi-review-result.py`;
 - expected verdict and expected validator error substrings;
-- optional probe replay for scenarios that set `verify_probe_commands: true`.
+- optional probe replay for scenarios that set `replay_probe_commands: true`,
+  only when the runner is invoked with `--replay-probe-commands`.
+- semantic contract-only scenarios are reported as `PENDING` when the structural
+  validator derives a disposition that the sealed semantic oracle does not
+  accept.
 
 This runner is deliberately a deterministic fixture check, not an
 agent-in-the-loop evaluation. It does not measure whether an AI can discover
@@ -444,8 +448,8 @@ Search-set verification:
 Multi-review:
 
 - Contract fidelity critic: score 9, PASS. Blocking findings: none after the runner was renamed to `check-fixtures.py` and documented as deterministic fixture validation. Why not 10: agent-in-the-loop and semantic scoring remain future work. Follow-up/residual risk: accepted because the README and plan explicitly scope those capabilities out of this fixture check.
-- Validator correctness critic: score 9, PASS. Blocking findings: none after replay evidence, critic-frame disjointness, frame challenge, and typed probe provenance were added to the validator and fixtures. Why not 10: probe replay verifies command exit status, not full stdout provenance or historical freshness. Follow-up/residual risk: accepted for this validator hardening; richer provenance belongs in a later semantic/agent evaluation runner.
-- Benchmark fixture critic: score 9, PASS. Blocking findings: none after 12 seed scenarios covered positive control, false-green structural failures, probe replay, lifecycle, mode calibration, and semantic contract shape. Why not 10: semantic relevance scenarios are contract-only seeds. Follow-up/residual risk: accepted because `check-fixtures.py` names the limitation and avoids presenting contract-only cases as AI judgment.
+- Validator correctness critic: score 9, PASS. Blocking findings: none after replay evidence, critic-frame disjointness, frame challenge, and typed probe provenance were added to the validator and fixtures. Why not 10: probe replay verifies current command exit status and raw output byte hashes, but historical freshness still belongs to later artifact archive policy. Follow-up/residual risk: accepted for this validator hardening; richer provenance belongs in a later semantic/agent evaluation runner.
+- Benchmark fixture critic: score 9, PASS. Blocking findings: none after seed scenarios covered positive control, false-green structural failures, probe replay, lifecycle, mode calibration, and a semantic contract seed. Why not 10: semantic relevance scenarios are reported as pending semantic scorer rather than fixture PASS when the structural validator cannot judge relevance. Follow-up/residual risk: accepted because `check-fixtures.py` names the limitation and avoids presenting contract-only cases as AI judgment.
 - Score handling: all required critics reached score 9 or higher. Every score 9 records why not 10 and residual-risk disposition.
 - Rerun status: the staged fixture check, focused pytest suite, Codex plugin sync check, and compatibility mirror check passed after the final filename and documentation changes.
 - Follow-up/residual risk: future work should add a separate agent-in-the-loop runner that hides `sealed_oracle`, asks an agent to produce `MultiReviewResult`, and uses a semantic scorer for frame/evidence assertions.

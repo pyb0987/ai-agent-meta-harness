@@ -44,6 +44,7 @@ class VerifyReleaseTests(unittest.TestCase):
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, commands)
+        self.assertNotIn("python3 scripts/update-governance-fixtures.py --check", commands)
 
     def test_release_commands_are_stored_as_argv(self) -> None:
         for command in verify_release.RELEASE_COMMANDS:

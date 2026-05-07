@@ -3,17 +3,17 @@ AcceptancePacketReviewImport:
   target_binding:
     packet_id: pkt-finalized-waiver-downgrade-example
     packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-    review_target_digest: 0185f06bd1b622fd8879fac89fbd62d58831b8486efc23ee45ecf9856a5560ae
+    review_target_digest: 8c43adcef3ad746291dc74fa4717c7e9bb65742aca295ca9bc18209262a30c2d
     baseline_ref: HEAD
     comparison_ref: HEAD
     source_refs:
-      - archive/v1/README.md
-      - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+    - archive/v1/README.md
+    - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
     changed_paths:
-      - archive/v1/README.md
+    - archive/v1/README.md
     required_review:
-      - archive boundary
-      - full v1 archive fidelity
+    - archive boundary
+    - full v1 archive fidelity
   MultiReviewResult:
     schema_version: multi-review-result/v1
     review_id: mr-pkt-finalized-waiver-downgrade-example
@@ -23,111 +23,166 @@ AcceptancePacketReviewImport:
     target:
       summary: AcceptancePacket review import for the waiver and downgrade fixture.
       source_refs:
-        - backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-        - scripts/check-governance-acceptance.py
+      - backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+      - scripts/check-governance-acceptance.py
     required_critics:
-      - validation-layer
-      - review-quality
-      - scope-c-contract
+    - validation-layer
+    - review-quality
+    - scope-c-contract
     reported_final_verdict: PASS
     derived_verdict: null
     derivation_errors: []
     critics:
-      - critic_id: validation-layer
-        name: Validation Layer Critic
-        critic_type: validation_layer
-        scope: Confirm review waiver and downgrade closure remains targeted.
-        required: true
-        actor: codex
-        date: 2026-05-06
-        score: 9
-        verdict: pass
-        veto: false
-        blocking_findings: []
-        false_green_risk: A broad waiver could close unrelated review obligations.
-        invariant_checked: Waivers and downgrades are checked against required review/evidence targets.
-        validation_layer: structured-validator
-        probe_run: true
-        probe_command: python3 scripts/check-governance-acceptance.py check --packet backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml --require-stable
-        probe_result: Stable checker validates targeted waiver and review import closure.
-        probe_interpretation: Required review closure is computed from structured packet fields.
-        reason_no_probe: null
-        evidence:
-          - Review waiver targets full v1 archive fidelity exactly.
-        source_refs:
-          - scripts/check-governance-acceptance.py
-        why_not_10: Fixture does not publish an immutable archived packet.
-        residual_risk_disposition: Accepted for local fixture validation only.
-      - critic_id: review-quality
-        name: Review Quality Meta-Critic
-        critic_type: review_quality
-        scope: Confirm imported review artifact is target-bound and auditable.
-        required: true
-        actor: codex
-        date: 2026-05-06
-        score: 9
-        verdict: pass
-        veto: false
-        blocking_findings: []
-        false_green_risk: A stale waiver review could be replayed against a different archive packet.
-        invariant_checked: Target binding includes archive changed path and required review targets.
-        validation_layer: derived-verdict
-        probe_run: true
-        probe_command: python3 -m unittest tests/test_governance_acceptance_cli.py
-        probe_result: Governance acceptance CLI checks stable packet fixtures.
-        probe_interpretation: Local tests exercise wrapper import validation.
-        reason_no_probe: null
-        evidence:
-          - Wrapper digest is independent of packet review imports.
-        source_refs:
-          - tests/test_governance_acceptance_cli.py
-        why_not_10: Scope C proves imported structured artifacts, not full conversation history.
-        residual_risk_disposition: Accepted as the documented Scope C auditability boundary.
-      - critic_id: scope-c-contract
-        name: Structured Contract Critic
-        critic_type: domain
-        scope: Confirm review import wrapper preserves Scope B synthesis contract.
-        required: true
-        actor: codex
-        date: 2026-05-06
-        score: 9
-        verdict: pass
-        veto: false
-        blocking_findings: []
-        false_green_risk: Review import could rely on packet-authored PASS fields.
-        invariant_checked: The nested MultiReviewResult is freshly derived as PASS.
-        validation_layer: raw-artifact
-        probe_run: true
-        probe_command: Inspect waiver-downgrade review import wrapper.
-        probe_result: Wrapper contains target binding, final synthesis, and lineage.
-        probe_interpretation: Scope C data is separate from Scope B synthesis fields.
-        reason_no_probe: null
-        evidence:
-          - Wrapper schema has a separate review_lineage list.
-        source_refs:
-          - backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
-        why_not_10: The fixture contains only passing lineage and a targeted waiver.
-        residual_risk_disposition: Failed lineage behavior is covered by negative tests.
-  review_lineage:
-    - review_id: review-waiver-archive-boundary
-      critic: archive boundary
-      scope: Archive index wording repair and v1 archive boundary handling.
-      anti_scope: Full v1 archive fidelity, which is handled by targeted waiver.
-      score: 9
-      veto: false
-      actor: reviewer
-      role: reviewer
+    - critic_id: validation-layer
+      name: Validation Layer Critic
+      critic_type: validation_layer
+      persona: Release gate engineer checking targeted waiver closure.
+      scope: Confirm waiver and evidence-downgrade closure remains targeted.
+      anti_scope: Does not evaluate immutable archive storage or full v1 fidelity.
+      attack_surface: A broad waiver could close unrelated review obligations.
+      primary_failure_mode: Waiver review accepts broad or mismatched review targets.
+      frame_challenge: false
+      required: true
+      actor: codex
       date: 2026-05-06
-      source_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
-      false_green_risk: Archive repair could be treated as routine without waiver provenance.
-      invariant_checked: Required archive review and waiver targets are checked separately.
-      evidence:
-        - Archive boundary review is represented as structured lineage.
-      source_refs:
-        - archive/v1/README.md
-        - backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      score: 9
+      verdict: pass
+      veto: false
       blocking_findings: []
-      why_not_10: The example relies on source refs rather than embedding full review transcript.
-      disposition: Accepted because raw review source is referenced.
-      rerun_of: null
-      fixed_finding_ids: []
+      false_green_risk: A broad waiver could close unrelated review obligations.
+      invariant_checked: Waivers and downgrades are checked against required review/evidence
+        targets.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_rejects_broad_review_waiver_target',
+        'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_does_not_apply_evidence_downgrade_to_required_review'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+        print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+        print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+        sys.exit(0 if result.wasSuccessful() else 1)"
+      probe_exit_code: 0
+      probe_result: Governance acceptance tests reject broad review waivers and applying
+        an evidence downgrade to a required review.
+      probe_interpretation: Exception closure is computed from typed kind and required
+        target sets for waiver, review, and evidence downgrade records.
+      probe_evidence_refs:
+      - file:backlog/fixtures/acceptance-packets/artifacts/waiver-review-import-validation-layer-probe.txt
+      reason_no_probe: null
+      evidence:
+      - Review waiver targets full v1 archive fidelity exactly.
+      source_refs:
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      why_not_10: Fixture does not publish an immutable archived packet.
+      residual_risk_disposition: Accepted for local fixture validation only.
+    - critic_id: review-quality
+      name: Review Quality Meta-Critic
+      critic_type: review_quality
+      persona: Audit reviewer checking archive-waiver provenance.
+      scope: Confirm imported review artifact is target-bound and auditable.
+      anti_scope: Does not prove full conversation-history completeness.
+      attack_surface: A stale waiver review could be replayed against a different
+        archive packet.
+      primary_failure_mode: Target binding drifts while waiver review still claims
+        PASS.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: 2026-05-06
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A stale waiver review could be replayed against a different
+        archive packet.
+      invariant_checked: Target binding includes archive changed path and required
+        review targets.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_review_import.GovernanceReviewImportTests.test_review_target_digest_is_order_insensitive_but_target_sensitive',
+        'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_wrong_packet_or_stale_target_binding'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+        print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+        print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+        sys.exit(0 if result.wasSuccessful() else 1)"
+      probe_exit_code: 0
+      probe_result: Governance review import tests reject stale target binding and
+        target digest drift, with replayable deterministic unittest result output.
+      probe_interpretation: Local tests exercise wrapper import validation.
+      probe_evidence_refs:
+      - file:backlog/fixtures/acceptance-packets/artifacts/waiver-review-import-review-quality-probe.txt
+      reason_no_probe: null
+      evidence:
+      - Wrapper digest is independent of packet review imports.
+      source_refs:
+      - tests/test_governance_review_import.py
+      why_not_10: Scope C proves imported structured artifacts, not full conversation
+        history.
+      residual_risk_disposition: Accepted as the documented Scope C auditability boundary.
+    - critic_id: scope-c-contract
+      name: Structured Contract Critic
+      critic_type: domain
+      persona: Schema maintainer preserving wrapper/result separation.
+      scope: Confirm review import wrapper preserves Scope B synthesis contract.
+      anti_scope: Does not evaluate release integration or pre-commit wiring.
+      attack_surface: Review import could rely on packet-authored PASS fields.
+      primary_failure_mode: Nested MultiReviewResult is not freshly derived.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: 2026-05-06
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Review import could rely on packet-authored PASS fields.
+      invariant_checked: The nested MultiReviewResult is freshly derived as PASS.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_advisory_multi_review_import'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+        print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+        print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+        sys.exit(0 if result.wasSuccessful() else 1)"
+      probe_exit_code: 0
+      probe_result: Wrapper rejects advisory nested MultiReviewResult imports while
+        keeping target binding and lineage separate from nested synthesis.
+      probe_interpretation: Scope C data is separate from Scope B governance-mode
+        synthesis fields.
+      probe_evidence_refs:
+      - file:backlog/fixtures/acceptance-packets/artifacts/waiver-review-import-scope-contract-probe.txt
+      reason_no_probe: null
+      evidence:
+      - Wrapper schema has a separate review_lineage list.
+      source_refs:
+      - backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+      - tests/test_governance_review_import.py
+      why_not_10: The fixture contains only passing lineage and a targeted waiver.
+      residual_risk_disposition: Failed lineage behavior is covered by negative tests.
+  review_lineage:
+  - review_id: review-waiver-archive-boundary
+    critic: archive boundary
+    scope: Archive index wording repair and v1 archive boundary handling.
+    anti_scope: Full v1 archive fidelity, which is handled by targeted waiver.
+    score: 9
+    veto: false
+    actor: reviewer
+    role: reviewer
+    date: 2026-05-06
+    source_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+    false_green_risk: Archive repair could be treated as routine without waiver provenance.
+    invariant_checked: Required archive review and waiver targets are checked separately.
+    evidence:
+    - Archive boundary review is represented as structured lineage.
+    source_refs:
+    - archive/v1/README.md
+    - backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+    blocking_findings: []
+    why_not_10: The example relies on source refs rather than embedding full review
+      transcript.
+    disposition: Accepted because raw review source is referenced.
+    rerun_of: null
+    fixed_finding_ids: []

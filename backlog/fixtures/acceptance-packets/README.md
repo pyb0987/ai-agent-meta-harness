@@ -1,7 +1,9 @@
 # AcceptancePacket Fixtures
 
-These files are planning fixtures for Plan 02. They are not active governance
-packets and do not satisfy stable handoff.
+These files are checker fixtures for the Plan 02 AcceptancePacket surface. Some
+finalized fixtures are stable-handoff eligible and must pass
+`scripts/check-governance-acceptance.py check --require-stable`; nonstable
+fixtures remain negative controls.
 
 Each fixture keeps the public packet surface to:
 
@@ -9,8 +11,9 @@ Each fixture keeps the public packet surface to:
 - `input`
 - `result`
 
-The next implementation plan should use these examples as checker fixtures before
-adding `governance start`, `governance finalize`, or `governance check`.
+The fixtures are examples for validating `governance start`, `governance
+finalize`, and `governance check` behavior, not active project governance
+packets.
 
 `worktree-nonstable.yml` is a negative stable-handoff fixture: it may be accepted
 as exploratory evidence, but it must never be stable-handoff eligible.

@@ -13,7 +13,7 @@ mutations:
   - op: set
     path: /lifecycle
     value: draft
-verify_probe_commands: false
+replay_probe_commands: false
 sealed_oracle:
   oracle_type: structural
   scoring_mode: validator-only

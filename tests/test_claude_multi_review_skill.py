@@ -179,7 +179,7 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
             "validation command named by the artifact",
             "Probe requirement:",
             "`probe_run`, `probe_command`, `probe_exit_code`, `probe_result`,",
-            "`probe_evidence_refs` must point to repository-local transcript artifacts",
+            "`probe_evidence_refs` must point to repository-local structured transcript artifacts",
             "`reason_no_probe` is not coverage by itself",
             "existing review says PASS",
         ):
@@ -197,7 +197,7 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("frame_challenge", prompt_shape)
         self.assertIn("probe_exit_code", prompt_shape)
         self.assertIn("probe_evidence_refs", prompt_shape)
-        self.assertIn("--verify-probe-commands", normalized_text)
+        self.assertIn("--replay-probe-commands", normalized_text)
         self.assertIn("check-multi-review-result.py", normalized_text)
         self.assertIn("validator-derived verdict", normalized_text)
         self.assertIn("artifact-internal consistency plus linked probe transcript references", normalized_text)

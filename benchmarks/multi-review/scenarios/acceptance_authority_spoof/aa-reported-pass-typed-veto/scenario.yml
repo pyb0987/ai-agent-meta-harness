@@ -10,7 +10,7 @@ public_input:
     - backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
 base_result: backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
 mutations: []
-verify_probe_commands: false
+replay_probe_commands: false
 sealed_oracle:
   oracle_type: structural
   scoring_mode: validator-only

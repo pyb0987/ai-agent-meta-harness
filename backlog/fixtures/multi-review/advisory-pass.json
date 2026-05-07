@@ -7,9 +7,13 @@
     "independence": "independent",
     "target": {
       "summary": "Structured multi-review advisory fixture.",
-      "source_refs": ["scripts/check-multi-review-result.py"]
+      "source_refs": [
+        "scripts/check-multi-review-result.py"
+      ]
     },
-    "required_critics": ["advisory-critic"],
+    "required_critics": [
+      "advisory-critic"
+    ],
     "reported_final_verdict": "PASS",
     "derived_verdict": null,
     "derivation_errors": [],
@@ -39,10 +43,16 @@
         "probe_exit_code": 0,
         "probe_result": "Derived advisory pass from structured fields.",
         "probe_interpretation": "JSON input path is covered.",
-        "probe_evidence_refs": ["backlog/fixtures/multi-review/probe-transcripts/advisory-pass.txt"],
+        "probe_evidence_refs": [
+          "file:backlog/fixtures/multi-review/probe-transcripts/advisory-pass.txt"
+        ],
         "reason_no_probe": null,
-        "evidence": ["JSON fixture is parsed."],
-        "source_refs": ["backlog/fixtures/multi-review/advisory-pass.json"],
+        "evidence": [
+          "JSON fixture is parsed."
+        ],
+        "source_refs": [
+          "backlog/fixtures/multi-review/advisory-pass.json"
+        ],
         "why_not_10": null,
         "residual_risk_disposition": null
       }

@@ -80,9 +80,14 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
                 required = set(result["inference"].get("required_evidence", []))
                 recorded = {entry.get("command") for entry in result["evidence"].get("command_results", [])}
                 skipped = {entry.get("evidence") for entry in result["evidence"].get("skipped", [])}
-                self.assertTrue(required.issubset(recorded | skipped), name)
+                downgraded = {
+                    entry.get("from")
+                    for entry in result["judgment"].get("downgrades", [])
+                    if entry.get("kind") == "evidence"
+                }
+                self.assertTrue(required.issubset(recorded | skipped | downgraded), name)
 
-    def test_stable_packets_have_passing_required_evidence(self) -> None:
+    def test_stable_packets_have_one_required_evidence_closure(self) -> None:
         for name, packet in self.fixture_packets().items():
             with self.subTest(path=name):
                 if not packet["result"]["decision"]["stable_handoff_eligible"]:
@@ -95,7 +100,18 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
                     if entry.get("status") == "pass"
                 }
                 skipped = {entry.get("evidence") for entry in result["evidence"].get("skipped", [])}
-                self.assertTrue(required.issubset(passed), name)
+                downgraded = {
+                    entry.get("from")
+                    for entry in result["judgment"].get("downgrades", [])
+                    if entry.get("kind") == "evidence"
+                }
+                for target in required:
+                    closures = [
+                        target in passed,
+                        target in skipped,
+                        target in downgraded,
+                    ]
+                    self.assertEqual(1, sum(closures), f"{name}: {target}")
                 self.assertFalse(required & skipped, name)
 
     def test_confounder_isolation_fields_are_present(self) -> None:
@@ -122,12 +138,14 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
                 for source_ref in evidence.get("source_refs", []):
                     self.assertIsInstance(source_ref, str)
 
-    def test_accepted_harness_affecting_fixture_models_trace_reuse(self) -> None:
+    def test_accepted_harness_affecting_fixture_models_trace_after_and_before_skip(self) -> None:
         packet = self.fixture_packets()["finalized-harness-affecting.yml"]
         trace_refs = packet["result"]["evidence"]["trace_refs"]
+        skipped = {entry.get("evidence") for entry in packet["result"]["evidence"].get("skipped", [])}
 
-        self.assertTrue(trace_refs["search_set_before"])
+        self.assertIsNone(trace_refs["search_set_before"])
         self.assertTrue(trace_refs["search_set_after"])
+        self.assertIn("search_set_before", skipped)
         self.assertTrue(trace_refs["evolution"])
 
     def test_residual_risk_records_judgment_provenance(self) -> None:
@@ -262,14 +280,15 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
                 for review in reviews:
                     self.assertIn(review.get("source_ref"), imported_refs, name)
 
-    def test_fixtures_are_documented_as_non_active_packets(self) -> None:
+    def test_fixtures_document_stable_and_nonstable_roles(self) -> None:
         readme = (FIXTURE_ROOT / "README.md").read_text(encoding="utf-8")
         plan = (ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn("not active governance\npackets", readme)
-        self.assertIn("do not satisfy stable handoff", readme)
+        self.assertIn("checker fixtures", readme)
+        self.assertIn("stable-handoff eligible", readme)
+        self.assertIn("negative controls", readme)
         self.assertIn("not active packets", plan)
         self.assertIn("do not satisfy stable handoff", plan)
 

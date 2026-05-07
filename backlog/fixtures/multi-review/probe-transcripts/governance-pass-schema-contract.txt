@@ -1,4 +1,22 @@
-COMMAND: python3 -m unittest tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_accepts_governance_pass_yaml
-EXIT_CODE: 0
-OUTPUT:
-OK
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import subprocess, sys; r=subprocess.run([sys.executable,
+    '-m', 'unittest', 'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_accepts_governance_pass_yaml'],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('probe_schema_contract_pass'
+    if r.returncode == 0 else 'probe_schema_contract_fail'); sys.exit(r.returncode)"
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/governance-pass.yml
+  result_digest: 8bd8de89f98058bb26acf914d5abd5ba5f5f2f34a0630019b5a2db2c84b79b6c
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - backlog/fixtures/multi-review/governance-pass.yml
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'probe_schema_contract_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 6c34f3bc74c68a6d11b4d14daea118321387b323d537136ef7e4c26932e0704d
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

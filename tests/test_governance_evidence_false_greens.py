@@ -98,17 +98,17 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
                 "impact": "low",
                 "changed_paths": ["backlog/fixtures/acceptance-packets/README.md"],
                 "protected_boundary_changed": False,
-                "required_evidence": ["git diff --check"],
+                "required_evidence": ["git diff --cached --check"],
                 "required_review": [],
             }
         )
         evidence = result["evidence"]
         evidence["baseline_ref"] = "HEAD"
         evidence["comparison_ref"] = "HEAD"
-        evidence["evaluator_boundary"] = {"status": "unchanged", "commands": ["git diff --check"]}
+        evidence["evaluator_boundary"] = {"status": "unchanged", "commands": ["git diff --cached --check"]}
         evidence["command_results"] = [
             {
-                "command": "git diff --check",
+                "command": "git diff --cached --check",
                 "status": "pass",
                 "artifact_ref": "file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log",
             }
@@ -146,7 +146,7 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
                     [
                         "packet_id: pkt-prefix-probe",
                         "packet_ref: packets/pkt.yml",
-                        "command: git diff --check",
+                        "command: git diff --cached --check",
                         "status: pass",
                     ]
                 )

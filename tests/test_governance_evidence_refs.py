@@ -87,6 +87,11 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
     def test_stable_protected_packet_missing_search_set_ref_fails(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         packet["AcceptancePacket"]["result"]["evidence"]["trace_refs"]["search_set_before"] = None
+        packet["AcceptancePacket"]["result"]["evidence"]["skipped"] = [
+            item
+            for item in packet["AcceptancePacket"]["result"]["evidence"]["skipped"]
+            if item.get("evidence") != "search_set_before"
+        ]
 
         self.assert_rejected(packet, "stable protected packet missing search_set_before")
 
@@ -116,6 +121,75 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         inference["changed_paths"] = ["docs/reference.md"]
 
         self.assert_rejected(packet, "proof-like changed docs")
+
+    def test_stable_claim_evidence_requires_raw_artifact_or_trace_scheme(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        evidence["claims"] = [{"raw_evidence_refs": ["README.md"]}]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "claim-evidence",
+                "ref": "README.md",
+                "status": "resolved",
+                "target": "README.md",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence ref must use file: or trace: scheme")
+
+    def test_stable_claim_evidence_rejects_source_file_as_raw_evidence(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        result["inference"]["changed_paths"] = ["docs/reference.md"]
+        result["inference"]["required_review"] = ["claim evidence"]
+        evidence["claims"] = [{"raw_evidence_refs": ["file:README.md"]}]
+        evidence["resolved_refs"].extend(
+            [
+                {
+                    "origin": "generated",
+                    "relation": "claim-evidence",
+                    "ref": "file:README.md",
+                    "status": "resolved",
+                    "target": "README.md",
+                },
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:backlog/plans/04-evidence-capture-and-source-refs.md",
+                    "status": "resolved",
+                    "target": "backlog/plans/04-evidence-capture-and-source-refs.md",
+                },
+            ]
+        )
+        result["judgment"]["waivers"].append(
+            {
+                "kind": "review",
+                "review": "claim evidence",
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "test isolates raw claim evidence classification",
+                "source_ref": "file:backlog/plans/04-evidence-capture-and-source-refs.md",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence file ref must point to raw artifact/log/screenshot/report evidence")
+
+    def test_stable_generated_provenance_refs_require_file_scheme(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "waiver-provenance",
+                "ref": "tests/test_governance_evidence_refs.py",
+                "status": "resolved",
+                "target": "tests/test_governance_evidence_refs.py",
+            }
+        )
+
+        self.assert_rejected(packet, "generated waiver-provenance refs must use file: scheme")
 
     def test_stable_broad_skipped_evidence_fails(self) -> None:
         packet = load_fixture("finalized-waiver-downgrade.yml")

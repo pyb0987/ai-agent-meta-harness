@@ -5,40 +5,43 @@ review_mode: governance
 public_input:
   neutral_id: case-007
   title: Fabricated transcript replay
-  summary: Transcript markers alone should not count when command replay fails.
+  summary: Structured transcript evidence alone should not count when explicit command
+    replay fails.
   input_artifacts:
-    - backlog/fixtures/multi-review/governance-pass.yml
-    - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+  - backlog/fixtures/multi-review/governance-pass.yml
+  - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
 base_result: backlog/fixtures/multi-review/governance-pass.yml
 mutations:
-  - op: set
-    path: /critics/0/probe_command
-    value: python3 missing-probe.py --claim-pass
-  - op: set
-    path: /critics/0/probe_result
-    value: Plausible hand-authored success text.
-  - op: set
-    path: /critics/0/probe_evidence_refs
-    value:
-      - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
-verify_probe_commands: true
+- op: set
+  path: /critics/0/probe_command
+  value: python3 missing-probe.py --claim-pass
+- op: set
+  path: /critics/0/probe_result
+  value: Plausible hand-authored success text.
+- op: set
+  path: /critics/0/probe_evidence_refs
+  value:
+  - file:backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+replay_probe_commands: true
 sealed_oracle:
   oracle_type: probe-replay
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "probe_command exit mismatch"
-  false_green_target: Hand-authored transcript markers pass without executing the command.
-  primary_invariant: Probe replay must match the recorded exit code when replay is required.
+  - probe_command exit mismatch
+  false_green_target: Hand-authored structured transcript evidence passes without
+    executing the command.
+  primary_invariant: Probe replay must match the recorded exit code when replay is
+    required.
   oracle_assertions:
-    - id: pp-001
-      kind: fabricated_probe_transcript
-      severity: blocking
-      target_path: /critics/0/probe_command
-      invariant_id: probe_replay_matches_recorded_exit
-      required_evidence_refs:
-        - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
-      forbidden_shortcuts:
-        - transcript markers alone
-      acceptable_disposition:
-        - VETO
+  - id: pp-001
+    kind: fabricated_probe_transcript
+    severity: blocking
+    target_path: /critics/0/probe_command
+    invariant_id: probe_replay_matches_recorded_exit
+    required_evidence_refs:
+    - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+    forbidden_shortcuts:
+    - transcript artifact alone
+    acceptable_disposition:
+    - VETO

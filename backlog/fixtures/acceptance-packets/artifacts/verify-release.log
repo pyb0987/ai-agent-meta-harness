@@ -1,6 +1,7 @@
+# Command Evidence
 packet_id: pkt-finalized-waiver-downgrade-example
 packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-packet_sha256: f49fc27d22ecf064971fb76301e2553f4271b36761a8b868ec0dd985fd06e91d
+packet_sha256: b370bc40b18e4f612cdfa6b763872ee9501cfd5ded3ba8be84c32ccd0eb459ab
 command: python3 scripts/verify-release.py
 status: pass
-summary: fixture artifact for release verification
+summary: fixture artifact retained for spoofing and downgrade regression tests

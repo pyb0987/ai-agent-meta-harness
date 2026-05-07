@@ -1,0 +1,34 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import sys, unittest; names=['tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_rejects_broad_review_waiver_target',
+    'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_does_not_apply_evidence_downgrade_to_required_review'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('tests=' + ','.join(names));
+    print(f'tests_run={result.testsRun}'); print(f'failures={len(result.failures)}');
+    print(f'errors={len(result.errors)}'); print(f'skipped={len(result.skipped)}');
+    sys.exit(0 if result.wasSuccessful() else 1)"
+  probe_exit_code: 0
+  result_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+  result_digest: 5a443c345e07ca2b138544ea2a9950f2a4b66bb8694a1f36772acc7e70cf5c22
+  packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+  packet_sha256: 6d6c03155cd20b09ddbdd8442032cdb6fa9efe69afde69878571b91a223eb42c
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'tests=tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_rejects_broad_review_waiver_target,tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_does_not_apply_evidence_downgrade_to_required_review
+
+    tests_run=2
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: 097ce188e7dd5150c1d799c4a58b9e5b3c5ea930e6d0be0b74de92c4015812b6
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

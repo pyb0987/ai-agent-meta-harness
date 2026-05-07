@@ -13,7 +13,7 @@ mutations:
   - op: set
     path: /critics/1/scope
     value: Validate that acceptance is computed by a structured validator.
-verify_probe_commands: false
+replay_probe_commands: false
 sealed_oracle:
   oracle_type: structural
   scoring_mode: validator-only

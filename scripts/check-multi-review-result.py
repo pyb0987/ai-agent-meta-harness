@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 from pathlib import Path
 import shlex
@@ -18,6 +19,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 RESULT_KEY = "MultiReviewResult"
 SCHEMA_VERSION = "multi-review-result/v1"
+PROBE_TRANSCRIPT_KEY = "ProbeTranscript"
+PROBE_TRANSCRIPT_SCHEMA_VERSION = "probe-transcript/v1"
 
 TOP_LEVEL_FIELDS = {
     "schema_version",
@@ -79,6 +82,23 @@ VALIDATION_LAYERS = {
 PRIMARY_VALIDATION_LAYERS = {"structured-validator", "raw-artifact", "derived-verdict"}
 DERIVED_VERDICTS = {"PASS", "ADVISORY_PASS", "VETO", "INCOMPLETE", "FALLBACK_NONINDEPENDENT"}
 TARGET_FIELDS = {"summary", "source_refs"}
+PROBE_TRANSCRIPT_FIELDS = {
+    "schema_version",
+    "probe_command",
+    "probe_exit_code",
+    "result_ref",
+    "result_digest",
+    "packet_ref",
+    "packet_sha256",
+    "source_refs",
+    "cwd",
+    "generated_by",
+    "date",
+    "stdout",
+    "stderr",
+    "stdout_sha256",
+    "stderr_sha256",
+}
 VACUOUS_VALUES = {
     "",
     "none",
@@ -162,6 +182,12 @@ def resolve_source_ref(root: Path, ref: str) -> str | None:
     return resolve_repo_path(root, ref)
 
 
+def resolve_probe_transcript_ref(root: Path, ref: str) -> str | None:
+    if not isinstance(ref, str) or not ref.startswith("file:"):
+        return None
+    return resolve_repo_path(root, ref.removeprefix("file:"))
+
+
 def load_result(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -181,6 +207,13 @@ def load_result(path: Path) -> dict[str, Any]:
 
 def error(errors: list[str], source: str, message: str) -> None:
     errors.append(f"{source}: {message}")
+
+
+def display_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
@@ -226,14 +259,133 @@ def validate_source_refs(refs: Any, *, source: str, errors: list[str]) -> None:
             error(errors, item_source, f"must resolve to an existing repository-local file: {ref}")
 
 
-def source_ref_text(ref: str) -> str | None:
-    resolved = resolve_source_ref(ROOT, ref)
+def validate_probe_evidence_refs(refs: Any, *, source: str, errors: list[str]) -> None:
+    if not isinstance(refs, list) or not refs:
+        error(errors, source, "must be a non-empty list")
+        return
+    for index, ref in enumerate(refs):
+        item_source = f"{source}[{index}]"
+        if not isinstance(ref, str) or not is_substantive(ref):
+            error(errors, item_source, "must be a non-empty string ref")
+        elif not ref.startswith("file:"):
+            error(errors, item_source, f"must use file: scheme for probe transcript artifact refs: {ref}")
+        elif resolve_probe_transcript_ref(ROOT, ref) is None:
+            error(errors, item_source, f"must resolve to an existing repository-local file: {ref}")
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_text(value: str) -> str:
+    return sha256_bytes(value.encode("utf-8"))
+
+
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def transcript_cwd_is_repo_root(value: object) -> bool:
+    if not isinstance(value, str) or not is_substantive(value):
+        return False
+    path = Path(value)
+    if path.is_absolute():
+        return False
+    if ".." in path.parts:
+        return False
+    return (ROOT / path).resolve() == ROOT.resolve()
+
+
+def load_probe_transcript(ref: str) -> dict[str, Any] | None:
+    resolved = resolve_probe_transcript_ref(ROOT, ref)
     if resolved is None:
         return None
+    path = ROOT / resolved
     try:
-        return (ROOT / resolved).read_text(encoding="utf-8")
-    except OSError:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
         return None
+    try:
+        loaded = json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
+    except (json.JSONDecodeError, yaml.YAMLError):
+        return None
+    if not isinstance(loaded, dict) or PROBE_TRANSCRIPT_KEY not in loaded:
+        return None
+    transcript = loaded[PROBE_TRANSCRIPT_KEY]
+    return transcript if isinstance(transcript, dict) else None
+
+
+def sorted_string_values(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    return sorted(item for item in values if isinstance(item, str) and is_substantive(item))
+
+
+def source_refs_resolve(refs: Any) -> bool:
+    if not isinstance(refs, list) or not refs:
+        return False
+    return all(isinstance(ref, str) and resolve_source_ref(ROOT, ref) is not None for ref in refs)
+
+
+def transcript_matches_probe(
+    transcript: dict[str, Any],
+    *,
+    command: str,
+    exit_code: int,
+    result_ref: str | None,
+    result_digest: str | None,
+    packet_ref: str | None,
+    packet_sha256: str | None,
+    source_refs: list[str],
+) -> bool:
+    if set(transcript) != PROBE_TRANSCRIPT_FIELDS:
+        return False
+    if transcript.get("schema_version") != PROBE_TRANSCRIPT_SCHEMA_VERSION:
+        return False
+    if transcript.get("probe_command") != command:
+        return False
+    if transcript.get("probe_exit_code") != exit_code:
+        return False
+    if result_ref is not None and transcript.get("result_ref") != result_ref:
+        return False
+    if result_digest is not None and transcript.get("result_digest") != result_digest:
+        return False
+    if result_digest is None and not is_sha256(transcript.get("result_digest")):
+        return False
+    if packet_ref is not None:
+        if transcript.get("packet_ref") != packet_ref:
+            return False
+    elif transcript.get("packet_ref") is not None:
+        return False
+    if packet_sha256 is not None:
+        if transcript.get("packet_sha256") != packet_sha256:
+            return False
+    elif transcript.get("packet_sha256") is not None:
+        return False
+    transcript_source_refs = transcript.get("source_refs")
+    if not source_refs_resolve(transcript_source_refs):
+        return False
+    if source_refs and sorted_string_values(transcript_source_refs) != source_refs:
+        return False
+    if not transcript_cwd_is_repo_root(transcript.get("cwd")) or not is_substantive(transcript.get("generated_by")):
+        return False
+    if not date_like(transcript.get("date")):
+        return False
+    stdout = transcript.get("stdout")
+    stderr = transcript.get("stderr")
+    if not isinstance(stdout, str) or not isinstance(stderr, str):
+        return False
+    if not is_sha256(transcript.get("stdout_sha256")) or not is_sha256(transcript.get("stderr_sha256")):
+        return False
+    return transcript["stdout_sha256"] == sha256_text(stdout) and transcript["stderr_sha256"] == sha256_text(stderr)
 
 
 def validate_target(target: Any, errors: list[str]) -> None:
@@ -309,7 +461,7 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
     if not isinstance(critic.get("probe_exit_code"), int) or isinstance(critic.get("probe_exit_code"), bool):
         error(errors, source, "probe_exit_code must be an integer")
     validate_source_refs(critic.get("source_refs"), source=f"{source}.source_refs", errors=errors)
-    validate_source_refs(critic.get("probe_evidence_refs"), source=f"{source}.probe_evidence_refs", errors=errors)
+    validate_probe_evidence_refs(critic.get("probe_evidence_refs"), source=f"{source}.probe_evidence_refs", errors=errors)
     if not isinstance(critic.get("evidence"), list) or not critic.get("evidence"):
         error(errors, source, "evidence must be a non-empty list")
     elif not any(is_substantive(item) for item in critic.get("evidence", [])):
@@ -335,7 +487,11 @@ def validate_listed_critic_for_acceptance(
     *,
     source: str,
     review_mode: str,
-    verify_probe_commands: bool,
+    replay_probe_commands: bool,
+    result_ref: str | None,
+    result_digest: str | None,
+    packet_ref: str | None,
+    packet_sha256: str | None,
     errors: list[str],
 ) -> None:
     score = critic.get("score")
@@ -360,36 +516,67 @@ def validate_listed_critic_for_acceptance(
             error(errors, source, f"{field} must be substantive")
     if critic.get("probe_exit_code") != 0:
         error(errors, source, "probe_exit_code must be 0 for derived acceptance")
-    if not probe_has_matching_transcript(critic):
-        error(errors, source, "probe_evidence_refs must include a transcript matching probe_command and probe_exit_code")
-    if verify_probe_commands:
-        verify_probe_command(critic, source=source, errors=errors)
+    transcript = matching_probe_transcript(
+        critic,
+        result_ref=result_ref,
+        result_digest=result_digest,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+    )
+    if transcript is None:
+        error(errors, source, "probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code")
+    if replay_probe_commands:
+        replay_probe_command(critic, source=source, transcript=transcript, errors=errors)
     if score == 9:
         for field in ("why_not_10", "residual_risk_disposition"):
             if not is_substantive(critic.get(field)):
                 error(errors, source, f"score 9 requires {field}")
 
 
-def probe_has_matching_transcript(critic: dict[str, Any]) -> bool:
+def matching_probe_transcript(
+    critic: dict[str, Any],
+    *,
+    result_ref: str | None = None,
+    result_digest: str | None = None,
+    packet_ref: str | None = None,
+    packet_sha256: str | None = None,
+) -> dict[str, Any] | None:
     command = critic.get("probe_command")
     exit_code = critic.get("probe_exit_code")
     refs = critic.get("probe_evidence_refs")
     if not isinstance(command, str) or not isinstance(exit_code, int) or isinstance(exit_code, bool):
-        return False
+        return None
     if not isinstance(refs, list) or not refs:
-        return False
-    command_marker = f"COMMAND: {command}"
-    exit_marker = f"EXIT_CODE: {exit_code}"
+        return None
     for ref in refs:
         if not isinstance(ref, str):
             continue
-        text = source_ref_text(ref)
-        if text is not None and command_marker in text and exit_marker in text:
-            return True
-    return False
+        transcript = load_probe_transcript(ref)
+        if transcript is not None and transcript_matches_probe(
+            transcript,
+            command=command,
+            exit_code=exit_code,
+            result_ref=result_ref,
+            result_digest=result_digest,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+            source_refs=sorted_string_values(critic.get("source_refs")),
+        ):
+            return transcript
+    return None
 
 
-def verify_probe_command(critic: dict[str, Any], *, source: str, errors: list[str]) -> None:
+def probe_has_matching_transcript(critic: dict[str, Any]) -> bool:
+    return matching_probe_transcript(critic) is not None
+
+
+def replay_probe_command(
+    critic: dict[str, Any],
+    *,
+    source: str,
+    transcript: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
     command = critic.get("probe_command")
     expected_exit = critic.get("probe_exit_code")
     if not isinstance(command, str) or not isinstance(expected_exit, int) or isinstance(expected_exit, bool):
@@ -406,8 +593,6 @@ def verify_probe_command(critic: dict[str, Any], *, source: str, errors: list[st
         completed = subprocess.run(
             argv,
             cwd=ROOT,
-            encoding="utf-8",
-            text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=120,
@@ -415,11 +600,37 @@ def verify_probe_command(critic: dict[str, Any], *, source: str, errors: list[st
     except FileNotFoundError:
         error(errors, source, f"probe_command executable not found: {argv[0]}")
         return
+    except OSError as exc:
+        error(errors, source, f"probe_command launch failed: {exc}")
+        return
     except subprocess.TimeoutExpired:
         error(errors, source, "probe_command timed out after 120s")
         return
     if completed.returncode != expected_exit:
         error(errors, source, f"probe_command exit mismatch: expected {expected_exit}, got {completed.returncode}")
+        return
+    if transcript is None:
+        return
+    stdout_hash = sha256_bytes(completed.stdout)
+    stderr_hash = sha256_bytes(completed.stderr)
+    try:
+        stdout_text = completed.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        error(errors, source, "probe_command stdout was not valid UTF-8")
+        stdout_text = None
+    try:
+        stderr_text = completed.stderr.decode("utf-8")
+    except UnicodeDecodeError:
+        error(errors, source, "probe_command stderr was not valid UTF-8")
+        stderr_text = None
+    if transcript.get("stdout_sha256") != stdout_hash:
+        error(errors, source, "probe_command stdout hash mismatch against linked transcript")
+    if transcript.get("stderr_sha256") != stderr_hash:
+        error(errors, source, "probe_command stderr hash mismatch against linked transcript")
+    if stdout_text is not None and transcript.get("stdout") != stdout_text:
+        error(errors, source, "probe_command stdout text mismatch against linked transcript")
+    if stderr_text is not None and transcript.get("stderr") != stderr_text:
+        error(errors, source, "probe_command stderr text mismatch against linked transcript")
 
 
 def validate_governance_frame_disjointness(
@@ -440,7 +651,15 @@ def validate_governance_frame_disjointness(
             error(errors, "MultiReviewResult.required_critics", f"required critics must have distinct {field} values")
 
 
-def derive_verdict(result: dict[str, Any], *, verify_probe_commands: bool = False) -> tuple[str, list[str]]:
+def derive_verdict(
+    result: dict[str, Any],
+    *,
+    replay_probe_commands: bool = False,
+    result_ref: str | None = None,
+    result_digest: str | None = None,
+    packet_ref: str | None = None,
+    packet_sha256: str | None = None,
+) -> tuple[str, list[str]]:
     errors: list[str] = []
     validate_top_level(result, errors)
     validate_target(result.get("target"), errors)
@@ -489,7 +708,11 @@ def derive_verdict(result: dict[str, Any], *, verify_probe_commands: bool = Fals
                 critic,
                 source=critic_source(critic, index),
                 review_mode=str(review_mode),
-                verify_probe_commands=verify_probe_commands,
+                replay_probe_commands=replay_probe_commands,
+                result_ref=result_ref,
+                result_digest=result_digest,
+                packet_ref=packet_ref,
+                packet_sha256=packet_sha256,
                 errors=errors,
             )
         if critic.get("critic_id") in required_ids:
@@ -526,14 +749,21 @@ def check_result(
     path: Path,
     *,
     require_governance_pass: bool = False,
-    verify_probe_commands: bool = False,
+    replay_probe_commands: bool = False,
 ) -> int:
     try:
         result = load_result(path)
     except MultiReviewError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    derived_verdict, errors = derive_verdict(result, verify_probe_commands=verify_probe_commands)
+    path_resolved = path.resolve()
+    root_resolved = ROOT.resolve()
+    derived_verdict, errors = derive_verdict(
+        result,
+        replay_probe_commands=replay_probe_commands,
+        result_ref=display_path(path),
+        result_digest=file_sha256(path),
+    )
     if errors:
         for item in errors:
             print(f"ERROR: {item}", file=sys.stderr)
@@ -546,10 +776,10 @@ def check_result(
     boundary = (
         "artifact-internal consistency with linked probe transcripts and replayed probe commands; "
         "not stable handoff evidence"
-        if verify_probe_commands
+        if replay_probe_commands
         else "artifact-internal consistency with linked probe transcripts; not command replay or stable handoff evidence"
     )
-    print(f"DERIVED: {derived_verdict} ({boundary}): {path}", file=stream)
+    print(f"DERIVED: {derived_verdict} ({boundary}): {display_path(path)}", file=stream)
     return 0 if success else 1
 
 
@@ -558,9 +788,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--result", required=True, help="Path to a MultiReviewResult JSON/YAML artifact")
     parser.add_argument("--require-governance-pass", action="store_true")
     parser.add_argument(
-        "--verify-probe-commands",
+        "--replay-probe-commands",
         action="store_true",
-        help="Replay probe_command values and compare their exit codes to probe_exit_code",
+        help="Actively replay probe_command values and compare exit codes plus raw stdout/stderr hashes",
     )
     args = parser.parse_args(argv)
     path = Path(args.result)
@@ -568,7 +798,7 @@ def main(argv: list[str] | None = None) -> int:
     return check_result(
         result_path,
         require_governance_pass=args.require_governance_pass,
-        verify_probe_commands=args.verify_probe_commands,
+        replay_probe_commands=args.replay_probe_commands,
     )
 
 

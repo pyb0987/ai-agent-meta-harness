@@ -1,4 +1,21 @@
-COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml --require-governance-pass
-EXIT_CODE: 0
-OUTPUT:
-DERIVED: PASS (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/governance-pass.yml
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml
+    --require-governance-pass
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/governance-pass.yml
+  result_digest: 8bd8de89f98058bb26acf914d5abd5ba5f5f2f34a0630019b5a2db2c84b79b6c
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-multi-review-result.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: 'DERIVED: PASS (artifact-internal consistency with linked probe transcripts;
+    not command replay or stable handoff evidence): backlog/fixtures/multi-review/governance-pass.yml
+
+    '
+  stderr: ''
+  stdout_sha256: 7eb6a513ceffc50ac6d6e08d4bb31259f34ba2fc1dd5eb3712de6a69ce88ca81
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

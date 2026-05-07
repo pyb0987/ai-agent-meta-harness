@@ -7,187 +7,186 @@ AcceptancePacket:
     created_at: 2026-05-06
     finalized_at: 2026-05-06
   input:
-    intent: "Accept a narrow archive index repair after v1 archive import."
-    actor: "codex"
+    intent: Accept a narrow archive index repair after v1 archive import.
+    actor: codex
     source_refs:
-      - "archive/v1/README.md"
-      - "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+    - archive/v1/README.md
+    - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
     user_judgment:
       waiver_request:
-        actor: "maintainer"
-        role: "maintainer"
+        actor: maintainer
+        role: maintainer
         date: 2026-05-06
-        review: "full v1 archive fidelity"
-        reason: "Repair archive index wording without changing frozen v1 evidence records."
-        source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        kind: review
+        review: full v1 archive fidelity
+        reason: Repair archive index wording without changing frozen v1 evidence records.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
       review_downgrade_request:
-        actor: "maintainer"
-        role: "maintainer"
+        actor: maintainer
+        role: maintainer
         date: 2026-05-06
         kind: evidence
-        from: "python3 scripts/verify-release.py"
-        to: "staged archive-boundary plus whitespace verification"
-        reason: "No runtime behavior changed; archive index wording only."
-        source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+        from: python3 scripts/verify-release.py
+        to: staged archive-boundary plus whitespace verification
+        reason: No runtime behavior changed; archive index wording only.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
   result:
     inference:
       change_class: harness-affecting
       impact: high
       changed_paths:
-        - "archive/v1/README.md"
-      intended_scope: "Archive index wording repair only."
-      actual_scope: "archive/v1/README.md only."
+      - archive/v1/README.md
+      intended_scope: Archive index wording repair only.
+      actual_scope: archive/v1/README.md only.
       deviations: []
       isolation: isolated
       protected_boundary_changed: true
       required_evidence:
-        - "python3 scripts/check-v1-archive-boundary.py --staged"
-        - "python3 scripts/verify-release.py"
-        - "git diff --check"
+      - python3 scripts/check-v1-archive-boundary.py --staged
+      - python3 scripts/verify-release.py
+      - git diff --cached --check
       required_review:
-        - "archive boundary"
-        - "full v1 archive fidelity"
+      - archive boundary
+      - full v1 archive fidelity
     evidence:
-      baseline_ref: "HEAD"
-      comparison_ref: "HEAD"
+      baseline_ref: HEAD
+      comparison_ref: HEAD
       evaluator_boundary:
         status: unchanged
         commands:
-          - "python3 scripts/check-v1-archive-boundary.py --staged"
-          - "python3 scripts/verify-release.py"
-          - "git diff --check"
+        - python3 scripts/check-v1-archive-boundary.py --staged
+        - python3 scripts/verify-release.py
+        - git diff --cached --check
       command_results:
-        - command: "python3 scripts/check-v1-archive-boundary.py --staged"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
-        - command: "python3 scripts/verify-release.py"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
-        - command: "git diff --check"
-          status: pass
-          artifact_ref: "file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
+      - command: python3 scripts/check-v1-archive-boundary.py --staged
+        status: pass
+        artifact_ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log
+      - command: git diff --cached --check
+        status: pass
+        artifact_ref: file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log
       source_refs:
-        - "archive/v1/README.md"
-        - "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      - archive/v1/README.md
+      - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
       resolved_refs:
-        - origin: input
-          relation: source
-          ref: "archive/v1/README.md"
-          status: resolved
-          target: "archive/v1/README.md"
-        - origin: input
-          relation: source
-          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-          status: resolved
-          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/verify-release.log"
-        - origin: generated
-          relation: artifact
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log"
-        - origin: generated
-          relation: waiver-provenance
-          ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-          status: resolved
-          target: "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-        - origin: generated
-          relation: review-provenance
-          ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
-          status: resolved
-          target: "backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
+      - origin: input
+        relation: source
+        ref: archive/v1/README.md
+        status: resolved
+        target: archive/v1/README.md
+      - origin: input
+        relation: source
+        ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+        status: resolved
+        target: backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      - origin: generated
+        relation: artifact
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-staged.log
+      - origin: generated
+        relation: artifact
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/git-diff-check.log
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+        status: resolved
+        target: backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      - origin: generated
+        relation: review-provenance
+        ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+        status: resolved
+        target: backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
       review_imports:
-        - source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
-          format: acceptance-packet-review-import/v1
-          source_digest: "3aa9795229eb3ccd224f83e0f582afb5ce33c9e5067daf592d30bc684fc4acc4"
-          status: imported
-          review_ids:
-            - review-waiver-archive-boundary
-          target_binding:
-            packet_id: pkt-finalized-waiver-downgrade-example
-            packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-            review_target_digest: 0185f06bd1b622fd8879fac89fbd62d58831b8486efc23ee45ecf9856a5560ae
-            baseline_ref: HEAD
-            comparison_ref: HEAD
-            source_refs:
-              - archive/v1/README.md
-              - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
-            changed_paths:
-              - archive/v1/README.md
-            required_review:
-              - archive boundary
-              - full v1 archive fidelity
+      - source_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 5a443c345e07ca2b138544ea2a9950f2a4b66bb8694a1f36772acc7e70cf5c22
+        status: imported
+        review_ids:
+        - review-waiver-archive-boundary
+        target_binding:
+          packet_id: pkt-finalized-waiver-downgrade-example
+          packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
+          review_target_digest: 8c43adcef3ad746291dc74fa4717c7e9bb65742aca295ca9bc18209262a30c2d
+          baseline_ref: HEAD
+          comparison_ref: HEAD
+          source_refs:
+          - archive/v1/README.md
+          - file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+          changed_paths:
+          - archive/v1/README.md
+          required_review:
+          - archive boundary
+          - full v1 archive fidelity
       trace_refs:
         search_set_before: null
         search_set_after: null
         evolution: []
         failures: []
-        disposition: "Not required for archive index wording repair; waiver provenance recorded."
+        disposition: Not required for archive index wording repair; waiver provenance
+          recorded.
       skipped:
-        - evidence: "search_set_before"
-          actor: "maintainer"
-          role: "maintainer"
-          date: 2026-05-06
-          reason: "Archive index wording repair does not reuse search-set before evidence."
-          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-        - evidence: "search_set_after"
-          actor: "maintainer"
-          role: "maintainer"
-          date: 2026-05-06
-          reason: "Archive index wording repair does not reuse search-set after evidence."
-          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      - evidence: search_set_before
+        actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        reason: Archive index wording repair does not reuse search-set before evidence.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      - evidence: search_set_after
+        actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        reason: Archive index wording repair does not reuse search-set after evidence.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
     judgment:
       reviews:
-        - review_id: review-waiver-archive-boundary
-          critic: "archive boundary"
-          scope: "Archive index wording repair and v1 archive boundary handling."
-          anti_scope: "Full v1 archive fidelity, which is handled by targeted waiver."
-          actor: "reviewer"
-          role: "reviewer"
-          date: 2026-05-06
-          score: 9
-          veto: false
-          false_green_risk: "Archive repair could be treated as routine without waiver provenance."
-          invariant_checked: "Required archive review and waiver targets are checked separately."
-          evidence:
-            - "Archive boundary review is represented as structured lineage."
-          source_refs:
-            - "archive/v1/README.md"
-            - "backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
-          blocking_findings: []
-          why_not_10: "The example relies on source refs rather than embedding full review transcript."
-          disposition: "Accepted because raw review source is referenced."
-          source_ref: "file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml"
-          rerun_of: null
-          fixed_finding_ids: []
+      - review_id: review-waiver-archive-boundary
+        critic: archive boundary
+        scope: Archive index wording repair and v1 archive boundary handling.
+        anti_scope: Full v1 archive fidelity, which is handled by targeted waiver.
+        actor: reviewer
+        role: reviewer
+        date: 2026-05-06
+        score: 9
+        veto: false
+        false_green_risk: Archive repair could be treated as routine without waiver
+          provenance.
+        invariant_checked: Required archive review and waiver targets are checked
+          separately.
+        evidence:
+        - Archive boundary review is represented as structured lineage.
+        source_refs:
+        - archive/v1/README.md
+        - backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+        blocking_findings: []
+        why_not_10: The example relies on source refs rather than embedding full review
+          transcript.
+        disposition: Accepted because raw review source is referenced.
+        source_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
+        rerun_of: null
+        fixed_finding_ids: []
       waivers:
-        - actor: "maintainer"
-          role: "maintainer"
-          date: 2026-05-06
-          review: "full v1 archive fidelity"
-          reason: "Repair archive index wording without changing frozen v1 evidence records."
-          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      - actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        kind: review
+        review: full v1 archive fidelity
+        reason: Repair archive index wording without changing frozen v1 evidence records.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
       downgrades:
-        - kind: evidence
-          from: "python3 scripts/verify-release.py"
-          to: "staged archive-boundary plus whitespace verification"
-          actor: "maintainer"
-          role: "maintainer"
-          date: 2026-05-06
-          reason: "No runtime behavior changed; archive index wording only."
-          source_ref: "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md"
+      - kind: evidence
+        from: python3 scripts/verify-release.py
+        to: staged archive-boundary plus whitespace verification
+        actor: maintainer
+        role: maintainer
+        date: 2026-05-06
+        reason: No runtime behavior changed; archive index wording only.
+        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
       residual_risk: []
     decision:
       accepted: true
       stable_handoff_eligible: true
-      reason: "Waiver and downgrade provenance are recorded and required evidence passed."
-      next_action: "Keep waiver in packet archive when archive storage exists."
+      reason: Waiver and downgrade provenance are recorded and each required evidence/review
+        target has exactly one closure.
+      next_action: Keep waiver in packet archive when archive storage exists.

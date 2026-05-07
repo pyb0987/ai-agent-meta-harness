@@ -140,6 +140,23 @@ pointer should eventually validate:
 - `result.decision.accepted: yes`
 - required source refs resolve
 
+## Active Governance Boundaries
+
+During the v2 transition, keep the active operator model to four boundaries:
+
+- `check` is read-only. Stable handoff validation may read packets, source
+  refs, transcripts, and command artifacts, but it must not execute
+  artifact-supplied probe commands.
+- `replay` is explicit. Probe commands may run only through an explicit replay
+  path such as `python3 scripts/check-multi-review-result.py --result <path>
+  --replay-probe-commands`; replay is not part of stable packet `check`.
+- `stable` validates durable evidence. A stable packet proves closure through
+  recomputed required evidence/review, structured imports, source refs,
+  transcripts, and command artifacts, not by trusting reported PASS prose.
+- generated artifact refs use explicit schemes. Stable artifact and probe
+  evidence refs use `file:`, trace refs use `trace:`, and source refs may stay
+  broader until a later archive plan intentionally narrows them.
+
 ## Verification During Transition
 
 Before the v2 checker exists, run the narrow compatibility checks that still
@@ -187,6 +204,14 @@ python3 scripts/check-clean-worktree.py
 
 It is not part of pre-commit because in-progress staged checks must be able to
 run before the working tree is clean.
+
+When editing governance fixtures or transcript artifacts, also run the Plan 06
+developer helper. It remains outside the stable release gate until v2 archive
+integration defines the release policy:
+
+```bash
+python3 scripts/update-governance-fixtures.py --check
+```
 
 For staged pre-commit evidence, use:
 
@@ -290,3 +315,11 @@ During bootstrap, any critic score below 9 is blocking for stable handoff until
 the finding is fixed or the work is explicitly not accepted. Score 9 requires a
 why-not-10 reason and a residual-risk or follow-up disposition. These records
 should move into packet fields once the v2 checker can capture them.
+
+For governance work, include an anti-bloat critic before accepting a new guard,
+schema field, or fixture kind. That critic should ask which false-green path is
+closed, whether an existing guard can be generalized, whether any new user field
+or hand-authored fixture burden is added, and what complexity is removed,
+generated, or deferred. Fixture hash/ref drift should be handled by
+`python3 scripts/update-governance-fixtures.py --check` rather than reviewer
+memory.

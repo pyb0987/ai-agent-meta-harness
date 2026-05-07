@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -201,6 +202,18 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("downgrade kind must be evidence or review", result.stderr)
 
+    def test_check_rejects_review_waiver_without_kind(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"][0].pop("kind", None)
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review waiver kind must be review", result.stderr)
+
     def test_check_does_not_apply_evidence_downgrade_to_required_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -230,6 +243,179 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("stable packet missing required review", result.stderr)
+
+    def test_check_rejects_required_evidence_double_closure(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "verify-release-double-closure.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"].append(
+                {
+                    "command": "python3 scripts/verify-release.py",
+                    "status": "pass",
+                    "artifact_ref": f"file:{rel_artifact}",
+                }
+            )
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "artifact",
+                    "ref": f"file:{rel_artifact}",
+                    "status": "resolved",
+                    "target": rel_artifact,
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        "packet_id: pkt-finalized-waiver-downgrade-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "command: python3 scripts/verify-release.py",
+                        "status: pass",
+                        "summary: double closure regression fixture",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required evidence has multiple closures", result.stderr)
+
+    def test_check_rejects_duplicate_review_waiver_closure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            waiver = dict(packet["AcceptancePacket"]["result"]["judgment"]["waivers"][0])
+            waiver["reason"] = "duplicate closure regression"
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"].append(waiver)
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required review has multiple closures", result.stderr)
+
+    def test_check_accepts_targeted_skipped_required_evidence_closure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"] = []
+            evidence["skipped"] = [
+                {
+                    "evidence": "git diff --cached --check",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "targeted skip regression",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_check_rejects_broad_review_waiver_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"][0]["review"] = "not required"
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exception target is not required: not required", result.stderr)
+
+    def test_check_rejects_same_search_set_before_after_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
+            trace_refs = packet["AcceptancePacket"]["result"]["evidence"]["trace_refs"]
+            trace_refs["search_set_before"] = "trace:.harness/traces/search-set.md#active"
+            trace_refs["search_set_after"] = "trace:.harness/traces/search-set.md#active"
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("search_set_before and search_set_after must be distinct", result.stderr)
+
+    def test_check_rejects_unbound_command_artifact_record(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "mixed-command-record.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Packet Record",
+                        "packet_id: pkt-finalized-routine-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "# Command Record",
+                        "command: git diff --cached --check",
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+
+    def test_check_rejects_bare_command_artifact_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            artifact_ref = evidence["command_results"][0]["artifact_ref"].removeprefix("file:")
+            evidence["command_results"][0]["artifact_ref"] = artifact_ref
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = artifact_ref
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact_ref must use file: scheme", result.stderr)
 
     def test_check_rejects_stable_packet_with_subthreshold_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

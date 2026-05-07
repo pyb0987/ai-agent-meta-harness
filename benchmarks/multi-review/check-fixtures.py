@@ -41,13 +41,15 @@ def load_scenario(path: Path) -> dict[str, Any]:
         raise ScenarioError(f"{path}: scenario must be a mapping")
     if loaded.get("schema_version") != SCENARIO_VERSION:
         raise ScenarioError(f"{path}: schema_version must be {SCENARIO_VERSION}")
-    for field in ("scenario_id", "axis", "public_input", "base_result", "sealed_oracle"):
+    for field in ("scenario_id", "axis", "review_mode", "public_input", "base_result", "sealed_oracle"):
         if field not in loaded:
             raise ScenarioError(f"{path}: missing {field}")
     if not isinstance(loaded["scenario_id"], str) or not loaded["scenario_id"]:
         raise ScenarioError(f"{path}: scenario_id must be a non-empty string")
     if not isinstance(loaded["axis"], str) or not loaded["axis"]:
         raise ScenarioError(f"{path}: axis must be a non-empty string")
+    if loaded["review_mode"] not in checker.REVIEW_MODES:
+        raise ScenarioError(f"{path}: review_mode must be one of {sorted(checker.REVIEW_MODES)}")
     if not isinstance(loaded["public_input"], dict):
         raise ScenarioError(f"{path}: public_input must be a mapping")
     if not isinstance(loaded["sealed_oracle"], dict):
@@ -56,8 +58,10 @@ def load_scenario(path: Path) -> dict[str, Any]:
         raise ScenarioError(f"{path}: sealed_oracle missing expected_derived_verdict")
     if not isinstance(loaded.get("mutations", []), list):
         raise ScenarioError(f"{path}: mutations must be a list")
-    if not isinstance(loaded.get("verify_probe_commands", False), bool):
-        raise ScenarioError(f"{path}: verify_probe_commands must be a boolean")
+    if "verify_probe_commands" in loaded:
+        raise ScenarioError(f"{path}: use replay_probe_commands instead of verify_probe_commands")
+    if not isinstance(loaded.get("replay_probe_commands", False), bool):
+        raise ScenarioError(f"{path}: replay_probe_commands must be a boolean")
     return loaded
 
 
@@ -162,6 +166,23 @@ def scenario_result(scenario: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def semantic_pending_reasons(scenario: dict[str, Any], derived_verdict: str) -> list[str]:
+    oracle = scenario["sealed_oracle"]
+    if oracle.get("scoring_mode") != "contract-only" or oracle.get("oracle_type") != "semantic":
+        return []
+    reasons: list[str] = []
+    for index, assertion in enumerate(oracle.get("oracle_assertions", [])):
+        if not isinstance(assertion, dict):
+            continue
+        acceptable = assertion.get("acceptable_disposition", [])
+        if isinstance(acceptable, list) and derived_verdict not in acceptable:
+            assertion_id = assertion.get("id", index)
+            reasons.append(
+                f"semantic assertion {assertion_id} requires one of {acceptable}, structural validator derived {derived_verdict}"
+            )
+    return reasons
+
+
 def validate_oracle_shape(scenario_path: Path, scenario: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     public_input = scenario["public_input"]
@@ -209,51 +230,82 @@ def validate_oracle_shape(scenario_path: Path, scenario: dict[str, Any]) -> list
     return failures
 
 
-def check_scenario(path: Path) -> tuple[str, str, list[str]]:
+def check_scenario(path: Path, *, replay_probe_commands: bool = False) -> tuple[str, str, list[str], list[str]]:
     scenario = load_scenario(path)
     failures = validate_oracle_shape(path, scenario)
     scenario_id = scenario["scenario_id"]
     result = scenario_result(scenario)
+    if result.get("review_mode") != scenario["review_mode"]:
+        failures.append(
+            f"{path}: scenario review_mode {scenario['review_mode']} does not match result review_mode {result.get('review_mode')}"
+        )
+    replay_required = scenario.get("replay_probe_commands", False)
+    replay_missing = replay_required and not replay_probe_commands
+    replay_enabled = replay_required and replay_probe_commands
     derived_verdict, errors = checker.derive_verdict(
         result,
-        verify_probe_commands=scenario.get("verify_probe_commands", False),
+        replay_probe_commands=replay_enabled,
     )
+    pending = []
+    if replay_missing:
+        pending.append("active probe replay required; rerun with --replay-probe-commands")
+    pending.extend(semantic_pending_reasons(scenario, derived_verdict))
     oracle = scenario["sealed_oracle"]
     expected_verdict = oracle["expected_derived_verdict"]
-    if derived_verdict != expected_verdict:
+    if not replay_missing and derived_verdict != expected_verdict:
         failures.append(
             f"{path}: expected derived verdict {expected_verdict}, got {derived_verdict}"
         )
     joined_errors = "\n".join(errors)
-    for expected in oracle.get("expected_errors", []):
-        if expected not in joined_errors:
-            failures.append(f"{path}: missing expected error substring: {expected!r}")
-    for forbidden in oracle.get("forbidden_errors", []):
-        if forbidden in joined_errors:
-            failures.append(f"{path}: found forbidden error substring: {forbidden!r}")
+    if not replay_missing:
+        for expected in oracle.get("expected_errors", []):
+            if expected not in joined_errors:
+                failures.append(f"{path}: missing expected error substring: {expected!r}")
+        for forbidden in oracle.get("forbidden_errors", []):
+            if forbidden in joined_errors:
+                failures.append(f"{path}: found forbidden error substring: {forbidden!r}")
+    elif errors:
+        failures.append(f"{path}: replay-required scenario has structural validator errors without replay: {errors}")
     if expected_verdict in {"PASS", "ADVISORY_PASS"} and errors:
         failures.append(f"{path}: expected acceptance but validator produced errors: {errors}")
-    return scenario_id, derived_verdict, failures
+    return scenario_id, derived_verdict, failures, pending
 
 
-def check_scenarios(paths: list[Path]) -> int:
+def check_scenarios(
+    paths: list[Path],
+    *,
+    replay_probe_commands: bool = False,
+    allow_pending: bool = False,
+) -> int:
     failures: list[str] = []
+    pending_count = 0
+    pass_count = 0
     for path in paths:
         try:
-            scenario_id, derived_verdict, scenario_failures = check_scenario(path)
+            scenario_id, derived_verdict, scenario_failures, scenario_pending = check_scenario(
+                path,
+                replay_probe_commands=replay_probe_commands,
+            )
         except (ScenarioError, checker.MultiReviewError) as exc:
             failures.append(f"ERROR {path}: {exc}")
             continue
         if scenario_failures:
             failures.extend(scenario_failures)
             print(f"FAIL {scenario_id} derived={derived_verdict}", file=sys.stderr)
+        elif scenario_pending:
+            pending_count += 1
+            print(f"PENDING {scenario_id} derived={derived_verdict} pending={'; '.join(scenario_pending)}")
         else:
+            pass_count += 1
             print(f"PASS {scenario_id} derived={derived_verdict}")
     if failures:
         for failure in failures:
             print(f"ERROR: {failure}", file=sys.stderr)
         return 1
-    print(f"Fixture scenarios passed: {len(paths)}")
+    print(f"Fixture scenarios checked: {pass_count} passed, {pending_count} pending explicit checks")
+    if pending_count and not allow_pending:
+        print("ERROR: pending scenarios require --allow-pending for a zero exit status", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -270,6 +322,16 @@ def main(argv: list[str] | None = None) -> int:
         default=str(DEFAULT_SCENARIOS_ROOT),
         help="Root containing **/scenario.yml files.",
     )
+    parser.add_argument(
+        "--replay-probe-commands",
+        action="store_true",
+        help="Actively replay probe commands for scenarios that require replay.",
+    )
+    parser.add_argument(
+        "--allow-pending",
+        action="store_true",
+        help="Return zero when only explicit pending semantic/replay checks remain.",
+    )
     args = parser.parse_args(argv)
     try:
         paths = scenario_paths(args.scenario, resolve_path(args.scenarios_root))
@@ -279,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
     if not paths:
         print("ERROR: no scenarios found", file=sys.stderr)
         return 1
-    return check_scenarios(paths)
+    return check_scenarios(paths, replay_probe_commands=args.replay_probe_commands, allow_pending=args.allow_pending)
 
 
 if __name__ == "__main__":

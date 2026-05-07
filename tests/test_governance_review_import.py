@@ -40,6 +40,41 @@ def load_checker():
     return module
 
 
+def probe_transcript(
+    command: str,
+    exit_code: int,
+    stdout: str = "",
+    stderr: str = "",
+    *,
+    result_ref: str = "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml",
+    result_digest: str = "0" * 64,
+    packet_ref: str | None = "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml",
+    packet_sha256: str | None = "0" * 64,
+    source_refs: list[str] | None = None,
+) -> dict:
+    if source_refs is None:
+        source_refs = ["scripts/check-governance-acceptance.py"]
+    return {
+        "ProbeTranscript": {
+            "schema_version": "probe-transcript/v1",
+            "probe_command": command,
+            "probe_exit_code": exit_code,
+            "result_ref": result_ref,
+            "result_digest": result_digest,
+            "packet_ref": packet_ref,
+            "packet_sha256": packet_sha256,
+            "source_refs": source_refs,
+            "cwd": ".",
+            "generated_by": "test",
+            "date": "2026-05-06",
+            "stdout": stdout,
+            "stderr": stderr,
+            "stdout_sha256": hashlib.sha256(stdout.encode("utf-8")).hexdigest(),
+            "stderr_sha256": hashlib.sha256(stderr.encode("utf-8")).hexdigest(),
+        }
+    }
+
+
 class GovernanceReviewImportTests(unittest.TestCase):
     def setUp(self) -> None:
         self.checker = load_checker()
@@ -101,6 +136,9 @@ class GovernanceReviewImportTests(unittest.TestCase):
             review["source_ref"] = import_ref
         if mutate_wrapper:
             mutate_wrapper(wrapper)
+        for index, critic in enumerate(wrapper["MultiReviewResult"]["critics"]):
+            critic_id = str(critic.get("critic_id", f"critic-{index}")).replace("/", "-")
+            critic["probe_evidence_refs"] = [f"file:{self.rel_dir}/probe-{critic_id}.yml"]
         packet["result"]["judgment"]["reviews"] = copy.deepcopy(wrapper["review_lineage"])
         packet["result"]["evidence"]["review_imports"] = [
             {
@@ -125,19 +163,38 @@ class GovernanceReviewImportTests(unittest.TestCase):
         packet_path = self.tmp_path / "packet.yml"
         packet_path.write_text(yaml.safe_dump({"AcceptancePacket": packet}, sort_keys=False), encoding="utf-8")
         packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+        wrapper_digest = hashlib.sha256(wrapper_path.read_bytes()).hexdigest()
+        for critic in wrapper["MultiReviewResult"]["critics"]:
+            probe_ref = critic["probe_evidence_refs"][0]
+            (ROOT / probe_ref.removeprefix("file:")).write_text(
+                yaml.safe_dump(
+                    probe_transcript(
+                        critic["probe_command"],
+                        critic["probe_exit_code"],
+                        result_ref=import_ref,
+                        result_digest=wrapper_digest,
+                        packet_ref=packet_ref,
+                        packet_sha256=packet_sha,
+                        source_refs=critic["source_refs"],
+                    ),
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
         for command_result, artifact_ref in zip(packet["result"]["evidence"]["command_results"], artifact_refs):
             artifact_path = ROOT / artifact_ref.removeprefix("file:")
             artifact_path.write_text(
                 "\n".join(
                     [
+                        "# Command Evidence",
                         f"packet_id: {packet['meta']['packet_id']}",
                         f"packet_ref: {packet_ref}",
                         f"packet_sha256: {packet_sha}",
                         f"command: {command_result['command']}",
                         f"status: {command_result['status']}",
+                        "",
                     ]
-                )
-                + "\n",
+                ),
                 encoding="utf-8",
             )
         return packet_path
@@ -198,13 +255,36 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "source_digest does not match current artifact bytes")
 
-    def test_rejects_advisory_or_veto_multi_review_import(self) -> None:
+    def test_rejects_advisory_multi_review_import(self) -> None:
         def mutate_wrapper(wrapper: dict) -> None:
             wrapper["MultiReviewResult"]["review_mode"] = "advisory"
 
         packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
 
         self.assert_rejected(packet_path, "must freshly derive governance PASS")
+
+    def test_stable_check_does_not_replay_imported_probe_command(self) -> None:
+        sentinel = self.tmp_path / "probe-ran.txt"
+        rel_sentinel = sentinel.relative_to(ROOT).as_posix()
+        rel_transcript = (self.tmp_path / "malicious-probe-transcript.yml").relative_to(ROOT).as_posix()
+        command = f"python3 -c \"from pathlib import Path; Path('{rel_sentinel}').write_text('ran')\""
+        (ROOT / rel_transcript).write_text(
+            yaml.safe_dump(probe_transcript(command, 0), sort_keys=False),
+            encoding="utf-8",
+        )
+
+        def mutate_wrapper(wrapper: dict) -> None:
+            critic = wrapper["MultiReviewResult"]["critics"][0]
+            critic["probe_command"] = command
+            critic["probe_result"] = "Command is represented as durable replay evidence only."
+            critic["probe_interpretation"] = "Stable check must not execute imported probe commands."
+            critic["probe_evidence_refs"] = [f"file:{rel_transcript}"]
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(sentinel.exists())
 
     def test_rejects_partial_mirror_in_both_directions(self) -> None:
         packet_path = self.materialize_packet(

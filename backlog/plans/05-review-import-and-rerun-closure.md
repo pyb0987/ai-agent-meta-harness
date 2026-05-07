@@ -34,8 +34,9 @@ Constraints:
 - Reuse Plan 04 `resolved_refs` and `review-provenance`; do not introduce a
   fourth public packet section.
 - Do not implement packet archive storage, canonical hashes, active pointers, or
-  immutable review transcript storage; those remain Plan 06.
-- Do not wire packet checks into release/pre-commit gates; that remains Plan 07.
+  immutable review transcript storage; those remain Plan 07 after Plan 06
+  complexity consolidation.
+- Do not wire packet checks into release/pre-commit gates; that remains Plan 08.
 - Keep `check` read-only.
 - Keep `start` and `finalize` honest: they may infer required review categories,
   but they do not fabricate successful review outcomes.
@@ -121,7 +122,8 @@ Stable review records must be typed enough for checker use:
   residual risk exists
 - `rerun_of`: optional exact `review_id` of the earlier review record being
   superseded; required for rerun records
-- `blocking_findings_fixed`: required when `rerun_of` is present
+- `fixed_finding_ids`: required when `rerun_of` is present; it must exactly match
+  the retained target review's `blocking_findings[*].finding_id` values
 
 Review target names must remain in the review namespace. Evidence items and
 review items may share human-readable text, but waivers and downgrades must
@@ -171,7 +173,7 @@ The checker must parse each imported wrapper artifact and verify:
 - packet review records mirror wrapper `review_lineage` audit-critical fields
 - failed and VETO reviews remain present even when a later rerun closes them
 
-This is intentionally weaker than Plan 06 immutable archive integrity, but it is
+This is intentionally weaker than Plan 07 immutable archive integrity, but it is
 strong enough to prevent stable handoff from deleting a failed review while
 claiming that the surviving packet-local summary is complete, or from drifting
 away from the current structured review artifact.
@@ -217,7 +219,9 @@ For stable packets:
   `veto: false`, and scores at least 9.
 - A rerun cannot satisfy a different critic target.
 - A rerun cannot satisfy more than one failed review.
-- A rerun must include `blocking_findings_fixed` with concrete fixed findings.
+- A rerun must include `fixed_finding_ids` that exactly cover the retained
+  blocking review's concrete finding IDs. Do not add a second fixed-finding
+  object list; the original review already carries the finding summaries.
 - A rerun source must itself resolve through `review-provenance`.
 - The packet must keep the failed review and the successful rerun so the
   recovery path is auditable.
@@ -348,7 +352,7 @@ Multi-review:
 - Scope-boundary and presupposition critic: score 9, PASS. Blocking findings:
   none. Why not 10 at that point: rerun identity was still intentionally
   unsettled. Disposition: resolved by making `review_id` mandatory in Plan 05
-  while keeping immutable archive storage deferred to Plan 06.
+  while keeping immutable archive storage deferred to Plan 07.
 - False-green coverage: critics named concrete stale or hand-authored packet
   paths involving ambiguous reruns, deleted failed/VETO reviews, stale local
   review artifacts, and generic packet summaries that did not match structured
@@ -368,7 +372,7 @@ Multi-review:
 - Should `false_green_risk` and `invariant_checked` be required for all stable
   reviews, or only for review targets that affect durable/public/release claims?
 - Should Plan 05 add a CLI import command, or should review records be supplied
-  as packet edits until Plan 06 introduces archive storage?
+  as packet edits until Plan 07 introduces archive storage?
 
 ## Negative Test Requirements
 

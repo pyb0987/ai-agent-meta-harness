@@ -1,4 +1,19 @@
-COMMAND: python3 missing-probe.py --claim-pass
-EXIT_CODE: 0
-OUTPUT:
-Fabricated success text that must not pass command replay.
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 missing-probe.py --claim-pass
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/governance-pass.yml
+  result_digest: 2f75109c6104d48d1efc30c45feadb0c8d13d74cabd7fb28e60882afdd3e63c9
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-multi-review-result.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-06'
+  stdout: 'Fabricated success text that must not pass command replay.
+
+    '
+  stderr: ''
+  stdout_sha256: ad0ae038066c5d8ba0c9773af359c57e9457f4073991bcbe59f9e0667b73676d
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

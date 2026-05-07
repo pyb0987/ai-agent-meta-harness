@@ -7,78 +7,79 @@ MultiReviewResult:
   target:
     summary: Negative fixture where reported PASS contradicts typed critic facts.
     source_refs:
-      - scripts/check-multi-review-result.py
+    - scripts/check-multi-review-result.py
   required_critics:
-    - validation-layer
-    - review-quality
+  - validation-layer
+  - review-quality
   reported_final_verdict: PASS
   derived_verdict: PASS
   derivation_errors: []
   critics:
-    - critic_id: validation-layer
-      name: Validation Layer Critic
-      critic_type: validation_layer
-      persona: Release gate engineer who ignores reported PASS prose.
-      scope: Validate that acceptance is computed by a structured validator.
-      anti_scope: Does not evaluate the intentional review-quality veto.
-      attack_surface: A hand-authored reported_final_verdict claims PASS despite typed facts.
-      primary_failure_mode: Reported PASS contradicts typed verdict facts.
-      frame_challenge: false
-      required: true
-      actor: codex
-      date: 2026-05-06
-      score: 9
-      verdict: pass
-      veto: false
-      blocking_findings: []
-      false_green_risk: Hand-authored PASS prose could bypass typed review facts.
-      invariant_checked: Validator recomputes derived verdict from typed fields.
-      validation_layer: structured-validator
-      probe_run: true
-      probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
-      probe_exit_code: 1
-      probe_result: Negative fixture should be rejected.
-      probe_interpretation: The reported PASS must be ignored.
-      probe_evidence_refs:
-        - backlog/fixtures/multi-review/probe-transcripts/hand-authored-pass-validation-layer.txt
-      reason_no_probe: null
-      evidence:
-        - Validator recomputes acceptance.
-      source_refs:
-        - scripts/check-multi-review-result.py
-      why_not_10: Negative fixture intentionally includes a vetoing critic.
-      residual_risk_disposition: Not accepted.
-    - critic_id: review-quality
-      name: Review Quality Meta-Critic
-      critic_type: review_quality
-      persona: Review auditor looking for self-contradictory acceptance claims.
-      scope: Validate review adequacy.
-      anti_scope: Does not validate the positive governance fixture.
-      attack_surface: A final verdict field is hand-edited to PASS after a critic vetoes.
-      primary_failure_mode: Review summary hides a required critic veto.
-      frame_challenge: true
-      required: true
-      actor: codex
-      date: 2026-05-06
-      score: 9
-      verdict: veto
-      veto: true
-      blocking_findings:
-        - Reported PASS contradicts this VETO.
-      false_green_risk: A final verdict field could be hand-edited to PASS.
-      invariant_checked: Veto fields block derived acceptance.
-      validation_layer: derived-verdict
-      probe_run: true
-      probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
-      probe_exit_code: 1
-      probe_result: Validator should derive VETO.
-      probe_interpretation: Typed VETO outweighs reported PASS.
-      probe_evidence_refs:
-        - backlog/fixtures/multi-review/probe-transcripts/hand-authored-pass-review-quality.txt
-      reason_no_probe: null
-      evidence:
-        - Veto is true.
-      source_refs:
-        - backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
-      why_not_10: Negative fixture.
-      residual_risk_disposition: Not accepted.
+  - critic_id: validation-layer
+    name: Validation Layer Critic
+    critic_type: validation_layer
+    persona: Release gate engineer who ignores reported PASS prose.
+    scope: Validate that acceptance is computed by a structured validator.
+    anti_scope: Does not evaluate the intentional review-quality veto.
+    attack_surface: A hand-authored reported_final_verdict claims PASS despite typed
+      facts.
+    primary_failure_mode: Reported PASS contradicts typed verdict facts.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: 2026-05-06
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: Hand-authored PASS prose could bypass typed review facts.
+    invariant_checked: Validator recomputes derived verdict from typed fields.
+    validation_layer: structured-validator
+    probe_run: true
+    probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+    probe_exit_code: 1
+    probe_result: Negative fixture should be rejected.
+    probe_interpretation: The reported PASS must be ignored.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/hand-authored-pass-validation-layer.txt
+    reason_no_probe: null
+    evidence:
+    - Validator recomputes acceptance.
+    source_refs:
+    - scripts/check-multi-review-result.py
+    why_not_10: Negative fixture intentionally includes a vetoing critic.
+    residual_risk_disposition: Not accepted.
+  - critic_id: review-quality
+    name: Review Quality Meta-Critic
+    critic_type: review_quality
+    persona: Review auditor looking for self-contradictory acceptance claims.
+    scope: Validate review adequacy.
+    anti_scope: Does not validate the positive governance fixture.
+    attack_surface: A final verdict field is hand-edited to PASS after a critic vetoes.
+    primary_failure_mode: Review summary hides a required critic veto.
+    frame_challenge: true
+    required: true
+    actor: codex
+    date: 2026-05-06
+    score: 9
+    verdict: veto
+    veto: true
+    blocking_findings:
+    - Reported PASS contradicts this VETO.
+    false_green_risk: A final verdict field could be hand-edited to PASS.
+    invariant_checked: Veto fields block derived acceptance.
+    validation_layer: derived-verdict
+    probe_run: true
+    probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+    probe_exit_code: 1
+    probe_result: Validator should derive VETO.
+    probe_interpretation: Typed VETO outweighs reported PASS.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/hand-authored-pass-review-quality.txt
+    reason_no_probe: null
+    evidence:
+    - Veto is true.
+    source_refs:
+    - backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+    why_not_10: Negative fixture.
+    residual_risk_disposition: Not accepted.

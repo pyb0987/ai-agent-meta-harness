@@ -1,4 +1,41 @@
-COMMAND: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
-EXIT_CODE: 1
-OUTPUT:
-DERIVED: VETO (artifact-internal consistency with linked probe transcripts; not stable handoff evidence): backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+  probe_exit_code: 1
+  result_ref: backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+  result_digest: b490ba2dcfe9f8880313e45da2ee274c73aed51579a4654f9006e88093c1ec4a
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-multi-review-result.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-07'
+  stdout: ''
+  stderr: 'ERROR: critics[0:validation-layer]: probe_exit_code must be 0 for derived
+    acceptance
+
+    ERROR: critics[0:validation-layer]: probe_evidence_refs must include a structured
+    transcript matching probe_command and probe_exit_code
+
+    ERROR: critics[1:review-quality]: veto must be false for derived acceptance
+
+    ERROR: critics[1:review-quality]: verdict veto blocks derived acceptance
+
+    ERROR: critics[1:review-quality]: blocking_findings must be empty for derived
+    acceptance
+
+    ERROR: critics[1:review-quality]: probe_exit_code must be 0 for derived acceptance
+
+    ERROR: critics[1:review-quality]: probe_evidence_refs must include a structured
+    transcript matching probe_command and probe_exit_code
+
+    ERROR: MultiReviewResult.derived_verdict: must be null or match fresh derived
+    verdict: VETO
+
+    DERIVED: VETO (artifact-internal consistency with linked probe transcripts; not
+    command replay or stable handoff evidence): backlog/fixtures/multi-review/hand-authored-pass-with-veto.yml
+
+    '
+  stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  stderr_sha256: b407a8ddded9ecd9bfebc908c17ab8a562e844686f3e80e9b5bd8ee8d7b99633

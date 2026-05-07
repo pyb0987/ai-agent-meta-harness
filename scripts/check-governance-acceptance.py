@@ -120,6 +120,33 @@ PROOF_LIKE_RE = re.compile(
     r"\b(verified|guaranteed|proves?|runtime|public API|release-ready|production-ready)\b",
     re.IGNORECASE,
 )
+RAW_CLAIM_EVIDENCE_PATH_PARTS = {
+    ".harness",
+    "artifact",
+    "artifacts",
+    "log",
+    "logs",
+    "probe-transcripts",
+    "reports",
+    "screenshots",
+    "trace",
+    "traces",
+    "transcripts",
+}
+RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES = {
+    ".csv",
+    ".gif",
+    ".html",
+    ".jpeg",
+    ".jpg",
+    ".jsonl",
+    ".log",
+    ".pdf",
+    ".png",
+    ".tsv",
+    ".webp",
+}
+RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES = {".json", ".txt", ".xml", ".yaml", ".yml"}
 
 class PacketError(ValueError):
     pass
@@ -221,6 +248,20 @@ def resolve_ref(root: Path, ref: str) -> str | None:
     return resolve_repo_path(root, ref)
 
 
+def is_raw_claim_file_ref(root: Path, ref: str) -> bool:
+    resolved = resolve_ref(root, ref)
+    if resolved is None:
+        return False
+    path = resolved.split("#", 1)[0]
+    parts = {part.casefold() for part in Path(path).parts}
+    suffix = Path(path).suffix.casefold()
+    if suffix in RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES:
+        return True
+    if parts & RAW_CLAIM_EVIDENCE_PATH_PARTS and suffix in RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES:
+        return True
+    return False
+
+
 def write_packet(path: Path, packet: dict, *, overwrite: bool = False) -> None:
     if path.exists() and not overwrite:
         raise PacketError(f"{path}: already exists; refusing to overwrite")
@@ -276,7 +317,7 @@ def checker_required_evidence(packet: dict) -> set[str]:
         required.add("python3 scripts/verify-release.py")
 
     if mode == "staged":
-        required.add("git diff --check")
+        required.add("git diff --cached --check")
     elif mode == "base-ref" and comparison_ref and not required:
         required.add(f"git diff --check {comparison_ref}...HEAD")
     elif mode == "worktree":
@@ -475,8 +516,11 @@ def validate_exception_record(
         elif not target_allowed(field, value, required_evidence, required_review, kind=kind):
             errors.append(f"{source}: {kind} downgrade target is not required: {value}")
         return errors
-    if kind:
-        errors.append(f"{source}: kind is only valid for downgrade records")
+    if field == "review":
+        if kind != "review":
+            errors.append(f"{source}: review waiver kind must be review")
+    elif kind and kind != "evidence":
+        errors.append(f"{source}: evidence waiver kind must be evidence")
     if not target_allowed(field, value, required_evidence, required_review):
         errors.append(f"{source}: exception target is not required: {value}")
     return errors
@@ -495,6 +539,22 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
         errors.append(f"{source}: origin must be input or generated")
     if record["relation"] not in RESOLVED_REF_RELATIONS:
         errors.append(f"{source}: relation is invalid: {record['relation']}")
+    if record["relation"] == "artifact" and not str(record["ref"]).startswith("file:"):
+        errors.append(f"{source}: artifact refs must use file: scheme")
+    if record["relation"] == "trace" and not str(record["ref"]).startswith("trace:"):
+        errors.append(f"{source}: trace refs must use trace: scheme")
+    if (
+        record["origin"] == "generated"
+        and record["relation"] == "claim-evidence"
+        and not str(record["ref"]).startswith(("file:", "trace:"))
+    ):
+        errors.append(f"{source}: generated claim-evidence refs must use file: or trace: scheme")
+    if (
+        record["origin"] == "generated"
+        and record["relation"] in {"review-provenance", "waiver-provenance"}
+        and not str(record["ref"]).startswith("file:")
+    ):
+        errors.append(f"{source}: generated {record['relation']} refs must use file: scheme")
     resolved = resolve_ref(root, record["ref"])
     if record["status"] == "resolved":
         if resolved is None:
@@ -560,6 +620,16 @@ def artifact_has_field(text: str, field: str, value: str) -> bool:
     return any(line.strip() == f"{field}: {value}" for line in text.splitlines())
 
 
+def field_section_records_values(text: str, expected: dict[str, str]) -> bool:
+    normalized_expected = {
+        field: normalize_review_field(value) for field, value in expected.items()
+    }
+    return any(
+        all(section.get(field) == value for field, value in normalized_expected.items())
+        for section in markdown_field_sections(text)
+    )
+
+
 def artifact_records_command(
     root: Path,
     artifact_ref: str,
@@ -573,13 +643,37 @@ def artifact_records_command(
     text = artifact_text(root, artifact_ref)
     if text is None:
         return False
-    return (
-        artifact_has_field(text, "packet_id", packet_id)
-        and artifact_has_field(text, "packet_ref", packet_ref)
-        and artifact_has_field(text, "packet_sha256", packet_sha256)
-        and artifact_has_field(text, "command", command)
-        and artifact_has_field(text, "status", status)
+    return field_section_records_values(
+        text,
+        {
+            "packet_id": packet_id,
+            "packet_ref": packet_ref,
+            "packet_sha256": packet_sha256,
+            "command": command,
+            "status": status,
+        },
     )
+
+
+def multiple_required_closure_errors(
+    required_targets: set[str],
+    closures: list[tuple[str, list[str] | set[str]]],
+    *,
+    kind: str,
+) -> list[str]:
+    errors: list[str] = []
+    for target in sorted(required_targets):
+        labels = [
+            label
+            for label, targets in closures
+            for value in targets
+            if value == target
+        ]
+        if len(labels) > 1:
+            errors.append(
+                f"stable packet required {kind} has multiple closures: {target} via {', '.join(labels)}"
+            )
+    return errors
 
 
 def ref_text(root: Path, ref: str) -> str | None:
@@ -814,7 +908,15 @@ def load_review_import_wrapper(root: Path, source_ref: str) -> tuple[dict | None
     return wrapper, []
 
 
-def derive_multi_review_result(root: Path, result: dict) -> tuple[str, list[str]]:
+def derive_multi_review_result(
+    root: Path,
+    result: dict,
+    *,
+    result_ref: str | None = None,
+    result_digest: str | None = None,
+    packet_ref: str | None = None,
+    packet_sha256: str | None = None,
+) -> tuple[str, list[str]]:
     script = ROOT / "scripts" / "check-multi-review-result.py"
     spec = importlib.util.spec_from_file_location("check_multi_review_result_for_acceptance", script)
     if spec is None or spec.loader is None:
@@ -824,7 +926,13 @@ def derive_multi_review_result(root: Path, result: dict) -> tuple[str, list[str]
     original_root = getattr(module, "ROOT", None)
     module.ROOT = root
     try:
-        return module.derive_verdict(result)
+        return module.derive_verdict(
+            result,
+            result_ref=result_ref,
+            result_digest=result_digest,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+        )
     finally:
         if original_root is not None:
             module.ROOT = original_root
@@ -1010,6 +1118,7 @@ def validate_review_imports(
     *,
     root: Path,
     packet_ref: str | None,
+    packet_sha256: str | None,
     ref_index: dict[tuple[str, str], list[dict]],
 ) -> tuple[set[str], list[str]]:
     errors: list[str] = []
@@ -1089,7 +1198,15 @@ def validate_review_imports(
         if not isinstance(multi_review, dict):
             errors.append(f"{source}: wrapper MultiReviewResult must be a mapping")
         else:
-            derived, derived_errors = derive_multi_review_result(root, multi_review)
+            expected_packet_ref = wrapper_binding.get("packet_ref") if isinstance(wrapper_binding, dict) else packet_ref
+            derived, derived_errors = derive_multi_review_result(
+                root,
+                multi_review,
+                result_ref=source_ref,
+                result_digest=digest,
+                packet_ref=expected_packet_ref,
+                packet_sha256=packet_sha256,
+            )
             if derived != "PASS":
                 errors.append(f"{source}: imported MultiReviewResult must freshly derive governance PASS: {derived}")
             for item in derived_errors:
@@ -1393,6 +1510,7 @@ def validate_packet(
             packet,
             root=root,
             packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
             ref_index=ref_index,
         )
         errors.extend(review_import_errors)
@@ -1475,6 +1593,8 @@ def validate_packet(
                 errors.append(f"stable command evidence lacks artifact_ref: {item.get('command')}")
             elif str(artifact_ref).startswith("terminal:"):
                 errors.append(f"terminal placeholder cannot satisfy stable evidence: {artifact_ref}")
+            elif not str(artifact_ref).startswith("file:"):
+                errors.append(f"stable command artifact_ref must use file: scheme: {artifact_ref}")
             elif not has_resolved_relation(ref_index, relation="artifact", ref=artifact_ref):
                 errors.append(f"stable command artifact lacks resolved artifact relation: {artifact_ref}")
             elif not artifact_records_command(
@@ -1490,6 +1610,13 @@ def validate_packet(
 
         if protected_review_required:
             trace_refs = evidence.get("trace_refs", {})
+            if isinstance(trace_refs, dict):
+                search_set_before = trace_refs.get("search_set_before")
+                search_set_after = trace_refs.get("search_set_after")
+                if search_set_before and search_set_before == search_set_after:
+                    errors.append(
+                        "stable protected packet search_set_before and search_set_after must be distinct or explicitly skipped"
+                    )
             for trace_name in ("search_set_before", "search_set_after"):
                 trace_ref = trace_refs.get(trace_name) if isinstance(trace_refs, dict) else None
                 skipped_targets = {
@@ -1533,25 +1660,72 @@ def validate_packet(
                 errors.append("result.evidence.claims: raw_evidence_refs is required")
                 continue
             for raw_ref in raw_refs:
-                if not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref):
+                if not isinstance(raw_ref, str) or not raw_ref.startswith(("file:", "trace:")):
+                    errors.append(f"claim evidence ref must use file: or trace: scheme: {raw_ref}")
+                elif not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref):
                     errors.append(f"claim evidence ref lacks resolved claim-evidence relation: {raw_ref}")
+                elif raw_ref.startswith("file:") and not is_raw_claim_file_ref(root, raw_ref):
+                    errors.append(
+                        "claim evidence file ref must point to raw artifact/log/screenshot/report evidence: "
+                        f"{raw_ref}"
+                    )
 
-        waived_evidence = {item.get("evidence") for item in judgment.get("waivers", []) if item.get("evidence")}
-        downgraded_evidence = {
+        passed_evidence_records = [
+            item.get("command")
+            for item in evidence.get("command_results", [])
+            if item.get("status") == "pass" and item.get("command")
+        ]
+        waived_evidence_records = [item.get("evidence") for item in judgment.get("waivers", []) if item.get("evidence")]
+        downgraded_evidence_records = [
             item.get("from")
             for item in judgment.get("downgrades", [])
             if item.get("kind") == "evidence" and item.get("from")
-        }
-        missing_evidence = required_evidence - passed_evidence - waived_evidence - downgraded_evidence
+        ]
+        skipped_evidence_records = [
+            item.get("evidence")
+            for item in evidence.get("skipped", [])
+            if isinstance(item, dict) and item.get("evidence") in required_evidence
+        ]
+        errors.extend(
+            multiple_required_closure_errors(
+                required_evidence,
+                [
+                    ("command pass", passed_evidence_records),
+                    ("waiver", waived_evidence_records),
+                    ("downgrade", downgraded_evidence_records),
+                    ("skipped", skipped_evidence_records),
+                ],
+                kind="evidence",
+            )
+        )
+        passed_evidence = set(passed_evidence_records)
+        waived_evidence = set(waived_evidence_records)
+        downgraded_evidence = set(downgraded_evidence_records)
+        skipped_evidence = set(skipped_evidence_records)
+        missing_evidence = required_evidence - passed_evidence - waived_evidence - downgraded_evidence - skipped_evidence
         if missing_evidence:
             errors.append(f"stable packet missing required evidence: {sorted(missing_evidence)}")
 
-        waived_reviews = {item.get("review") for item in judgment.get("waivers", []) if item.get("review")}
-        downgraded_reviews = {
+        open_passing_review_records = list(open_passing_review_targets)
+        waived_review_records = [item.get("review") for item in judgment.get("waivers", []) if item.get("review")]
+        downgraded_review_records = [
             item.get("from")
             for item in judgment.get("downgrades", [])
             if item.get("kind") == "review" and item.get("from")
-        }
+        ]
+        errors.extend(
+            multiple_required_closure_errors(
+                required_review,
+                [
+                    ("review pass", open_passing_review_records),
+                    ("waiver", waived_review_records),
+                    ("downgrade", downgraded_review_records),
+                ],
+                kind="review",
+            )
+        )
+        waived_reviews = set(waived_review_records)
+        downgraded_reviews = set(downgraded_review_records)
         missing_reviews = required_review - open_passing_review_targets - waived_reviews - downgraded_reviews
         if missing_reviews:
             errors.append(f"stable packet missing required review: {sorted(missing_reviews)}")
