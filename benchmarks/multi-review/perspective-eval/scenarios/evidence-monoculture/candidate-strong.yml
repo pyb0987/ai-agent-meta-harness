@@ -1,0 +1,46 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: evidence-monoculture-strong
+intended_quality: strong
+reported_verdict: PASS_WITH_RESIDUAL_RISK
+critics:
+  - critic_id: schema-contract
+    persona: Schema maintainer.
+    scope: Check typed fields and verdict derivation rules.
+    anti_scope: Does not judge transcript replay.
+    attack_surface: Extra or missing fields make a review look complete.
+    primary_failure_mode: Typed artifact drift.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - TOP_LEVEL_FIELDS and CRITIC_FIELDS define the accepted schema.
+    source_refs:
+      - scripts/check-multi-review-result.py
+  - critic_id: probe-provenance
+    persona: Command evidence reviewer.
+    scope: Check probe command, exit code, and transcript binding.
+    anti_scope: Does not judge semantic evidence relevance.
+    attack_surface: Transcript text claims success without replayable command provenance.
+    primary_failure_mode: Fabricated probe evidence.
+    frame_challenge: true
+    verdict: pass
+    evidence:
+      - Fabricated command transcript is a negative calibration artifact.
+    source_refs:
+      - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+  - critic_id: benchmark-contract
+    persona: Benchmark maintainer.
+    scope: Check whether fixture scenarios are labeled as deterministic rather than agent-eval.
+    anti_scope: Does not score AI perspective quality.
+    attack_surface: Deterministic fixtures are overclaimed as semantic benchmark proof.
+    primary_failure_mode: Benchmark capability overclaim.
+    frame_challenge: true
+    verdict: concern
+    evidence:
+      - README states the fixture check is not agent-in-the-loop evaluation.
+    source_refs:
+      - benchmarks/multi-review/README.md
+final_synthesis:
+  verdict: PASS_WITH_RESIDUAL_RISK
+  summary: Evidence is distributed across validator schema, probe transcript, and benchmark-scope documentation. The concern about semantic scoring remains explicitly residual.
+  preserved_disagreement:
+    - Benchmark-contract critic records a concern that semantic perspective scoring is future work.

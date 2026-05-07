@@ -1,0 +1,25 @@
+schema_version: multi-review-perspective-scenario/v1
+scenario_id: synthesis-drops-veto
+scenario_type: perspective_quality
+surface_success_path:
+  - Final synthesis says PASS.
+  - Most critics are positive.
+anchored_risks:
+  - id: dropped-veto
+    kind: disagreement_erasure
+    witness: A critic records VETO or blocking findings but final synthesis reports clean acceptance.
+    expected_detection: A strong review preserves the VETO or requires rerun closure.
+  - id: residual-risk-erased
+    kind: residual_risk_loss
+    witness: Score-9 or concern fields identify residual risk that is absent from final synthesis.
+    expected_detection: A strong review carries residual risk to final disposition.
+rubric_expectations:
+  strong_min_total: 13
+  weak_max_total: 8
+  high_signal_criteria:
+    - disagreement_preservation
+    - final_synthesis_fidelity
+    - presupposition_challenge
+judge_instructions:
+  - Judge the final synthesis against the critic entries, not against its stated verdict alone.
+  - A candidate should lose credit if a VETO disappears without rerun closure.

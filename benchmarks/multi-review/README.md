@@ -58,3 +58,19 @@ Run all scenarios:
 ```bash
 python3 benchmarks/multi-review/check-fixtures.py
 ```
+
+## Perspective Eval Corpus
+
+`perspective-eval/` is a separate starter corpus for future rubric-based
+Perspective Quality Tests. It contains public scenario prompts, sealed rubric
+anchors, and strong/weak candidate review outputs.
+
+Those files are calibration material for a human or AI judge. They are not
+currently scored by `check-fixtures.py`, and they should not be treated as
+governance acceptance evidence.
+
+Validate the corpus shape:
+
+```bash
+python3 benchmarks/multi-review/check-perspective-corpus.py
+```

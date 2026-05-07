@@ -1,0 +1,25 @@
+schema_version: multi-review-perspective-scenario/v1
+scenario_id: evidence-monoculture
+scenario_type: perspective_quality
+surface_success_path:
+  - Candidate cites an existing repository file.
+  - Candidate includes evidence text for every critic.
+anchored_risks:
+  - id: generic-existing-ref
+    kind: weak_evidence_binding
+    witness: Every critic cites the same broad artifact rather than the file that supports its claim.
+    expected_detection: A strong review distinguishes validator evidence, probe transcripts, and benchmark fixture evidence.
+  - id: source-monoculture
+    kind: evidence_monoculture
+    witness: Source refs are identical across unrelated critic claims.
+    expected_detection: A strong review penalizes single-ref evidence when claims span validator, probe, and benchmark behavior.
+rubric_expectations:
+  strong_min_total: 13
+  weak_max_total: 8
+  high_signal_criteria:
+    - evidence_binding
+    - evidence_diversity
+    - final_synthesis_fidelity
+judge_instructions:
+  - Do not reward a source ref merely because the file exists.
+  - Check whether the cited ref supports the critic's specific invariant.

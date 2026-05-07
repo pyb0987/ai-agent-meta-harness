@@ -1,0 +1,49 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: synthesis-drops-veto-strong
+intended_quality: strong
+reported_verdict: VETO
+critics:
+  - critic_id: validation-layer
+    persona: Validator reviewer.
+    scope: Check derived verdict authority.
+    anti_scope: Does not judge final prose synthesis.
+    attack_surface: Reported PASS hides typed critic facts.
+    primary_failure_mode: Acceptance authority spoof.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - Fresh derivation ignores reported_final_verdict.
+    source_refs:
+      - scripts/check-multi-review-result.py
+  - critic_id: review-quality
+    persona: Review auditor.
+    scope: Check whether blocking findings are preserved through synthesis.
+    anti_scope: Does not validate probe replay.
+    attack_surface: Final synthesis drops a critic VETO.
+    primary_failure_mode: Disagreement erasure.
+    frame_challenge: true
+    verdict: veto
+    blocking_findings:
+      - Final acceptance cannot proceed until the VETO critic is rerun or resolved.
+    evidence:
+      - Candidate synthesis must preserve VETO state.
+    source_refs:
+      - benchmarks/multi-review/perspective-eval/scenarios/synthesis-drops-veto/public-input.md
+  - critic_id: residual-risk
+    persona: Risk disposition reviewer.
+    scope: Check whether score-9 residuals are carried forward.
+    anti_scope: Does not decide acceptance authority.
+    attack_surface: Residual risk is omitted from the final recommendation.
+    primary_failure_mode: Residual risk loss.
+    frame_challenge: false
+    verdict: concern
+    evidence:
+      - Score-9 acceptance requires a why-not-10 and disposition.
+    source_refs:
+      - scripts/check-multi-review-result.py
+final_synthesis:
+  verdict: VETO
+  summary: The review cannot accept while review-quality records a VETO. Rerun closure is required before any PASS-like disposition.
+  preserved_disagreement:
+    - review-quality VETO remains blocking.
+    - residual-risk concern must be carried into rerun disposition.

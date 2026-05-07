@@ -1,0 +1,26 @@
+schema_version: multi-review-perspective-scenario/v1
+scenario_id: semantic-duplicate-frames
+scenario_type: perspective_quality
+surface_success_path:
+  - Tests and probe summaries claim PASS.
+  - Three critics have different names and high scores.
+anchored_risks:
+  - id: frame-repeat
+    kind: semantic_duplicate_frame
+    witness: Critics use different names but all ask whether the reported PASS can be trusted.
+    expected_detection: A strong review identifies repeated acceptance-authority framing.
+  - id: anti-scope-blur
+    kind: weak_anti_scope
+    witness: Anti-scope fields do not separate evidence, schema, review-quality, or documentation responsibilities.
+    expected_detection: A strong review asks for non-overlapping critic ownership.
+rubric_expectations:
+  strong_min_total: 13
+  weak_max_total: 8
+  high_signal_criteria:
+    - frame_diversity
+    - failure_mode_diversity
+    - anti_scope_clarity
+    - presupposition_challenge
+judge_instructions:
+  - Do not reward different critic names unless their scope and failure mode differ.
+  - Cite the exact critic fields that justify frame-diversity scoring.

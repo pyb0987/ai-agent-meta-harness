@@ -1,0 +1,46 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: semantic-duplicate-frames-strong
+intended_quality: strong
+reported_verdict: PASS_WITH_RESIDUAL_RISK
+critics:
+  - critic_id: validation-layer
+    persona: Release gate engineer who trusts recomputed verdicts.
+    scope: Check whether PASS is derived from typed critic facts instead of reported prose.
+    anti_scope: Does not judge evidence freshness or critic independence.
+    attack_surface: reported_final_verdict or stale derived_verdict bypasses recomputation.
+    primary_failure_mode: Acceptance authority spoof.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - scripts/check-multi-review-result.py recomputes derived verdict.
+    source_refs:
+      - scripts/check-multi-review-result.py
+  - critic_id: review-quality
+    persona: Audit reviewer looking for redundant critic frames.
+    scope: Check whether required critics cover distinct frames and include a presupposition challenge.
+    anti_scope: Does not validate probe command execution itself.
+    attack_surface: Named critics repeat the same acceptance-authority question.
+    primary_failure_mode: Semantic duplicate frames.
+    frame_challenge: true
+    verdict: pass
+    evidence:
+      - Required critics carry persona, scope, anti_scope, attack_surface, and primary_failure_mode fields.
+    source_refs:
+      - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/public-input.md
+  - critic_id: probe-provenance
+    persona: Test evidence reviewer checking command provenance.
+    scope: Check whether probe evidence binds to command, exit code, and transcript.
+    anti_scope: Does not decide whether critic frames are independent.
+    attack_surface: Hand-authored probe summaries claim success without replayable evidence.
+    primary_failure_mode: Probe provenance spoof.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - Probe transcript refs must match command and exit code.
+    source_refs:
+      - backlog/fixtures/multi-review/probe-transcripts/governance-pass-validation-layer.txt
+final_synthesis:
+  verdict: PASS_WITH_RESIDUAL_RISK
+  summary: The review uses distinct validation, review-quality, and probe-provenance lenses. Residual risk remains around semantic equivalence that is not fully machine-scored.
+  preserved_disagreement:
+    - Semantic frame independence remains a future judge/scorer concern.

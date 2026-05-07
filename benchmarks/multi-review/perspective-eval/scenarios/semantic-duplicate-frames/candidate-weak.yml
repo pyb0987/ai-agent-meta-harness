@@ -1,0 +1,45 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: semantic-duplicate-frames-weak
+intended_quality: weak
+reported_verdict: PASS
+critics:
+  - critic_id: validator
+    persona: Validator reviewer.
+    scope: Check that the reported PASS is acceptable.
+    anti_scope: Does not check unrelated things.
+    attack_surface: PASS might be wrong.
+    primary_failure_mode: PASS might be wrong.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The result says PASS.
+    source_refs:
+      - backlog/fixtures/multi-review/governance-pass.yml
+  - critic_id: policy
+    persona: Policy reviewer.
+    scope: Check that the final PASS is acceptable.
+    anti_scope: Does not check unrelated things.
+    attack_surface: PASS might be invalid.
+    primary_failure_mode: PASS might be invalid.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The result says PASS.
+    source_refs:
+      - backlog/fixtures/multi-review/governance-pass.yml
+  - critic_id: reliability
+    persona: Reliability reviewer.
+    scope: Check that accepting PASS is safe.
+    anti_scope: Does not check unrelated things.
+    attack_surface: PASS might not be safe.
+    primary_failure_mode: PASS might not be safe.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The result says PASS.
+    source_refs:
+      - backlog/fixtures/multi-review/governance-pass.yml
+final_synthesis:
+  verdict: PASS
+  summary: All critics agree that PASS is acceptable.
+  preserved_disagreement: []

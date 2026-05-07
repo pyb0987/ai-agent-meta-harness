@@ -1,0 +1,47 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: synthesis-drops-veto-weak
+intended_quality: weak
+reported_verdict: PASS
+critics:
+  - critic_id: validation-layer
+    persona: Validator reviewer.
+    scope: Check derived verdict authority.
+    anti_scope: Does not judge synthesis.
+    attack_surface: Reported PASS hides typed facts.
+    primary_failure_mode: Acceptance authority spoof.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - Fresh derivation ignores reported_final_verdict.
+    source_refs:
+      - scripts/check-multi-review-result.py
+  - critic_id: review-quality
+    persona: Review auditor.
+    scope: Check whether blocking findings are preserved.
+    anti_scope: Does not validate probe replay.
+    attack_surface: Final synthesis drops a VETO.
+    primary_failure_mode: Disagreement erasure.
+    frame_challenge: true
+    verdict: veto
+    blocking_findings:
+      - Final acceptance cannot proceed until the VETO critic is rerun or resolved.
+    evidence:
+      - The VETO is still open.
+    source_refs:
+      - benchmarks/multi-review/perspective-eval/scenarios/synthesis-drops-veto/public-input.md
+  - critic_id: residual-risk
+    persona: Risk reviewer.
+    scope: Check residual risk.
+    anti_scope: Does not decide acceptance authority.
+    attack_surface: Residual risk is omitted.
+    primary_failure_mode: Residual risk loss.
+    frame_challenge: false
+    verdict: concern
+    evidence:
+      - Score-9 acceptance has residual risk.
+    source_refs:
+      - scripts/check-multi-review-result.py
+final_synthesis:
+  verdict: PASS
+  summary: Most critics passed, so the final result is accepted.
+  preserved_disagreement: []

@@ -1,0 +1,45 @@
+schema_version: multi-review-perspective-candidate/v1
+candidate_id: evidence-monoculture-weak
+intended_quality: weak
+reported_verdict: PASS
+critics:
+  - critic_id: schema
+    persona: Schema reviewer.
+    scope: Check schema quality.
+    anti_scope: Does not inspect unrelated files.
+    attack_surface: Schema might be wrong.
+    primary_failure_mode: Schema issue.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The README exists and describes the benchmark.
+    source_refs:
+      - benchmarks/multi-review/README.md
+  - critic_id: probes
+    persona: Probe reviewer.
+    scope: Check probe evidence.
+    anti_scope: Does not inspect unrelated files.
+    attack_surface: Probe might be wrong.
+    primary_failure_mode: Probe issue.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The README exists and describes the benchmark.
+    source_refs:
+      - benchmarks/multi-review/README.md
+  - critic_id: benchmark
+    persona: Benchmark reviewer.
+    scope: Check benchmark quality.
+    anti_scope: Does not inspect unrelated files.
+    attack_surface: Benchmark might be wrong.
+    primary_failure_mode: Benchmark issue.
+    frame_challenge: false
+    verdict: pass
+    evidence:
+      - The README exists and describes the benchmark.
+    source_refs:
+      - benchmarks/multi-review/README.md
+final_synthesis:
+  verdict: PASS
+  summary: The review is supported because every critic cited the benchmark README.
+  preserved_disagreement: []
