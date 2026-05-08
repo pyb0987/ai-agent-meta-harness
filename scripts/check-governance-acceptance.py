@@ -20,6 +20,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = "v2.0-draft"
 PACKET_KEY = "AcceptancePacket"
+COMMAND_EVIDENCE_HEADING = "# Command Evidence"
+COMMAND_EVIDENCE_FIELD_RE = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
+FULL_COMMIT_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 PUBLIC_SECTIONS = ("meta", "input", "result")
 META_FIELDS = ("packet_id", "schema_version", "lifecycle", "mode", "created_at", "finalized_at")
 INPUT_FIELDS = ("intent", "actor", "source_refs", "user_judgment")
@@ -80,6 +83,7 @@ VACUOUS_REVIEW_VALUES = {
     "n/a",
     "na",
     "ok",
+    "pass",
     "checked",
     "generic",
     "not applicable",
@@ -87,6 +91,7 @@ VACUOUS_REVIEW_VALUES = {
     "self attested",
     "read the plan",
 }
+TARGET_FIELDS = ("evidence", "review", "from")
 LIFECYCLES = {"start", "finalized", "blocked"}
 MODES = {"staged", "base-ref", "worktree"}
 PROTECTED_PREFIXES = (
@@ -248,6 +253,14 @@ def resolve_ref(root: Path, ref: str) -> str | None:
     return resolve_repo_path(root, ref)
 
 
+def trace_ref_has_anchor(ref: str) -> bool:
+    if not isinstance(ref, str) or not ref.startswith("trace:"):
+        return False
+    body = ref.removeprefix("trace:")
+    rel, sep, anchor = body.partition("#")
+    return bool(rel and sep and anchor)
+
+
 def is_raw_claim_file_ref(root: Path, ref: str) -> bool:
     resolved = resolve_ref(root, ref)
     if resolved is None:
@@ -286,7 +299,16 @@ def date_like(value: object, *, allow_none: bool = False) -> bool:
 
 def required_targets(packet: dict) -> tuple[set[str], set[str]]:
     inference = packet["result"]["inference"]
-    return set(inference.get("required_evidence", [])), set(inference.get("required_review", []))
+    required_evidence = inference.get("required_evidence", [])
+    required_review = inference.get("required_review", [])
+    if not isinstance(required_evidence, list):
+        required_evidence = []
+    if not isinstance(required_review, list):
+        required_review = []
+    return (
+        {item for item in required_evidence if isinstance(item, str)},
+        {item for item in required_review if isinstance(item, str)},
+    )
 
 
 def checker_required_evidence(packet: dict) -> set[str]:
@@ -295,7 +317,7 @@ def checker_required_evidence(packet: dict) -> set[str]:
     evidence = packet["result"]["evidence"]
     mode = meta.get("mode")
     comparison_ref = evidence.get("comparison_ref")
-    changed_paths = [path for path in inference.get("changed_paths", []) if isinstance(path, str)]
+    changed_paths = string_list_values(inference.get("changed_paths", []))
     changed = set(changed_paths)
 
     archive_changed = any(path.startswith("archive/v1/") for path in changed)
@@ -378,7 +400,8 @@ def path_mentions_scope_boundary(root: Path, path: str) -> bool:
 def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
     result = packet.get("result", {})
     inference = result.get("inference", {}) if isinstance(result, dict) else {}
-    changed_paths = [path for path in inference.get("changed_paths", []) if isinstance(path, str)]
+    evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
+    changed_paths = string_list_values(inference.get("changed_paths", []))
     required: set[str] = set()
 
     archive_paths = [path for path in changed_paths if path.startswith("archive/v1/")]
@@ -438,11 +461,46 @@ def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
     if any(path.endswith(".md") and path_has_proof_like_claim(root, path) for path in changed_paths):
         required.add("claim evidence")
 
+    evaluator_boundary = evidence.get("evaluator_boundary", {})
+    if isinstance(evaluator_boundary, dict):
+        status = evaluator_boundary.get("status")
+        if status is not None and status != "unchanged":
+            required.add("evaluator boundary")
+
     return required
 
 
-def exception_target(record: dict) -> tuple[str, str] | None:
-    targets = [(field, record[field]) for field in ("evidence", "review", "from") if record.get(field)]
+def sorted_key_names(keys: object) -> list[str]:
+    return sorted(str(key) for key in keys)
+
+
+def schema_field_errors(record: dict, expected_fields: set[str], *, source: str, label: str) -> list[str]:
+    string_keys = {key for key in record if isinstance(key, str)}
+    errors: list[str] = []
+    missing = sorted(expected_fields - string_keys)
+    extra = sorted_key_names(key for key in record if not isinstance(key, str) or key not in expected_fields)
+    if missing:
+        errors.append(f"{source}: {label} missing fields: {missing}")
+    if extra:
+        errors.append(f"{source}: {label} extra fields: {extra}")
+    return errors
+
+
+def target_entries(record: dict, fields: tuple[str, ...], *, source: str, errors: list[str]) -> list[tuple[str, str]]:
+    targets: list[tuple[str, str]] = []
+    for field in fields:
+        if field not in record:
+            continue
+        value = record.get(field)
+        if review_value_is_substantive_string(value):
+            targets.append((field, value))
+        else:
+            errors.append(f"{source}: target field {field} must be a substantive string")
+    return targets
+
+
+def exception_target(record: dict, *, source: str, errors: list[str]) -> tuple[str, str] | None:
+    targets = target_entries(record, TARGET_FIELDS, source=source, errors=errors)
     if len(targets) != 1:
         return None
     return targets[0]
@@ -471,12 +529,58 @@ def validate_provenance_record(record: dict, *, source: str) -> list[str]:
     errors: list[str] = []
     if not isinstance(record, dict):
         return [f"{source}: judgment record must be a mapping"]
-    for field in PROVENANCE_FIELDS:
-        if not record.get(field):
+    for field in ("actor", "role", "reason", "source_ref"):
+        if not review_value_is_substantive_string(record.get(field)):
             errors.append(f"{source}: {field} is required")
-    if record.get("date") and not date_like(record["date"]):
+    if not record.get("date"):
+        errors.append(f"{source}: date is required")
+    elif not date_like(record["date"]):
         errors.append(f"{source}: date must be an ISO date")
     return errors
+
+
+def residual_risk_target(record: dict, *, source: str, errors: list[str]) -> tuple[str, str] | None:
+    targets = target_entries(record, ("evidence", "review"), source=source, errors=errors)
+    if len(targets) != 1:
+        return None
+    return targets[0]
+
+
+def validate_residual_risk_record(
+    record: dict,
+    *,
+    required_evidence: set[str],
+    required_review: set[str],
+    source: str,
+) -> list[str]:
+    errors = validate_provenance_record(record, source=source)
+    if errors and not isinstance(record, dict):
+        return errors
+    for forbidden in ("from", "to"):
+        if forbidden in record:
+            errors.append(f"{source}: residual risk cannot include {forbidden}")
+    target = residual_risk_target(record, source=source, errors=errors)
+    if target is None:
+        errors.append(f"{source}: residual risk must target exactly one required evidence/review item")
+        return errors
+    field, value = target
+    required = required_evidence if field == "evidence" else required_review
+    if value not in required:
+        errors.append(f"{source}: residual risk target is not required: {value}")
+    return errors
+
+
+def mapping_records(value: object, *, source: str, errors: list[str]) -> list[dict]:
+    if not isinstance(value, list):
+        errors.append(f"{source} must be a list")
+        return []
+    records: list[dict] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            errors.append(f"{source}[{index}] must be a mapping")
+            continue
+        records.append(item)
+    return records
 
 
 def validate_review_record(record: dict, *, source: str) -> list[str]:
@@ -499,22 +603,41 @@ def validate_exception_record(
     required_evidence: set[str],
     required_review: set[str],
     source: str,
+    record_type: str = "exception",
 ) -> list[str]:
     errors: list[str] = []
     errors.extend(validate_provenance_record(record, source=source))
     if errors and not isinstance(record, dict):
         return errors
-    target = exception_target(record)
+    target = exception_target(record, source=source, errors=errors)
     if target is None:
         errors.append(f"{source}: exception must target exactly one required evidence/review item")
         return errors
     field, value = target
     kind = record.get("kind")
+    if kind is not None and not isinstance(kind, str):
+        errors.append(f"{source}: exception kind must be evidence or review")
+        return errors
+    if record_type == "waiver":
+        for forbidden in ("from", "to"):
+            if forbidden in record:
+                errors.append(f"{source}: waiver cannot include {forbidden}")
+    if record_type == "downgrade" and field != "from":
+        errors.append(f"{source}: downgrade must target from")
+        return errors
+    if record_type == "waiver" and field == "from":
+        errors.append(f"{source}: waiver must target evidence or review")
+        return errors
     if field == "from":
         if kind not in {"evidence", "review"}:
             errors.append(f"{source}: downgrade kind must be evidence or review")
         elif not target_allowed(field, value, required_evidence, required_review, kind=kind):
             errors.append(f"{source}: {kind} downgrade target is not required: {value}")
+        replacement = record.get("to")
+        if not review_value_is_substantive_string(replacement):
+            errors.append(f"{source}: downgrade to is required")
+        elif replacement == value:
+            errors.append(f"{source}: downgrade to must differ from from")
         return errors
     if field == "review":
         if kind != "review":
@@ -531,7 +654,8 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
     if not isinstance(record, dict):
         return [f"{source}: resolved ref record must be a mapping"]
     for field in REQUIRED_RESOLVED_REF_FIELDS:
-        if not record.get(field):
+        value = record.get(field)
+        if not isinstance(value, str) or not value:
             errors.append(f"{source}: {field} is required")
     if errors:
         return errors
@@ -541,8 +665,17 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
         errors.append(f"{source}: relation is invalid: {record['relation']}")
     if record["relation"] == "artifact" and not str(record["ref"]).startswith("file:"):
         errors.append(f"{source}: artifact refs must use file: scheme")
-    if record["relation"] == "trace" and not str(record["ref"]).startswith("trace:"):
-        errors.append(f"{source}: trace refs must use trace: scheme")
+    if record["relation"] == "trace":
+        if not str(record["ref"]).startswith("trace:"):
+            errors.append(f"{source}: trace refs must use trace: scheme")
+        elif not trace_ref_has_anchor(record["ref"]):
+            errors.append(f"{source}: trace refs must include an anchor")
+    if record["relation"] == "source" and str(record["ref"]).startswith("git:"):
+        source_path = git_source_ref_path(root, record["ref"])
+        if source_path is None:
+            errors.append(f"{source}: git source refs must use git:<full-commit-sha>:<repo-path> form")
+        elif git_resolved_target_path(record["target"]) != source_path:
+            errors.append(f"{source}: git source target must expose repo path: {record['ref']}")
     if (
         record["origin"] == "generated"
         and record["relation"] == "claim-evidence"
@@ -572,7 +705,11 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
 def resolved_ref_index(records: list[dict]) -> dict[tuple[str, str], list[dict]]:
     index: dict[tuple[str, str], list[dict]] = {}
     for record in records:
-        if isinstance(record, dict):
+        if (
+            isinstance(record, dict)
+            and isinstance(record.get("relation"), str)
+            and isinstance(record.get("ref"), str)
+        ):
             index.setdefault((record.get("relation"), record.get("ref")), []).append(record)
     return index
 
@@ -584,6 +721,8 @@ def has_resolved_relation(
     ref: str,
     origin: str | None = None,
 ) -> bool:
+    if not isinstance(ref, str):
+        return False
     return any(
         record.get("status") == "resolved" and (origin is None or record.get("origin") == origin)
         for record in index.get((relation, ref), [])
@@ -630,7 +769,81 @@ def field_section_records_values(text: str, expected: dict[str, str]) -> bool:
     )
 
 
-def artifact_records_command(
+def command_evidence_sections_exact(text: str) -> list[dict[str, str]]:
+    lines = text.splitlines()
+    return [
+        command_evidence_section_fields(lines, start, end)
+        for start, end in command_evidence_section_bounds(lines)
+        if not command_evidence_section_duplicate_fields(lines, start, end)
+    ]
+
+
+def command_evidence_section_bounds(lines: list[str]) -> list[tuple[int, int]]:
+    starts = [index for index, line in enumerate(lines) if line.strip() == COMMAND_EVIDENCE_HEADING]
+    headings = [index for index, line in enumerate(lines) if line.lstrip().startswith("#")]
+    bounds: list[tuple[int, int]] = []
+    for start in starts:
+        end = next((heading for heading in headings if heading > start), len(lines))
+        bounds.append((start, end))
+    return bounds
+
+
+def command_evidence_section_fields(lines: list[str], start: int, end: int) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for index in range(start + 1, end):
+        match = COMMAND_EVIDENCE_FIELD_RE.match(lines[index])
+        if match:
+            key = match.group(1).casefold().replace("-", "_")
+            fields[key] = match.group(2)
+    return fields
+
+
+def command_evidence_section_duplicate_fields(lines: list[str], start: int, end: int) -> set[str]:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for index in range(start + 1, end):
+        match = COMMAND_EVIDENCE_FIELD_RE.match(lines[index])
+        if not match:
+            continue
+        key = match.group(1).casefold().replace("-", "_")
+        if key in seen:
+            duplicates.add(key)
+        seen.add(key)
+    return duplicates
+
+
+def command_evidence_record_error(
+    text: str,
+    *,
+    identity: dict[str, str],
+    status: str,
+) -> str | None:
+    lines = text.splitlines()
+    matching_sections: list[dict[str, str]] = []
+    duplicate_matches: list[set[str]] = []
+    for start, end in command_evidence_section_bounds(lines):
+        section = command_evidence_section_fields(lines, start, end)
+        if not all(section.get(field) == value for field, value in identity.items()):
+            continue
+        duplicates = command_evidence_section_duplicate_fields(lines, start, end)
+        if duplicates:
+            duplicate_matches.append(duplicates)
+            continue
+        matching_sections.append(section)
+    if duplicate_matches:
+        duplicate_fields = sorted({field for fields in duplicate_matches for field in fields})
+        return f"duplicate fields in matching # Command Evidence section: {duplicate_fields}"
+    if not matching_sections:
+        return "missing matching # Command Evidence section"
+    if len(matching_sections) > 1:
+        return "ambiguous # Command Evidence sections for packet/ref/command identity"
+    recorded_status = matching_sections[0].get("status")
+    if recorded_status != status:
+        return f"# Command Evidence status mismatch: expected {status}, got {recorded_status}"
+    return None
+
+
+def artifact_command_evidence_error(
     root: Path,
     artifact_ref: str,
     command: str,
@@ -639,19 +852,19 @@ def artifact_records_command(
     packet_id: str,
     packet_ref: str,
     packet_sha256: str,
-) -> bool:
+) -> str | None:
     text = artifact_text(root, artifact_ref)
     if text is None:
-        return False
-    return field_section_records_values(
+        return "command evidence artifact could not be read"
+    return command_evidence_record_error(
         text,
-        {
+        identity={
             "packet_id": packet_id,
             "packet_ref": packet_ref,
             "packet_sha256": packet_sha256,
             "command": command,
-            "status": status,
         },
+        status=status,
     )
 
 
@@ -722,10 +935,20 @@ def review_value_is_substantive(value: object) -> bool:
     return True
 
 
+def review_value_is_substantive_string(value: object) -> bool:
+    return isinstance(value, str) and review_value_is_substantive(value)
+
+
 def sorted_string_values(values: object) -> list[str]:
     if not isinstance(values, list):
         return []
     return sorted({str(value) for value in values if isinstance(value, str) and value})
+
+
+def string_list_values(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    return [value for value in values if isinstance(value, str)]
 
 
 def canonical_json_bytes(value: object) -> bytes:
@@ -735,7 +958,7 @@ def canonical_json_bytes(value: object) -> bytes:
         if isinstance(item, dt.date):
             return item.isoformat()
         if isinstance(item, dict):
-            return {str(key): normalize(item[key]) for key in sorted(item)}
+            return {str(key): normalize(item[key]) for key in sorted(item, key=lambda key: repr(key))}
         if isinstance(item, list):
             return [normalize(element) for element in item]
         return item
@@ -803,6 +1026,21 @@ def review_target_binding(packet: dict, *, root: Path, packet_ref: str | None) -
     }
 
 
+def multi_review_target_matches_binding(multi_review: dict, binding: dict) -> list[str]:
+    errors: list[str] = []
+    target = multi_review.get("target")
+    if not isinstance(target, dict):
+        return ["imported MultiReviewResult target must be a mapping"]
+    source_refs = target.get("source_refs")
+    if not isinstance(source_refs, list) or any(not isinstance(ref, str) for ref in source_refs):
+        return ["imported MultiReviewResult target.source_refs must be a list of strings"]
+    required_refs = [binding.get("packet_ref")]
+    missing_refs = sorted(ref for ref in required_refs if isinstance(ref, str) and ref and ref not in source_refs)
+    if missing_refs:
+        errors.append(f"imported MultiReviewResult target.source_refs must include current packet ref: {missing_refs}")
+    return errors
+
+
 def markdown_field_sections(text: str) -> list[dict[str, str]]:
     sections: list[dict[str, str]] = []
     current: dict[str, str] | None = None
@@ -839,7 +1077,10 @@ def review_source_ref_records_review(root: Path, ref: str, review: dict, *, pack
         binding = wrapper.get("target_binding") if isinstance(wrapper.get("target_binding"), dict) else {}
         if normalize_review_field(binding.get("packet_id", "")) != normalize_review_field(packet_id):
             return False
-        for record in wrapper.get("review_lineage", []):
+        lineage = wrapper.get("review_lineage", [])
+        if not isinstance(lineage, list):
+            return False
+        for record in lineage:
             if not isinstance(record, dict):
                 continue
             if review.get("review_id") and record.get("review_id") != review.get("review_id"):
@@ -975,7 +1216,7 @@ def normalize_for_mirror(value: object) -> object:
     if isinstance(value, list):
         return [normalize_for_mirror(item) for item in value]
     if isinstance(value, dict):
-        return {key: normalize_for_mirror(value[key]) for key in sorted(value)}
+        return {str(key): normalize_for_mirror(value[key]) for key in sorted(value, key=lambda item: repr(item))}
     return value
 
 
@@ -983,19 +1224,13 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
     errors: list[str] = []
     if not isinstance(record, dict):
         return [f"{source}: review lineage record must be a mapping"]
-    if set(record) != REVIEW_LINEAGE_FIELDS:
-        missing = sorted(REVIEW_LINEAGE_FIELDS - set(record))
-        extra = sorted(set(record) - REVIEW_LINEAGE_FIELDS)
-        if missing:
-            errors.append(f"{source}: missing fields: {missing}")
-        if extra:
-            errors.append(f"{source}: extra fields: {extra}")
+    errors.extend(schema_field_errors(record, REVIEW_LINEAGE_FIELDS, source=source, label="review lineage"))
     for field in ("review_id", "critic", "scope", "anti_scope", "actor", "role", "source_ref"):
-        if not review_value_is_substantive(record.get(field)):
+        if not review_value_is_substantive_string(record.get(field)):
             errors.append(f"{source}: {field} is required")
     if record.get("source_ref") != import_source_ref:
         errors.append(f"{source}: source_ref must match review import source_ref: {import_source_ref}")
-    if record.get("date") and not date_like(record["date"]):
+    if not date_like(record.get("date")):
         errors.append(f"{source}: date must be an ISO date")
     score = record.get("score")
     if not isinstance(score, int) or isinstance(score, bool) or score < 1 or score > 10:
@@ -1003,7 +1238,7 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
     if not isinstance(record.get("veto"), bool):
         errors.append(f"{source}: veto must be a boolean")
     for field in ("false_green_risk", "invariant_checked"):
-        if not review_value_is_substantive(record.get(field)):
+        if not review_value_is_substantive_string(record.get(field)):
             errors.append(f"{source}: {field} must be substantive")
     if not isinstance(record.get("evidence"), list) or not review_value_is_substantive(record.get("evidence")):
         errors.append(f"{source}: evidence must be a non-empty substantive list")
@@ -1019,20 +1254,26 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
     if not isinstance(record.get("blocking_findings"), list):
         errors.append(f"{source}: blocking_findings must be a list")
     else:
+        seen_finding_ids: set[str] = set()
         for index, finding in enumerate(record["blocking_findings"]):
             if not isinstance(finding, dict):
                 errors.append(f"{source}: blocking_findings[{index}] must be a mapping with finding_id and summary")
                 continue
-            if not review_value_is_substantive(finding.get("finding_id")):
+            finding_id = finding.get("finding_id")
+            if not review_value_is_substantive_string(finding_id):
                 errors.append(f"{source}: blocking_findings[{index}].finding_id is required")
-            if not review_value_is_substantive(finding.get("summary")):
+            elif finding_id in seen_finding_ids:
+                errors.append(f"{source}: duplicate blocking finding_id: {finding_id}")
+            else:
+                seen_finding_ids.add(finding_id)
+            if not review_value_is_substantive_string(finding.get("summary")):
                 errors.append(f"{source}: blocking_findings[{index}].summary is required")
     if review_is_blocking(record) and not finding_ids(record):
         errors.append(f"{source}: blocking review requires blocking_findings with stable finding_id values")
     if score == 9:
-        if not review_value_is_substantive(record.get("why_not_10")):
+        if not review_value_is_substantive_string(record.get("why_not_10")):
             errors.append(f"{source}: score 9 requires why_not_10")
-        if not review_value_is_substantive(record.get("disposition")):
+        if not review_value_is_substantive_string(record.get("disposition")):
             errors.append(f"{source}: score 9 requires disposition")
     fixed = record.get("fixed_finding_ids")
     if not isinstance(fixed, list):
@@ -1049,7 +1290,7 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
     return errors
 
 
-def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tuple[set[str], list[str]]:
+def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     by_id: dict[str, dict] = {}
     index_by_id: dict[str, int] = {}
@@ -1068,6 +1309,8 @@ def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tupl
             continue
         rerun_id = record.get("review_id")
         target_id = record.get("rerun_of")
+        if not isinstance(rerun_id, str) or not isinstance(target_id, str):
+            continue
         target = by_id.get(target_id)
         if target is None:
             errors.append(f"{source}: rerun {rerun_id} references missing review_id: {target_id}")
@@ -1084,7 +1327,10 @@ def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tupl
             errors.append(f"{source}: rerun {rerun_id} must be score >= 9, veto false, and nonblocking")
             continue
         target_findings = finding_ids(target)
-        fixed = set(record.get("fixed_finding_ids", []))
+        fixed_values = record.get("fixed_finding_ids", [])
+        if not isinstance(fixed_values, list) or any(not isinstance(item, str) for item in fixed_values):
+            continue
+        fixed = set(fixed_values)
         if not target_findings:
             errors.append(f"{source}: rerun target {target_id} has no stable finding ids")
             continue
@@ -1103,13 +1349,13 @@ def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tupl
         if review_is_blocking(record) and review_id not in closed_blocking_ids:
             errors.append(f"{source}: unclosed blocking review: {review_id}")
 
-    open_passing = {
+    open_passing = [
         record["critic"]
         for record in lineage
         if isinstance(record, dict)
         and isinstance(record.get("critic"), str)
         and review_is_open_passing(record, closed_blocking_ids)
-    }
+    ]
     return open_passing, errors
 
 
@@ -1120,32 +1366,27 @@ def validate_review_imports(
     packet_ref: str | None,
     packet_sha256: str | None,
     ref_index: dict[tuple[str, str], list[dict]],
-) -> tuple[set[str], list[str]]:
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     evidence = packet["result"]["evidence"]
-    packet_reviews = packet["result"]["judgment"].get("reviews", [])
+    packet_reviews_raw = packet["result"]["judgment"].get("reviews", [])
+    packet_reviews = packet_reviews_raw if isinstance(packet_reviews_raw, list) else []
     imports = evidence.get("review_imports", [])
     if not isinstance(imports, list):
-        return set(), ["result.evidence.review_imports must be a list"]
+        return [], ["result.evidence.review_imports must be a list"]
     if packet_reviews and not imports:
-        return set(), ["stable packet reviews require result.evidence.review_imports"]
+        return [], ["stable packet reviews require result.evidence.review_imports"]
 
     expected_binding = review_target_binding(packet, root=root, packet_ref=packet_ref)
     imported_source_refs: set[str] = set()
     imported_lineage_by_id: dict[str, dict] = {}
-    open_passing_reviews: set[str] = set()
+    open_passing_reviews: list[str] = []
     for import_index, import_record in enumerate(imports):
         source = f"result.evidence.review_imports[{import_index}]"
         if not isinstance(import_record, dict):
             errors.append(f"{source}: review import must be a mapping")
             continue
-        if set(import_record) != REVIEW_IMPORT_RECORD_FIELDS:
-            missing = sorted(REVIEW_IMPORT_RECORD_FIELDS - set(import_record))
-            extra = sorted(set(import_record) - REVIEW_IMPORT_RECORD_FIELDS)
-            if missing:
-                errors.append(f"{source}: missing fields: {missing}")
-            if extra:
-                errors.append(f"{source}: extra fields: {extra}")
+        errors.extend(schema_field_errors(import_record, REVIEW_IMPORT_RECORD_FIELDS, source=source, label="review import"))
         source_ref = import_record.get("source_ref")
         if not isinstance(source_ref, str) or not source_ref:
             errors.append(f"{source}: source_ref is required")
@@ -1155,8 +1396,8 @@ def validate_review_imports(
             errors.append(f"{source}: format must be {REVIEW_IMPORT_SCHEMA_VERSION}")
         if import_record.get("status") != "imported":
             errors.append(f"{source}: status must be imported")
-        if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref):
-            errors.append(f"{source}: source_ref lacks resolved review-provenance relation: {source_ref}")
+        if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref, origin="generated"):
+            errors.append(f"{source}: source_ref lacks resolved review-provenance relation with generated origin: {source_ref}")
         if ref_is_acceptance_packet(root, source_ref):
             errors.append(f"{source}: review import source_ref cannot be an acceptance packet: {source_ref}")
         path = local_ref_path(root, source_ref)
@@ -1177,13 +1418,7 @@ def validate_review_imports(
         errors.extend(f"{source}: {item}" for item in wrapper_errors)
         if wrapper is None:
             continue
-        if set(wrapper) != REVIEW_IMPORT_FIELDS:
-            missing = sorted(REVIEW_IMPORT_FIELDS - set(wrapper))
-            extra = sorted(set(wrapper) - REVIEW_IMPORT_FIELDS)
-            if missing:
-                errors.append(f"{source}: wrapper missing fields: {missing}")
-            if extra:
-                errors.append(f"{source}: wrapper extra fields: {extra}")
+        errors.extend(schema_field_errors(wrapper, REVIEW_IMPORT_FIELDS, source=source, label="wrapper"))
         if wrapper.get("schema_version") != REVIEW_IMPORT_SCHEMA_VERSION:
             errors.append(f"{source}: wrapper schema_version must be {REVIEW_IMPORT_SCHEMA_VERSION}")
         wrapper_binding = wrapper.get("target_binding")
@@ -1199,6 +1434,9 @@ def validate_review_imports(
             errors.append(f"{source}: wrapper MultiReviewResult must be a mapping")
         else:
             expected_packet_ref = wrapper_binding.get("packet_ref") if isinstance(wrapper_binding, dict) else packet_ref
+            target_binding = wrapper_binding if isinstance(wrapper_binding, dict) else expected_binding
+            for item in multi_review_target_matches_binding(multi_review, target_binding):
+                errors.append(f"{source}: {item}")
             derived, derived_errors = derive_multi_review_result(
                 root,
                 multi_review,
@@ -1229,7 +1467,11 @@ def validate_review_imports(
         if len(ids) != len(set(ids)):
             errors.append(f"{source}: review_lineage contains duplicate review_id values")
         review_ids = import_record.get("review_ids")
-        if not isinstance(review_ids, list) or sorted(review_ids) != sorted(ids):
+        if not isinstance(review_ids, list):
+            errors.append(f"{source}: review_ids must match imported review_lineage ids")
+        elif any(not isinstance(review_id, str) for review_id in review_ids):
+            errors.append(f"{source}: review_ids must contain only strings")
+        elif sorted(review_ids) != sorted(ids):
             errors.append(f"{source}: review_ids must match imported review_lineage ids")
         for record in lineage:
             if isinstance(record, dict) and isinstance(record.get("review_id"), str):
@@ -1238,7 +1480,7 @@ def validate_review_imports(
                     errors.append(f"{source}: duplicate imported review_id across imports: {review_id}")
                 imported_lineage_by_id[review_id] = record
         passing, closure_errors = validate_review_lineage_closure(lineage, source=source)
-        open_passing_reviews |= passing
+        open_passing_reviews.extend(passing)
         errors.extend(closure_errors)
 
     packet_reviews_by_id: dict[str, dict] = {}
@@ -1254,7 +1496,8 @@ def validate_review_imports(
         if review_id in packet_reviews_by_id:
             errors.append(f"{source}: duplicate review_id: {review_id}")
         packet_reviews_by_id[review_id] = review
-        if review.get("source_ref") not in imported_source_refs:
+        source_ref = review.get("source_ref")
+        if not isinstance(source_ref, str) or source_ref not in imported_source_refs:
             errors.append(f"{source}: source_ref must point to an imported structured review artifact")
         imported = imported_lineage_by_id.get(review_id)
         if imported is None:
@@ -1282,9 +1525,72 @@ def resolved_targets(records: list[dict], *, relation: str) -> set[str]:
     }
 
 
+def source_target_path(target: str) -> str:
+    return target.split("#", 1)[0]
+
+
+def git_resolved_target_path(target: str) -> str | None:
+    target_path = target.split("#", 1)[0]
+    if ":" not in target_path:
+        return None
+    commit, path = target_path.split(":", 1)
+    if not FULL_COMMIT_RE.fullmatch(commit) or not path:
+        return None
+    return path
+
+
+def resolved_source_paths(root: Path, records: list[dict]) -> set[str]:
+    paths: set[str] = set()
+    for record in records:
+        if (
+            not isinstance(record, dict)
+            or record.get("relation") != "source"
+            or record.get("status") != "resolved"
+            or not isinstance(record.get("target"), str)
+        ):
+            continue
+        ref = record.get("ref")
+        if isinstance(ref, str) and ref.startswith("git:"):
+            source_path = git_source_ref_path(root, ref)
+            if source_path:
+                paths.add(source_path)
+            continue
+        paths.add(source_target_path(record["target"]))
+    return paths
+
+
+def git_source_ref_path(root: Path, ref: str) -> str | None:
+    parts = git_source_ref_parts(root, ref)
+    return parts[1] if parts else None
+
+
+def git_source_ref_parts(root: Path, ref: str) -> tuple[str, str] | None:
+    if not isinstance(ref, str) or not ref.startswith("git:"):
+        return None
+    spec = ref.removeprefix("git:")
+    if ":" not in spec:
+        return None
+    commit, path = spec.split(":", 1)
+    if not FULL_COMMIT_RE.fullmatch(commit):
+        return None
+    result = git(root, ["cat-file", "-t", commit])
+    if result.returncode != 0 or result.stdout.strip() != "commit":
+        return None
+    if not path or path.startswith("/") or ".." in Path(path).parts:
+        return None
+    return commit, path.split("#", 1)[0]
+
+
 def git_ref_commit(root: Path, ref: str) -> str | None:
     result = git(root, ["rev-parse", "--verify", f"{ref}^{{commit}}"])
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def git_ref_is_commit(root: Path, ref: object) -> bool:
+    if not isinstance(ref, str) or not ref:
+        return False
+    result = git(root, ["cat-file", "-t", ref])
+    return result.returncode == 0 and result.stdout.strip() == "commit"
 
 
 def same_git_boundary(root: Path, left: str | None, right: str | None) -> bool:
@@ -1306,16 +1612,21 @@ def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
         ("result.judgment.downgrades", result["judgment"].get("downgrades", [])),
         ("result.judgment.residual_risk", result["judgment"].get("residual_risk", [])),
     ):
+        if not isinstance(records, list):
+            continue
         for index, record in enumerate(records):
-            if isinstance(record, dict) and record.get("source_ref"):
+            if isinstance(record, dict) and isinstance(record.get("source_ref"), str) and record.get("source_ref"):
                 refs.append((f"{source}[{index}]", record["source_ref"]))
     return refs
 
 
 def review_source_refs(packet: dict) -> list[tuple[str, str, dict]]:
     refs: list[tuple[str, str, dict]] = []
-    for index, record in enumerate(packet["result"]["judgment"].get("reviews", [])):
-        if isinstance(record, dict) and record.get("source_ref"):
+    records = packet["result"]["judgment"].get("reviews", [])
+    if not isinstance(records, list):
+        return refs
+    for index, record in enumerate(records):
+        if isinstance(record, dict) and isinstance(record.get("source_ref"), str) and record.get("source_ref"):
             refs.append((f"result.judgment.reviews[{index}]", record["source_ref"], record))
     return refs
 
@@ -1357,9 +1668,9 @@ def validate_packet(
 
     lifecycle = meta["lifecycle"]
     mode = meta["mode"]
-    if lifecycle not in LIFECYCLES:
+    if not isinstance(lifecycle, str) or lifecycle not in LIFECYCLES:
         errors.append(f"meta.lifecycle is invalid: {lifecycle}")
-    if mode not in MODES:
+    if not isinstance(mode, str) or mode not in MODES:
         errors.append(f"meta.mode is invalid: {mode}")
     if not date_like(meta["created_at"]):
         errors.append("meta.created_at must be an ISO date")
@@ -1383,6 +1694,41 @@ def validate_packet(
     evidence = result["evidence"]
     judgment = result["judgment"]
     decision = result["decision"]
+    command_result_records = mapping_records(
+        evidence.get("command_results", []),
+        source="result.evidence.command_results",
+        errors=errors,
+    )
+    skipped_records = mapping_records(
+        evidence.get("skipped", []),
+        source="result.evidence.skipped",
+        errors=errors,
+    )
+    waiver_records = mapping_records(
+        judgment.get("waivers", []),
+        source="result.judgment.waivers",
+        errors=errors,
+    )
+    downgrade_records = mapping_records(
+        judgment.get("downgrades", []),
+        source="result.judgment.downgrades",
+        errors=errors,
+    )
+    review_records = mapping_records(
+        judgment.get("reviews", []),
+        source="result.judgment.reviews",
+        errors=errors,
+    )
+    residual_risk_records = mapping_records(
+        judgment.get("residual_risk", []),
+        source="result.judgment.residual_risk",
+        errors=errors,
+    )
+    evaluator_boundary = evidence.get("evaluator_boundary")
+    if isinstance(evaluator_boundary, dict):
+        status = evaluator_boundary.get("status")
+        if status is not None and not isinstance(status, str):
+            errors.append("result.evidence.evaluator_boundary.status must be null or a string")
     accepted = decision.get("accepted")
     stable = decision.get("stable_handoff_eligible")
     declared_required_evidence, declared_required_review = required_targets(packet)
@@ -1403,17 +1749,25 @@ def validate_packet(
         for field in FINALIZED_INFERENCE_FIELDS:
             if field not in inference:
                 errors.append(f"result.inference.{field} is required for {lifecycle} packets")
-        if not isinstance(inference.get("changed_paths"), list):
+        changed_path_values = inference.get("changed_paths", [])
+        if not isinstance(changed_path_values, list):
             errors.append("result.inference.changed_paths must be a list")
+            changed_path_values = []
+        elif any(not isinstance(path, str) for path in changed_path_values):
+            errors.append("result.inference.changed_paths must contain only strings")
         if not isinstance(inference.get("deviations"), list):
             errors.append("result.inference.deviations must be a list")
         if not isinstance(inference.get("required_evidence"), list):
             errors.append("result.inference.required_evidence must be a list")
+        elif any(not isinstance(item, str) for item in inference.get("required_evidence", [])):
+            errors.append("result.inference.required_evidence must contain only strings")
         if not isinstance(inference.get("required_review"), list):
             errors.append("result.inference.required_review must be a list")
+        elif any(not isinstance(item, str) for item in inference.get("required_review", [])):
+            errors.append("result.inference.required_review must contain only strings")
         if not isinstance(inference.get("protected_boundary_changed"), bool):
             errors.append("result.inference.protected_boundary_changed must be a boolean")
-        protected_paths = [path for path in inference.get("changed_paths", []) if requires_review_for_path(path)]
+        protected_paths = [path for path in changed_path_values if isinstance(path, str) and requires_review_for_path(path)]
         if protected_paths:
             if inference.get("protected_boundary_changed") is not True:
                 errors.append("protected changed paths require protected_boundary_changed: true")
@@ -1422,7 +1776,13 @@ def validate_packet(
             if inference.get("impact") != "high":
                 errors.append("protected changed paths require impact: high")
 
-    for key, request in input_data["user_judgment"].items():
+    user_judgment = input_data.get("user_judgment")
+    if not isinstance(user_judgment, dict):
+        user_judgment = {}
+    for key, request in user_judgment.items():
+        if not isinstance(key, str):
+            errors.append(f"input.user_judgment key must be a string: {key}")
+            continue
         if "waiver" in key or "downgrade" in key:
             errors.extend(
                 validate_exception_record(
@@ -1430,6 +1790,7 @@ def validate_packet(
                     required_evidence=required_evidence,
                     required_review=required_review,
                     source=f"input.user_judgment.{key}",
+                    record_type="downgrade" if "downgrade" in key else "waiver",
                 )
             )
         elif "skipped" in key:
@@ -1438,27 +1799,38 @@ def validate_packet(
                 evidence_target = request.get("evidence")
                 if not evidence_target:
                     errors.append(f"input.user_judgment.{key}: evidence is required")
+                elif not isinstance(evidence_target, str):
+                    errors.append(f"input.user_judgment.{key}: evidence must be a string")
                 elif evidence_target not in required_evidence:
                     errors.append(f"input.user_judgment.{key}: skipped evidence is not required: {evidence_target}")
         elif "residual" in key:
-            errors.extend(validate_provenance_record(request, source=f"input.user_judgment.{key}"))
+            errors.extend(
+                validate_residual_risk_record(
+                    request,
+                    required_evidence=required_evidence,
+                    required_review=required_review,
+                    source=f"input.user_judgment.{key}",
+                )
+            )
 
-    for waiver in judgment.get("waivers", []):
+    for waiver in waiver_records:
         errors.extend(
             validate_exception_record(
                 waiver,
                 required_evidence=required_evidence,
                 required_review=required_review,
                 source="result.judgment.waivers",
+                record_type="waiver",
             )
         )
-    for downgrade in judgment.get("downgrades", []):
+    for downgrade in downgrade_records:
         errors.extend(
             validate_exception_record(
                 downgrade,
                 required_evidence=required_evidence,
                 required_review=required_review,
                 source="result.judgment.downgrades",
+                record_type="downgrade",
             )
         )
 
@@ -1477,8 +1849,7 @@ def validate_packet(
     if stable and accepted is not True:
         errors.append("stable-handoff packet must be accepted")
 
-    reviews = judgment.get("reviews", [])
-    for review in reviews:
+    for review in review_records:
         score = review.get("score")
         if stable and not review.get("review_id"):
             errors.append("stable review requires review_id")
@@ -1523,22 +1894,26 @@ def validate_packet(
         if not isinstance(input_source_refs, list):
             input_source_refs = []
         for ref in input_source_refs:
+            if not isinstance(ref, str):
+                errors.append(f"stable packet input source_ref must be a string: {ref}")
+                continue
             if ref not in evidence_source_refs:
                 errors.append(f"stable packet input source_ref missing from evidence.source_refs: {ref}")
             if not has_resolved_relation(ref_index, relation="source", ref=ref, origin="input"):
                 errors.append(f"stable packet input source_ref lacks resolved input source relation: {ref}")
         for ref in evidence_source_refs:
+            if not isinstance(ref, str):
+                errors.append(f"stable packet evidence source_ref must be a string: {ref}")
+                continue
             if not has_resolved_relation(ref_index, relation="source", ref=ref):
                 errors.append(f"stable packet source_ref lacks resolved source relation: {ref}")
-        source_targets = resolved_targets(resolved_refs, relation="source")
-        changed_paths = {
-            path for path in inference.get("changed_paths", []) if isinstance(path, str)
-        }
-        missing_changed_sources = sorted(path for path in changed_paths if path not in source_targets)
+        source_paths = resolved_source_paths(root, resolved_refs)
+        changed_paths = set(string_list_values(inference.get("changed_paths", [])))
+        missing_changed_sources = sorted(path for path in changed_paths if path not in source_paths)
         if missing_changed_sources:
             errors.append(f"stable packet changed_paths lack resolved source refs: {missing_changed_sources}")
         protected_source_targets = sorted(
-            target for target in source_targets if requires_review_for_path(target) and target not in changed_paths
+            target for target in source_paths if requires_review_for_path(target) and target not in changed_paths
         )
         if protected_source_targets:
             errors.append(
@@ -1549,15 +1924,26 @@ def validate_packet(
             boundary_ref = evidence.get(boundary_ref_name)
             if not boundary_ref:
                 errors.append(f"stable packet {boundary_ref_name} is required")
-            elif resolve_ref(root, f"git:{boundary_ref}") is None:
-                errors.append(f"stable packet {boundary_ref_name} does not resolve: {boundary_ref}")
+            elif not git_ref_is_commit(root, boundary_ref):
+                errors.append(f"stable packet {boundary_ref_name} must resolve to a git commit: {boundary_ref}")
+            elif mode == "staged" and not same_git_boundary(root, boundary_ref, "HEAD"):
+                errors.append(f"staged stable packet {boundary_ref_name} must match HEAD: {boundary_ref}")
 
         for source, source_ref in provenance_source_refs(packet):
-            if not has_resolved_relation(ref_index, relation="waiver-provenance", ref=source_ref):
-                errors.append(f"{source}: source_ref lacks resolved waiver-provenance relation: {source_ref}")
+            if not has_resolved_relation(ref_index, relation="waiver-provenance", ref=source_ref, origin="generated"):
+                errors.append(f"{source}: source_ref lacks resolved waiver-provenance relation with generated origin: {source_ref}")
+        for index, record in enumerate(residual_risk_records):
+            errors.extend(
+                validate_residual_risk_record(
+                    record,
+                    required_evidence=required_evidence,
+                    required_review=required_review,
+                    source=f"result.judgment.residual_risk[{index}]",
+                )
+            )
         for source, source_ref, review in review_source_refs(packet):
-            if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref):
-                errors.append(f"{source}: source_ref lacks resolved review-provenance relation: {source_ref}")
+            if not has_resolved_relation(ref_index, relation="review-provenance", ref=source_ref, origin="generated"):
+                errors.append(f"{source}: source_ref lacks resolved review-provenance relation with generated origin: {source_ref}")
             elif ref_is_acceptance_packet(root, source_ref):
                 errors.append(f"{source}: review-provenance source_ref cannot be an acceptance packet: {source_ref}")
             elif not review_source_ref_records_review(root, source_ref, review, packet_id=meta["packet_id"]):
@@ -1567,20 +1953,24 @@ def validate_packet(
             inference.get("protected_boundary_changed") is True
             or inference.get("change_class") == "harness-affecting"
             or inference.get("impact") == "high"
-            or any(requires_review_for_path(path) for path in inference.get("changed_paths", []))
+            or any(requires_review_for_path(path) for path in string_list_values(inference.get("changed_paths", [])))
         )
         if protected_review_required and not required_review:
             errors.append("stable protected or high-impact packet must infer required review")
 
-        passed_evidence = {
-            item.get("command")
-            for item in evidence.get("command_results", [])
-            if item.get("status") == "pass" and item.get("command")
-        }
-        for item in evidence.get("command_results", []):
-            if item.get("status") != "pass":
+        passed_evidence: set[str] = set()
+        for index, item in enumerate(command_result_records):
+            status = item.get("status")
+            if not isinstance(status, str) or not status:
+                errors.append(f"result.evidence.command_results[{index}].status must be a non-empty string")
                 continue
-            base_ref = command_base_ref(item.get("command", ""))
+            command = item.get("command")
+            if not isinstance(command, str) or not command:
+                errors.append(f"result.evidence.command_results[{index}].command must be a non-empty string")
+                continue
+            if status == "pass":
+                passed_evidence.add(command)
+            base_ref = command_base_ref(command)
             if base_ref:
                 for boundary_ref_name in ("baseline_ref", "comparison_ref"):
                     if not same_git_boundary(root, evidence.get(boundary_ref_name), base_ref):
@@ -1590,26 +1980,54 @@ def validate_packet(
                         )
             artifact_ref = item.get("artifact_ref")
             if not artifact_ref:
-                errors.append(f"stable command evidence lacks artifact_ref: {item.get('command')}")
+                errors.append(f"stable command evidence lacks artifact_ref: {command}")
             elif str(artifact_ref).startswith("terminal:"):
                 errors.append(f"terminal placeholder cannot satisfy stable evidence: {artifact_ref}")
             elif not str(artifact_ref).startswith("file:"):
                 errors.append(f"stable command artifact_ref must use file: scheme: {artifact_ref}")
-            elif not has_resolved_relation(ref_index, relation="artifact", ref=artifact_ref):
-                errors.append(f"stable command artifact lacks resolved artifact relation: {artifact_ref}")
-            elif not artifact_records_command(
-                root,
-                artifact_ref,
-                item.get("command", ""),
-                item.get("status", ""),
-                packet_id=meta["packet_id"],
-                packet_ref=packet_ref or "",
-                packet_sha256=packet_sha256 or "",
-            ):
-                errors.append(f"stable command artifact does not record command evidence: {artifact_ref}")
+            elif not has_resolved_relation(ref_index, relation="artifact", ref=artifact_ref, origin="generated"):
+                errors.append(f"stable command artifact lacks resolved generated artifact relation: {artifact_ref}")
+            else:
+                artifact_error = artifact_command_evidence_error(
+                    root,
+                    artifact_ref,
+                    command,
+                    status,
+                    packet_id=meta["packet_id"],
+                    packet_ref=packet_ref or "",
+                    packet_sha256=packet_sha256 or "",
+                )
+                if artifact_error:
+                    errors.append(f"stable command artifact does not record command evidence: {artifact_ref}: {artifact_error}")
+
+        trace_refs = evidence.get("trace_refs", {})
+        if not isinstance(trace_refs, dict):
+            errors.append("stable packet evidence.trace_refs must be a mapping")
+            trace_refs = {}
+        for trace_name in ("search_set_before", "search_set_after"):
+            trace_ref = trace_refs.get(trace_name)
+            if trace_ref is None:
+                continue
+            if not isinstance(trace_ref, str) or not trace_ref.startswith("trace:"):
+                errors.append(f"stable trace_refs.{trace_name} must use trace: scheme: {trace_ref}")
+            elif not trace_ref_has_anchor(trace_ref):
+                errors.append(f"stable trace_refs.{trace_name} must include an anchor: {trace_ref}")
+            elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
+                errors.append(f"stable trace_refs.{trace_name} lacks resolved generated trace relation: {trace_ref}")
+        for bucket_name in ("evolution", "failures"):
+            bucket_refs = trace_refs.get(bucket_name, [])
+            if not isinstance(bucket_refs, list):
+                errors.append(f"stable trace_refs.{bucket_name} must be a list")
+                continue
+            for trace_ref in bucket_refs:
+                if not isinstance(trace_ref, str) or not trace_ref.startswith("trace:"):
+                    errors.append(f"stable trace_refs.{bucket_name} entries must use trace: scheme: {trace_ref}")
+                elif not trace_ref_has_anchor(trace_ref):
+                    errors.append(f"stable trace_refs.{bucket_name} entries must include an anchor: {trace_ref}")
+                elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
+                    errors.append(f"stable trace_refs.{bucket_name} lacks resolved generated trace relation: {trace_ref}")
 
         if protected_review_required:
-            trace_refs = evidence.get("trace_refs", {})
             if isinstance(trace_refs, dict):
                 search_set_before = trace_refs.get("search_set_before")
                 search_set_after = trace_refs.get("search_set_after")
@@ -1621,28 +2039,32 @@ def validate_packet(
                 trace_ref = trace_refs.get(trace_name) if isinstance(trace_refs, dict) else None
                 skipped_targets = {
                     item.get("evidence")
-                    for item in evidence.get("skipped", [])
-                    if isinstance(item, dict) and item.get("evidence")
+                    for item in skipped_records
+                    if isinstance(item, dict)
+                    and isinstance(item.get("evidence"), str)
+                    and item.get("evidence")
                 }
                 if not trace_ref and trace_name in skipped_targets:
                     continue
                 if not trace_ref:
                     errors.append(f"stable protected packet missing {trace_name}")
-                elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref):
-                    errors.append(f"stable protected packet {trace_name} lacks resolved trace relation: {trace_ref}")
+                elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
+                    errors.append(f"stable protected packet {trace_name} lacks resolved generated trace relation: {trace_ref}")
 
-        for skipped in evidence.get("skipped", []):
+        for skipped in skipped_records:
             errors.extend(validate_provenance_record(skipped, source="result.evidence.skipped"))
             evidence_target = skipped.get("evidence") if isinstance(skipped, dict) else None
             allowed_skips = required_evidence | {"search_set_before", "search_set_after"}
             if not evidence_target:
                 errors.append("result.evidence.skipped: evidence is required")
+            elif not isinstance(evidence_target, str):
+                errors.append("result.evidence.skipped: evidence must be a string")
             elif evidence_target not in allowed_skips:
                 errors.append(f"result.evidence.skipped: skipped evidence is not required: {evidence_target}")
 
         proof_like_paths = [
             path
-            for path in inference.get("changed_paths", [])
+            for path in string_list_values(inference.get("changed_paths", []))
             if path.endswith(".md") and path_has_proof_like_claim(root, path)
         ]
         claims = evidence.get("claims", [])
@@ -1662,8 +2084,8 @@ def validate_packet(
             for raw_ref in raw_refs:
                 if not isinstance(raw_ref, str) or not raw_ref.startswith(("file:", "trace:")):
                     errors.append(f"claim evidence ref must use file: or trace: scheme: {raw_ref}")
-                elif not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref):
-                    errors.append(f"claim evidence ref lacks resolved claim-evidence relation: {raw_ref}")
+                elif not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref, origin="generated"):
+                    errors.append(f"claim evidence ref lacks resolved generated claim-evidence relation: {raw_ref}")
                 elif raw_ref.startswith("file:") and not is_raw_claim_file_ref(root, raw_ref):
                     errors.append(
                         "claim evidence file ref must point to raw artifact/log/screenshot/report evidence: "
@@ -1672,20 +2094,39 @@ def validate_packet(
 
         passed_evidence_records = [
             item.get("command")
-            for item in evidence.get("command_results", [])
-            if item.get("status") == "pass" and item.get("command")
+            for item in command_result_records
+            if item.get("status") == "pass" and isinstance(item.get("command"), str) and item.get("command")
         ]
-        waived_evidence_records = [item.get("evidence") for item in judgment.get("waivers", []) if item.get("evidence")]
-        downgraded_evidence_records = [
-            item.get("from")
-            for item in judgment.get("downgrades", [])
-            if item.get("kind") == "evidence" and item.get("from")
+        waived_evidence_records = [
+            item.get("evidence")
+            for item in waiver_records
+            if isinstance(item.get("evidence"), str) and item.get("evidence")
         ]
         skipped_evidence_records = [
             item.get("evidence")
-            for item in evidence.get("skipped", [])
-            if isinstance(item, dict) and item.get("evidence") in required_evidence
+            for item in skipped_records
+            if isinstance(item, dict) and isinstance(item.get("evidence"), str) and item.get("evidence") in required_evidence
         ]
+        closed_evidence_replacements = (
+            set(passed_evidence_records) | set(waived_evidence_records) | set(skipped_evidence_records)
+        )
+        downgraded_evidence_records: list[str] = []
+        for item in downgrade_records:
+            if item.get("kind") != "evidence":
+                continue
+            source_target = item.get("from")
+            replacement = item.get("to")
+            if not isinstance(source_target, str) or not source_target:
+                continue
+            if not isinstance(replacement, str) or not replacement:
+                continue
+            if replacement not in closed_evidence_replacements:
+                errors.append(
+                    "stable evidence downgrade replacement is not closed by durable evidence, waiver, or skip: "
+                    f"{source_target} -> {replacement}"
+                )
+                continue
+            downgraded_evidence_records.append(source_target)
         errors.extend(
             multiple_required_closure_errors(
                 required_evidence,
@@ -1707,12 +2148,29 @@ def validate_packet(
             errors.append(f"stable packet missing required evidence: {sorted(missing_evidence)}")
 
         open_passing_review_records = list(open_passing_review_targets)
-        waived_review_records = [item.get("review") for item in judgment.get("waivers", []) if item.get("review")]
-        downgraded_review_records = [
-            item.get("from")
-            for item in judgment.get("downgrades", [])
-            if item.get("kind") == "review" and item.get("from")
+        waived_review_records = [
+            item.get("review")
+            for item in waiver_records
+            if isinstance(item.get("review"), str) and item.get("review")
         ]
+        closed_review_replacements = set(open_passing_review_records) | set(waived_review_records)
+        downgraded_review_records: list[str] = []
+        for item in downgrade_records:
+            if item.get("kind") != "review":
+                continue
+            source_target = item.get("from")
+            replacement = item.get("to")
+            if not isinstance(source_target, str) or not source_target:
+                continue
+            if not isinstance(replacement, str) or not replacement:
+                continue
+            if replacement not in closed_review_replacements:
+                errors.append(
+                    "stable review downgrade replacement is not closed by durable review or waiver: "
+                    f"{source_target} -> {replacement}"
+                )
+                continue
+            downgraded_review_records.append(source_target)
         errors.extend(
             multiple_required_closure_errors(
                 required_review,
@@ -1726,7 +2184,8 @@ def validate_packet(
         )
         waived_reviews = set(waived_review_records)
         downgraded_reviews = set(downgraded_review_records)
-        missing_reviews = required_review - open_passing_review_targets - waived_reviews - downgraded_reviews
+        passing_reviews = set(open_passing_review_records)
+        missing_reviews = required_review - passing_reviews - waived_reviews - downgraded_reviews
         if missing_reviews:
             errors.append(f"stable packet missing required review: {sorted(missing_reviews)}")
 
@@ -1767,7 +2226,9 @@ def changed_paths(root: Path, *, mode: str, base_ref: str | None) -> list[str]:
 
 
 def is_protected(path: str) -> bool:
-    return path in PROTECTED_PATHS or any(path.startswith(prefix) for prefix in PROTECTED_PREFIXES)
+    return path in PROTECTED_PATHS or any(
+        path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_PREFIXES
+    )
 
 
 def requires_review_for_path(path: str) -> bool:

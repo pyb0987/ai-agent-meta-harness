@@ -25,7 +25,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "missing required frame_challenge critic"
+    - "MultiReviewResult.required_critics: missing required frame_challenge critic"
   false_green_target: Review accepts the user's frame without any required presupposition challenge.
   primary_invariant: Governance review needs at least one required frame-challenge critic.
   oracle_assertions:

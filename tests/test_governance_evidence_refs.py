@@ -28,6 +28,10 @@ def load_fixture(name: str) -> dict:
     return yaml.safe_load((FIXTURE_ROOT / name).read_text(encoding="utf-8"))
 
 
+def git(*args: str) -> str:
+    return subprocess.check_output(["git", *args], cwd=ROOT, encoding="utf-8").strip()
+
+
 class GovernanceEvidenceRefsTests(unittest.TestCase):
     def assert_rejected(self, packet: dict, expected: str) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -68,6 +72,112 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "input source_ref lacks resolved input source relation")
 
+    def test_stable_git_source_ref_cannot_hide_protected_path(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        commit = git("rev-parse", "HEAD")
+        ref = f"git:{commit}:scripts/check-governance-acceptance.py"
+        evidence["source_refs"].append(ref)
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "source",
+                "ref": ref,
+                "status": "resolved",
+                "target": f"{commit}:scripts/check-governance-acceptance.py",
+            }
+        )
+
+        self.assert_rejected(packet, "source_ref points to protected path outside changed_paths")
+
+    def test_stable_git_source_ref_must_not_be_opaque_blob(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        blob_sha = git("rev-parse", "HEAD:scripts/check-governance-acceptance.py")
+        ref = f"git:{blob_sha}"
+        evidence["source_refs"].append(ref)
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "source",
+                "ref": ref,
+                "status": "resolved",
+                "target": blob_sha,
+            }
+        )
+
+        self.assert_rejected(packet, "git source refs must use git:<full-commit-sha>:<repo-path> form")
+
+    def test_stable_git_source_ref_must_be_commit_pinned(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        ref = "git:HEAD:backlog/fixtures/acceptance-packets/README.md"
+        evidence["source_refs"].append(ref)
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "source",
+                "ref": ref,
+                "status": "resolved",
+                "target": "HEAD:backlog/fixtures/acceptance-packets/README.md",
+            }
+        )
+
+        self.assert_rejected(packet, "git source refs must use git:<full-commit-sha>:<repo-path> form")
+
+    def test_stable_source_ref_protects_directory_roots(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        ref = "file:scripts"
+        evidence["source_refs"].append(ref)
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "source",
+                "ref": ref,
+                "status": "resolved",
+                "target": "scripts",
+            }
+        )
+
+        self.assert_rejected(packet, "source_ref points to protected path outside changed_paths")
+
+    def test_stable_local_colon_path_does_not_satisfy_changed_path_source(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        result["inference"]["changed_paths"] = ["scripts/check-governance-acceptance.py"]
+        result["inference"]["change_class"] = "harness-affecting"
+        result["inference"]["impact"] = "high"
+        result["inference"]["protected_boundary_changed"] = True
+
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            source_file = Path(tmpdir) / "tmp:scripts" / "check-governance-acceptance.py"
+            source_file.parent.mkdir(parents=True)
+            source_file.write_text("# unrelated local file\n", encoding="utf-8")
+            rel_source = source_file.relative_to(ROOT).as_posix()
+            ref = f"file:{rel_source}"
+            packet["AcceptancePacket"]["input"]["source_refs"].append(ref)
+            evidence["source_refs"].append(ref)
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "input",
+                    "relation": "source",
+                    "ref": ref,
+                    "status": "resolved",
+                    "target": rel_source,
+                }
+            )
+
+            self.assert_rejected(packet, "changed_paths lack resolved source refs")
+
+    def test_stable_trace_refs_require_anchors(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        trace_ref = "trace:.harness/traces/evolution/001-repository-self-application-root.md"
+        packet["AcceptancePacket"]["result"]["evidence"]["trace_refs"]["evolution"] = [trace_ref]
+
+        self.assert_rejected(packet, "trace_refs.evolution entries must include an anchor")
+
     def test_stable_missing_artifact_file_fails(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         artifact_ref = "file:backlog/fixtures/acceptance-packets/artifacts/missing.log"
@@ -99,7 +209,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         packet = load_fixture("finalized-harness-affecting.yml")
         packet["AcceptancePacket"]["result"]["evidence"]["comparison_ref"] = "HEAD"
 
-        self.assert_rejected(packet, "stable command base-ref origin/main must match evidence.comparison_ref")
+        self.assert_rejected(packet, "required_evidence must match checker-derived required evidence")
 
     def test_stable_boundary_refs_are_required(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -107,6 +217,23 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         del packet["AcceptancePacket"]["result"]["evidence"]["comparison_ref"]
 
         self.assert_rejected(packet, "stable packet baseline_ref is required")
+
+    def test_stable_boundary_refs_must_be_commits(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        evidence["baseline_ref"] = "HEAD:README.md"
+        evidence["comparison_ref"] = "HEAD:README.md"
+
+        self.assert_rejected(packet, "baseline_ref must resolve to a git commit")
+
+    def test_staged_stable_boundary_refs_must_match_head(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        stale_ref = "HEAD~1"
+        evidence["baseline_ref"] = stale_ref
+        evidence["comparison_ref"] = stale_ref
+
+        self.assert_rejected(packet, "staged stable packet baseline_ref must match HEAD")
 
     def test_archive_v1_path_cannot_be_inferred_routine(self) -> None:
         packet = load_fixture("finalized-routine.yml")

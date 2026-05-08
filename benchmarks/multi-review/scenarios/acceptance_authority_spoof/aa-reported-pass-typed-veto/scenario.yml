@@ -16,9 +16,12 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "veto must be false for derived acceptance"
-    - "verdict veto blocks derived acceptance"
-    - "derived_verdict"
+    - "critics[0:validation-layer]: probe_exit_code must be 0 for derived acceptance"
+    - "critics[1:review-quality]: veto must be false for derived acceptance"
+    - "critics[1:review-quality]: verdict veto blocks derived acceptance"
+    - "critics[1:review-quality]: blocking_findings must be empty for derived acceptance"
+    - "critics[1:review-quality]: probe_exit_code must be 0 for derived acceptance"
+    - "MultiReviewResult.derived_verdict: must be null or match fresh derived verdict: VETO"
   false_green_target: A hand-authored reported PASS and stale derived PASS hide a required critic veto.
   primary_invariant: Typed veto fields and fresh derivation outrank reported verdict prose.
   oracle_assertions:

@@ -20,7 +20,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "scope must be a non-empty string"
+    - "critics[1:review-quality]: scope must be a non-empty string"
   false_green_target: Type smuggling hides frame duplication inside a list value.
   primary_invariant: Required frame fields must be non-empty strings.
   oracle_assertions:

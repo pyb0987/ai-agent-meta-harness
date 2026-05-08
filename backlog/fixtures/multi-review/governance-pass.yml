@@ -38,7 +38,6 @@ MultiReviewResult:
     validation_layer: structured-validator
     probe_run: true
     probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml
-      --require-governance-pass
     probe_exit_code: 0
     probe_result: Derived governance PASS from structured fields.
     probe_interpretation: The checker, not the reported verdict, owns acceptance.
@@ -111,7 +110,7 @@ MultiReviewResult:
     validation_layer: raw-artifact
     probe_run: true
     probe_command: python3 -c "import subprocess, sys; r=subprocess.run([sys.executable,
-      '-m', 'unittest', 'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_accepts_governance_pass_yaml'],
+      '-m', 'unittest', 'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_reports_governance_pass_transcript_consistency_without_replay'],
       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('probe_schema_contract_pass'
       if r.returncode == 0 else 'probe_schema_contract_fail'); sys.exit(r.returncode)"
     probe_exit_code: 0

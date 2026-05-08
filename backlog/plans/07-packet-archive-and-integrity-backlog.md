@@ -10,6 +10,12 @@ The user-facing shape remains `meta`, `input`, and `result`. Archive mechanics,
 freshness policy, semantic evidence review, and release wiring must be generated,
 derived, or validator-owned.
 
+Plan 07 receives only archive-owned deferred risks from the Plan 06 Evidence
+Ownership Boundary: immutable pointers, archive-bound freshness, semantic
+evaluator seeds, source-ref archive policy, and version-drift semantics. Live
+stable structural false-greens remain Plan 04-06 implementation work rather than
+Plan 07 backlog.
+
 ## Problem Framing
 
 Plans 03-06 made acceptance packets, evidence refs, review imports, replay
@@ -119,6 +125,37 @@ Plan 07 must decide whether archived packet pointers make this helper safe and
 useful as a release-gate check. If not, keep it documented but outside
 `verify-release`.
 
+### 6. Source-Ref Archive Policy
+
+Plan 06 keeps active stable source refs intentionally narrow, but archive
+integration still needs a durable policy for bare refs and historical source
+evidence.
+
+Backlog requirement:
+
+- decide whether archived stable packet refs must use explicit schemes for every
+  source relation, or whether bare repo paths remain allowed after pointer
+  binding
+- bind any accepted bare source ref to the archived baseline/comparison target so
+  it cannot drift with the working tree
+- add negative tests for directory-root protected refs, mutable `git:` refs, and
+  opaque blob refs in archived source evidence
+- document the migration path for existing bare fixture refs before enabling
+  archive pointer validation
+
+### 7. Rerun Audit Shape
+
+Plan 05 now keeps rerun closure simple: `fixed_finding_ids` must exactly cover
+the retained blocking review's finding IDs. A duplicate ID is low risk because it
+does not add coverage, but it weakens audit neatness.
+
+Backlog requirement:
+
+- reject duplicate `fixed_finding_ids` when archive integration hardens review
+  lineage, unless doing so duplicates an existing closure check
+- keep the concrete finding summaries in the original blocking review rather than
+  adding a second fixed-finding object list
+
 ## Simplicity Budget
 
 Plan 07 may add archive files and pointer validation, but it should not add new
@@ -140,8 +177,20 @@ Plan 07 implementation should add tests for:
 - archived packet bytes changed after pointer creation
 - stale transcript bound to a different result digest
 - review artifact bound to a different packet target
+- bare source refs either archive-bound or rejected according to the selected
+  source-ref archive policy
 - prose-only plan approval lacking durable review artifact linkage
 - semantic evidence scenario recorded as pending/non-acceptance rather than PASS
+- rerun duplicate `fixed_finding_ids` is rejected or explicitly accepted as a
+  low-risk audit-shape limitation
+
+Search-set verification:
+
+- BEFORE: SKIPPED no pre-change search-set run was captured before accepting this
+  governance hardening feedback batch.
+- AFTER: PASS `python3 scripts/run-search-set.py` during release verification
+  after evaluator-boundary, transcript, closure, and fixture-helper guards were
+  added.
 
 ## Multi-Review Requirements
 
@@ -152,4 +201,3 @@ Before implementation, run multi-review with at least these critic scopes:
 - Artifact freshness/binding critic
 - Semantic-evidence boundary critic
 - Release-boundary critic
-

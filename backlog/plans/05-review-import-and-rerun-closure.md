@@ -68,8 +68,10 @@ unwarranted.
 - Stable packets must reject any VETO review unless a later rerun for the same
   review target names the exact failed `review_id`, reaches at least 9, and
   records `veto: false`.
-- Stable packets must reject null, empty, generic, or non-specific
-  `false_green_risk` and `invariant_checked` values.
+- Stable packets must reject missing, null, empty, vacuous, or non-scalar
+  `false_green_risk` and `invariant_checked` values. Full prose specificity is
+  owned by required multi-review critics, durable review artifacts, semantic
+  benchmarks, or a future evaluator, not deterministic stable `check`.
 - Review `source_ref` values must resolve through `review-provenance`; terminal
   or conversation-only review provenance cannot satisfy stable handoff.
 - Stable review imports must be complete: every review outcome in a structured
@@ -129,6 +131,11 @@ Review target names must remain in the review namespace. Evidence items and
 review items may share human-readable text, but waivers and downgrades must
 carry `kind: review` when they target a review requirement.
 
+Plan 05 follows the Plan 06 Evidence Ownership Boundary. The checker validates
+review record structure, target binding, provenance, digest/mirror integrity,
+score/rerun closure, and non-vacuous scalar presence. It does not claim to judge
+the full semantic adequacy of review prose.
+
 ## Review Import Completeness
 
 Plan 05 must not trust hand-authored review summaries as the only source of
@@ -173,14 +180,17 @@ The checker must parse each imported wrapper artifact and verify:
 - packet review records mirror wrapper `review_lineage` audit-critical fields
 - failed and VETO reviews remain present even when a later rerun closes them
 
-This is intentionally weaker than Plan 07 immutable archive integrity, but it is
-strong enough to prevent stable handoff from deleting a failed review while
-claiming that the surviving packet-local summary is complete, or from drifting
+This is intentionally weaker than Plan 07 immutable archive integrity. It
+prevents stable handoff from deleting a failed review from the packet while the
+current structured review artifact still contains that review, or from drifting
 away from the current structured review artifact.
 
 Completeness here means completeness of the imported structured wrapper
 artifact for this packet target. Plan 05 does not prove that every chat-only or
-conversation-only review attempt was imported.
+conversation-only review attempt was imported, and it does not prove that a
+failed review was never removed from a regenerated wrapper before archive
+storage exists. Plan 07 owns immutable review-history pointers and deletion
+resistance across regenerated artifacts.
 
 ## Required Review Inference
 
@@ -254,14 +264,17 @@ For stable packets:
 - Validate structured review import completeness.
 - Validate packet-local `review_id` uniqueness and exact `rerun_of` references.
 - Validate score-9 why-not-10 and disposition.
-- Validate false-green coverage fields for specificity.
+- Validate false-green coverage fields for required scalar presence and vacuous
+  placeholders; full semantic specificity remains a review/evaluator
+  responsibility.
 - Validate review/evidence namespace separation for waivers and downgrades.
 - Keep packet validity distinct from stable-handoff eligibility.
 
 ## Invariants
 
 - A required review target is never satisfied by silence.
-- A VETO is never canceled by deleting the failed review record.
+- A VETO present in the current structured review artifact is never canceled by
+  deleting the failed packet mirror.
 - A rerun never satisfies a different review target or an ambiguous failed
   review.
 - A stable review summary is never trusted unless its structured source artifact
@@ -271,8 +284,9 @@ For stable packets:
 - Score 9 is accepted only with why-not-10 and disposition.
 - Review provenance cannot rely on terminal or conversation-only refs for stable
   handoff.
-- False-green coverage cannot be null, empty, generic, or unrelated to the
-  review scope.
+- False-green coverage cannot be missing, null, empty, vacuous, or container
+  wrapped. Unrelated or semantically weak prose is a review-quality/evaluator
+  issue unless a structured validator can derive the mismatch.
 - A review waiver or downgrade cannot apply to a broad category; it must target
   exactly one required review item.
 - Human-authored `not required` text cannot bypass checker-inferred review
@@ -390,8 +404,10 @@ Multi-review:
   review artifact bytes must fail.
 - A stable packet with score 9 but no `why_not_10` or no `disposition` must fail.
 - A stable packet with terminal-only review provenance must fail.
-- A stable packet with null, empty, generic, or unrelated `false_green_risk` or
-  `invariant_checked` must fail.
+- A stable packet with null, empty, vacuous, or non-scalar `false_green_risk` or
+  `invariant_checked` must fail. Generic but grammatical prose is not accepted
+  as semantically adequate by this plan; it is outside deterministic checker
+  authority and must be handled by review quality or future evaluator evidence.
 - A stable packet where a review waiver or downgrade omits `kind: review` for a
   review target must fail.
 - A stable packet where `not required` appears as a broad bypass instead of a

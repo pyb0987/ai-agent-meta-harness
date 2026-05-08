@@ -33,13 +33,16 @@ Constraints:
   indexes; that remains Plan 07 after Plan 06 complexity consolidation.
 - Do not wire packet checks into release/pre-commit gates; that remains Plan 08.
 - Keep `check` read-only.
+- Apply the Plan 06 Evidence Ownership Boundary: Plan 04 content rules classify
+  risk and evidence requirements; they do not prove semantic truth.
 
 Presuppositions:
 
 - Evidence refs can be validated before packet archive integrity exists.
 - Source-ref validation is useful even while refs are still string-shaped.
-- Content rules can identify proof-like documentation claims well enough to
-  prevent false routine/stable classification.
+- Content rules can conservatively identify proof-like documentation claims well
+  enough to raise review/evidence requirements, without claiming semantic truth
+  validation.
 
 Critics must be allowed to reject this frame if one of these presuppositions is
 unwarranted.
@@ -153,7 +156,8 @@ handoff evidence closure.
   implementation options.
 - Infer high-risk claim requirements when changed text contains proof-like
   phrases such as `verified`, `guaranteed`, `proves`, `runtime`, `public API`,
-  `release-ready`, or `production-ready`.
+  `release-ready`, or `production-ready`. This is a risk-classification trigger,
+  not a semantic proof checker.
 - Do not mark protected, harness-affecting, proof-like, or archive-waiver packets
   stable during Plan 04 finalization unless the required evidence is already
   represented and `check --require-stable` accepts it.

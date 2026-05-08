@@ -19,7 +19,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "required critics must have distinct scope values"
+    - "MultiReviewResult.required_critics: required critics must have distinct scope values"
   false_green_target: Renamed critics repeat the same frame and still receive governance PASS.
   primary_invariant: Required critic scopes must be distinct.
   oracle_assertions:

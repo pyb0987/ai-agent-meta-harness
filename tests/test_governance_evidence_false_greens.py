@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
@@ -26,6 +27,14 @@ def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 def load_fixture(name: str) -> dict:
     return yaml.safe_load((FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+
+
+def load_checker():
+    spec = importlib.util.spec_from_file_location("check_governance_acceptance", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 def git(cwd: Path, *args: str) -> None:
@@ -255,7 +264,15 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         result["evidence"]["baseline_ref"] = "HEAD"
         result["evidence"]["comparison_ref"] = "HEAD"
 
-        self.assert_rejected(packet, "stable command base-ref origin/main must match evidence.comparison_ref")
+        self.assert_rejected(packet, "required_evidence must match checker-derived required evidence")
+
+    def test_command_base_ref_parses_equals_form(self) -> None:
+        checker = load_checker()
+
+        self.assertEqual(
+            checker.command_base_ref("python3 scripts/check-v1-archive-boundary.py --base-ref=origin/main"),
+            "origin/main",
+        )
 
     def test_stable_command_artifact_cannot_be_unrelated_file(self) -> None:
         packet = load_fixture("finalized-routine.yml")

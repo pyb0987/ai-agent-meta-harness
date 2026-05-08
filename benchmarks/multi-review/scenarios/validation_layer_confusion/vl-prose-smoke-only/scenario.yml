@@ -25,7 +25,9 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "prose-smoke requires another structured/raw/derived validation layer"
+    - "critics[0:validation-layer]: prose-smoke requires another structured/raw/derived validation layer"
+    - "critics[1:review-quality]: prose-smoke requires another structured/raw/derived validation layer"
+    - "critics[2:schema-contract]: prose-smoke requires another structured/raw/derived validation layer"
   false_green_target: PASS is accepted from prose-level review markers without a primary validation layer.
   primary_invariant: Governance acceptance needs at least one structured, raw-artifact, or derived-verdict validation layer.
   oracle_assertions:

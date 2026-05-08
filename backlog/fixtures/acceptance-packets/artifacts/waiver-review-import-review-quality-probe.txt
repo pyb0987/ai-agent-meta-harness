@@ -11,7 +11,7 @@ ProbeTranscript:
   result_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
   result_digest: 5a443c345e07ca2b138544ea2a9950f2a4b66bb8694a1f36772acc7e70cf5c22
   packet_ref: backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml
-  packet_sha256: 6d6c03155cd20b09ddbdd8442032cdb6fa9efe69afde69878571b91a223eb42c
+  packet_sha256: f9649367cbacc1fa3cff94f8bd710f70336887355b5b9b36f682396dfb126135
   source_refs:
   - tests/test_governance_review_import.py
   cwd: .

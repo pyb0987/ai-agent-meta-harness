@@ -19,8 +19,8 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "probe_exit_code must be 0 for derived acceptance"
-    - "probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code"
+    - "critics[0:validation-layer]: probe_exit_code must be 0 for derived acceptance"
+    - "critics[0:validation-layer]: probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code"
   false_green_target: Probe failure is summarized as acceptable coverage.
   primary_invariant: Required probes must record successful exit codes and matching transcripts.
   oracle_assertions:

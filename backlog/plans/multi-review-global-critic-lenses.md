@@ -35,6 +35,8 @@ Common misses:
 - A risk is marked out of scope but is not carried to a future artifact.
 - The review validates the artifact as written without asking how a stale or
   adversarially hand-authored version could falsely pass.
+- Repeated review rounds keep discovering variants of the same root problem, so
+  the loop looks active but does not converge on the underlying invariant.
 
 ## Design Principles
 
@@ -48,6 +50,10 @@ Common misses:
 - Keep normal reviews lightweight. Require these lenses when the decision
   affects durable artifacts, public claims, release confidence, acceptance
   criteria, generated outputs, exceptions, or handoff records.
+- Treat repeated-review convergence as a synthesis discipline first, not as a
+  mandatory result-schema expansion. Hard gates for convergence taxonomy belong
+  in a separate schema-versioned proposal if later evidence proves they are
+  needed.
 
 ## Proposed Skill Changes
 
@@ -69,6 +75,21 @@ background prose. For durable or high-stakes artifacts, critic design must assig
 at least one applicable invariant/adversarial lens, and each assigned critic
 prompt must include the false-green question. Final synthesis should treat the
 review as incomplete if no critic covered adversarial false acceptance.
+
+For reviews that iterate on the same artifact or decision more than once, add a
+lightweight convergence check to synthesis:
+
+1. Cluster open findings by root failure class or invariant family, using the
+   existing critic fields where possible (`attack_surface`,
+   `primary_failure_mode`, `invariant_checked`, affected path/source refs, and
+   probe evidence).
+2. Mark whether each new finding is a new root class or a variant of an already
+   open class.
+3. Report whether the loop is converging, drifting, or blocked, and recommend
+   stop, merge, drop, escalate, or keep iterating.
+4. Keep this convergence summary advisory unless a future governance/durable
+   result schema explicitly makes it a derived gate. A hand-authored
+   "converged" label is not acceptance evidence by itself.
 
 Suggested prompt addition:
 
@@ -116,6 +137,9 @@ For durable or high-stakes reviews, cover the relevant questions below:
 - Does every out-of-scope risk have a durable carry-over location?
 - Could a stale or manually edited artifact claim success while the underlying
   evidence would not support it?
+- If this is a rerun or repeated review, are new findings genuinely new root
+  classes, or variants of known open classes that should be fixed at the shared
+  invariant boundary?
 
 ## Adversarial Examples
 
@@ -155,6 +179,10 @@ Tests to update:
 
 No new skill resources, scripts, or reference files are planned. The change
 should stay in the existing `SKILL.md` bodies and their mirror/generated copies.
+This plan does not add required `MultiReviewResult` v1 fields such as
+`failure_class`, `variant_of`, `round_id`, or `convergence_status`. Those may be
+proposed later as a schema-versioned governance/durable contract, but the global
+skill update should first establish the lighter synthesis rule.
 
 The Claude and Codex skill variants should receive the same review concepts, but
 not necessarily identical prose. Claude's phase-oriented protocol should place
@@ -178,6 +206,13 @@ shape.
   more agents.
 - The skill includes generic adversarial examples that apply outside this
   repository.
+- Repeated reviews require a convergence note that clusters findings by root
+  class/invariant, distinguishes new classes from variants, and reports
+  converge/drift/block status.
+- The convergence note is advisory for `multi-review-result/v1` and cannot by
+  itself turn VETO into PASS or suppress an unresolved blocking finding.
+- The plan explicitly avoids adding mandatory convergence taxonomy fields to the
+  v1 result schema.
 - Mirror/generated skill copies stay synchronized with their canonical sources.
 - Focused tests prove the new protocol text is present, the operative prompt or
   critic-design requirement is present, and the copies match.
@@ -209,6 +244,9 @@ implementation only added passive prose. The scenario should involve a stale or
 hand-authored artifact that falsely claims success, and the expected skill text
 must require critics to identify the false green and preserve any deferred risk
 in a durable carry-over location.
+Add a focused assertion for repeated reviews that would fail if the skill omits
+class-aware convergence synthesis, or if it treats a hand-authored "converged"
+summary as acceptance evidence.
 
 Because `check-compat-mirrors.py` and `sync-codex-plugin.py --check` inspect the
 Git index for staged/pre-commit validation, focused unit tests must also read the
@@ -218,9 +256,9 @@ review coverage.
 They should also reject contradictory operative wording that contains the
 required keywords while allowing generic or unverified false-green values to
 pass.
-If tests add a helper for substantive false-green coverage, it should reject
-common vacuous values such as `none`, `n/a`, `ok`, `checked`, `generic`, and
-`not applicable`, not only literal `null` or empty strings.
+If tests add a helper for substantive coverage, keep it generic: reject vacuous
+or self-attested coverage, but do not turn repository-specific validator
+workarounds into global multi-review policy.
 
 If the work is later accepted as repository maintenance, follow the repository's
 current maintenance review policy for skill changes.
@@ -238,35 +276,37 @@ Multi-review:
 - Follow-up/residual risk: before commit or release, keep the staged evidence record with the skill/test changes and rerun staged/index gates so the accepted artifact boundary is auditable.
 - Final acceptance: accepted for the global multi-review critic-lens implementation.
 
-## Adversarial Probe Hardening Outcome
+## Repository-Specific Hardening Note
 
-Follow-up review found that marker-based tests could still pass after
-contradictory probe-waiver wording such as allowing `probe_run=false` or
-`reason_no_probe`-only coverage. The protocol text already rejected those cases,
-but the test helper did not.
+Follow-up implementation work for this repository found that marker-based tests
+could still pass after contradictory probe-waiver wording. That correction is
+repository maintenance evidence, not a global protocol expansion. The global
+lesson is narrower: tests for this skill should reject vacuous, self-attested, or
+contradictory coverage, while keeping ordinary reviews lightweight and avoiding
+validator-specific default-deny machinery in the global plan.
 
-- Correction: Claude and Codex multi-review tests now reject exact and
-  synonymous contradictory probe coverage wording, including generic probe
-  entries satisfying coverage, `reason_no_probe` by itself being sufficient, and
-  `probe_run=false` still passing. The gate treats un-negated generic probe,
-  `probe_run=false`, `reason_no_probe` substitution, and self-attestation
-  clauses as forbidden instead of relying on a PASS-word list. `reason_no_probe`
-  is treated as a sensitive field outside schema or explicit downgrade wording,
-  and `probe_run` is treated as sensitive outside schema, explicit requirement,
-  or downgrade wording rather than chasing every no-run synonym. Spaced field
-  variants such as `probe run` and `reason no probe`, and requirement sentences
-  that add PASS exceptions, normalize into the same forbidden gate. The gate also
-  treats acceptance, sign-off, greenlight, validity, or proceed wording around
-  waived, bypassed, cancelled, suspended, deferred, postponed, or skipped
-  adversarial probes/checks/exercises as forbidden. It rejects common vacuous
-  probe values such as `none`, `n/a`, `ok`, `checked`, `generic`, `not
-  applicable`, `read the plan`, and existing PASS self-attestation.
-- Hardening detail: the final helper shape is default-deny for sensitive probe
-  sentences; only schema/output, explicit requirement, explicit downgrade, and
-  known safe operational probe-summary/instruction sentences are allowed.
-- Rerun requirement: durable/governance multi-review acceptance remains VETO
-  unless the affected probe-gate critic reruns to at least 9 with a substantive
-  adversarial probe.
+## Repeat-Review Convergence Amendment Review Outcome
+
+Multi-review accepted the amendment after one scope-boundary fix:
+
+- Contract boundary critic: score 9, PASS. Finding: the plan correctly keeps the
+  convergence note advisory for `multi-review-result/v1`, rejects hand-authored
+  "converged" labels as acceptance evidence, and defers any hard taxonomy gate to
+  a future schema-versioned proposal.
+- Implementation evidence critic: score 9, PASS. Finding: implementation scope
+  names both skill variants, generated copies, and focused golden assertions;
+  residual risk is that semantic weakening by synonym remains possible, so tests
+  should cover both Claude and Codex variants.
+- Anti-bloat and convergence critic rerun: score 9, PASS. Finding: the amendment
+  reduces repeated-review drift by clustering variants without adding mandatory
+  schema fields, extra critic rosters, or validator-specific global policy.
+- Globality and scope-boundary critic rerun: score 9, PASS. Finding: the initial
+  overfit concern was resolved by shortening the repository hardening appendix
+  into a non-global maintenance note.
+
+Final disposition: accepted as a global multi-review skill-plan amendment. The
+rule belongs in synthesis guidance for repeated reviews; it is not a v1
+`MultiReviewResult` acceptance gate.
 
 ## Open Questions
 

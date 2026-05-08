@@ -10,6 +10,8 @@ public_input:
   input_artifacts:
   - backlog/fixtures/multi-review/governance-pass.yml
   - backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+  - backlog/fixtures/multi-review/probe-transcripts/fabricated-command-review-quality.txt
+  - backlog/fixtures/multi-review/probe-transcripts/fabricated-command-schema-contract.txt
 base_result: backlog/fixtures/multi-review/governance-pass.yml
 mutations:
 - op: set
@@ -22,13 +24,21 @@ mutations:
   path: /critics/0/probe_evidence_refs
   value:
   - file:backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt
+- op: set
+  path: /critics/1/probe_evidence_refs
+  value:
+  - file:backlog/fixtures/multi-review/probe-transcripts/fabricated-command-review-quality.txt
+- op: set
+  path: /critics/2/probe_evidence_refs
+  value:
+  - file:backlog/fixtures/multi-review/probe-transcripts/fabricated-command-schema-contract.txt
 replay_probe_commands: true
 sealed_oracle:
   oracle_type: probe-replay
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-  - probe_command exit mismatch
+  - 'critics[0:validation-layer]: probe_command exit mismatch: expected 0, got 2'
   false_green_target: Hand-authored structured transcript evidence passes without
     executing the command.
   primary_invariant: Probe replay must match the recorded exit code when replay is

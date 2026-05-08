@@ -1,10 +1,9 @@
 ProbeTranscript:
   schema_version: probe-transcript/v1
   probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/governance-pass.yml
-    --require-governance-pass
   probe_exit_code: 0
   result_ref: backlog/fixtures/multi-review/governance-pass.yml
-  result_digest: 8bd8de89f98058bb26acf914d5abd5ba5f5f2f34a0630019b5a2db2c84b79b6c
+  result_digest: 9a62bd3692f9dbae2b9fe223a7bb4659a43fcbdd1114cd53f86dfdd2305c5345
   packet_ref: null
   packet_sha256: null
   source_refs:

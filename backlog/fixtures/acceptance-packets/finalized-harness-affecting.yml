@@ -31,6 +31,7 @@ AcceptancePacket:
       - python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
       required_review:
       - checker correctness
+      - evaluator boundary
       - release integration
       - methodology fidelity
     evidence:
@@ -88,6 +89,11 @@ AcceptancePacket:
         status: resolved
         target: .harness/traces/search-set.md#active
       - origin: generated
+        relation: trace
+        ref: trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+        status: resolved
+        target: .harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+      - origin: generated
         relation: waiver-provenance
         ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
         status: resolved
@@ -100,16 +106,17 @@ AcceptancePacket:
       review_imports:
       - source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
         format: acceptance-packet-review-import/v1
-        source_digest: 161c26754cdd0b1452a55c122cd1a5ff7e7326431c10c228fb9a22968a212af6
+        source_digest: 00a81a79e861d5eae7abea37c46ff915114cad084285b41583b695dead7c972d
         status: imported
         review_ids:
         - review-harness-checker-correctness
+        - review-harness-evaluator-boundary
         - review-harness-release-integration
         - review-harness-methodology-fidelity
         target_binding:
           packet_id: pkt-finalized-harness-affecting-example
           packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-          review_target_digest: bc5597092b3ca87df73b2947246641b17c11185575ef68b589f499fd2178b979
+          review_target_digest: fb14109a70f79846d64198cf77d0fcf283a6c401ee870982ec5fff2d29175694
           baseline_ref: origin/main
           comparison_ref: origin/main
           source_refs:
@@ -120,13 +127,14 @@ AcceptancePacket:
           - scripts/verify-release.py
           required_review:
           - checker correctness
+          - evaluator boundary
           - methodology fidelity
           - release integration
       trace_refs:
         search_set_before: null
         search_set_after: trace:.harness/traces/search-set.md#active
         evolution:
-        - .harness/traces/evolution/001-repository-self-application-root.md
+        - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
         failures: []
         disposition: Search-set after evidence is recorded; before evidence is explicitly
           skipped for this stable fixture.
@@ -162,6 +170,32 @@ AcceptancePacket:
         why_not_10: Full committed release-candidate path still requires final clean
           branch verification.
         disposition: Accepted residual risk for bootstrap; final release uses --base-ref.
+        source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-harness-evaluator-boundary
+        critic: evaluator boundary
+        scope: Evaluator-boundary status and command changes for the release-gate
+          fixture.
+        anti_scope: Archive storage and full release-candidate execution.
+        actor: reviewer
+        role: reviewer
+        date: 2026-05-06
+        score: 9
+        veto: false
+        false_green_risk: Evaluator-boundary changes could be treated as routine evidence.
+        invariant_checked: Required reviews include evaluator-boundary changes when
+          evaluator_boundary.status is not unchanged.
+        evidence:
+        - The checker derives evaluator boundary as a required review for intentionally
+          changed evaluator boundaries.
+        source_refs:
+        - scripts/check-governance-acceptance.py
+        - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+        blocking_findings: []
+        why_not_10: Fixture proves local boundary inference, not an archived release
+          candidate.
+        disposition: Accepted for stable fixture validation.
         source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
         rerun_of: null
         fixed_finding_ids: []
@@ -212,13 +246,7 @@ AcceptancePacket:
         fixed_finding_ids: []
       waivers: []
       downgrades: []
-      residual_risk:
-      - actor: maintainer
-        role: maintainer
-        date: 2026-05-06
-        reason: Fixture demonstrates evidence shape but is not yet enforced by a packet
-          checker.
-        source_ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+      residual_risk: []
     decision:
       accepted: true
       stable_handoff_eligible: true

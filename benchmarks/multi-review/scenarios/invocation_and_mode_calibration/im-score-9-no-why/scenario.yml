@@ -22,8 +22,8 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "score 9 requires why_not_10"
-    - "score 9 requires residual_risk_disposition"
+    - "critics[0:validation-layer]: score 9 requires why_not_10"
+    - "critics[0:validation-layer]: score 9 requires residual_risk_disposition"
   false_green_target: Marginal governance PASS omits residual risk explanation.
   primary_invariant: Score 9 acceptance must document why it is not 10 and how residual risk is disposed.
   oracle_assertions:

@@ -5,8 +5,8 @@ ProbeTranscript:
     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('probe_review_quality_pass'
     if r.returncode == 0 else 'probe_review_quality_fail'); sys.exit(r.returncode)"
   probe_exit_code: 0
-  result_ref: backlog/fixtures/multi-review/governance-pass.yml
-  result_digest: 9a62bd3692f9dbae2b9fe223a7bb4659a43fcbdd1114cd53f86dfdd2305c5345
+  result_ref: benchmarks/multi-review/scenarios/probe_provenance_and_replay/pp-fabricated-transcript/scenario.yml#mutated-result
+  result_digest: f2962ad4dd206492ed2190eb0564edfd5ccaa496eb861443b7f80d68bb4444aa
   packet_ref: null
   packet_sha256: null
   source_refs:

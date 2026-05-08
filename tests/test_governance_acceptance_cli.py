@@ -115,6 +115,24 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("input.user_judgment.residual_risk_request: actor is required", result.stderr)
 
+    def test_check_rejects_untargeted_residual_input_judgment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["input"]["user_judgment"]["residual_risk_request"] = {
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "accept a small residual risk",
+                "source_ref": "file:tests/test_governance_acceptance_cli.py",
+            }
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.user_judgment.residual_risk_request: residual risk must target", result.stderr)
+
     def test_check_rejects_extra_meta_or_input_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -139,6 +157,114 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("result.inference.change_class is required", result.stderr)
 
+    def test_check_rejects_container_required_targets_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["inference"]["required_review"] = [["checker correctness"]]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required_review must contain only strings", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["inference"]["required_evidence"] = 1
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required_evidence must be a list", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_non_mapping_stable_records_without_traceback(self) -> None:
+        cases = [
+            ("result.evidence.command_results", "command_results", "result.evidence.command_results[0] must be a mapping"),
+            ("result.evidence.skipped", "skipped", "result.evidence.skipped[0] must be a mapping"),
+            ("result.judgment.reviews", "reviews", "result.judgment.reviews[0] must be a mapping"),
+            ("result.judgment.waivers", "waivers", "result.judgment.waivers[0] must be a mapping"),
+            ("result.judgment.downgrades", "downgrades", "result.judgment.downgrades[0] must be a mapping"),
+            ("result.judgment.residual_risk", "residual_risk", "result.judgment.residual_risk[0] must be a mapping"),
+        ]
+        for path, field, expected in cases:
+            with self.subTest(field=path):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    packet_path = Path(tmpdir) / "packet.yml"
+                    packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+                    if path.startswith("result.evidence"):
+                        packet["AcceptancePacket"]["result"]["evidence"][field] = ["not-a-mapping"]
+                    else:
+                        packet["AcceptancePacket"]["result"]["judgment"][field] = ["not-a-mapping"]
+                    packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+                    result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected, result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+        for path, field, expected in cases:
+            with self.subTest(field=f"{path}-scalar"):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    packet_path = Path(tmpdir) / "packet.yml"
+                    packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+                    if path.startswith("result.evidence"):
+                        packet["AcceptancePacket"]["result"]["evidence"][field] = 1
+                    else:
+                        packet["AcceptancePacket"]["result"]["judgment"][field] = 1
+                    packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+                    result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"{path} must be a list", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_null_stable_record_buckets(self) -> None:
+        cases = [
+            ("result.evidence.command_results", "command_results"),
+            ("result.evidence.skipped", "skipped"),
+            ("result.judgment.reviews", "reviews"),
+            ("result.judgment.waivers", "waivers"),
+            ("result.judgment.downgrades", "downgrades"),
+            ("result.judgment.residual_risk", "residual_risk"),
+        ]
+        for path, field in cases:
+            with self.subTest(field=path):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    packet_path = Path(tmpdir) / "packet.yml"
+                    packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+                    if path.startswith("result.evidence"):
+                        packet["AcceptancePacket"]["result"]["evidence"][field] = None
+                    else:
+                        packet["AcceptancePacket"]["result"]["judgment"][field] = None
+                    packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+                    result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"{path} must be a list", result.stderr)
+
+    def test_check_rejects_container_command_result_value_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["command_results"][0]["command"] = [
+                "git diff --cached --check"
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("command must be a non-empty string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_check_rejects_stable_protected_packet_without_required_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -151,6 +277,138 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required_review must match checker-derived required reviews", result.stderr)
+
+    def test_check_rejects_evaluator_boundary_change_without_required_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            result_data = packet["AcceptancePacket"]["result"]
+            result_data["evidence"]["evaluator_boundary"]["status"] = "changed"
+            result_data["inference"]["required_review"] = []
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required_review must match checker-derived required reviews", result.stderr)
+        self.assertIn("evaluator boundary", result.stderr)
+
+    def test_check_rejects_malformed_evaluator_boundary_status_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["evaluator_boundary"]["status"] = ["changed"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("result.evidence.evaluator_boundary.status must be null or a string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_malformed_changed_paths_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["inference"]["changed_paths"] = 1
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("result.inference.changed_paths must be a list", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_container_wrapped_changed_path_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["inference"]["changed_paths"] = [
+                {"path": "scripts/check-governance-acceptance.py"}
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("result.inference.changed_paths must contain only strings", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_scalar_user_judgment_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["input"]["user_judgment"] = 1
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.user_judgment must be a mapping", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_non_string_user_judgment_key_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["input"]["user_judgment"] = {
+                1: {
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "non-string key regression",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            }
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.user_judgment key must be a string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_malformed_resolved_ref_fields_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            resolved_ref = packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"][1]
+            resolved_ref["origin"] = ["generated"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("result.evidence.resolved_refs: origin is required", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_malformed_review_ids_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["review_imports"][0]["review_ids"] = [{}, "x"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review_ids must contain only strings", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_malformed_meta_enums_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["meta"]["lifecycle"] = ["finalized"]
+            packet["AcceptancePacket"]["meta"]["mode"] = ["staged"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("meta.lifecycle is invalid", result.stderr)
+        self.assertIn("meta.mode is invalid", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_check_rejects_stable_protected_path_with_falsified_low_risk_inference(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -170,6 +428,39 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("protected_boundary_changed: true", result.stderr)
         self.assertIn("change_class: harness-affecting", result.stderr)
         self.assertIn("impact: high", result.stderr)
+
+    def test_check_rejects_container_skipped_target_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["skipped"][0]["evidence"] = ["search_set_before"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("result.evidence.skipped: evidence must be a string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_check_rejects_container_user_judgment_skipped_target_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["input"]["user_judgment"]["skipped_request"] = {
+                "evidence": ["git diff --cached --check"],
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "regression for malformed skipped request target",
+                "source_ref": "file:tests/test_governance_acceptance_cli.py",
+            }
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.user_judgment.skipped_request: evidence must be a string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_check_rejects_stable_root_protected_path_with_falsified_low_risk_inference(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -201,6 +492,262 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("downgrade kind must be evidence or review", result.stderr)
+
+    def test_check_rejects_downgrade_without_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["downgrades"][0].pop("to")
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("downgrade to is required", result.stderr)
+
+    def test_check_rejects_evidence_downgrade_to_unclosed_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"] = []
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["downgrades"] = [
+                {
+                    "kind": "evidence",
+                    "from": "git diff --cached --check",
+                    "to": "not required by maintainer",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for arbitrary downgrade closure",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable evidence downgrade replacement is not closed", result.stderr)
+
+    def test_check_rejects_exception_malformed_sibling_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"] = []
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"] = [
+                {
+                    "kind": "evidence",
+                    "evidence": "git diff --cached --check",
+                    "review": ["not a valid sibling target"],
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for malformed sibling target",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target field review must be a substantive string", result.stderr)
+
+    def test_check_rejects_waiver_with_downgrade_to_field(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"] = [
+                {
+                    "kind": "evidence",
+                    "evidence": "git diff --cached --check",
+                    "to": "not a valid waiver target",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for forbidden waiver to field",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("waiver cannot include to", result.stderr)
+
+    def test_check_rejects_review_downgrade_to_unclosed_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["review_imports"] = []
+            packet["AcceptancePacket"]["result"]["judgment"]["reviews"] = []
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["downgrades"] = [
+                {
+                    "kind": "review",
+                    "from": "validation layer",
+                    "to": "not required by maintainer",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for arbitrary review downgrade closure",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable review downgrade replacement is not closed", result.stderr)
+
+    def test_check_rejects_residual_risk_malformed_sibling_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["residual_risk"] = [
+                {
+                    "evidence": "git diff --cached --check",
+                    "review": ["not a valid sibling target"],
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for malformed residual risk sibling",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target field review must be a substantive string", result.stderr)
+
+    def test_check_rejects_residual_risk_with_from_field(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet["AcceptancePacket"]["result"]["judgment"]["residual_risk"] = [
+                {
+                    "evidence": "git diff --cached --check",
+                    "from": "not a valid residual-risk target",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "regression for forbidden residual from field",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("residual risk cannot include from", result.stderr)
+
+    def test_check_rejects_waiver_shaped_downgrade(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["downgrades"] = [
+                {
+                    "kind": "evidence",
+                    "evidence": "python3 scripts/check-v1-archive-boundary.py --staged",
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "waiver-shaped downgrade regression",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("downgrade must target from", result.stderr)
+
+    def test_check_rejects_container_exception_target_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["waivers"][0]["review"] = ["archive boundary"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exception must target exactly one required evidence/review item", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-waiver-downgrade.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["downgrades"][0]["kind"] = ["evidence"]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exception kind must be evidence or review", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_check_rejects_review_waiver_without_kind(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -292,6 +839,23 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required evidence has multiple closures", result.stderr)
 
+    def test_check_validates_non_pass_command_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["command_results"].append(
+                {
+                    "command": "python3 -c 'raise SystemExit(1)'",
+                    "status": "fail",
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command evidence lacks artifact_ref", result.stderr)
+
     def test_check_rejects_duplicate_review_waiver_closure(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -349,6 +913,67 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("exception target is not required: not required", result.stderr)
 
+    def test_check_rejects_broad_stable_residual_risk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["residual_risk"] = [
+                {
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "broad residual risk acceptance",
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("residual risk must target exactly one required evidence/review item", result.stderr)
+
+    def test_check_rejects_container_residual_risk_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["judgment"]["residual_risk"] = [
+                {
+                    "evidence": "git diff --cached --check",
+                    "actor": ["maintainer"],
+                    "role": {"name": "maintainer"},
+                    "date": "2026-05-06",
+                    "reason": ["container wrapped reason"],
+                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
+                }
+            ]
+            packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "status": "resolved",
+                    "target": "tests/test_governance_acceptance_cli.py",
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("residual_risk[0]: actor is required", result.stderr)
+        self.assertIn("residual_risk[0]: role is required", result.stderr)
+        self.assertIn("residual_risk[0]: reason is required", result.stderr)
+
     def test_check_rejects_same_search_set_before_after_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -400,6 +1025,239 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("stable command artifact does not record command evidence", result.stderr)
 
+    def test_check_rejects_non_command_evidence_heading(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "not-command-evidence.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Not Command Evidence",
+                        "packet_id: pkt-finalized-routine-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "command: git diff --cached --check",
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+
+    def test_check_rejects_duplicate_command_evidence_fields(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "duplicate-command-evidence.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        "packet_id: pkt-finalized-routine-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "command: git diff --cached --check",
+                        "status: fail",
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+
+    def test_check_rejects_duplicate_command_evidence_even_with_valid_neighbor(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "duplicate-plus-valid-command-evidence.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            common = [
+                "packet_id: pkt-finalized-routine-example",
+                f"packet_ref: {rel_packet}",
+                f"packet_sha256: {packet_sha}",
+                "command: git diff --cached --check",
+            ]
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        *common,
+                        "status: pass",
+                        "",
+                        "# Command Evidence",
+                        *common,
+                        "status: fail",
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate fields in matching # Command Evidence section", result.stderr)
+
+    def test_check_rejects_ambiguous_command_evidence_sections(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "ambiguous-command-evidence.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            common = [
+                "packet_id: pkt-finalized-routine-example",
+                f"packet_ref: {rel_packet}",
+                f"packet_sha256: {packet_sha}",
+                "command: git diff --cached --check",
+            ]
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        *common,
+                        "status: fail",
+                        "",
+                        "# Command Evidence",
+                        *common,
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ambiguous # Command Evidence sections", result.stderr)
+
+    def test_check_stops_command_evidence_at_next_heading(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "split-command-evidence.log.yml"
+            artifact_path = tmp_path / "split-command-evidence.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        "packet_id: pkt-finalized-routine-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "# Observational Evidence",
+                        "command: git diff --cached --check",
+                        "status: pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+
+    def test_check_rejects_case_changed_command_artifact_record(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            tmp_path = Path(tmpdir)
+            packet_path = tmp_path / "packet.yml"
+            artifact_path = tmp_path / "case-changed-command-record.log"
+            rel_packet = packet_path.relative_to(ROOT).as_posix()
+            rel_artifact = artifact_path.relative_to(ROOT).as_posix()
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["command_results"][0]["artifact_ref"] = f"file:{rel_artifact}"
+            for record in evidence["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["ref"] = f"file:{rel_artifact}"
+                    record["target"] = rel_artifact
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        "packet_id: pkt-finalized-routine-example",
+                        f"packet_ref: {rel_packet}",
+                        f"packet_sha256: {packet_sha}",
+                        "command: Git Diff --Cached --Check",
+                        "status: Pass",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_cli("check", "--packet", rel_packet, "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+
     def test_check_rejects_bare_command_artifact_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
@@ -416,6 +1274,34 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("stable command artifact_ref must use file: scheme", result.stderr)
+
+    def test_check_rejects_generated_closure_ref_relabelled_as_input(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            for record in packet["AcceptancePacket"]["result"]["evidence"]["resolved_refs"]:
+                if record.get("relation") == "artifact":
+                    record["origin"] = "input"
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lacks resolved generated artifact relation", result.stderr)
+
+    def test_check_rejects_bare_stable_trace_bucket_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            packet_path = Path(tmpdir) / "packet.yml"
+            packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["result"]["evidence"]["trace_refs"]["evolution"] = [
+                ".harness/traces/evolution/001-repository-self-application-root.md"
+            ]
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("trace_refs.evolution entries must use trace: scheme", result.stderr)
 
     def test_check_rejects_stable_packet_with_subthreshold_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

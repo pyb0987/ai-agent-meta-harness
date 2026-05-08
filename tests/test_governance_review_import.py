@@ -132,6 +132,9 @@ class GovernanceReviewImportTests(unittest.TestCase):
         packet["result"]["evidence"]["resolved_refs"] = resolved_refs
         binding = self.checker.review_target_binding(packet, root=ROOT, packet_ref=packet_ref)
         wrapper["target_binding"] = copy.deepcopy(binding)
+        target_refs = wrapper["MultiReviewResult"]["target"]["source_refs"]
+        if packet_ref not in target_refs:
+            target_refs.append(packet_ref)
         for review in wrapper["review_lineage"]:
             review["source_ref"] = import_ref
         if mutate_wrapper:
@@ -246,6 +249,74 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "wrapper target_binding does not match current packet review target")
 
+    def test_rejects_multi_review_target_not_bound_to_packet(self) -> None:
+        def mutate_wrapper(wrapper: dict) -> None:
+            wrapper["MultiReviewResult"]["target"]["source_refs"] = ["scripts/check-governance-acceptance.py"]
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+
+        self.assert_rejected(packet_path, "target.source_refs must include current packet ref")
+
+    def test_rejects_malformed_target_binding_without_traceback(self) -> None:
+        def mutate_packet(packet: dict) -> None:
+            packet["input"]["intent"] = {1: "bad", "x": "bad"}
+
+        packet_path = self.materialize_packet(mutate_packet=mutate_packet)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.intent must be a non-empty string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_rejects_mixed_type_target_binding_keys_without_traceback(self) -> None:
+        def mutate_packet(packet: dict) -> None:
+            binding = dict(packet["result"]["evidence"]["review_imports"][0]["target_binding"])
+            binding[1] = "malformed"
+            packet["result"]["evidence"]["review_imports"][0]["target_binding"] = binding
+
+        packet_path = self.materialize_packet(mutate_packet=mutate_packet)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target_binding fields must be exactly", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_rejects_mixed_type_review_import_keys_without_traceback(self) -> None:
+        def mutate_packet(packet: dict) -> None:
+            packet["result"]["evidence"]["review_imports"][0][1] = "malformed"
+
+        packet_path = self.materialize_packet(mutate_packet=mutate_packet)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review import extra fields", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_rejects_vacuous_review_lineage_fields(self) -> None:
+        def mutate_wrapper(wrapper: dict) -> None:
+            wrapper["review_lineage"][0]["false_green_risk"] = "pass"
+            wrapper["review_lineage"][0]["invariant_checked"] = "pass"
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+
+        self.assert_rejected(packet_path, "false_green_risk must be substantive")
+
+    def test_rejects_non_list_review_lineage_without_traceback(self) -> None:
+        def mutate_after_digest(packet: dict, wrapper_path: Path) -> None:
+            wrapper_doc = load_yaml(wrapper_path)
+            wrapper_doc["AcceptancePacketReviewImport"]["review_lineage"] = 1
+            wrapper_path.write_text(yaml.safe_dump(wrapper_doc, sort_keys=False), encoding="utf-8")
+            packet["result"]["evidence"]["review_imports"][0]["source_digest"] = hashlib.sha256(
+                wrapper_path.read_bytes()
+            ).hexdigest()
+
+        packet_path = self.materialize_packet(mutate_after_digest=mutate_after_digest)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review_lineage must be a non-empty list", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_rejects_source_digest_drift(self) -> None:
         def mutate_after_digest(packet: dict, wrapper_path: Path) -> None:
             text = wrapper_path.read_text(encoding="utf-8")
@@ -313,6 +384,16 @@ class GovernanceReviewImportTests(unittest.TestCase):
         packet_path = self.materialize_packet(mutate_wrapper=duplicate)
         self.assert_rejected(packet_path, "duplicate review_id")
 
+    def test_rejects_duplicate_passing_review_closure_for_same_target(self) -> None:
+        def duplicate_passing_checker_review(wrapper: dict) -> None:
+            duplicate = copy.deepcopy(wrapper["review_lineage"][0])
+            duplicate["review_id"] = "review-harness-checker-correctness-duplicate"
+            wrapper["review_lineage"].insert(1, duplicate)
+
+        packet_path = self.materialize_packet(mutate_wrapper=duplicate_passing_checker_review)
+
+        self.assert_rejected(packet_path, "required review has multiple closures")
+
     def test_rejects_invalid_format_status_or_markdown_only_provenance(self) -> None:
         packet_path = self.materialize_packet(
             mutate_packet=lambda packet: packet["result"]["evidence"]["review_imports"][0].__setitem__(
@@ -335,6 +416,18 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         packet_path = self.materialize_packet(mutate_packet=markdown_only)
         self.assert_rejected(packet_path, "stable packet reviews require result.evidence.review_imports")
+
+    def test_rejects_non_string_packet_review_source_ref_without_traceback(self) -> None:
+        packet_path = self.materialize_packet(
+            mutate_packet=lambda packet: packet["result"]["judgment"]["reviews"][0].__setitem__(
+                "source_ref", ["file:review-import.yml"]
+            )
+        )
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source_ref must point to an imported structured review artifact", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_rejects_unclosed_veto_and_wrong_critic_rerun(self) -> None:
         def add_unclosed_veto(wrapper: dict) -> None:
@@ -368,7 +461,7 @@ class GovernanceReviewImportTests(unittest.TestCase):
             )
             rerun = copy.deepcopy(wrapper["review_lineage"][1])
             rerun.update({"review_id": "review-harness-wrong-rerun", "rerun_of": failed["review_id"], "fixed_finding_ids": ["F1"]})
-            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"]]
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
 
         packet_path = self.materialize_packet(mutate_wrapper=wrong_critic_rerun)
         self.assert_rejected(packet_path, "must use same critic")
@@ -400,12 +493,111 @@ class GovernanceReviewImportTests(unittest.TestCase):
                     "fixed_finding_ids": ["F1"],
                 }
             )
-            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"]]
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
 
         packet_path = self.materialize_packet(mutate_wrapper=add_closed_rerun)
         result = run_cli("check", "--packet", str(packet_path), "--require-stable")
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_rerun_without_date_provenance(self) -> None:
+        def add_rerun_without_date(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "blocking_findings": [{"finding_id": "F1", "summary": "Missing target binding replay test."}],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "score": 9,
+                    "veto": False,
+                    "blocking_findings": [],
+                    "why_not_10": "Rerun covers the blocking finding.",
+                    "disposition": "Accepted.",
+                    "date": None,
+                    "rerun_of": failed["review_id"],
+                    "fixed_finding_ids": ["F1"],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_rerun_without_date)
+
+        self.assert_rejected(packet_path, "date must be an ISO date")
+
+    def test_rejects_duplicate_blocking_finding_ids(self) -> None:
+        def add_duplicate_finding_ids(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "blocking_findings": [
+                        {"finding_id": "F1", "summary": "First finding."},
+                        {"finding_id": "F1", "summary": "Different finding with same id."},
+                    ],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "score": 9,
+                    "veto": False,
+                    "blocking_findings": [],
+                    "why_not_10": "Rerun claims to close duplicate finding ids.",
+                    "disposition": "Accepted.",
+                    "rerun_of": failed["review_id"],
+                    "fixed_finding_ids": ["F1"],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_duplicate_finding_ids)
+
+        self.assert_rejected(packet_path, "duplicate blocking finding_id: F1")
+
+    def test_rejects_malformed_rerun_fields_without_traceback(self) -> None:
+        def add_malformed_rerun(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "blocking_findings": [{"finding_id": "F1", "summary": "Missing target binding replay test."}],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "rerun_of": [failed["review_id"]],
+                    "fixed_finding_ids": [{"id": "F1"}],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_malformed_rerun)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rerun_of must be a review_id string", result.stderr)
+        self.assertIn("fixed_finding_ids must contain only substantive string ids", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_rejects_rerun_that_precedes_failed_review(self) -> None:
         def add_reversed_rerun(wrapper: dict) -> None:
@@ -438,6 +630,13 @@ class GovernanceReviewImportTests(unittest.TestCase):
     def test_rejects_generic_false_green_and_broad_not_required_bypass(self) -> None:
         packet_path = self.materialize_packet(
             mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].__setitem__("false_green_risk", "generic")
+        )
+        self.assert_rejected(packet_path, "false_green_risk must be substantive")
+
+        packet_path = self.materialize_packet(
+            mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].__setitem__(
+                "false_green_risk", ["list wrapped risk"]
+            )
         )
         self.assert_rejected(packet_path, "false_green_risk must be substantive")
 

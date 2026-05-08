@@ -2,8 +2,8 @@ ProbeTranscript:
   schema_version: probe-transcript/v1
   probe_command: python3 missing-probe.py --claim-pass
   probe_exit_code: 0
-  result_ref: backlog/fixtures/multi-review/governance-pass.yml
-  result_digest: 2f75109c6104d48d1efc30c45feadb0c8d13d74cabd7fb28e60882afdd3e63c9
+  result_ref: benchmarks/multi-review/scenarios/probe_provenance_and_replay/pp-fabricated-transcript/scenario.yml#mutated-result
+  result_digest: f2962ad4dd206492ed2190eb0564edfd5ccaa496eb861443b7f80d68bb4444aa
   packet_ref: null
   packet_sha256: null
   source_refs:

@@ -127,6 +127,26 @@ class MultiReviewError(ValueError):
     pass
 
 
+def sorted_key_names(keys: Any) -> list[str]:
+    return sorted(str(key) for key in keys)
+
+
+def validate_exact_fields(
+    mapping: dict[Any, Any],
+    *,
+    expected: set[str],
+    source: str,
+    errors: list[str],
+) -> None:
+    string_keys = {key for key in mapping if isinstance(key, str)}
+    missing = sorted(expected - string_keys)
+    extra = sorted_key_names(key for key in mapping if not isinstance(key, str) or key not in expected)
+    if missing:
+        error(errors, source, f"missing fields: {missing}")
+    if extra:
+        error(errors, source, f"extra fields: {extra}")
+
+
 def normalize_text(value: str) -> str:
     return " ".join(value.casefold().split())
 
@@ -143,6 +163,10 @@ def is_substantive(value: Any) -> bool:
     if isinstance(value, dict):
         return any(is_substantive(item) for item in value.values())
     return False
+
+
+def is_substantive_string(value: Any) -> bool:
+    return isinstance(value, str) and is_substantive(value)
 
 
 def date_like(value: Any) -> bool:
@@ -217,20 +241,18 @@ def display_path(path: Path) -> str:
 
 
 def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
-    if set(result) != TOP_LEVEL_FIELDS:
-        missing = sorted(TOP_LEVEL_FIELDS - set(result))
-        extra = sorted(set(result) - TOP_LEVEL_FIELDS)
-        if missing:
-            error(errors, "MultiReviewResult", f"missing fields: {missing}")
-        if extra:
-            error(errors, "MultiReviewResult", f"extra fields: {extra}")
+    validate_exact_fields(result, expected=TOP_LEVEL_FIELDS, source="MultiReviewResult", errors=errors)
     if result.get("schema_version") != SCHEMA_VERSION:
         error(errors, "MultiReviewResult.schema_version", f"must be {SCHEMA_VERSION}")
-    if result.get("lifecycle") not in LIFECYCLES:
+    if not isinstance(result.get("review_id"), str) or not is_substantive(result.get("review_id")):
+        error(errors, "MultiReviewResult.review_id", "must be a substantive string")
+    if not isinstance(result.get("reported_final_verdict"), str) or not result.get("reported_final_verdict"):
+        error(errors, "MultiReviewResult.reported_final_verdict", "must be a non-empty string")
+    if not isinstance(result.get("lifecycle"), str) or result.get("lifecycle") not in LIFECYCLES:
         error(errors, "MultiReviewResult.lifecycle", "must be draft or finalized")
-    if result.get("review_mode") not in REVIEW_MODES:
+    if not isinstance(result.get("review_mode"), str) or result.get("review_mode") not in REVIEW_MODES:
         error(errors, "MultiReviewResult.review_mode", "must be governance or advisory")
-    if result.get("independence") not in INDEPENDENCE_MODES:
+    if not isinstance(result.get("independence"), str) or result.get("independence") not in INDEPENDENCE_MODES:
         error(errors, "MultiReviewResult.independence", "must be independent or fallback_nonindependent")
     if not isinstance(result.get("required_critics"), list) or not result.get("required_critics"):
         error(errors, "MultiReviewResult.required_critics", "must be a non-empty list")
@@ -243,7 +265,9 @@ def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
     elif result.get("derivation_errors"):
         error(errors, "MultiReviewResult.derivation_errors", "must be empty for derived acceptance")
     stored_verdict = result.get("derived_verdict")
-    if stored_verdict is not None and stored_verdict not in DERIVED_VERDICTS:
+    if stored_verdict is not None and (
+        not isinstance(stored_verdict, str) or stored_verdict not in DERIVED_VERDICTS
+    ):
         error(errors, "MultiReviewResult.derived_verdict", f"must be null or one of {sorted(DERIVED_VERDICTS)}")
 
 
@@ -271,6 +295,13 @@ def validate_probe_evidence_refs(refs: Any, *, source: str, errors: list[str]) -
             error(errors, item_source, f"must use file: scheme for probe transcript artifact refs: {ref}")
         elif resolve_probe_transcript_ref(ROOT, ref) is None:
             error(errors, item_source, f"must resolve to an existing repository-local file: {ref}")
+        else:
+            transcript = load_probe_transcript(ref)
+            if transcript is None:
+                error(errors, item_source, f"must be a structured {PROBE_TRANSCRIPT_KEY} artifact: {ref}")
+                continue
+            for message in probe_transcript_shape_errors(transcript):
+                error(errors, item_source, f"invalid probe transcript: {message}")
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -323,6 +354,60 @@ def load_probe_transcript(ref: str) -> dict[str, Any] | None:
     return transcript if isinstance(transcript, dict) else None
 
 
+def probe_transcript_shape_errors(transcript: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if set(transcript) != PROBE_TRANSCRIPT_FIELDS:
+        string_keys = {key for key in transcript if isinstance(key, str)}
+        missing = sorted(PROBE_TRANSCRIPT_FIELDS - string_keys)
+        extra = sorted_key_names(key for key in transcript if not isinstance(key, str) or key not in PROBE_TRANSCRIPT_FIELDS)
+        if missing:
+            errors.append(f"missing fields: {missing}")
+        if extra:
+            errors.append(f"extra fields: {extra}")
+        return errors
+    if transcript.get("schema_version") != PROBE_TRANSCRIPT_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {PROBE_TRANSCRIPT_SCHEMA_VERSION}")
+    if not isinstance(transcript.get("probe_command"), str) or not is_substantive(transcript.get("probe_command")):
+        errors.append("probe_command must be a substantive string")
+    if not isinstance(transcript.get("probe_exit_code"), int) or isinstance(transcript.get("probe_exit_code"), bool):
+        errors.append("probe_exit_code must be an integer")
+    if not isinstance(transcript.get("result_ref"), str) or not is_substantive(transcript.get("result_ref")):
+        errors.append("result_ref must be a substantive string")
+    if not is_sha256(transcript.get("result_digest")):
+        errors.append("result_digest must be a sha256 hex digest")
+    for field in ("packet_ref", "packet_sha256"):
+        value = transcript.get(field)
+        if value is not None and not isinstance(value, str):
+            errors.append(f"{field} must be null or a string")
+    if transcript.get("packet_sha256") is not None and not is_sha256(transcript.get("packet_sha256")):
+        errors.append("packet_sha256 must be null or a sha256 hex digest")
+    if not source_refs_resolve(transcript.get("source_refs")):
+        errors.append("source_refs must resolve to repository-local files")
+    if not transcript_cwd_is_repo_root(transcript.get("cwd")):
+        errors.append("cwd must identify the repository root")
+    if not isinstance(transcript.get("generated_by"), str) or not is_substantive(transcript.get("generated_by")):
+        errors.append("generated_by must be a substantive string")
+    if not date_like(transcript.get("date")):
+        errors.append("date must be an ISO date on or before today")
+    stdout = transcript.get("stdout")
+    stderr = transcript.get("stderr")
+    if not isinstance(stdout, str):
+        errors.append("stdout must be a string")
+    if not isinstance(stderr, str):
+        errors.append("stderr must be a string")
+    if not is_sha256(transcript.get("stdout_sha256")):
+        errors.append("stdout_sha256 must be a sha256 hex digest")
+    if not is_sha256(transcript.get("stderr_sha256")):
+        errors.append("stderr_sha256 must be a sha256 hex digest")
+    if isinstance(stdout, str) and is_sha256(transcript.get("stdout_sha256")):
+        if transcript["stdout_sha256"] != sha256_text(stdout):
+            errors.append("stdout_sha256 must match stdout")
+    if isinstance(stderr, str) and is_sha256(transcript.get("stderr_sha256")):
+        if transcript["stderr_sha256"] != sha256_text(stderr):
+            errors.append("stderr_sha256 must match stderr")
+    return errors
+
+
 def sorted_string_values(values: Any) -> list[str]:
     if not isinstance(values, list):
         return []
@@ -346,9 +431,7 @@ def transcript_matches_probe(
     packet_sha256: str | None,
     source_refs: list[str],
 ) -> bool:
-    if set(transcript) != PROBE_TRANSCRIPT_FIELDS:
-        return False
-    if transcript.get("schema_version") != PROBE_TRANSCRIPT_SCHEMA_VERSION:
+    if probe_transcript_shape_errors(transcript):
         return False
     if transcript.get("probe_command") != command:
         return False
@@ -392,15 +475,9 @@ def validate_target(target: Any, errors: list[str]) -> None:
     if not isinstance(target, dict):
         error(errors, "MultiReviewResult.target", "must be a mapping")
         return
-    if set(target) != TARGET_FIELDS:
-        missing = sorted(TARGET_FIELDS - set(target))
-        extra = sorted(set(target) - TARGET_FIELDS)
-        if missing:
-            error(errors, "MultiReviewResult.target", f"missing fields: {missing}")
-        if extra:
-            error(errors, "MultiReviewResult.target", f"extra fields: {extra}")
-    if not is_substantive(target.get("summary")):
-        error(errors, "MultiReviewResult.target.summary", "must be substantive")
+    validate_exact_fields(target, expected=TARGET_FIELDS, source="MultiReviewResult.target", errors=errors)
+    if not is_substantive_string(target.get("summary")):
+        error(errors, "MultiReviewResult.target.summary", "must be a substantive string")
     validate_source_refs(target.get("source_refs"), source="MultiReviewResult.target.source_refs", errors=errors)
 
 
@@ -414,13 +491,7 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
         error(errors, f"critics[{index}]", "critic result must be a mapping")
         return None
     source = critic_source(critic, index)
-    if set(critic) != CRITIC_FIELDS:
-        missing = sorted(CRITIC_FIELDS - set(critic))
-        extra = sorted(set(critic) - CRITIC_FIELDS)
-        if missing:
-            error(errors, source, f"missing fields: {missing}")
-        if extra:
-            error(errors, source, f"extra fields: {extra}")
+    validate_exact_fields(critic, expected=CRITIC_FIELDS, source=source, errors=errors)
     string_fields = (
         "critic_id",
         "name",
@@ -433,28 +504,47 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
         "actor",
     )
     for field in string_fields:
-        if not isinstance(critic.get(field), str) or not is_substantive(critic.get(field)):
+        if not is_substantive_string(critic.get(field)):
             error(errors, source, f"{field} must be a non-empty string")
+    text_fields = (
+        "false_green_risk",
+        "invariant_checked",
+        "probe_command",
+        "probe_result",
+        "probe_interpretation",
+        "why_not_10",
+        "residual_risk_disposition",
+    )
+    for field in text_fields:
+        value = critic.get(field)
+        if value is not None and not isinstance(value, str):
+            error(errors, source, f"{field} must be a string")
+    reason_no_probe = critic.get("reason_no_probe")
+    if reason_no_probe is not None and not isinstance(reason_no_probe, str):
+        error(errors, source, "reason_no_probe must be null or a string")
     if not is_substantive(critic.get("date")):
         error(errors, source, "date is required")
     if not isinstance(critic.get("frame_challenge"), bool):
         error(errors, source, "frame_challenge must be a boolean")
     if is_substantive(critic.get("date")) and not date_like(critic.get("date")):
         error(errors, source, "date must be an ISO date on or before today")
-    if critic.get("critic_type") not in CRITIC_TYPES:
+    critic_type = critic.get("critic_type")
+    if not isinstance(critic_type, str) or critic_type not in CRITIC_TYPES:
         error(errors, source, f"critic_type is invalid: {critic.get('critic_type')}")
     if not isinstance(critic.get("required"), bool):
         error(errors, source, "required must be a boolean")
     score = critic.get("score")
     if not isinstance(score, int) or isinstance(score, bool) or score < 1 or score > 10:
         error(errors, source, "score must be an integer from 1 to 10")
-    if critic.get("verdict") not in CRITIC_VERDICTS:
+    verdict = critic.get("verdict")
+    if not isinstance(verdict, str) or verdict not in CRITIC_VERDICTS:
         error(errors, source, f"verdict is invalid: {critic.get('verdict')}")
     if not isinstance(critic.get("veto"), bool):
         error(errors, source, "veto must be a boolean")
     if not isinstance(critic.get("blocking_findings"), list):
         error(errors, source, "blocking_findings must be a list")
-    if critic.get("validation_layer") not in VALIDATION_LAYERS:
+    validation_layer = critic.get("validation_layer")
+    if not isinstance(validation_layer, str) or validation_layer not in VALIDATION_LAYERS:
         error(errors, source, f"validation_layer is invalid: {critic.get('validation_layer')}")
     if not isinstance(critic.get("probe_run"), bool):
         error(errors, source, "probe_run must be a boolean")
@@ -505,35 +595,36 @@ def validate_listed_critic_for_acceptance(
     if critic.get("blocking_findings"):
         error(errors, source, "blocking_findings must be empty for derived acceptance")
     for field in ("false_green_risk", "invariant_checked"):
-        if not is_substantive(critic.get(field)):
+        if not is_substantive_string(critic.get(field)):
             error(errors, source, f"{field} must be substantive")
     if critic.get("validation_layer") == "wrong-layer":
         error(errors, source, "validation_layer wrong-layer blocks derived acceptance")
     if critic.get("probe_run") is not True:
         error(errors, source, "probe_run must be true for derived acceptance")
     for field in ("probe_command", "probe_result", "probe_interpretation"):
-        if not is_substantive(critic.get(field)):
+        if not is_substantive_string(critic.get(field)):
             error(errors, source, f"{field} must be substantive")
     if critic.get("probe_exit_code") != 0:
         error(errors, source, "probe_exit_code must be 0 for derived acceptance")
-    transcript = matching_probe_transcript(
+    transcripts = matching_probe_transcripts(
         critic,
         result_ref=result_ref,
         result_digest=result_digest,
         packet_ref=packet_ref,
         packet_sha256=packet_sha256,
     )
-    if transcript is None:
+    if transcripts is None:
         error(errors, source, "probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code")
     if replay_probe_commands:
-        replay_probe_command(critic, source=source, transcript=transcript, errors=errors)
+        for transcript in transcripts or [None]:
+            replay_probe_command(critic, source=source, transcript=transcript, errors=errors)
     if score == 9:
         for field in ("why_not_10", "residual_risk_disposition"):
-            if not is_substantive(critic.get(field)):
+            if not is_substantive_string(critic.get(field)):
                 error(errors, source, f"score 9 requires {field}")
 
 
-def matching_probe_transcript(
+def matching_probe_transcripts(
     critic: dict[str, Any],
     *,
     result_ref: str | None = None,
@@ -548,11 +639,14 @@ def matching_probe_transcript(
         return None
     if not isinstance(refs, list) or not refs:
         return None
+    matching: list[dict[str, Any]] = []
     for ref in refs:
         if not isinstance(ref, str):
-            continue
+            return None
         transcript = load_probe_transcript(ref)
-        if transcript is not None and transcript_matches_probe(
+        if transcript is None:
+            return None
+        if not transcript_matches_probe(
             transcript,
             command=command,
             exit_code=exit_code,
@@ -562,8 +656,31 @@ def matching_probe_transcript(
             packet_sha256=packet_sha256,
             source_refs=sorted_string_values(critic.get("source_refs")),
         ):
-            return transcript
-    return None
+            return None
+        matching.append(transcript)
+    if not matching:
+        return None
+    return matching
+
+
+def matching_probe_transcript(
+    critic: dict[str, Any],
+    *,
+    result_ref: str | None = None,
+    result_digest: str | None = None,
+    packet_ref: str | None = None,
+    packet_sha256: str | None = None,
+) -> dict[str, Any] | None:
+    transcripts = matching_probe_transcripts(
+        critic,
+        result_ref=result_ref,
+        result_digest=result_digest,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+    )
+    if not transcripts:
+        return None
+    return transcripts[0]
 
 
 def probe_has_matching_transcript(critic: dict[str, Any]) -> bool:
@@ -673,21 +790,29 @@ def derive_verdict(
             continue
         source = critic_source(critic, index)
         critic_id = critic.get("critic_id")
-        if critic_id in critic_ids:
-            error(errors, source, f"duplicate critic_id: {critic_id}")
         if isinstance(critic_id, str):
+            if critic_id in critic_ids:
+                error(errors, source, f"duplicate critic_id: {critic_id}")
             critic_ids.add(critic_id)
         critics.append(critic)
 
     required_critics = result.get("required_critics")
-    required_ids = set(required_critics) if isinstance(required_critics, list) else set()
-    if len(required_ids) != len(required_critics or []):
+    required_ids = {
+        critic_id
+        for critic_id in required_critics
+        if isinstance(critic_id, str)
+    } if isinstance(required_critics, list) else set()
+    if isinstance(required_critics, list) and len(required_ids) != len(required_critics):
         error(errors, "MultiReviewResult.required_critics", "must not contain duplicate ids")
     missing_required = sorted(required_ids - critic_ids)
     if missing_required:
         error(errors, "MultiReviewResult.required_critics", f"missing required critics: {missing_required}")
 
-    required_results = [critic for critic in critics if critic.get("critic_id") in required_ids]
+    required_results = [
+        critic
+        for critic in critics
+        if isinstance(critic.get("critic_id"), str) and critic.get("critic_id") in required_ids
+    ]
     for critic in required_results:
         if critic.get("required") is not True:
             error(errors, critic_source(critic, critics.index(critic)), "required critic must set required: true")
@@ -699,11 +824,14 @@ def derive_verdict(
         validate_governance_frame_disjointness(required_results, errors)
 
     has_primary_validation_layer = any(
-        critic.get("critic_id") in required_ids and critic.get("validation_layer") in PRIMARY_VALIDATION_LAYERS
+        isinstance(critic.get("critic_id"), str)
+        and critic.get("critic_id") in required_ids
+        and isinstance(critic.get("validation_layer"), str)
+        and critic.get("validation_layer") in PRIMARY_VALIDATION_LAYERS
         for critic in critics
     )
     for index, critic in enumerate(critics):
-        if review_mode in REVIEW_MODES:
+        if isinstance(review_mode, str) and review_mode in REVIEW_MODES:
             validate_listed_critic_for_acceptance(
                 critic,
                 source=critic_source(critic, index),
@@ -715,7 +843,7 @@ def derive_verdict(
                 packet_sha256=packet_sha256,
                 errors=errors,
             )
-        if critic.get("critic_id") in required_ids:
+        if isinstance(critic.get("critic_id"), str) and critic.get("critic_id") in required_ids:
             validate_required_critic(
                 critic,
                 source=critic_source(critic, index),
@@ -769,8 +897,10 @@ def check_result(
             print(f"ERROR: {item}", file=sys.stderr)
     if require_governance_pass and derived_verdict != "PASS":
         print(f"ERROR: derived verdict is not governance PASS: {derived_verdict}", file=sys.stderr)
+    if require_governance_pass and not replay_probe_commands:
+        print("ERROR: governance PASS acceptance requires explicit --replay-probe-commands", file=sys.stderr)
     success = derived_verdict in {"PASS", "ADVISORY_PASS"} and (
-        not require_governance_pass or derived_verdict == "PASS"
+        not require_governance_pass or (derived_verdict == "PASS" and replay_probe_commands)
     )
     stream = sys.stdout if success else sys.stderr
     boundary = (
@@ -779,7 +909,12 @@ def check_result(
         if replay_probe_commands
         else "artifact-internal consistency with linked probe transcripts; not command replay or stable handoff evidence"
     )
-    print(f"DERIVED: {derived_verdict} ({boundary}): {display_path(path)}", file=stream)
+    label = (
+        "VALID"
+        if require_governance_pass and not replay_probe_commands and derived_verdict == "PASS"
+        else "DERIVED"
+    )
+    print(f"{label}: {derived_verdict} ({boundary}): {display_path(path)}", file=stream)
     return 0 if success else 1
 
 

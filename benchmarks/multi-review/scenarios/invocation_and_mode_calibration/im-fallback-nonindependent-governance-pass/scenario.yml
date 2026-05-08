@@ -19,7 +19,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: FALLBACK_NONINDEPENDENT
   expected_errors:
-    - "fallback_nonindependent cannot derive governance PASS"
+    - "MultiReviewResult.independence: fallback_nonindependent cannot derive governance PASS"
   false_green_target: Non-independent fallback output is promoted to governance PASS.
   primary_invariant: Governance PASS requires independent review.
   oracle_assertions:

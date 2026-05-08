@@ -106,7 +106,7 @@ Out of scope:
 
 ## Consolidation Model
 
-Plan 06 uses four consolidation moves.
+Plan 06 uses five consolidation moves.
 
 ### 1. Ref Taxonomy
 
@@ -130,31 +130,98 @@ Transcript and packet fixture drift must become a tool problem, not a reviewer
 memory problem.
 
 Plan 06 must add a fixture-only helper. `--check` is required. `--write` is
-allowed only if it rewrites deterministic fixture fields and remains separate
-from stable `check`.
+allowed only if it rewrites deterministic derived fixture fields and remains
+separate from stable `check`.
 
-The helper owns the derived fixture surface, at minimum:
+The helper owns only derived fixture bindings, at minimum:
 
 - `result.evidence.review_imports[*].source_digest`
 - review-import wrapper `target_binding`
 - review-import wrapper and packet import `review_target_digest`
 - packet SHA values recorded in command evidence logs
-- command log section binding for `packet_id`, `packet_ref`, `command`, and
-  `status`
 - `ProbeTranscript.result_ref`
 - `ProbeTranscript.result_digest`
 - `ProbeTranscript.packet_ref`
 - `ProbeTranscript.packet_sha256`
-- `ProbeTranscript.source_refs`
-- transcript stdout/stderr hashes when fixture command output changes
 
 The helper does not decide whether a claim is semantically true. It recomputes
 or checks derived bytes, hashes, refs, and binding fields, then reports mismatch.
+It does not own observed command strings, observed command status, probe stdout,
+probe stderr, transcript body, probe exit status, or transcript source refs.
+Those fields may change only through the runner, explicit replay, or explicit
+regeneration path that produced the observation.
 
 It should not run arbitrary artifact-supplied probe commands as part of stable
 `check`. Active replay remains explicit.
 
-### 3. Complexity Budget
+### 3. Evidence Ownership Boundary Amendment
+
+This amendment is the binding cross-plan boundary for Plans 04-07. It is not a
+new plan layer. It supersedes any Plan 04/05/06 wording that implies helpers can
+rewrite observations, that stable `check` can judge prose quality, or that two
+tools may parse the same artifact differently.
+
+Ownership matrix:
+
+| Artifact | Owner | Parser / Canonical Contract | Helper Role | Stable Consequence |
+| --- | --- | --- | --- | --- |
+| Command evidence log | runner or fixture regeneration path | one `# Command Evidence` section parser shared by helper and checker | update derived packet hash/ref bindings only; never rewrite `command` or `status` | mismatch fails stable evidence |
+| `ProbeTranscript` | replay runner or transcript regeneration path | structured `ProbeTranscript` parser shared by validator/helper/archive checks | update derived result/packet bindings only when observed command, exit, stdout, stderr, and source refs already match | stale or unbound transcript cannot support governance PASS |
+| `AcceptancePacketReviewImport` | review import generator | structured wrapper parser shared by checker/helper/archive checks | update digest and target binding from wrapper bytes | digest or target drift fails stable review import |
+| `MultiReviewResult` | multi-review protocol / replay validator | schema validator plus replay transcript verifier | no semantic rewrite; fixture binding only when transcript ownership is clear | derived PASS proves structure and bound probes, not full prose quality |
+| AcceptancePacket stable check | checker | read-only packet/ref/artifact validation | no writes and no command execution | reports VALID/STABLE/BLOCKED only from existing artifacts |
+| Archive pointer | Plan 07 archive process | archive pointer parser and packet hash verifier | no ownership until Plan 07 | stale or changed archived bytes require revalidation |
+
+Layer rules:
+
+- Observed evidence is immutable. `command`, `status`, stdout/stderr,
+  transcript body, probe exit status, source refs, and runner output hashes are
+  runner-owned. A helper mismatch is a failure plus replay/regeneration
+  instruction, not a rewrite opportunity. The helper can check self-consistent
+  transcript hashes, but it cannot prove a hand-edited transcript body without
+  replay or regeneration evidence.
+- Stable `check` is read-only. It does not replay commands, rewrite artifacts, or
+  generate missing evidence.
+- The checker validates schema, targets, bindings, provenance, digests,
+  derivable closure, exact parser contracts, and non-vacuous scalar presence. It
+  does not claim full semantic adequacy of prose such as
+  `false_green_risk` or `invariant_checked`.
+- Review Quality critics, durable review artifacts, semantic benchmarks, or a
+  future evaluator own full prose specificity and semantic adequacy.
+- One artifact type has one parser/canonicalization contract. If helper and
+  checker disagree, the artifact contract is wrong and must be consolidated
+  before adding more guards.
+
+Disposition table for future feedback:
+
+| Feedback Type | Disposition | Owner |
+| --- | --- | --- |
+| Live stable structural/binding false-green | `FIX_NOW` | owning checker/helper plan |
+| Helper can rewrite observed evidence | `FIX_NOW` | Plan 06 |
+| Parser divergence for the same artifact | `FIX_NOW` | Plan 06 |
+| Scalar container or vacuous placeholder accepted as structure | `FIX_NOW` | Plan 05 / validator |
+| Semantic prose specificity overclaim | `LOWER_CLAIM` | Plan 05 amendment |
+| Proof-like content truth or semantic evidence relevance | `DEFER_PENDING_NONACCEPTANCE` | Plan 07 evaluator backlog |
+| Archive freshness, immutable pointers, version drift | `DEFER_PENDING_NONACCEPTANCE` | Plan 07 archive backlog |
+| Archive-owned audit neatness without stable false-green | `DEFER_PENDING_NONACCEPTANCE` | Plan 07 |
+| Non-archive audit neatness without stable false-green | `DEFER_PENDING_NONACCEPTANCE` | later non-archive cleanup, not Plan 07 |
+
+Current finding disposition:
+
+| Finding | Disposition | Boundary Reason |
+| --- | --- | --- |
+| Command evidence parser accepts non-command headings | `FIX_NOW` | parser contract divergence |
+| Helper can rebind stale command logs | `FIX_NOW` | helper rewrites observed evidence |
+| Replay benchmark expected VETO hides extra structural errors | `FIX_NOW` | replay benchmark parser masks structural drift |
+| Review scalar containers pass review lineage / result target | `FIX_NOW` | scalar structure false-green |
+| Residual risk lacks target/provenance validation | `FIX_NOW` for structure; semantic quality deferred | stable closure structure |
+| Downgrade closes without replacement | `FIX_NOW` | targeted downgrade structure |
+| Generic review prose specificity | `LOWER_CLAIM` | deterministic checker is wrong layer |
+| Benchmark-only transcript ownership | `FIX_NOW` if helper claims ownership; otherwise narrow helper claim | ownership mismatch |
+| Bare source-ref archive policy | `DEFER_PENDING_NONACCEPTANCE` | archive pointer policy |
+| Finalize-time search-set skip provenance for non-stable packets | `DEFER_PENDING_NONACCEPTANCE` outside Plan 07 | auditability gap, not stable false-green or archive-owned risk |
+
+### 4. Complexity Budget
 
 Every future plan or implementation that adds a guard, schema field, or fixture
 kind must answer:
@@ -167,7 +234,7 @@ kind must answer:
 
 If those questions cannot be answered, the change is deferred or redesigned.
 
-### 4. Multi-Review Anti-Bloat Critic
+### 5. Multi-Review Anti-Bloat Critic
 
 Governance multi-review must include a critic whose primary job is not to find
 more checks, but to challenge unnecessary complexity.
@@ -196,10 +263,11 @@ python3 scripts/update-governance-fixtures.py --write
 ```
 
 `--check` is required for Plan 06 implementation acceptance. `--write` is
-optional. The helper may compute hashes and rewrite fixture artifacts. It must
-not be required for `governance check` or `verify-release` in Plan 06, and it
-must not execute artifact-supplied probe commands unless an explicit replay mode
-is added later with an allowlisted runner.
+optional. The helper may compute hashes and rewrite derived binding fields in
+fixture artifacts. It must not rewrite observed command/probe evidence, must not
+be required for `governance check` or `verify-release` in Plan 06, and must not
+execute artifact-supplied probe commands unless an explicit replay mode is added
+later with an allowlisted runner.
 
 ## Invariants
 
@@ -257,6 +325,33 @@ least these critic scopes:
 Every required critic must score at least 9. Any VETO requires updating the
 plan or implementation and rerunning the affected critic. Every score 9 must
 record why-not-10 and residual-risk or follow-up disposition.
+
+## Plan Review Outcome
+
+Plan 06 was accepted as a consolidation plan, not a new governance layer. The
+review disposition is:
+
+- PASS, score 9: the evidence ownership boundary reduces scattered Plan 04/05/06
+  rules into one helper/checker/replay ownership matrix.
+- Why not 10: archive-era source-ref policy, semantic relevance, and pointer
+  freshness remain Plan 07 responsibilities rather than Plan 06 implementation.
+- Residual risk disposition: Plan 07 carries archive-owned deferred risks; live
+  stable false-greens stay in the active checker/helper implementation.
+
+## Implementation Review Outcome
+
+Implementation acceptance requires the validation commands above plus focused
+negative tests for:
+
+- helper attempts to rewrite observed command/probe/source evidence
+- checker/helper parser divergence for command evidence
+- transcript/result/packet binding drift
+- review-import target binding and lineage closure drift
+- benchmark oracle strings losing source/path specificity
+
+Any implementation review VETO must be closed by changing the checker/helper or
+by lowering an overbroad Plan 06 claim. Do not add a new public packet field to
+close Plan 06 findings.
 
 ## Open Questions
 

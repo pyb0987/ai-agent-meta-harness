@@ -11,7 +11,6 @@ import importlib.util
 import json
 from dataclasses import dataclass
 from pathlib import Path
-import re
 import sys
 from typing import Any
 
@@ -35,7 +34,18 @@ def load_checker_module() -> Any:
     return module
 
 
+def load_benchmark_module() -> Any:
+    script = REPO_ROOT / "benchmarks" / "multi-review" / "check-fixtures.py"
+    spec = importlib.util.spec_from_file_location("multi_review_benchmark_for_fixtures", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load benchmark module: {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 CHECKER = load_checker_module()
+BENCHMARK = load_benchmark_module()
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -104,6 +114,7 @@ class CommandLogSection:
     end: int
     fields: dict[str, str]
     field_lines: dict[str, int]
+    duplicate_fields: set[str]
 
 
 @dataclass
@@ -122,12 +133,14 @@ class FixtureUpdater:
         self.drift: list[str] = []
         self.errors: list[str] = []
         self.pending_writes: dict[Path, bytes] = {}
+        self.transcript_bindings: dict[Path, tuple[dict[str, Any], str]] = {}
 
     def run(self) -> int:
         packet_infos = self.process_acceptance_packets()
         for info in packet_infos:
             self.process_command_logs(info)
         self.process_standalone_multi_review_results()
+        self.process_benchmark_scenarios()
         if self.write and not self.errors:
             for path, content in sorted(self.pending_writes.items()):
                 if path.exists() and path.read_bytes() == content:
@@ -257,6 +270,33 @@ class FixtureUpdater:
                 packet_sha256=None,
             )
 
+    def process_benchmark_scenarios(self) -> None:
+        scenarios_root = self.root / "benchmarks" / "multi-review" / "scenarios"
+        if not scenarios_root.exists():
+            return
+        for scenario_path in sorted(scenarios_root.glob("**/scenario.yml")):
+            try:
+                original_root = BENCHMARK.ROOT
+                BENCHMARK.ROOT = self.root
+                try:
+                    scenario = BENCHMARK.load_scenario(scenario_path)
+                    if not scenario.get("replay_probe_commands"):
+                        continue
+                    result = BENCHMARK.scenario_result(scenario)
+                    result_ref, result_digest = BENCHMARK.scenario_result_binding(scenario_path, scenario, result)
+                finally:
+                    BENCHMARK.ROOT = original_root
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError, yaml.YAMLError) as exc:
+                self.errors.append(f"{relative_path(self.root, scenario_path)}: cannot load benchmark scenario: {exc}")
+                continue
+            self.process_probe_transcripts(
+                result,
+                result_ref=result_ref,
+                result_digest=result_digest,
+                packet_ref=None,
+                packet_sha256=None,
+            )
+
     def process_probe_transcripts(
         self,
         result: dict[str, Any],
@@ -291,24 +331,75 @@ class FixtureUpdater:
                 if not isinstance(transcript, dict):
                     self.errors.append(f"{source}: {PROBE_TRANSCRIPT_KEY} must be a mapping")
                     continue
+                original_checker_root = BENCHMARK.checker.ROOT
+                BENCHMARK.checker.ROOT = self.root
+                try:
+                    transcript_shape_errors = BENCHMARK.checker.probe_transcript_shape_errors(transcript)
+                finally:
+                    BENCHMARK.checker.ROOT = original_checker_root
+                if transcript_shape_errors:
+                    self.errors.append(
+                        f"{relative_path(self.root, transcript_path)}: transcript schema drift requires explicit regeneration, not --write: "
+                        f"{'; '.join(transcript_shape_errors)}"
+                    )
+                    continue
                 stdout = transcript.get("stdout")
                 stderr = transcript.get("stderr")
                 if not isinstance(stdout, str) or not isinstance(stderr, str):
                     self.errors.append(f"{source}: transcript stdout/stderr must be strings")
                     continue
+                expected_command = critic.get("probe_command")
+                expected_exit_code = critic.get("probe_exit_code")
+                if not isinstance(expected_command, str) or not expected_command:
+                    self.errors.append(f"{source}: probe_command must be a non-empty string")
+                    continue
+                if not isinstance(expected_exit_code, int) or isinstance(expected_exit_code, bool):
+                    self.errors.append(f"{source}: probe_exit_code must be an integer")
+                    continue
+                transcript_path_display = relative_path(self.root, transcript_path)
                 changed = False
                 expectations = {
-                    "schema_version": "probe-transcript/v1",
-                    "probe_command": critic.get("probe_command"),
-                    "probe_exit_code": critic.get("probe_exit_code"),
+                    "probe_command": expected_command,
+                    "probe_exit_code": expected_exit_code,
                     "result_ref": result_ref,
                     "result_digest": result_digest,
                     "packet_ref": packet_ref,
                     "packet_sha256": packet_sha256,
-                    "source_refs": sorted_string_values(critic.get("source_refs")),
-                    "stdout_sha256": sha256_text(stdout),
-                    "stderr_sha256": sha256_text(stderr),
                 }
+                raw_source_refs = critic.get("source_refs")
+                if (
+                    not isinstance(raw_source_refs, list)
+                    or not raw_source_refs
+                    or any(not isinstance(ref, str) or not ref for ref in raw_source_refs)
+                ):
+                    self.errors.append(f"{source}: source_refs must be a non-empty list of strings")
+                    continue
+                expected_source_refs = sorted(raw_source_refs)
+                previous_binding = self.transcript_bindings.get(transcript_path)
+                binding_identity = copy.deepcopy(expectations)
+                binding_identity["source_refs"] = expected_source_refs
+                if previous_binding is not None and previous_binding[0] != binding_identity:
+                    self.errors.append(
+                        f"{transcript_path_display}: conflicting transcript binding owners: "
+                        f"{previous_binding[1]} and {source}"
+                    )
+                    continue
+                self.transcript_bindings[transcript_path] = (binding_identity, source)
+                if transcript.get("probe_command") != expected_command:
+                    self.errors.append(
+                        f"{transcript_path_display}:probe_command: probe command drift requires explicit replay, not --write"
+                    )
+                    continue
+                if transcript.get("probe_exit_code") != expected_exit_code:
+                    self.errors.append(
+                        f"{transcript_path_display}:probe_exit_code: probe exit-code drift requires explicit replay, not --write"
+                    )
+                    continue
+                if transcript.get("source_refs") != expected_source_refs:
+                    self.errors.append(
+                        f"{transcript_path_display}:source_refs: source-ref drift requires explicit replay, not --write"
+                    )
+                    continue
                 for field, expected in expectations.items():
                     changed |= self.set_value(
                         transcript,
@@ -375,22 +466,29 @@ class FixtureUpdater:
             and section.fields.get("command") == expected["command"]
         ]
         section = matching[0] if len(matching) == 1 else None
-        if section is None and self.write:
-            candidates = [section for section in sections if section.fields.get("packet_id") == expected["packet_id"]]
-            if len(candidates) == 1:
-                section = candidates[0]
-            else:
-                candidates = [section for section in sections if section.fields.get("command") == expected["command"]]
-                if len(candidates) == 1:
-                    section = candidates[0]
         if section is None:
             self.errors.append(
                 f"{source}: command artifact lacks an unambiguous section for "
                 f"{expected['packet_id']} / {expected['command']}"
             )
             return
+        if section.duplicate_fields:
+            duplicates = ", ".join(sorted(section.duplicate_fields))
+            self.errors.append(
+                f"{relative_path(self.root, path)}: command artifact has duplicate fields: {duplicates}"
+            )
+            return
         changed = False
-        for field, expected_value in expected.items():
+        observed_fields = {"packet_id", "command", "status"}
+        for field in observed_fields:
+            current_value = section.fields.get(field)
+            if current_value != expected[field]:
+                self.errors.append(
+                    f"{relative_path(self.root, path)}:{field}: observed command evidence drift requires explicit replay, not --write"
+                )
+                return
+        for field in ("packet_ref", "packet_sha256"):
+            expected_value = expected[field]
             current_value = section.fields.get(field)
             label = f"{relative_path(self.root, path)}:{field}"
             if current_value != expected_value:
@@ -414,22 +512,26 @@ class FixtureUpdater:
 
 
 def parse_command_log_sections(lines: list[str]) -> list[CommandLogSection]:
-    starts = [index for index, line in enumerate(lines) if line.strip() == "# Command Evidence"]
     sections: list[CommandLogSection] = []
-    field_re = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
-    for position, start in enumerate(starts):
-        end = starts[position + 1] if position + 1 < len(starts) else len(lines)
-        fields: dict[str, str] = {}
+    for start, end in CHECKER.command_evidence_section_bounds(lines):
+        fields = CHECKER.command_evidence_section_fields(lines, start, end)
+        duplicate_fields = CHECKER.command_evidence_section_duplicate_fields(lines, start, end)
         field_lines: dict[str, int] = {}
         for index in range(start + 1, end):
-            match = field_re.match(lines[index])
+            match = CHECKER.COMMAND_EVIDENCE_FIELD_RE.match(lines[index])
             if not match:
                 continue
             field = match.group(1).casefold().replace("-", "_")
-            value = " ".join(match.group(2).strip().strip("\"'").split())
-            fields[field] = value
             field_lines[field] = index
-        sections.append(CommandLogSection(start=start, end=end, fields=fields, field_lines=field_lines))
+        sections.append(
+            CommandLogSection(
+                start=start,
+                end=end,
+                fields=fields,
+                field_lines=field_lines,
+                duplicate_fields=duplicate_fields,
+            )
+        )
     return sections
 
 

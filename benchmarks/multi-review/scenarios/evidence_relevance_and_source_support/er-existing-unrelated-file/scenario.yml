@@ -20,7 +20,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: VETO
   expected_errors:
-    - "probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code"
+    - "critics[2:schema-contract]: probe_evidence_refs must include a structured transcript matching probe_command and probe_exit_code"
   false_green_target: Existing repository-local refs are substituted without matching transcript binding.
   primary_invariant: Critic source refs must match the structured transcript source refs for the probe evidence.
   oracle_assertions:
