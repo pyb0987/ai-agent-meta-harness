@@ -150,6 +150,32 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("structured validator or derived verdict computes PASS", convergence_normalized)
         self.assertTrue(has_substantive_false_green_coverage(prompt_shape, convergence))
 
+    def test_repeated_review_convergence_is_advisory_not_schema_gate(self) -> None:
+        text = CANONICAL.read_text(encoding="utf-8")
+        convergence = section_between(text, "### Phase 4: Convergence Check", "### Phase 5: Synthesis")
+        convergence_normalized = " ".join(convergence.split())
+
+        for marker in (
+            "reviews that iterate on the same artifact or decision more than once",
+            "Cluster open findings by root failure class or invariant family",
+            "`attack_surface`, `primary_failure_mode`, `invariant_checked`",
+            "new root class or a variant of an already open class",
+            "converging, drifting, or blocked",
+            "stop, merge, drop, escalate, or keep iterating",
+            "advisory for `multi-review-result/v1`",
+            'hand-authored "converged" label is not acceptance evidence',
+            "cannot turn VETO into PASS or suppress an unresolved blocking finding",
+            "prior review artifacts or previous finding evidence are missing, incomplete, or not comparable",
+            "insufficient history",
+            "report only the current findings instead of inferring convergence or drift",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, convergence_normalized)
+
+        self.assertNotIn("`failure_class`", text)
+        self.assertNotIn("`variant_of`", text)
+        self.assertNotIn("`convergence_status`", text)
+
     def test_adversarial_probe_is_required_for_durable_governance_reviews(self) -> None:
         text = CANONICAL.read_text(encoding="utf-8")
         critic_design = section_between(text, "### Phase 2: Critic Design", "### Phase 3: Parallel Execution")

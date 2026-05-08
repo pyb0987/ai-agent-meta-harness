@@ -90,6 +90,9 @@ lightweight convergence check to synthesis:
 4. Keep this convergence summary advisory unless a future governance/durable
    result schema explicitly makes it a derived gate. A hand-authored
    "converged" label is not acceptance evidence by itself.
+5. If prior review artifacts or previous finding evidence are missing,
+   incomplete, or not comparable, mark the note as insufficient history and
+   report only the current findings instead of inferring convergence or drift.
 
 Suggested prompt addition:
 

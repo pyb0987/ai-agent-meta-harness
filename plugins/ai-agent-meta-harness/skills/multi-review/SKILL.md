@@ -36,6 +36,16 @@ Use this skill when the user asks for multi-review, several independent perspect
    high-stakes acceptance. It checks whether each invariant is enforced at the
    right layer before the review spends effort enumerating wording variants.
 11. Synthesize results with PASS, VETO, MIXED, FAIL, or ADVISORY PASS. For durable or high-stakes artifacts, mark the review incomplete instead of PASS if no critic covered an adversarial false-acceptance path.
+12. For reviews that iterate on the same artifact or decision more than once,
+    include an advisory convergence note. Cluster findings by root failure class
+    or invariant family using existing critic evidence, mark new root classes
+    versus variants of open classes, report converging/drifting/blocked status,
+    and recommend stop, merge, drop, escalate, or keep iterating. A hand-authored
+    "converged" label is not acceptance evidence and cannot turn VETO into PASS
+    or suppress unresolved blocking findings. If prior review artifacts or
+    previous finding evidence are missing, incomplete, or not comparable, mark
+    the note as insufficient history and report only the current findings instead
+    of inferring convergence or drift.
 
 ## Invariant and Adversarial Review
 
@@ -236,4 +246,4 @@ Use Codex's available model controls rather than Claude model names:
 
 ## Output
 
-Present a compact table with critic, score, verdict, key finding, and probe summary, followed by the integrated recommendation. If sequential fallback was used, disclose that independence was weaker. For durable or high-stakes artifacts, name which critic covered adversarial false acceptance; if none did, or if the only false_green_risk/invariant_checked values are null, empty, or generic, listed no-coverage values, or allowed by contradictory wording, report the review as incomplete rather than PASS. For durable or governance reviews, also name the Validation Layer Critic and Review Quality Meta-Critic; summarize whether acceptance is computed at the correct layer, whether critic frames were non-redundant, and whether validation commands existed and were executable. If probe_run/probe_command/probe_exit_code/probe_result/probe_interpretation/probe_evidence_refs are null, empty, generic, listed no-coverage values, self-attestation, missing a matching transcript, or only `reason_no_probe`, report the review as incomplete, FALLBACK_NONINDEPENDENT, or VETO rather than PASS. For governance-mode reviews, include VETO handling, rerun status, and score-9 why-not-10 handling. The user retains final decision authority.
+Present a compact table with critic, score, verdict, key finding, and probe summary, followed by the integrated recommendation. If sequential fallback was used, disclose that independence was weaker. For repeated reviews, include the advisory convergence note described above and keep it separate from acceptance evidence. For durable or high-stakes artifacts, name which critic covered adversarial false acceptance; if none did, or if the only false_green_risk/invariant_checked values are null, empty, or generic, listed no-coverage values, or allowed by contradictory wording, report the review as incomplete rather than PASS. For durable or governance reviews, also name the Validation Layer Critic and Review Quality Meta-Critic; summarize whether acceptance is computed at the correct layer, whether critic frames were non-redundant, and whether validation commands existed and were executable. If probe_run/probe_command/probe_exit_code/probe_result/probe_interpretation/probe_evidence_refs are null, empty, generic, listed no-coverage values, self-attestation, missing a matching transcript, or only `reason_no_probe`, report the review as incomplete, FALLBACK_NONINDEPENDENT, or VETO rather than PASS. For governance-mode reviews, include VETO handling, rerun status, and score-9 why-not-10 handling. The user retains final decision authority.

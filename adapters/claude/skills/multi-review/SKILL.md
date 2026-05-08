@@ -284,6 +284,20 @@ If you cannot run a probe, set `probe_run` to false and give a specific
 
 ### Phase 4: Convergence Check
 
+For reviews that iterate on the same artifact or decision more than once,
+include a convergence note before the final verdict. Cluster open findings by
+root failure class or invariant family, using existing critic evidence such as
+`attack_surface`, `primary_failure_mode`, `invariant_checked`, affected
+path/source refs, and probe evidence. Mark whether each new finding is a new root
+class or a variant of an already open class, report whether the loop is
+converging, drifting, or blocked, and recommend stop, merge, drop, escalate, or
+keep iterating. This note is advisory for `multi-review-result/v1`: a
+hand-authored "converged" label is not acceptance evidence and cannot turn VETO
+into PASS or suppress an unresolved blocking finding. If prior review artifacts
+or previous finding evidence are missing, incomplete, or not comparable, mark the
+note as insufficient history and report only the current findings instead of
+inferring convergence or drift.
+
 ### Repository Governance Mode
 
 When reviewing this repository's maintenance work, harness-affecting changes,

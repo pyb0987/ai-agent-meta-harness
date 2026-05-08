@@ -126,6 +126,33 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
         self.assertIn("acceptance is computed at the correct layer", output)
         self.assertTrue(has_substantive_false_green_coverage(prompt_shape, output))
 
+    def test_repeated_review_convergence_is_advisory_not_schema_gate(self):
+        text = SKILL.read_text(encoding="utf-8")
+        protocol = text[text.index("## Protocol"): text.index("## Invariant and Adversarial Review")]
+        output = text[text.index("## Output"):]
+        combined = " ".join((protocol + output).split())
+
+        for marker in (
+            "reviews that iterate on the same artifact or decision more than once",
+            "advisory convergence note",
+            "Cluster findings by root failure class or invariant family",
+            "new root classes versus variants of open classes",
+            "converging/drifting/blocked status",
+            "stop, merge, drop, escalate, or keep iterating",
+            'A hand-authored "converged" label is not acceptance evidence',
+            "cannot turn VETO into PASS or suppress unresolved blocking findings",
+            "keep it separate from acceptance evidence",
+            "prior review artifacts or previous finding evidence are missing, incomplete, or not comparable",
+            "insufficient history",
+            "report only the current findings instead of inferring convergence or drift",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, combined)
+
+        self.assertNotIn("`failure_class`", text)
+        self.assertNotIn("`variant_of`", text)
+        self.assertNotIn("`convergence_status`", text)
+
     def test_adversarial_probe_is_required_for_durable_governance_reviews(self):
         text = SKILL.read_text(encoding="utf-8")
         protocol = text[text.index("## Protocol"): text.index("## Invariant and Adversarial Review")]
