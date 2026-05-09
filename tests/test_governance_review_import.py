@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -18,9 +19,12 @@ IMPORT_REF = "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecti
 
 
 def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["AI_META_HARNESS_TEST_FIXTURE_MATERIALIZATION"] = "1"
     return subprocess.run(
         ["python3", str(SCRIPT), *args],
         cwd=ROOT,
+        env=env,
         encoding="utf-8",
         text=True,
         stdout=subprocess.PIPE,

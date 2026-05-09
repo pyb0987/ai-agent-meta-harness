@@ -109,7 +109,7 @@ def is_public_repo_ref_text(value: str) -> bool:
     return rel_path is not None and sealed_benchmark_file_error(value, source="public ref") is None
 
 
-def sealed_oracle_public_terms(oracle: dict[str, Any]) -> set[str]:
+def sealed_oracle_public_terms(oracle: dict[str, Any]) -> tuple[set[str], set[str]]:
     generic_tokens = {
         canonical_public_token(value)
         for value in (
@@ -119,7 +119,8 @@ def sealed_oracle_public_terms(oracle: dict[str, Any]) -> set[str]:
             | ASSERTION_SEVERITIES
         )
     }
-    terms = {canonical_public_token(label) for label in SEALED_ORACLE_LABELS}
+    substring_terms = {canonical_public_token(label) for label in SEALED_ORACLE_LABELS}
+    exact_terms: set[str] = set()
     prose_sources = (
         "sealed_oracle.expected_errors",
         "sealed_oracle.forbidden_errors",
@@ -138,27 +139,35 @@ def sealed_oracle_public_terms(oracle: dict[str, Any]) -> set[str]:
     }
     for source, value in recursive_strings(oracle, "sealed_oracle"):
         leaf = source.rsplit(".", 1)[-1].split("[", 1)[0]
-        if not source.startswith(prose_sources) or leaf not in prose_leaf_fields:
-            continue
         if is_public_repo_ref_text(value):
+            token = canonical_public_token(value)
+            if token and token not in generic_tokens:
+                exact_terms.add(token)
             continue
         token = canonical_public_token(value)
-        if token and token not in generic_tokens:
-            terms.add(token)
-    return terms
+        if not token or token in generic_tokens:
+            continue
+        if source.startswith(prose_sources) and leaf in prose_leaf_fields:
+            substring_terms.add(token)
+        else:
+            exact_terms.add(token)
+    return substring_terms, exact_terms
 
 
 def public_text_leakage_errors(scenario_path: Path, public_input: dict[str, Any], oracle: dict[str, Any]) -> list[str]:
     failures: list[str] = []
-    forbidden_terms = sealed_oracle_public_terms(oracle)
+    forbidden_substrings, forbidden_exact = sealed_oracle_public_terms(oracle)
     for field in ("neutral_id", "title", "summary"):
         value = public_input.get(field)
         if not isinstance(value, str):
             continue
         normalized_value = canonical_public_token(value)
-        for term in forbidden_terms:
+        for term in forbidden_substrings:
             if term and term in normalized_value:
                 failures.append(f"{scenario_path}: public_input.{field} must not contain sealed oracle term: {term}")
+        for term in forbidden_exact:
+            if term and term == normalized_value:
+                failures.append(f"{scenario_path}: public_input.{field} must not copy sealed oracle value: {term}")
     return failures
 
 
@@ -417,16 +426,15 @@ def semantic_pending_reasons(scenario: dict[str, Any], derived_verdict: str) -> 
     return reasons
 
 
-def validate_oracle_shape(scenario_path: Path, scenario: dict[str, Any]) -> list[str]:
+def validate_oracle_shape(
+    scenario_path: Path,
+    scenario: dict[str, Any],
+    *,
+    expected_result_ref: str | None = None,
+) -> list[str]:
     failures: list[str] = []
     public_input = scenario["public_input"]
     oracle = scenario["sealed_oracle"]
-    scenario_id = scenario.get("scenario_id")
-    expected_generated_result_ref = (
-        f"benchmark-generated:{scenario_id}#mutated-result"
-        if isinstance(scenario_id, str) and scenario_id
-        else ""
-    )
     extra_public_fields = sorted_key_names(
         key for key in public_input if not isinstance(key, str) or key not in PUBLIC_INPUT_FIELDS
     )
@@ -454,7 +462,7 @@ def validate_oracle_shape(scenario_path: Path, scenario: dict[str, Any]) -> list
                     scenario_path,
                     artifact,
                     source=f"public_input.input_artifacts[{index}]",
-                    expected_generated_result_ref=expected_generated_result_ref,
+                    expected_result_ref=expected_result_ref,
                 )
             )
 
@@ -610,9 +618,14 @@ def validate_semantic_oracle(scenario_path: Path, semantic_oracle: dict[Any, Any
     return failures
 
 
-def validate_result_fixture_refs(scenario_path: Path, scenario: dict[str, Any], result: dict[str, Any]) -> list[str]:
+def validate_result_fixture_refs(
+    scenario_path: Path,
+    scenario: dict[str, Any],
+    result: dict[str, Any],
+    *,
+    expected_result_ref: str,
+) -> list[str]:
     failures: list[str] = []
-    expected_generated_result_ref = f"benchmark-generated:{scenario['scenario_id']}#mutated-result"
     target = result.get("target", {})
     if isinstance(target, dict):
         target_refs = target.get("source_refs", [])
@@ -643,7 +656,7 @@ def validate_result_fixture_refs(scenario_path: Path, scenario: dict[str, Any], 
                             scenario_path,
                             ref,
                             source=f"critics[{critic_index}].probe_evidence_refs[{ref_index}]",
-                            expected_generated_result_ref=expected_generated_result_ref,
+                            expected_result_ref=expected_result_ref,
                         )
                     )
     return failures
@@ -654,7 +667,7 @@ def validate_probe_transcript_public_metadata(
     ref: str,
     *,
     source: str,
-    expected_generated_result_ref: str,
+    expected_result_ref: str | None,
 ) -> list[str]:
     failures: list[str] = []
     rel_path = repo_relative_file(ref)
@@ -674,7 +687,7 @@ def validate_probe_transcript_public_metadata(
             scenario_path,
             transcript,
             source=f"{source}.ProbeTranscript",
-            expected_generated_result_ref=expected_generated_result_ref,
+            expected_result_ref=expected_result_ref,
         )
     )
     return failures
@@ -685,16 +698,16 @@ def validate_probe_transcript_public_fields(
     fields: Any,
     *,
     source: str,
-    expected_generated_result_ref: str,
+    expected_result_ref: str | None,
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(fields, dict):
         return failures
     for nested_source, text in recursive_strings(fields, source):
-        if text.startswith("benchmark-generated:") and text != expected_generated_result_ref:
+        if text.startswith("benchmark-generated:") and text != expected_result_ref:
             failures.append(
                 f"{scenario_path}: {nested_source} benchmark-generated ref must match "
-                f"{expected_generated_result_ref}: {text}"
+                f"{expected_result_ref}: {text}"
             )
             continue
         sealed_error = sealed_benchmark_file_error(text, source=nested_source)
@@ -733,11 +746,11 @@ def validate_probe_transcript_public_fields(
 
 def check_scenario(path: Path, *, replay_probe_commands: bool = False) -> tuple[str, str, list[str], list[str]]:
     scenario = load_scenario(path)
-    failures = validate_oracle_shape(path, scenario)
     scenario_id = scenario["scenario_id"]
     result = scenario_result(scenario)
-    failures.extend(validate_result_fixture_refs(path, scenario, result))
     result_ref, result_digest = scenario_result_binding(path, scenario, result)
+    failures = validate_oracle_shape(path, scenario, expected_result_ref=result_ref)
+    failures.extend(validate_result_fixture_refs(path, scenario, result, expected_result_ref=result_ref))
     if result.get("review_mode") != scenario["review_mode"]:
         failures.append(
             f"{path}: scenario review_mode {scenario['review_mode']} does not match result review_mode {result.get('review_mode')}"

@@ -31,10 +31,43 @@ Stable handoff should use `--base-ref`. `--staged` is a preflight mode, and
 
 Search-set verification:
 
-- SKIPPED: this roadmap records the v2 transition target and archives v1
-  planning evidence; no v2 acceptance-packet checker or runtime harness behavior
-  exists yet to execute before/after search-set evidence for this planning-only
-  restructure.
+- BEFORE: PASS `python3 scripts/run-search-set.py` before this hardening batch
+  verified active repository search-set cases while `scripts/check-governance-acceptance.py`
+  was in scope.
+- AFTER: PASS `python3 scripts/run-search-set.py` after this hardening batch
+  verified active repository search-set cases while `scripts/check-governance-acceptance.py`
+  was in scope.
+- RECORDED: this roadmap started as v2 transition planning evidence. The current
+  workspace now includes the v2 acceptance-packet checker and stable fixture
+  checks; remaining search-set notes here are historical planning context unless
+  a later plan explicitly marks them as active release evidence.
+
+Multi-review:
+
+- Governance boundary critic: score 9.2 PASS, critic scope active
+  stable-handoff fixture/deletion/benchmark leakage boundary, Blocking findings:
+  none after implementation, why not 10: command-evidence authenticity remains
+  a Plan 07 residual risk.
+- Blocking findings: none remaining for the accepted feedback batch.
+- Follow-up/residual risk: command-evidence authenticity remains Plan 07 archive
+  ownership work; this batch only tightens current structural false greens.
+- Score handling: score 9.2 keeps why-not-10 residual risk in Plan 07 rather
+  than adding new active workflow surface.
+- Rerun status: rerun completed after implementation and release validation.
+- Final acceptance: PASS for this hardening batch.
+- Accepted current feedback on fixture materialization bypass, deleted-path
+  source refs, benchmark sealed-oracle leakage, benchmark-generated transcript
+  binding, and stale roadmap wording.
+- Implementation narrows active fixture exemption to canonical fixtures plus
+  test-only materialization, allows comparison-pinned refs only for deleted
+  active base-ref paths, and binds public transcript metadata to the actual
+  scenario result ref.
+- Validation: PASS `python3 -m unittest tests.test_governance_evidence_false_greens tests.test_governance_review_import tests.test_multi_review_benchmark_cli`.
+- Validation: PASS `python3 -m unittest discover -s tests`.
+- Validation: PASS `python3 benchmarks/multi-review/check-fixtures.py --allow-pending`.
+- Validation: PASS `python3 benchmarks/multi-review/check-fixtures.py --replay-probe-commands --allow-pending`.
+- Validation: PASS `python3 scripts/update-governance-fixtures.py --check`.
+- Validation: PASS `python3 scripts/verify-release.py --skip-clean-worktree`.
 
 ## Methodology Plan
 
@@ -63,9 +96,12 @@ v2 must preserve the Meta-Harness essentials:
 3. Define canonical packet hashing. The hash must avoid self-reference, either
    by excluding the hash field from canonical serialization or by storing the
    hash only in the active pointer.
-4. Define source reference validation. Allowed references are packet input,
-   review artifacts, trace artifacts, log files, commits, or maintainer-authored
-   notes that exist in the repository or recorded evidence directory.
+4. Define source reference validation. Active base-ref stable handoff requires
+   changed-path refs to be commit-pinned to the accepted side
+   (`git:<full-commit-sha>:<repo-path>` for additions/modifications, and the
+   comparison side for deletions). Broader packet input, review artifacts, trace
+   artifacts, log files, commits, or maintainer notes are allowed only for
+   fixture, non-active, or later archive contexts.
 5. Define packet archive paths, initially `archive/v2/packets/<packet_id>.yml`
    unless implementation review chooses a stronger location such as
    `.harness/governance/packets/`, plus active pointer format and optional hash
@@ -77,7 +113,7 @@ Create one checker command:
 
 ```bash
 python3 scripts/check-governance-acceptance.py start --output <packet>
-python3 scripts/check-governance-acceptance.py finalize --packet <packet> --staged
+python3 scripts/check-governance-acceptance.py finalize --packet <packet> --base-ref <comparison-ref>
 python3 scripts/check-governance-acceptance.py check --packet <packet>
 ```
 

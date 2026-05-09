@@ -428,6 +428,24 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("public_input.summary must not contain sealed oracle term", completed.stderr)
 
+    def test_rejects_public_input_exact_copy_of_sealed_invariant_id(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "frame_challenge_and_presupposition"
+            / "fc-missing-frame-challenge"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["public_input"]["summary"] = scenario["sealed_oracle"]["oracle_assertions"][0]["invariant_id"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("public_input.summary must not copy sealed oracle value", completed.stderr)
+
     def test_rejects_public_input_artifact_pointing_to_scenario_oracle(self) -> None:
         source = (
             SCENARIOS_ROOT
@@ -976,6 +994,30 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn(
             "public_input.input_artifacts[1].ProbeTranscript.result_ref cannot point to scenario files",
+            completed.stderr,
+        )
+
+    def test_rejects_public_transcript_generated_ref_from_another_result_binding(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "critic_independence_and_redundancy"
+            / "ci-duplicate-scope"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["public_input"]["input_artifacts"].append(
+            "backlog/fixtures/multi-review/probe-transcripts/fabricated-command.txt"
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn(
+            "public_input.input_artifacts[1].ProbeTranscript.result_ref benchmark-generated ref must match "
+            "backlog/fixtures/multi-review/governance-pass.yml",
             completed.stderr,
         )
 

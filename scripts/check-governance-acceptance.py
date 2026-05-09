@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -24,7 +25,6 @@ COMMAND_EVIDENCE_HEADING = "# Command Evidence"
 COMMAND_EVIDENCE_FIELD_RE = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
 FULL_COMMIT_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 PUBLIC_SECTIONS = ("meta", "input", "result")
-FIXTURE_MATERIALIZATION_MARKER = ".fixture-materialization"
 CANONICAL_ACCEPTANCE_PACKET_FIXTURES = {
     "backlog/fixtures/acceptance-packets/blocked.yml",
     "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml",
@@ -33,6 +33,8 @@ CANONICAL_ACCEPTANCE_PACKET_FIXTURES = {
     "backlog/fixtures/acceptance-packets/start.yml",
     "backlog/fixtures/acceptance-packets/worktree-nonstable.yml",
 }
+FIXTURE_MATERIALIZATION_MARKER = ".fixture-materialization"
+FIXTURE_MATERIALIZATION_ENV = "AI_META_HARNESS_TEST_FIXTURE_MATERIALIZATION"
 META_FIELDS = ("packet_id", "schema_version", "lifecycle", "mode", "created_at", "finalized_at")
 INPUT_FIELDS = ("intent", "actor", "source_refs", "user_judgment")
 RESULT_GROUPS = ("inference", "evidence", "judgment", "decision")
@@ -1625,6 +1627,18 @@ def current_base_ref_changed_paths(root: Path, base_ref: str) -> list[str]:
     return changed_paths(root, mode="base-ref", base_ref=base_ref)
 
 
+def current_base_ref_deleted_paths(root: Path, base_ref: str) -> list[str]:
+    result = git(root, ["diff", "--name-status", f"{base_ref}...HEAD"])
+    if result.returncode != 0:
+        raise PacketError(result.stderr.strip() or "failed to read git deleted paths")
+    deleted: list[str] = []
+    for line in result.stdout.splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 2 and fields[0].startswith("D"):
+            deleted.append(fields[1])
+    return sorted(set(deleted))
+
+
 def git_text(root: Path, commit_ref: str, path: str) -> str | None:
     result = git(root, ["show", f"{commit_ref}:{path}"])
     return result.stdout if result.returncode == 0 else None
@@ -2037,18 +2051,39 @@ def validate_packet(
                 f"stable packet source_ref points to protected path outside changed_paths: {protected_source_targets}"
             )
         if active_stable_handoff and mode == "base-ref":
+            deleted_paths: set[str] = set()
+            comparison_ref = evidence.get("comparison_ref")
+            if isinstance(comparison_ref, str) and git_ref_is_commit(root, comparison_ref):
+                deleted_paths = set(current_base_ref_deleted_paths(root, comparison_ref))
             head_pinned_paths = commit_pinned_source_paths(
                 root,
                 resolved_refs,
                 listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
                 commit_ref="HEAD",
             )
-            missing_head_sources = sorted(path for path in declared_changed_paths if path not in head_pinned_paths)
+            missing_head_sources = sorted(
+                path for path in declared_changed_paths - deleted_paths if path not in head_pinned_paths
+            )
             if missing_head_sources:
                 errors.append(
                     "active base-ref stable packet changed_paths require HEAD-pinned git source refs: "
                     f"{missing_head_sources}"
                 )
+            if deleted_paths:
+                base_pinned_paths = commit_pinned_source_paths(
+                    root,
+                    resolved_refs,
+                    listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
+                    commit_ref=comparison_ref,
+                )
+                missing_deleted_sources = sorted(
+                    path for path in declared_changed_paths & deleted_paths if path not in base_pinned_paths
+                )
+                if missing_deleted_sources:
+                    errors.append(
+                        "active base-ref stable packet deleted changed_paths require comparison-ref-pinned git source refs: "
+                        f"{missing_deleted_sources}"
+                    )
         if mode == "staged" and packet_ref_is_repo_local(packet_ref) and active_stable_handoff:
             staged_paths = set(current_staged_changed_paths(root))
             if staged_paths != declared_changed_paths:
@@ -2410,7 +2445,7 @@ def packet_ref_is_fixture(packet_ref: str | None) -> bool:
 
 
 def packet_ref_is_fixture_materialization(root: Path, packet_ref: str | None) -> bool:
-    if not packet_ref:
+    if os.environ.get(FIXTURE_MATERIALIZATION_ENV) != "1" or not packet_ref:
         return False
     path = Path(str(packet_ref))
     fixture_root = Path("backlog/fixtures/acceptance-packets")
