@@ -171,6 +171,67 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
             self.assert_rejected(packet, "changed_paths lack resolved source refs")
 
+    def test_stable_unlisted_resolved_source_cannot_close_changed_path(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        changed_path = result["inference"]["changed_paths"][0]
+        packet["AcceptancePacket"]["input"]["source_refs"] = ["README.md"]
+        evidence["source_refs"] = ["README.md"]
+        evidence["resolved_refs"] = [
+            record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+        ]
+        evidence["resolved_refs"].extend(
+            [
+                {
+                    "origin": "input",
+                    "relation": "source",
+                    "ref": "README.md",
+                    "status": "resolved",
+                    "target": "README.md",
+                },
+                {
+                    "origin": "generated",
+                    "relation": "source",
+                    "ref": changed_path,
+                    "status": "resolved",
+                    "target": changed_path,
+                },
+            ]
+        )
+
+        self.assert_rejected(packet, "changed_paths lack resolved source refs")
+
+    def test_stable_file_ref_fragment_is_literal_source_path(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            visible_path = Path(tmpdir) / "changed-source.txt"
+            shadow_path = Path(f"{visible_path}#shadow")
+            shadow_path.write_text("shadow source\n", encoding="utf-8")
+            visible_rel = visible_path.relative_to(ROOT).as_posix()
+            shadow_rel = shadow_path.relative_to(ROOT).as_posix()
+            ref = f"file:{shadow_rel}"
+            result["inference"]["changed_paths"] = [visible_rel]
+            packet["AcceptancePacket"]["input"]["source_refs"] = [ref]
+            evidence["source_refs"] = [ref]
+            evidence["resolved_refs"] = [
+                record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+            ]
+            evidence["resolved_refs"].append(
+                {
+                    "origin": "input",
+                    "relation": "source",
+                    "ref": ref,
+                    "status": "resolved",
+                    "target": shadow_rel,
+                }
+            )
+
+            self.assert_rejected(packet, "changed_paths lack resolved source refs")
+
     def test_stable_trace_refs_require_anchors(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         trace_ref = "trace:.harness/traces/evolution/001-repository-self-application-root.md"
@@ -204,6 +265,24 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         ]
 
         self.assert_rejected(packet, "stable protected packet missing search_set_before")
+
+    def test_stable_protected_packet_cannot_both_trace_and_skip_search_set(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        packet["AcceptancePacket"]["result"]["evidence"]["skipped"].append(
+            {
+                "evidence": "search_set_after",
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "conflicting search-set closure",
+                "source_ref": "file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md",
+            }
+        )
+
+        self.assert_rejected(
+            packet,
+            "stable protected packet search_set_after cannot have both trace evidence and skipped evidence",
+        )
 
     def test_stable_command_base_ref_must_match_boundary_refs(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
@@ -248,6 +327,44 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         inference["changed_paths"] = ["docs/reference.md"]
 
         self.assert_rejected(packet, "proof-like changed docs")
+
+    def test_stable_proof_like_docs_require_high_impact(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        result["inference"]["changed_paths"] = ["docs/reference.md"]
+        packet["AcceptancePacket"]["input"]["source_refs"] = ["docs/reference.md"]
+        evidence["source_refs"] = ["docs/reference.md"]
+        evidence["claims"] = [
+            {
+                "raw_evidence_refs": [
+                    "file:backlog/fixtures/multi-review/probe-transcripts/governance-pass-schema-contract.txt"
+                ]
+            }
+        ]
+        evidence["resolved_refs"] = [
+            record for record in evidence["resolved_refs"] if record.get("relation") not in {"source", "claim-evidence"}
+        ]
+        evidence["resolved_refs"].extend(
+            [
+                {
+                    "origin": "input",
+                    "relation": "source",
+                    "ref": "docs/reference.md",
+                    "status": "resolved",
+                    "target": "docs/reference.md",
+                },
+                {
+                    "origin": "generated",
+                    "relation": "claim-evidence",
+                    "ref": "file:backlog/fixtures/multi-review/probe-transcripts/governance-pass-schema-contract.txt",
+                    "status": "resolved",
+                    "target": "backlog/fixtures/multi-review/probe-transcripts/governance-pass-schema-contract.txt",
+                },
+            ]
+        )
+
+        self.assert_rejected(packet, "proof-like changed docs require impact: high")
 
     def test_stable_claim_evidence_requires_raw_artifact_or_trace_scheme(self) -> None:
         packet = load_fixture("finalized-routine.yml")

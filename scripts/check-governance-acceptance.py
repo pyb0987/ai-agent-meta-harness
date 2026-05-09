@@ -24,6 +24,15 @@ COMMAND_EVIDENCE_HEADING = "# Command Evidence"
 COMMAND_EVIDENCE_FIELD_RE = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
 FULL_COMMIT_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 PUBLIC_SECTIONS = ("meta", "input", "result")
+FIXTURE_MATERIALIZATION_MARKER = ".fixture-materialization"
+CANONICAL_ACCEPTANCE_PACKET_FIXTURES = {
+    "backlog/fixtures/acceptance-packets/blocked.yml",
+    "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml",
+    "backlog/fixtures/acceptance-packets/finalized-routine.yml",
+    "backlog/fixtures/acceptance-packets/finalized-waiver-downgrade.yml",
+    "backlog/fixtures/acceptance-packets/start.yml",
+    "backlog/fixtures/acceptance-packets/worktree-nonstable.yml",
+}
 META_FIELDS = ("packet_id", "schema_version", "lifecycle", "mode", "created_at", "finalized_at")
 INPUT_FIELDS = ("intent", "actor", "source_refs", "user_judgment")
 RESULT_GROUPS = ("inference", "evidence", "judgment", "decision")
@@ -286,14 +295,17 @@ def write_packet(path: Path, packet: dict, *, overwrite: bool = False) -> None:
 def date_like(value: object, *, allow_none: bool = False) -> bool:
     if value is None:
         return allow_none
+    if isinstance(value, dt.datetime):
+        return False
     if isinstance(value, dt.date):
-        return True
+        parsed = value
+        return parsed <= dt.date.today()
     if isinstance(value, str):
         try:
-            dt.date.fromisoformat(value)
+            parsed = dt.date.fromisoformat(value)
         except ValueError:
             return False
-        return True
+        return parsed <= dt.date.today()
     return False
 
 
@@ -369,7 +381,7 @@ def stable_required_evidence(packet: dict) -> tuple[set[str], list[str]]:
     return required, errors
 
 
-def path_mentions_scope_boundary(root: Path, path: str) -> bool:
+def text_mentions_scope_boundary(path: str, text: str) -> bool:
     lowered_path = path.casefold()
     if path.startswith("archive/v1/"):
         return False
@@ -379,10 +391,7 @@ def path_mentions_scope_boundary(root: Path, path: str) -> bool:
         return True
     if not path.endswith(".md"):
         return False
-    try:
-        text = (root / path).read_text(encoding="utf-8").casefold()
-    except OSError:
-        return False
+    text = text.casefold()
     return any(
         phrase in text
         for phrase in (
@@ -397,12 +406,56 @@ def path_mentions_scope_boundary(root: Path, path: str) -> bool:
     )
 
 
+def path_mentions_scope_boundary(root: Path, path: str) -> bool:
+    try:
+        text = (root / path).read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return text_mentions_scope_boundary(path, text)
+
+
+def path_mentions_scope_boundary_at_commit(root: Path, commit_ref: str, path: str) -> bool:
+    text = git_text(root, commit_ref, path)
+    return bool(text and text_mentions_scope_boundary(path, text))
+
+
+def base_ref_content_refs(packet: dict) -> list[str] | None:
+    meta = packet.get("meta", {})
+    result = packet.get("result", {})
+    evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
+    comparison_ref = evidence.get("comparison_ref")
+    if isinstance(meta, dict) and meta.get("mode") == "base-ref" and isinstance(comparison_ref, str):
+        return [comparison_ref, "HEAD"]
+    return None
+
+
+def path_mentions_scope_boundary_for_packet(root: Path, packet: dict, path: str) -> bool:
+    content_refs = base_ref_content_refs(packet)
+    if content_refs:
+        return any(path_mentions_scope_boundary_at_commit(root, ref, path) for ref in content_refs)
+    return path_mentions_scope_boundary(root, path)
+
+
+def path_has_proof_like_claim_for_packet(root: Path, packet: dict, path: str) -> bool:
+    content_refs = base_ref_content_refs(packet)
+    if content_refs:
+        return any(path_has_proof_like_claim_at_commit(root, ref, path) for ref in content_refs)
+    return path_has_proof_like_claim(root, path)
+
+
 def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
+    meta = packet.get("meta", {}) if isinstance(packet.get("meta"), dict) else {}
     result = packet.get("result", {})
     inference = result.get("inference", {}) if isinstance(result, dict) else {}
     evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
     changed_paths = string_list_values(inference.get("changed_paths", []))
     required: set[str] = set()
+
+    def scope_boundary_changed(path: str) -> bool:
+        return path_mentions_scope_boundary_for_packet(root, packet, path)
+
+    def proof_like_changed(path: str) -> bool:
+        return path_has_proof_like_claim_for_packet(root, packet, path)
 
     archive_paths = [path for path in changed_paths if path.startswith("archive/v1/")]
     if archive_paths:
@@ -455,10 +508,10 @@ def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
     ):
         required.add("evidence auditability")
 
-    if any(path_mentions_scope_boundary(root, path) for path in changed_paths):
+    if any(scope_boundary_changed(path) for path in changed_paths):
         required.add("scope boundary")
 
-    if any(path.endswith(".md") and path_has_proof_like_claim(root, path) for path in changed_paths):
+    if any(path.endswith(".md") and proof_like_changed(path) for path in changed_paths):
         required.add("claim evidence")
 
     evaluator_boundary = evidence.get("evaluator_boundary", {})
@@ -1280,6 +1333,8 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
         errors.append(f"{source}: fixed_finding_ids must be a list")
     elif any(not isinstance(item, str) or not review_value_is_substantive(item) for item in fixed):
         errors.append(f"{source}: fixed_finding_ids must contain only substantive string ids")
+    elif len(fixed) != len(set(fixed)):
+        errors.append(f"{source}: fixed_finding_ids must not contain duplicates")
     if record.get("rerun_of"):
         if not isinstance(record.get("rerun_of"), str):
             errors.append(f"{source}: rerun_of must be a review_id string")
@@ -1525,21 +1580,22 @@ def resolved_targets(records: list[dict], *, relation: str) -> set[str]:
     }
 
 
-def source_target_path(target: str) -> str:
-    return target.split("#", 1)[0]
+def source_target_path(ref: str, target: str) -> str:
+    if ref.startswith("trace:"):
+        return target.split("#", 1)[0]
+    return target
 
 
 def git_resolved_target_path(target: str) -> str | None:
-    target_path = target.split("#", 1)[0]
-    if ":" not in target_path:
+    if ":" not in target:
         return None
-    commit, path = target_path.split(":", 1)
+    commit, path = target.split(":", 1)
     if not FULL_COMMIT_RE.fullmatch(commit) or not path:
         return None
     return path
 
 
-def resolved_source_paths(root: Path, records: list[dict]) -> set[str]:
+def resolved_source_paths(root: Path, records: list[dict], *, listed_refs: set[str]) -> set[str]:
     paths: set[str] = set()
     for record in records:
         if (
@@ -1550,12 +1606,55 @@ def resolved_source_paths(root: Path, records: list[dict]) -> set[str]:
         ):
             continue
         ref = record.get("ref")
+        if not isinstance(ref, str) or ref not in listed_refs:
+            continue
         if isinstance(ref, str) and ref.startswith("git:"):
             source_path = git_source_ref_path(root, ref)
             if source_path:
                 paths.add(source_path)
             continue
-        paths.add(source_target_path(record["target"]))
+        paths.add(source_target_path(ref, record["target"]))
+    return paths
+
+
+def current_staged_changed_paths(root: Path) -> list[str]:
+    return changed_paths(root, mode="staged", base_ref=None)
+
+
+def current_base_ref_changed_paths(root: Path, base_ref: str) -> list[str]:
+    return changed_paths(root, mode="base-ref", base_ref=base_ref)
+
+
+def git_text(root: Path, commit_ref: str, path: str) -> str | None:
+    result = git(root, ["show", f"{commit_ref}:{path}"])
+    return result.stdout if result.returncode == 0 else None
+
+
+def path_has_proof_like_claim_at_commit(root: Path, commit_ref: str, path: str) -> bool:
+    text = git_text(root, commit_ref, path)
+    return bool(text and PROOF_LIKE_RE.search(text))
+
+
+def commit_pinned_source_paths(
+    root: Path,
+    records: list[dict],
+    *,
+    listed_refs: set[str],
+    commit_ref: str,
+) -> set[str]:
+    commit = git_ref_commit(root, commit_ref)
+    if commit is None:
+        return set()
+    paths: set[str] = set()
+    for record in records:
+        if not isinstance(record, dict) or record.get("relation") != "source" or record.get("status") != "resolved":
+            continue
+        ref = record.get("ref")
+        if not isinstance(ref, str) or ref not in listed_refs:
+            continue
+        parts = git_source_ref_parts(root, ref)
+        if parts and parts[0] == commit:
+            paths.add(parts[1])
     return paths
 
 
@@ -1604,8 +1703,19 @@ def same_git_boundary(root: Path, left: str | None, right: str | None) -> bool:
 
 
 def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
+    input_data = packet["input"]
     result = packet["result"]
     refs: list[tuple[str, str]] = []
+    user_judgment = input_data.get("user_judgment", {})
+    if isinstance(user_judgment, dict):
+        for key, record in user_judgment.items():
+            if (
+                isinstance(key, str)
+                and isinstance(record, dict)
+                and isinstance(record.get("source_ref"), str)
+                and record.get("source_ref")
+            ):
+                refs.append((f"input.user_judgment.{key}", record["source_ref"]))
     for source, records in (
         ("result.evidence.skipped", result["evidence"].get("skipped", [])),
         ("result.judgment.waivers", result["judgment"].get("waivers", [])),
@@ -1860,6 +1970,9 @@ def validate_packet(
                 errors.append("score 9 review requires why_not_10 and disposition")
 
     if stable:
+        active_stable_handoff = packet_is_active_handoff(packet, packet_ref, root=root)
+        if active_stable_handoff and mode != "base-ref":
+            errors.append("active stable handoff requires base-ref mode; staged packets are preflight-only")
         errors.extend(stable_required_evidence_errors)
         errors.extend(stable_required_review_errors)
         if not required_evidence:
@@ -1907,18 +2020,42 @@ def validate_packet(
                 continue
             if not has_resolved_relation(ref_index, relation="source", ref=ref):
                 errors.append(f"stable packet source_ref lacks resolved source relation: {ref}")
-        source_paths = resolved_source_paths(root, resolved_refs)
-        changed_paths = set(string_list_values(inference.get("changed_paths", [])))
-        missing_changed_sources = sorted(path for path in changed_paths if path not in source_paths)
+        source_paths = resolved_source_paths(
+            root,
+            resolved_refs,
+            listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
+        )
+        declared_changed_paths = set(string_list_values(inference.get("changed_paths", [])))
+        missing_changed_sources = sorted(path for path in declared_changed_paths if path not in source_paths)
         if missing_changed_sources:
             errors.append(f"stable packet changed_paths lack resolved source refs: {missing_changed_sources}")
         protected_source_targets = sorted(
-            target for target in source_paths if requires_review_for_path(target) and target not in changed_paths
+            target for target in source_paths if requires_review_for_path(target) and target not in declared_changed_paths
         )
         if protected_source_targets:
             errors.append(
                 f"stable packet source_ref points to protected path outside changed_paths: {protected_source_targets}"
             )
+        if active_stable_handoff and mode == "base-ref":
+            head_pinned_paths = commit_pinned_source_paths(
+                root,
+                resolved_refs,
+                listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
+                commit_ref="HEAD",
+            )
+            missing_head_sources = sorted(path for path in declared_changed_paths if path not in head_pinned_paths)
+            if missing_head_sources:
+                errors.append(
+                    "active base-ref stable packet changed_paths require HEAD-pinned git source refs: "
+                    f"{missing_head_sources}"
+                )
+        if mode == "staged" and packet_ref_is_repo_local(packet_ref) and active_stable_handoff:
+            staged_paths = set(current_staged_changed_paths(root))
+            if staged_paths != declared_changed_paths:
+                errors.append(
+                    "staged stable packet changed_paths must match current staged diff: "
+                    f"declared={sorted(declared_changed_paths)} staged={sorted(staged_paths)}"
+                )
 
         for boundary_ref_name in ("baseline_ref", "comparison_ref"):
             boundary_ref = evidence.get(boundary_ref_name)
@@ -1928,10 +2065,37 @@ def validate_packet(
                 errors.append(f"stable packet {boundary_ref_name} must resolve to a git commit: {boundary_ref}")
             elif mode == "staged" and not same_git_boundary(root, boundary_ref, "HEAD"):
                 errors.append(f"staged stable packet {boundary_ref_name} must match HEAD: {boundary_ref}")
+        comparison_ref = evidence.get("comparison_ref")
+        baseline_ref = evidence.get("baseline_ref")
+        if (
+            active_stable_handoff
+            and mode == "base-ref"
+            and isinstance(baseline_ref, str)
+            and isinstance(comparison_ref, str)
+            and git_ref_is_commit(root, baseline_ref)
+            and git_ref_is_commit(root, comparison_ref)
+            and not same_git_boundary(root, baseline_ref, comparison_ref)
+        ):
+            errors.append("active base-ref stable packet baseline_ref must match comparison_ref")
+        if (
+            active_stable_handoff
+            and mode == "base-ref"
+            and isinstance(comparison_ref, str)
+            and git_ref_is_commit(root, comparison_ref)
+        ):
+            base_ref_paths = set(current_base_ref_changed_paths(root, comparison_ref))
+            if base_ref_paths != declared_changed_paths:
+                errors.append(
+                    "base-ref stable packet changed_paths must match git diff boundary: "
+                    f"declared={sorted(declared_changed_paths)} base_ref={comparison_ref} "
+                    f"actual={sorted(base_ref_paths)}"
+                )
 
         for source, source_ref in provenance_source_refs(packet):
             if not has_resolved_relation(ref_index, relation="waiver-provenance", ref=source_ref, origin="generated"):
                 errors.append(f"{source}: source_ref lacks resolved waiver-provenance relation with generated origin: {source_ref}")
+            elif ref_is_acceptance_packet(root, source_ref):
+                errors.append(f"{source}: waiver-provenance source_ref cannot be an acceptance packet: {source_ref}")
         for index, record in enumerate(residual_risk_records):
             errors.extend(
                 validate_residual_risk_record(
@@ -2044,6 +2208,11 @@ def validate_packet(
                     and isinstance(item.get("evidence"), str)
                     and item.get("evidence")
                 }
+                if trace_ref and trace_name in skipped_targets:
+                    errors.append(
+                        f"stable protected packet {trace_name} cannot have both trace evidence and skipped evidence"
+                    )
+                    continue
                 if not trace_ref and trace_name in skipped_targets:
                     continue
                 if not trace_ref:
@@ -2065,11 +2234,15 @@ def validate_packet(
         proof_like_paths = [
             path
             for path in string_list_values(inference.get("changed_paths", []))
-            if path.endswith(".md") and path_has_proof_like_claim(root, path)
+            if path.endswith(".md") and path_has_proof_like_claim_for_packet(root, packet, path)
         ]
         claims = evidence.get("claims", [])
         if proof_like_paths and not claims:
             errors.append(f"stable packet has proof-like changed docs without claim evidence: {proof_like_paths}")
+        if proof_like_paths and inference.get("impact") != "high":
+            errors.append("proof-like changed docs require impact: high")
+        if proof_like_paths and "claim evidence" not in required_review:
+            errors.append("proof-like changed docs require claim evidence review")
         if claims and not isinstance(claims, list):
             errors.append("result.evidence.claims must be a list")
             claims = []
@@ -2225,6 +2398,53 @@ def changed_paths(root: Path, *, mode: str, base_ref: str | None) -> list[str]:
     return sorted(path for path in result.stdout.splitlines() if path)
 
 
+def packet_ref_is_repo_local(packet_ref: str | None) -> bool:
+    return bool(packet_ref) and not Path(str(packet_ref)).is_absolute()
+
+
+def packet_ref_is_fixture(packet_ref: str | None) -> bool:
+    if not packet_ref:
+        return False
+    path = Path(str(packet_ref))
+    return not path.is_absolute() and path.as_posix() in CANONICAL_ACCEPTANCE_PACKET_FIXTURES
+
+
+def packet_ref_is_fixture_materialization(root: Path, packet_ref: str | None) -> bool:
+    if not packet_ref:
+        return False
+    path = Path(str(packet_ref))
+    fixture_root = Path("backlog/fixtures/acceptance-packets")
+    if path.is_absolute() or fixture_root not in (path, *path.parents):
+        return False
+    marker = root / path.parent / FIXTURE_MATERIALIZATION_MARKER
+    try:
+        return marker.read_text(encoding="utf-8").strip() == "acceptance-packet-fixture-materialization/v1"
+    except OSError:
+        return False
+
+
+def packet_has_fixture_binding(packet: dict) -> bool:
+    review_imports = packet.get("result", {}).get("evidence", {}).get("review_imports", [])
+    if not isinstance(review_imports, list):
+        return False
+    for item in review_imports:
+        if not isinstance(item, dict):
+            continue
+        binding = item.get("target_binding")
+        if isinstance(binding, dict) and packet_ref_is_fixture(binding.get("packet_ref")):
+            return True
+    return False
+
+
+def packet_is_active_handoff(packet: dict, packet_ref: str | None, *, root: Path) -> bool:
+    return (
+        not packet_ref_is_fixture(packet_ref)
+        and not packet_ref_is_fixture_materialization(root, packet_ref)
+        and not packet_has_fixture_binding(packet)
+    )
+
+
+
 def is_protected(path: str) -> bool:
     return path in PROTECTED_PATHS or any(
         path == prefix.rstrip("/") or path.startswith(prefix) for prefix in PROTECTED_PREFIXES
@@ -2248,6 +2468,18 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
     baseline_ref = packet["result"].get("evidence", {}).get("baseline_ref")
     comparison_ref = base_ref if mode == "base-ref" else baseline_ref
     protected = any(is_protected(path) for path in paths)
+    if mode == "base-ref":
+        proof_like = any(
+            path.endswith(".md")
+            and (
+                path_has_proof_like_claim_at_commit(root, str(base_ref), path)
+                or path_has_proof_like_claim_at_commit(root, "HEAD", path)
+            )
+            for path in paths
+        )
+    else:
+        proof_like = any(path.endswith(".md") and path_has_proof_like_claim(root, path) for path in paths)
+    high_risk = protected or proof_like
     change_class = "harness-affecting" if protected else "routine"
     if mode == "staged":
         diff_command = ["git", "diff", "--cached", "--check"]
@@ -2283,13 +2515,36 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "target": "terminal:git-diff-check",
         }
     )
+    skipped_evidence: list[dict] = []
+    if protected:
+        skip_source_ref = "file:backlog/plans/04-evidence-capture-and-source-refs.md"
+        resolved_refs.append(
+            {
+                "origin": "generated",
+                "relation": "waiver-provenance",
+                "ref": skip_source_ref,
+                "status": "resolved",
+                "target": "backlog/plans/04-evidence-capture-and-source-refs.md",
+            }
+        )
+        for evidence_name in ("search_set_before", "search_set_after"):
+            skipped_evidence.append(
+                {
+                    "evidence": evidence_name,
+                    "actor": packet["input"].get("actor", "codex"),
+                    "role": "operator",
+                    "date": today(),
+                    "reason": f"Finalize did not capture {evidence_name}; stable handoff must add trace evidence or keep this targeted skip.",
+                    "source_ref": skip_source_ref,
+                }
+            )
 
     packet["meta"]["lifecycle"] = "finalized"
     packet["meta"]["finalized_at"] = today()
     packet["result"] = {
         "inference": {
             "change_class": change_class,
-            "impact": "high" if protected else "low",
+            "impact": "high" if high_risk else "low",
             "changed_paths": paths,
             "intended_scope": packet["input"]["intent"],
             "actual_scope": ", ".join(paths) if paths else "No changed paths detected.",
@@ -2322,14 +2577,14 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
                 "failures": [],
                 "disposition": "Trace capture is deferred to Plan 04.",
             },
-            "skipped": [],
+            "skipped": skipped_evidence,
         },
         "judgment": packet["result"].get(
             "judgment",
             {"reviews": [], "waivers": [], "downgrades": [], "residual_risk": []},
         ),
         "decision": {
-            "accepted": diff_status == "pass" and not protected,
+            "accepted": diff_status == "pass" and not high_risk,
             "stable_handoff_eligible": False,
             "reason": "Plan 04 requires durable artifact refs before stable handoff.",
             "next_action": "Add durable evidence refs and run check --require-stable.",
@@ -2340,6 +2595,11 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "Plan 03 cannot accept protected changes yet; review import and protected-change stable promotion are out of scope."
         )
         packet["result"]["decision"]["next_action"] = "Use a later review-import plan before protected stable handoff."
+    elif proof_like:
+        packet["result"]["decision"]["reason"] = (
+            "Plan 04 cannot accept proof-like/public claim changes without durable claim evidence and review."
+        )
+        packet["result"]["decision"]["next_action"] = "Add raw claim evidence and claim-evidence review before stable handoff."
     packet["result"]["inference"]["required_review"] = sorted(checker_required_review(packet, root=root))
     if mode == "worktree":
         packet["result"]["decision"]["stable_handoff_eligible"] = False

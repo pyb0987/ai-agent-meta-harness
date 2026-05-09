@@ -22,8 +22,8 @@ The v2 maintenance model is:
 2. The harness infers change class, impact, required evidence, required review,
    and eligibility from git state, path/content rules, traces, and artifacts.
 3. The harness stores the result as an `AcceptancePacket`.
-4. Stable handoff is accepted only from packet-backed staged or base-ref
-   verification.
+4. Stable handoff is accepted only from packet-backed base-ref verification;
+   staged verification is preflight evidence, not active stable handoff.
 
 The main v2 product requirement is simplicity: reduce the user interface and
 the mental model, not the methodology evidence. If a maintenance change makes
@@ -76,7 +76,7 @@ Lifecycle rules:
 - `start` captures baseline state before edits.
 - `finalize` updates evidence and computes `result.decision.eligibility`.
 - `check` is read-only and does not mutate packet lifecycle state.
-- Stable handoff uses `--staged` or `--base-ref`.
+- Stable handoff uses `--base-ref`; `--staged` is preflight-only.
 - `--worktree` is exploratory or in-progress unless explicitly marked
   non-stable.
 - Harness-affecting finalization fails closed without a start packet unless an
@@ -150,12 +150,16 @@ During the v2 transition, keep the active operator model to four boundaries:
 - `replay` is explicit. Probe commands may run only through an explicit replay
   path such as `python3 scripts/check-multi-review-result.py --result <path>
   --replay-probe-commands`; replay is not part of stable packet `check`.
-- `stable` validates durable evidence. A stable packet proves closure through
-  recomputed required evidence/review, structured imports, source refs,
-  transcripts, and command artifacts, not by trusting reported PASS prose.
+- `stable` validates durable structural evidence. A stable packet proves
+  closure through recomputed required evidence/review, structured imports,
+  source refs, transcripts, and reopenable packet-bound command artifacts, not
+  by trusting reported PASS prose. Command artifact authenticity remains an
+  archive/trusted-runner provenance responsibility for Plan 07.
 - generated artifact refs use explicit schemes. Stable artifact and probe
-  evidence refs use `file:`, trace refs use `trace:`, and source refs may stay
-  broader until a later archive plan intentionally narrows them.
+  evidence refs use `file:`, trace refs use `trace:`, and active base-ref
+  stable changed-path source refs use HEAD-pinned `git:<full-commit-sha>:<path>`
+  refs. Broader source refs are allowed only for non-active fixtures or later
+  archive policy decisions.
 
 ## Verification During Transition
 

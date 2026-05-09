@@ -22,12 +22,12 @@ CLI surface:
 
 ```bash
 governance start --intent "..."
-governance finalize --packet <packet> --staged
+governance finalize --packet <packet> --base-ref <comparison-ref>
 governance check --packet <packet>
 ```
 
-Stable handoff should use `--staged` or `--base-ref`; `--worktree` is
-exploratory unless explicitly marked non-stable.
+Stable handoff should use `--base-ref`. `--staged` is a preflight mode, and
+`--worktree` is exploratory unless explicitly marked non-stable.
 
 Search-set verification:
 

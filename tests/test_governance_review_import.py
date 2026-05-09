@@ -78,9 +78,13 @@ def probe_transcript(
 class GovernanceReviewImportTests(unittest.TestCase):
     def setUp(self) -> None:
         self.checker = load_checker()
-        self.tmp = tempfile.TemporaryDirectory(dir=ROOT)
+        self.tmp = tempfile.TemporaryDirectory(dir=FIXTURE_ROOT)
         self.addCleanup(self.tmp.cleanup)
         self.tmp_path = Path(self.tmp.name)
+        (self.tmp_path / ".fixture-materialization").write_text(
+            "acceptance-packet-fixture-materialization/v1\n",
+            encoding="utf-8",
+        )
         self.rel_dir = self.tmp_path.relative_to(ROOT).as_posix()
 
     def materialize_packet(
@@ -533,6 +537,39 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "date must be an ISO date")
 
+    def test_rejects_future_dated_rerun_provenance(self) -> None:
+        def add_future_dated_rerun(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "blocking_findings": [{"finding_id": "F1", "summary": "Missing target binding replay test."}],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "score": 9,
+                    "veto": False,
+                    "blocking_findings": [],
+                    "why_not_10": "Rerun covers the blocking finding.",
+                    "disposition": "Accepted.",
+                    "date": "2099-01-01",
+                    "rerun_of": failed["review_id"],
+                    "fixed_finding_ids": ["F1"],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_future_dated_rerun)
+
+        self.assert_rejected(packet_path, "date must be an ISO date")
+
     def test_rejects_duplicate_blocking_finding_ids(self) -> None:
         def add_duplicate_finding_ids(wrapper: dict) -> None:
             failed = copy.deepcopy(wrapper["review_lineage"][0])
@@ -598,6 +635,35 @@ class GovernanceReviewImportTests(unittest.TestCase):
         self.assertIn("rerun_of must be a review_id string", result.stderr)
         self.assertIn("fixed_finding_ids must contain only substantive string ids", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
+
+    def test_rejects_duplicate_fixed_finding_ids(self) -> None:
+        def add_duplicate_fixed_ids(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "blocking_findings": [{"finding_id": "F1", "summary": "Missing target binding replay test."}],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "rerun_of": failed["review_id"],
+                    "fixed_finding_ids": ["F1", "F1"],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_duplicate_fixed_ids)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fixed_finding_ids must not contain duplicates", result.stderr)
 
     def test_rejects_rerun_that_precedes_failed_review(self) -> None:
         def add_reversed_rerun(wrapper: dict) -> None:

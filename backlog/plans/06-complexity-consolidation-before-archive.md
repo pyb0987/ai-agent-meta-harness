@@ -340,14 +340,38 @@ review disposition is:
 
 ## Implementation Review Outcome
 
-Implementation acceptance requires the validation commands above plus focused
-negative tests for:
+Current implementation review disposition: accepted for the Plan 06
+consolidation scope.
+
+- Verdict: PASS, with no open Plan 06 VETO after the focused
+  validator-hardening iteration.
+- Score: 9.
+- Rerun status: affected checker/helper/benchmark paths were rerun through the
+  focused negative tests and the release validation below.
+- Why not 10: command artifact authenticity, archive-bound freshness, and full
+  semantic relevance remain Plan 07 responsibilities.
+- Residual risk disposition: accepted only as Plan 07 archive/integrity backlog,
+  not as active Plan 06 stable-handoff truth.
+
+Implementation acceptance covered focused negative tests for:
 
 - helper attempts to rewrite observed command/probe/source evidence
 - checker/helper parser divergence for command evidence
 - transcript/result/packet binding drift
 - review-import target binding and lineage closure drift
 - benchmark oracle strings losing source/path specificity
+
+Search-set verification:
+
+- BEFORE: SKIPPED pre-change search-set output was not captured before this
+  focused validator hardening iteration.
+- AFTER: PASS `python3 scripts/run-search-set.py` for base-ref canonical stable
+  handoff, HEAD-pinned source refs, proof-like impact escalation from commit
+  content, search-set skip/trace consistency, semantic oracle
+  source-ref/vacuous/disposition gates, probe transcript public metadata,
+  source-ref closure, and benchmark sealed-oracle boundary changes affecting
+  `scripts/check-governance-acceptance.py` and
+  `benchmarks/multi-review/check-fixtures.py`.
 
 Any implementation review VETO must be closed by changing the checker/helper or
 by lowering an overbroad Plan 06 claim. Do not add a new public packet field to

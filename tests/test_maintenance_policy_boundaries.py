@@ -26,7 +26,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "The active roadmap is `backlog/v2-roadmap.md`",
             "The harness infers change class, impact, required evidence, required review, and eligibility",
             "The harness stores the result as an `AcceptancePacket`",
-            "Stable handoff is accepted only from packet-backed staged or base-ref verification",
+            "Stable handoff is accepted only from packet-backed base-ref verification; staged verification is preflight evidence, not active stable handoff",
             "governance start --intent",
             "governance finalize --packet <packet> --staged|--base-ref REF|--worktree",
             "governance check --packet <packet>",

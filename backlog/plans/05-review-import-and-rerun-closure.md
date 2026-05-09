@@ -381,6 +381,21 @@ Multi-review:
   broad review waivers before acceptance.
 - Final acceptance: accepted for Plan 05 planning.
 
+## Implementation Review Outcome
+
+Plan 05 implementation was accepted through the later Plan 06 consolidation
+review. The active checker now enforces review-import digest binding, required
+review closure, retained failed/VETO review lineage, same-target reruns, score
+floor handling, `why_not_10`/disposition for score 9, review provenance, and
+duplicate rerun/finding guards. The closeout validation is the Plan 06 active
+suite: governance acceptance unit tests, multi-review benchmark checks, fixture
+drift check, search-set check, and release verification with the clean-worktree
+precondition skipped while the implementation patch is open.
+
+Residual risk: archive-era deletion resistance remains Plan 07 work. Before the
+archive pointer exists, Plan 05 proves current-wrapper completeness and digest
+binding, not that a removed historical review can be rediscovered independently.
+
 ## Open Questions
 
 - Should `false_green_risk` and `invariant_checked` be required for all stable

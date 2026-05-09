@@ -28,6 +28,8 @@ fields to active packet authoring:
 - plan approvals should be auditable as artifacts, not prose-only summaries
 - semantic evidence relevance needs an evaluator, not path-based string rules
 - fixture drift checks need a clear release policy after archive pointers exist
+- command evidence authenticity needs archive or trusted-runner provenance; active
+  stable `check` only proves reopenable, packet-bound command records
 
 Plan 07 should make these durable while keeping Plan 06's simplicity budget.
 
@@ -146,15 +148,30 @@ Backlog requirement:
 ### 7. Rerun Audit Shape
 
 Plan 05 now keeps rerun closure simple: `fixed_finding_ids` must exactly cover
-the retained blocking review's finding IDs. A duplicate ID is low risk because it
-does not add coverage, but it weakens audit neatness.
+the retained blocking review's finding IDs. Duplicate `fixed_finding_ids` were
+pulled forward into the active Plan 04-06 checker during Plan 06 consolidation,
+so they are no longer open archive-era work.
 
 Backlog requirement:
 
-- reject duplicate `fixed_finding_ids` when archive integration hardens review
-  lineage, unless doing so duplicates an existing closure check
 - keep the concrete finding summaries in the original blocking review rather than
   adding a second fixed-finding object list
+
+### 8. Observed Command Evidence Authenticity
+
+Plan 04-06 stable checks validate that command evidence is structured,
+repo-local, reopenable, packet-bound, and internally consistent. They do not
+prove that a `# Command Evidence` section was produced by a trusted runner
+rather than hand-authored to match the packet.
+
+Backlog requirement:
+
+- decide whether archived stable command evidence must be produced by a
+  repository-owned runner, signed/generated artifact, or archive pointer process
+- keep stable `check` read-only; do not execute artifact-supplied commands to
+  prove authenticity
+- add a negative archive-era test where a hand-authored command log echoes
+  packet id/ref/hash, command, and pass status without trusted-runner provenance
 
 ## Simplicity Budget
 
@@ -181,16 +198,18 @@ Plan 07 implementation should add tests for:
   source-ref archive policy
 - prose-only plan approval lacking durable review artifact linkage
 - semantic evidence scenario recorded as pending/non-acceptance rather than PASS
-- rerun duplicate `fixed_finding_ids` is rejected or explicitly accepted as a
-  low-risk audit-shape limitation
+- hand-authored command evidence without trusted-runner/archive provenance cannot
+  certify an archived stable packet
 
-Search-set verification:
+Current hardening-batch search-set evidence:
 
 - BEFORE: SKIPPED no pre-change search-set run was captured before accepting this
   governance hardening feedback batch.
-- AFTER: PASS `python3 scripts/run-search-set.py` during release verification
-  after evaluator-boundary, transcript, closure, and fixture-helper guards were
-  added.
+- AFTER: PASS `python3 scripts/run-search-set.py` during the Plan 06 hardening
+  batch after evaluator-boundary, transcript, closure, and fixture-helper guards
+  were added.
+- Plan 07 archive-integrity validation remains pending until archive pointers,
+  trusted-runner provenance, and release policy are implemented.
 
 ## Multi-Review Requirements
 

@@ -102,8 +102,8 @@ Plan 04 keeps the public surface unchanged and adds detail under
   trace files, commits, or terminal records.
 - `resolved_refs`: generated ref resolution records with `origin`, `relation`,
   `ref`, `status`, and durable target details.
-- `command_results`: local commands the harness actually ran or verified from
-  packet fixtures.
+- `command_results`: structured, reopenable, packet-bound command records.
+  Trusted-runner or archive authenticity is a later archive/integrity concern.
 - `artifact_refs`: durable local artifacts that command results or claim records
   point to.
 - `trace_refs`: search-set before/after refs, evolution refs, failure refs, and a

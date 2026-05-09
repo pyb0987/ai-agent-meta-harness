@@ -874,11 +874,19 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             packet_path = Path(tmpdir) / "packet.yml"
             packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
+            packet["AcceptancePacket"]["meta"]["mode"] = "base-ref"
+            packet["AcceptancePacket"]["input"]["source_refs"] = []
+            packet["AcceptancePacket"]["result"]["inference"]["changed_paths"] = []
+            packet["AcceptancePacket"]["result"]["inference"]["required_evidence"] = ["git diff --check HEAD...HEAD"]
             evidence = packet["AcceptancePacket"]["result"]["evidence"]
+            evidence["baseline_ref"] = "HEAD"
+            evidence["comparison_ref"] = "HEAD"
+            evidence["evaluator_boundary"]["commands"] = ["git diff --check HEAD...HEAD"]
+            evidence["source_refs"] = []
             evidence["command_results"] = []
             evidence["skipped"] = [
                 {
-                    "evidence": "git diff --cached --check",
+                    "evidence": "git diff --check HEAD...HEAD",
                     "actor": "maintainer",
                     "role": "maintainer",
                     "date": "2026-05-06",

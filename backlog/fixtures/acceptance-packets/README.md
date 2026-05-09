@@ -15,5 +15,9 @@ The fixtures are examples for validating `governance start`, `governance
 finalize`, and `governance check` behavior, not active project governance
 packets.
 
+Active stable handoff is base-ref canonical. Staged stable-looking fixtures are
+kept only as compatibility examples for packet-shape and validator regression
+coverage; they are not active handoff records.
+
 `worktree-nonstable.yml` is a negative stable-handoff fixture: it may be accepted
 as exploratory evidence, but it must never be stable-handoff eligible.
