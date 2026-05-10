@@ -106,7 +106,7 @@ AcceptancePacket:
       review_imports:
       - source_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
         format: acceptance-packet-review-import/v1
-        source_digest: 00a81a79e861d5eae7abea37c46ff915114cad084285b41583b695dead7c972d
+        source_digest: b8b103e2018a2326c46e3453b7ecb6605b721983d90d78d2810ce44ed4ad3f44
         status: imported
         review_ids:
         - review-harness-checker-correctness

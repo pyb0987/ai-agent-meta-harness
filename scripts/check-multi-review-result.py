@@ -246,7 +246,8 @@ def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
         error(errors, "MultiReviewResult.schema_version", f"must be {SCHEMA_VERSION}")
     if not isinstance(result.get("review_id"), str) or not is_substantive(result.get("review_id")):
         error(errors, "MultiReviewResult.review_id", "must be a substantive string")
-    if not isinstance(result.get("reported_final_verdict"), str) or not result.get("reported_final_verdict"):
+    reported_final_verdict = result.get("reported_final_verdict")
+    if not isinstance(reported_final_verdict, str) or not reported_final_verdict.strip():
         error(errors, "MultiReviewResult.reported_final_verdict", "must be a non-empty string")
     if not isinstance(result.get("lifecycle"), str) or result.get("lifecycle") not in LIFECYCLES:
         error(errors, "MultiReviewResult.lifecycle", "must be draft or finalized")
@@ -522,6 +523,8 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
     reason_no_probe = critic.get("reason_no_probe")
     if reason_no_probe is not None and not isinstance(reason_no_probe, str):
         error(errors, source, "reason_no_probe must be null or a string")
+    if critic.get("probe_run") is True and reason_no_probe is not None:
+        error(errors, source, "reason_no_probe must be null when probe_run is true")
     if not is_substantive(critic.get("date")):
         error(errors, source, "date is required")
     if not isinstance(critic.get("frame_challenge"), bool):

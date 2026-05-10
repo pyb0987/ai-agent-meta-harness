@@ -96,6 +96,7 @@ class GovernanceReviewImportTests(unittest.TestCase):
         *,
         mutate_packet=None,
         mutate_wrapper=None,
+        mutate_after_lineage_marker=None,
         mutate_after_digest=None,
     ) -> Path:
         packet_doc = load_yaml(FIXTURE_ROOT / "finalized-harness-affecting.yml")
@@ -147,6 +148,18 @@ class GovernanceReviewImportTests(unittest.TestCase):
             review["source_ref"] = import_ref
         if mutate_wrapper:
             mutate_wrapper(wrapper)
+        lineage_marker = f"review_lineage_sha256:{self.checker.review_lineage_digest(wrapper['review_lineage'])}"
+        for critic in wrapper["MultiReviewResult"]["critics"]:
+            evidence = critic.get("evidence")
+            if isinstance(evidence, list):
+                critic["evidence"] = [
+                    item
+                    for item in evidence
+                    if not (isinstance(item, str) and item.startswith("review_lineage_sha256:"))
+                ]
+        wrapper["MultiReviewResult"]["critics"][0]["evidence"].append(lineage_marker)
+        if mutate_after_lineage_marker:
+            mutate_after_lineage_marker(wrapper)
         for index, critic in enumerate(wrapper["MultiReviewResult"]["critics"]):
             critic_id = str(critic.get("critic_id", f"critic-{index}")).replace("/", "-")
             critic["probe_evidence_refs"] = [f"file:{self.rel_dir}/probe-{critic_id}.yml"]
@@ -308,6 +321,29 @@ class GovernanceReviewImportTests(unittest.TestCase):
         packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
 
         self.assert_rejected(packet_path, "false_green_risk must be substantive")
+
+    def test_rejects_lineage_without_multi_review_digest_support(self) -> None:
+        def remove_lineage_marker(wrapper: dict) -> None:
+            for critic in wrapper["MultiReviewResult"]["critics"]:
+                evidence = critic.get("evidence")
+                if isinstance(evidence, list):
+                    critic["evidence"] = [
+                        item
+                        for item in evidence
+                        if not (isinstance(item, str) and item.startswith("review_lineage_sha256:"))
+                    ]
+
+        packet_path = self.materialize_packet(mutate_after_lineage_marker=remove_lineage_marker)
+
+        self.assert_rejected(packet_path, "review_lineage digest must be represented by a passing required MultiReviewResult critic")
+
+    def test_rejects_review_lineage_unanchored_trace_source_ref(self) -> None:
+        def mutate_wrapper(wrapper: dict) -> None:
+            wrapper["review_lineage"][0]["source_refs"] = ["trace:.harness/traces/search-set.md"]
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+
+        self.assert_rejected(packet_path, "source_refs[0] trace refs must include an anchor")
 
     def test_rejects_boolean_review_lineage_evidence(self) -> None:
         def mutate_wrapper(wrapper: dict) -> None:

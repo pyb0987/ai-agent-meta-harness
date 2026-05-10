@@ -8,9 +8,9 @@ ProbeTranscript:
     sys.exit(0 if result.wasSuccessful() else 1)"
   probe_exit_code: 0
   result_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
-  result_digest: 00a81a79e861d5eae7abea37c46ff915114cad084285b41583b695dead7c972d
+  result_digest: b8b103e2018a2326c46e3453b7ecb6605b721983d90d78d2810ce44ed4ad3f44
   packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-  packet_sha256: 520a1d1cfe9fde650a85c5d11bd8b69c83136515ffd6fa025cdfb62fc0ef2fea
+  packet_sha256: db53f0ce9df1227ae2597ac945bb845e5ee9971b624342909381bb4f64bc3a42
   source_refs:
   - scripts/check-governance-acceptance.py
   - tests/test_governance_review_import.py

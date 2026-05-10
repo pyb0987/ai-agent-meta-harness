@@ -458,6 +458,49 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("public_input.summary must not contain sealed oracle term", completed.stderr)
 
+    def test_rejects_public_input_text_embedding_generated_ref(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "critic_independence_and_redundancy"
+            / "ci-duplicate-scope"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["public_input"]["summary"] = "Uses benchmark-generated:pp-fabricated-transcript#mutated-result."
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("public_input.summary must not expose benchmark-generated refs", completed.stderr)
+
+    def test_rejects_public_input_text_containing_forbidden_oracle_term(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "evidence_relevance_and_source_support"
+            / "er-existing-unrelated-file"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["sealed_oracle"]["oracle_type"] = "semantic"
+        scenario["sealed_oracle"]["scoring_mode"] = "contract-only"
+        scenario["sealed_oracle"]["semantic_oracle"] = {
+            "unsupported_claim": "The public input must not expose the secret marker.",
+            "accepted_disposition": ["VETO"],
+            "forbidden_oracle_terms": ["secretmarker"],
+        }
+        scenario["public_input"]["summary"] = "This public description contains secretmarker in prose."
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("public_input.summary must not contain sealed oracle term", completed.stderr)
+
     def test_rejects_public_input_text_embedding_sealed_scenario_ref(self) -> None:
         source = (
             SCENARIOS_ROOT

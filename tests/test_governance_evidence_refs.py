@@ -360,6 +360,24 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "search_set_before and search_set_after must be distinct")
 
+    def test_stable_recorded_search_set_refs_are_distinct_even_for_routine_packets(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        trace_ref = "trace:.harness/traces/search-set.md#active"
+        evidence["trace_refs"]["search_set_before"] = trace_ref
+        evidence["trace_refs"]["search_set_after"] = trace_ref
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": trace_ref,
+                "status": "resolved",
+                "target": ".harness/traces/search-set.md#active",
+            }
+        )
+
+        self.assert_rejected(packet, "search_set_before and search_set_after must be distinct")
+
     def test_stable_evolution_and_failure_traces_must_use_bucket_paths(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
@@ -516,6 +534,23 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
         raw_ref = "trace:.harness/traces/search-set.md#active"
         evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+
+        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
+
+    def test_stable_claim_evidence_rejects_any_search_set_file_anchor(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        raw_ref = "trace:.harness/traces/search-set.md#harness-search-set"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "claim-evidence",
+                "ref": raw_ref,
+                "status": "resolved",
+                "target": ".harness/traces/search-set.md#harness-search-set",
+            }
+        )
 
         self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
 

@@ -309,13 +309,17 @@ def is_search_set_trace_ref(ref: str) -> bool:
     )
 
 
+def is_search_set_trace_path_ref(ref: str) -> bool:
+    return trace_ref_path(ref) == ".harness/traces/search-set.md"
+
+
 def is_harness_trace_ref(ref: str) -> bool:
     path = trace_ref_path(ref)
     return bool(trace_ref_has_anchor(ref) and path and path.startswith(".harness/traces/"))
 
 
 def is_claim_evidence_trace_ref(ref: str) -> bool:
-    return is_harness_trace_ref(ref) and not is_search_set_trace_ref(ref)
+    return is_harness_trace_ref(ref) and not is_search_set_trace_path_ref(ref)
 
 
 def is_bucket_trace_ref(ref: str, bucket_name: str) -> bool:
@@ -1133,6 +1137,31 @@ def review_target_digest(packet: dict, *, root: Path, packet_ref: str | None) ->
     return hashlib.sha256(canonical_json_bytes(review_target_context(packet, root=root, packet_ref=packet_ref))).hexdigest()
 
 
+def review_lineage_digest(lineage: list[dict]) -> str:
+    return hashlib.sha256(canonical_json_bytes(lineage)).hexdigest()
+
+
+def passing_required_critic_evidence(multi_review: dict) -> set[str]:
+    evidence: set[str] = set()
+    critics = multi_review.get("critics", [])
+    if not isinstance(critics, list):
+        return evidence
+    for critic in critics:
+        if not isinstance(critic, dict):
+            continue
+        if critic.get("required") is not True:
+            continue
+        if critic.get("verdict") != "pass" or critic.get("veto") is not False:
+            continue
+        score = critic.get("score")
+        if not isinstance(score, int) or isinstance(score, bool) or score < 9:
+            continue
+        for item in critic.get("evidence", []):
+            if isinstance(item, str):
+                evidence.add(item)
+    return evidence
+
+
 def review_target_binding(packet: dict, *, root: Path, packet_ref: str | None) -> dict:
     result = packet["result"]
     evidence = result["evidence"]
@@ -1377,6 +1406,8 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
         for index, ref in enumerate(source_refs):
             if not isinstance(ref, str) or not review_value_is_substantive(ref):
                 errors.append(f"{source}: source_refs[{index}] must be a non-empty string")
+            elif ref.startswith("trace:") and not trace_ref_has_anchor(ref):
+                errors.append(f"{source}: source_refs[{index}] trace refs must include an anchor")
             elif resolve_ref(root, ref) is None:
                 errors.append(f"{source}: source_refs[{index}] does not resolve: {ref}")
     if not isinstance(record.get("blocking_findings"), list):
@@ -1609,6 +1640,11 @@ def validate_review_imports(
             errors.append(f"{source}: review_ids must contain only strings")
         elif sorted(review_ids) != sorted(ids):
             errors.append(f"{source}: review_ids must match imported review_lineage ids")
+        lineage_digest_marker = f"review_lineage_sha256:{review_lineage_digest(lineage)}"
+        if not isinstance(multi_review, dict) or lineage_digest_marker not in passing_required_critic_evidence(multi_review):
+            errors.append(
+                f"{source}: review_lineage digest must be represented by a passing required MultiReviewResult critic: {lineage_digest_marker}"
+            )
         for record in lineage:
             if isinstance(record, dict) and isinstance(record.get("review_id"), str):
                 review_id = record["review_id"]
@@ -2367,6 +2403,13 @@ def validate_packet(
                 errors.append(f"stable trace_refs.{trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
             elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                 errors.append(f"stable trace_refs.{trace_name} lacks resolved generated trace relation: {trace_ref}")
+        if isinstance(trace_refs, dict):
+            search_set_before = trace_refs.get("search_set_before")
+            search_set_after = trace_refs.get("search_set_after")
+            canonical_before = canonical_trace_ref(search_set_before) if isinstance(search_set_before, str) else None
+            canonical_after = canonical_trace_ref(search_set_after) if isinstance(search_set_after, str) else None
+            if canonical_before and canonical_before == canonical_after:
+                errors.append("stable packet search_set_before and search_set_after must be distinct when both are recorded")
         for bucket_name in ("evolution", "failures"):
             bucket_refs = trace_refs.get(bucket_name, [])
             if not isinstance(bucket_refs, list):
@@ -2385,15 +2428,6 @@ def validate_packet(
                     errors.append(f"stable trace_refs.{bucket_name} lacks resolved generated trace relation: {trace_ref}")
 
         if protected_review_required:
-            if isinstance(trace_refs, dict):
-                search_set_before = trace_refs.get("search_set_before")
-                search_set_after = trace_refs.get("search_set_after")
-                canonical_before = canonical_trace_ref(search_set_before) if isinstance(search_set_before, str) else None
-                canonical_after = canonical_trace_ref(search_set_after) if isinstance(search_set_after, str) else None
-                if canonical_before and canonical_before == canonical_after:
-                    errors.append(
-                        "stable protected packet search_set_before and search_set_after must be distinct or explicitly skipped"
-                    )
             for trace_name in ("search_set_before", "search_set_after"):
                 trace_ref = trace_refs.get(trace_name) if isinstance(trace_refs, dict) else None
                 skipped_targets = {

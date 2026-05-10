@@ -75,6 +75,7 @@ AcceptancePacketReviewImport:
       reason_no_probe: null
       evidence:
       - Wrapper lineage is required for stable review closure.
+      - review_lineage_sha256:f7356afcf812685187a4c1b3c2836be0f9835447e0dba6f487ec129849fb7f3a
       source_refs:
       - scripts/check-governance-acceptance.py
       - tests/test_governance_review_import.py

@@ -1,7 +1,7 @@
 # Command Evidence
 packet_id: pkt-finalized-harness-affecting-example
 packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-packet_sha256: 520a1d1cfe9fde650a85c5d11bd8b69c83136515ffd6fa025cdfb62fc0ef2fea
+packet_sha256: db53f0ce9df1227ae2597ac945bb845e5ee9971b624342909381bb4f64bc3a42
 command: python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
 status: pass
 summary: fixture artifact for focused v1 boundary release tests

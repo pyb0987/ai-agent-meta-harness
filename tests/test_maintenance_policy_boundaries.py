@@ -72,11 +72,12 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         text = normalized_text()
 
         for marker in (
-            "Until the v2 checker exists, v2 implementation work must record a bootstrap transition note",
+            "Historical v2 implementation work before `governance start` and stable packet checks existed used a bootstrap transition note",
+            "New active v2 implementation work should use the packet lifecycle above",
             "exact skipped-before reason when no start packet exists",
             "reviewer or maintainer disposition for any waiver, downgrade, skipped required evidence, or residual risk",
             "explicit statement that the record is not a finalized v2 packet",
-            "This bootstrap note is temporary compatibility evidence, not the v2 target",
+            "This bootstrap note is temporary compatibility evidence, not the current v2 target",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)

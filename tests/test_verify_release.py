@@ -174,7 +174,8 @@ class VerifyReleaseTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/verify-release.py", text)
         self.assertIn("python3 scripts/verify-release.py --base-ref origin/main", text)
-        self.assertIn("preferred stable-handoff command", text)
+        self.assertIn("legacy release verification command", text)
+        self.assertIn("not a packet-backed stable handoff by itself", text)
 
 
 if __name__ == "__main__":

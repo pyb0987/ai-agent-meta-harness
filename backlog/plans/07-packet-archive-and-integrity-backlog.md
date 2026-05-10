@@ -53,7 +53,9 @@ Out of scope:
 
 - New user-authored packet sections beyond `meta`, `input`, and `result`.
 - Running artifact-supplied commands during stable `check`.
-- Full release/pre-commit migration. Plan 08 owns release integration.
+- Full release/pre-commit migration. Plan 08
+  (`backlog/plans/08-release-precommit-packet-gate.md`) owns release
+  integration.
 - Network validation of external sources.
 - A general semantic scorer implementation unless a narrow, testable seed is
   explicitly accepted by multi-review.

@@ -112,6 +112,12 @@ class MultiReviewResultCliTests(unittest.TestCase):
         self.assert_rejected(result, "MultiReviewResult.review_id: must be a substantive string")
         self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be a non-empty string")
 
+    def test_rejects_vacuous_reported_final_verdict(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["reported_final_verdict"] = "   "
+
+        self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be a non-empty string")
+
     def test_rejects_mixed_mapping_keys_without_traceback(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         result["MultiReviewResult"][1] = "extra"
@@ -142,6 +148,13 @@ class MultiReviewResultCliTests(unittest.TestCase):
         self.assertIn("verdict is invalid", completed.stderr)
         self.assertIn("validation_layer is invalid", completed.stderr)
         self.assertNotIn("Traceback", completed.stderr)
+
+    def test_rejects_probe_run_with_reason_no_probe(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][0]["probe_run"] = True
+        result["MultiReviewResult"]["critics"][0]["reason_no_probe"] = "network unavailable"
+
+        self.assert_rejected(result, "reason_no_probe must be null when probe_run is true")
 
     def test_reports_governance_pass_transcript_consistency_without_replay(self) -> None:
         result = run_cli("--result", str(FIXTURE_ROOT / "governance-pass.yml"))

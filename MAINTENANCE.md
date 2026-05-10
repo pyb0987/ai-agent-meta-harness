@@ -84,8 +84,10 @@ Lifecycle rules:
 - Harness-affecting finalization fails closed without a start packet unless an
   exact skipped-before reason and maintainer/reviewer disposition are recorded.
 
-Until the v2 checker exists, v2 implementation work must record a bootstrap
-transition note that includes:
+Historical v2 implementation work before `governance start` and stable packet
+checks existed used a bootstrap transition note. New active v2 implementation
+work should use the packet lifecycle above; use bootstrap notes only when
+describing archived transition evidence. A bootstrap note includes:
 
 - intent
 - changed files
@@ -96,7 +98,8 @@ transition note that includes:
   evidence, or residual risk
 - explicit statement that the record is not a finalized v2 packet
 
-This bootstrap note is temporary compatibility evidence, not the v2 target.
+This bootstrap note is temporary compatibility evidence, not the current v2
+target.
 
 ## Active Roadmap
 
@@ -166,10 +169,11 @@ During the v2 transition, keep the active operator model to four boundaries:
 
 ## Verification During Transition
 
-Before the v2 checker exists, run the narrow compatibility checks that still
-cover the changed surface and record known gaps honestly. For this transition,
-passing legacy v1 checkers means only that old record-shape validators did not
-find an error in their configured paths.
+For historical transition work before the v2 checker existed, run the narrow
+compatibility checks that still cover the changed surface and record known gaps
+honestly. For active v2 work, prefer packet lifecycle checks; passing legacy v1
+checkers means only that old record-shape validators did not find an error in
+their configured paths.
 
 Standard verification:
 
@@ -191,11 +195,16 @@ python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
-For stable handoff, the preferred stable-handoff command is:
+Until Plan 08 wires packet pointers into release/pre-commit gates, the broad
+legacy release verification command is:
 
 ```bash
 python3 scripts/verify-release.py --base-ref origin/main
 ```
+
+This command is not a packet-backed stable handoff by itself; active stable
+handoff still requires `governance check --packet <packet> --require-stable`
+against a finalized base-ref packet.
 
 During an in-progress maintenance diff, use:
 

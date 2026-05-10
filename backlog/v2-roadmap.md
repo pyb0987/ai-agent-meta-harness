@@ -225,10 +225,11 @@ Initial high-risk surfaces:
 
 Validate v2 using the method it introduces:
 
-- Until `governance start` exists, use the bootstrap transition note required by
-  `MAINTENANCE.md` and label it explicitly as non-packet evidence.
-- Create a start packet before each harness-affecting implementation step once
-  the packet CLI exists.
+- Use the current packet lifecycle for active v2 implementation work:
+  `governance start`, `governance finalize --base-ref`, and
+  `governance check --require-stable`.
+- Treat older bootstrap transition notes as archived compatibility evidence,
+  not as the current implementation path.
 - Preserve before/after search-set evidence where relevant.
 - Run multi-review for packet schema, checker semantics, complexity
   consolidation, archive integration, and release gate wiring.

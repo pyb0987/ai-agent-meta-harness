@@ -101,7 +101,7 @@ AcceptancePacket:
       review_imports:
       - source_ref: file:backlog/fixtures/acceptance-packets/artifacts/waiver-downgrade-review-import.yml
         format: acceptance-packet-review-import/v1
-        source_digest: 5a443c345e07ca2b138544ea2a9950f2a4b66bb8694a1f36772acc7e70cf5c22
+        source_digest: b7f262bc2454aebbbd5c383b827f1c7f010b35c3cfea80c90e178a8606394728
         status: imported
         review_ids:
         - review-waiver-archive-boundary

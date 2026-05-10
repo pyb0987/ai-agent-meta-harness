@@ -71,6 +71,7 @@ AcceptancePacketReviewImport:
       reason_no_probe: null
       evidence:
       - Review waiver targets full v1 archive fidelity exactly.
+      - review_lineage_sha256:8e376edd3f31b1e2d3f2d6bd7bbc7c171eff1061f1861b56a1c0f8e82bbd6497
       source_refs:
       - scripts/check-governance-acceptance.py
       - tests/test_governance_acceptance_cli.py

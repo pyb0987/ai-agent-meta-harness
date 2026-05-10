@@ -141,6 +141,7 @@ def sealed_oracle_public_terms(oracle: dict[str, Any]) -> tuple[set[str], set[st
         "forbidden_errors",
         "false_green_target",
         "primary_invariant",
+        "forbidden_oracle_terms",
         "forbidden_shortcuts",
         *SEMANTIC_ORACLE_ANCHOR_FIELDS,
     }
@@ -177,6 +178,12 @@ def public_text_leakage_errors(scenario_path: Path, public_input: dict[str, Any]
                 failures.append(f"{scenario_path}: public_input.{field} must not copy sealed oracle value: {term}")
         for embedded_error in embedded_repo_ref_errors(value, source=f"public_input.{field}"):
             failures.append(f"{scenario_path}: {embedded_error}")
+        for generated_error in embedded_generated_ref_errors(
+            value,
+            source=f"public_input.{field}",
+            expected_result_ref=None,
+        ):
+            failures.append(f"{scenario_path}: {generated_error}")
     return failures
 
 
@@ -255,11 +262,12 @@ def embedded_generated_ref_errors(
     source: str,
     expected_result_ref: str | None,
 ) -> list[str]:
-    if expected_result_ref is None:
-        return []
     errors: list[str] = []
     for match in EMBEDDED_GENERATED_REF_RE.finditer(text):
         token = match.group(0).rstrip(".,;:)")
+        if expected_result_ref is None:
+            errors.append(f"{source} must not expose benchmark-generated refs: {token}")
+            continue
         if token != expected_result_ref:
             errors.append(
                 f"{source} benchmark-generated ref must match {expected_result_ref}: {token}"
