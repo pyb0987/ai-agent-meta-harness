@@ -295,6 +295,16 @@ class MultiReviewResultCliTests(unittest.TestCase):
         completed = run_cli("--result", str(path), "--require-governance-pass")
         self.assertIn("invariant_checked must be substantive", completed.stderr)
 
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][0]["false_green_risk"] = "none."
+        result["MultiReviewResult"]["critics"][0]["invariant_checked"] = "checked."
+        self.assert_rejected(result, "false_green_risk must be substantive")
+
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][0]["false_green_risk"] = "N.A."
+        result["MultiReviewResult"]["critics"][0]["invariant_checked"] = "N.A."
+        self.assert_rejected(result, "false_green_risk must be substantive")
+
     def test_rejects_container_values_in_scalar_acceptance_fields(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         critic = result["MultiReviewResult"]["critics"][0]
@@ -862,6 +872,13 @@ class MultiReviewResultCliTests(unittest.TestCase):
         completed = run_cli("--result", str(path), "--require-governance-pass")
         self.assertIn("source_refs", completed.stderr)
 
+    def test_rejects_mixed_type_evidence_items(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        critic = result["MultiReviewResult"]["critics"][0]
+        critic["evidence"] = [True, "real transcript checked"]
+
+        self.assert_rejected(result, "evidence[0] must be a substantive string")
+
     def test_rejects_invalid_or_future_critic_date(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         result["MultiReviewResult"]["critics"][0]["date"] = "not-a-date"
@@ -873,6 +890,10 @@ class MultiReviewResultCliTests(unittest.TestCase):
         completed = run_cli("--result", str(path), "--require-governance-pass")
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("date must be an ISO date", completed.stderr)
+
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["critics"][0]["date"] = "2026-05-08 10:30:00"
+        self.assert_rejected(result, "date must be an ISO date")
 
     def test_rejects_prose_smoke_without_primary_validation_layer(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")

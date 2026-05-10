@@ -25,7 +25,7 @@ PUBLIC_INPUT_FIELDS = {"neutral_id", "title", "summary", "input_artifacts"}
 ORACLE_TYPES = {"structural", "semantic", "probe-replay"}
 SCORING_MODES = {"validator-only", "contract-only"}
 ASSERTION_SEVERITIES = {"acceptance", "advisory", "blocking", "warning"}
-VACUOUS_SEMANTIC_VALUES = {"", "none", "n/a", "na", "ok", "checked", "generic", "not applicable", "pass"}
+VACUOUS_SEMANTIC_VALUES = {"", "none", "na", "ok", "checked", "generic", "notapplicable", "pass"}
 SEMANTIC_ORACLE_FIELDS = {
     "accepted_disposition",
     "expected_false_premise",
@@ -59,6 +59,10 @@ SEALED_ORACLE_LABELS = {
     "sealed_oracle",
     "semantic_oracle",
 }
+EMBEDDED_REPO_REF_RE = re.compile(
+    r"(?:file:)?(?:benchmarks/multi-review/[A-Za-z0-9._/#-]+|backlog/fixtures/[A-Za-z0-9._/#-]+)"
+)
+EMBEDDED_GENERATED_REF_RE = re.compile(r"benchmark-generated:[A-Za-z0-9._/#-]+")
 
 
 spec = importlib.util.spec_from_file_location("multi_review_result_checker", CHECKER_PATH)
@@ -77,7 +81,8 @@ def sorted_key_names(keys: Any) -> list[str]:
 
 
 def normalize_text(value: str) -> str:
-    return " ".join(value.casefold().split())
+    normalized = " ".join(value.strip().strip("\"'").casefold().split())
+    return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
 def canonical_public_token(value: str) -> str:
@@ -99,6 +104,8 @@ def recursive_strings(value: Any, source: str) -> list[tuple[str, str]]:
     if isinstance(value, dict):
         strings = []
         for key, item in value.items():
+            if isinstance(key, str):
+                strings.append((f"{source}.<key>", key))
             strings.extend(recursive_strings(item, f"{source}.{key}"))
         return strings
     return []
@@ -168,6 +175,8 @@ def public_text_leakage_errors(scenario_path: Path, public_input: dict[str, Any]
         for term in forbidden_exact:
             if term and term == normalized_value:
                 failures.append(f"{scenario_path}: public_input.{field} must not copy sealed oracle value: {term}")
+        for embedded_error in embedded_repo_ref_errors(value, source=f"public_input.{field}"):
+            failures.append(f"{scenario_path}: {embedded_error}")
     return failures
 
 
@@ -228,6 +237,34 @@ def sealed_benchmark_file_error(ref: str, *, source: str) -> str | None:
         if any(part.startswith("sealed") for part in Path(rel_path).parts):
             return f"{source} cannot point to sealed benchmark/oracle files: {ref}"
     return None
+
+
+def embedded_repo_ref_errors(text: str, *, source: str) -> list[str]:
+    errors: list[str] = []
+    for match in EMBEDDED_REPO_REF_RE.finditer(text):
+        token = match.group(0).rstrip(".,;:)")
+        sealed_error = sealed_benchmark_file_error(token, source=source)
+        if sealed_error and sealed_error not in errors:
+            errors.append(sealed_error)
+    return errors
+
+
+def embedded_generated_ref_errors(
+    text: str,
+    *,
+    source: str,
+    expected_result_ref: str | None,
+) -> list[str]:
+    if expected_result_ref is None:
+        return []
+    errors: list[str] = []
+    for match in EMBEDDED_GENERATED_REF_RE.finditer(text):
+        token = match.group(0).rstrip(".,;:)")
+        if token != expected_result_ref:
+            errors.append(
+                f"{source} benchmark-generated ref must match {expected_result_ref}: {token}"
+            )
+    return errors
 
 
 def public_fixture_ref_errors(ref: str, *, source: str) -> list[str]:
@@ -431,6 +468,7 @@ def validate_oracle_shape(
     scenario: dict[str, Any],
     *,
     expected_result_ref: str | None = None,
+    expected_result_digest: str | None = None,
 ) -> list[str]:
     failures: list[str] = []
     public_input = scenario["public_input"]
@@ -463,6 +501,7 @@ def validate_oracle_shape(
                     artifact,
                     source=f"public_input.input_artifacts[{index}]",
                     expected_result_ref=expected_result_ref,
+                    expected_result_digest=expected_result_digest,
                 )
             )
 
@@ -624,6 +663,7 @@ def validate_result_fixture_refs(
     result: dict[str, Any],
     *,
     expected_result_ref: str,
+    expected_result_digest: str,
 ) -> list[str]:
     failures: list[str] = []
     target = result.get("target", {})
@@ -657,6 +697,7 @@ def validate_result_fixture_refs(
                             ref,
                             source=f"critics[{critic_index}].probe_evidence_refs[{ref_index}]",
                             expected_result_ref=expected_result_ref,
+                            expected_result_digest=expected_result_digest,
                         )
                     )
     return failures
@@ -668,6 +709,7 @@ def validate_probe_transcript_public_metadata(
     *,
     source: str,
     expected_result_ref: str | None,
+    expected_result_digest: str | None,
 ) -> list[str]:
     failures: list[str] = []
     rel_path = repo_relative_file(ref)
@@ -688,6 +730,7 @@ def validate_probe_transcript_public_metadata(
             transcript,
             source=f"{source}.ProbeTranscript",
             expected_result_ref=expected_result_ref,
+            expected_result_digest=expected_result_digest,
         )
     )
     return failures
@@ -699,21 +742,41 @@ def validate_probe_transcript_public_fields(
     *,
     source: str,
     expected_result_ref: str | None,
+    expected_result_digest: str | None,
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(fields, dict):
         return failures
     for nested_source, text in recursive_strings(fields, source):
-        if text.startswith("benchmark-generated:") and text != expected_result_ref:
-            failures.append(
-                f"{scenario_path}: {nested_source} benchmark-generated ref must match "
-                f"{expected_result_ref}: {text}"
-            )
-            continue
+        for generated_error in embedded_generated_ref_errors(
+            text,
+            source=nested_source,
+            expected_result_ref=expected_result_ref,
+        ):
+            failures.append(f"{scenario_path}: {generated_error}")
         sealed_error = sealed_benchmark_file_error(text, source=nested_source)
         if sealed_error:
             failures.append(f"{scenario_path}: {sealed_error}")
+        for embedded_error in embedded_repo_ref_errors(text, source=nested_source):
+            failures.append(f"{scenario_path}: {embedded_error}")
+        if ".source_refs[" in nested_source:
+            for ref_error in public_fixture_ref_errors(text, source=nested_source):
+                failures.append(f"{scenario_path}: {ref_error}")
     result_ref = fields.get("result_ref")
+    result_digest = fields.get("result_digest")
+    if expected_result_ref is not None:
+        if not isinstance(result_ref, str):
+            failures.append(
+                f"{scenario_path}: {source}.result_ref must match current scenario result binding: {result_ref}"
+            )
+        elif result_ref != expected_result_ref:
+            failures.append(
+                f"{scenario_path}: {source}.result_ref must match current scenario result binding: {result_ref}"
+            )
+        elif result_digest != expected_result_digest:
+            failures.append(
+                f"{scenario_path}: {source}.result_digest must match current scenario result digest: {result_digest}"
+            )
     if isinstance(result_ref, str) and not result_ref.startswith("benchmark-generated:"):
         sealed_error = sealed_benchmark_file_error(
             result_ref,
@@ -729,18 +792,6 @@ def validate_probe_transcript_public_fields(
         )
         if sealed_error:
             failures.append(f"{scenario_path}: {sealed_error}")
-    source_refs = fields.get("source_refs", [])
-    if isinstance(source_refs, list):
-        for source_index, source_ref in enumerate(source_refs):
-            if not isinstance(source_ref, str):
-                continue
-            for ref_error in public_fixture_ref_errors(
-                source_ref,
-                source=(
-                    f"{source}.source_refs[{source_index}]"
-                ),
-            ):
-                failures.append(f"{scenario_path}: {ref_error}")
     return failures
 
 
@@ -749,8 +800,21 @@ def check_scenario(path: Path, *, replay_probe_commands: bool = False) -> tuple[
     scenario_id = scenario["scenario_id"]
     result = scenario_result(scenario)
     result_ref, result_digest = scenario_result_binding(path, scenario, result)
-    failures = validate_oracle_shape(path, scenario, expected_result_ref=result_ref)
-    failures.extend(validate_result_fixture_refs(path, scenario, result, expected_result_ref=result_ref))
+    failures = validate_oracle_shape(
+        path,
+        scenario,
+        expected_result_ref=result_ref,
+        expected_result_digest=result_digest,
+    )
+    failures.extend(
+        validate_result_fixture_refs(
+            path,
+            scenario,
+            result,
+            expected_result_ref=result_ref,
+            expected_result_digest=result_digest,
+        )
+    )
     if result.get("review_mode") != scenario["review_mode"]:
         failures.append(
             f"{path}: scenario review_mode {scenario['review_mode']} does not match result review_mode {result.get('review_mode')}"

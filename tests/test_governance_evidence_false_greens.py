@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -18,6 +19,20 @@ def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["python3", str(SCRIPT), *args],
         cwd=ROOT,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def run_cli_with_env(extra_env: dict[str, str], *args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env.update(extra_env)
+    return subprocess.run(
+        ["python3", str(SCRIPT), *args],
+        cwd=ROOT,
+        env=env,
         encoding="utf-8",
         text=True,
         stdout=subprocess.PIPE,
@@ -411,7 +426,7 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("active stable handoff requires base-ref mode", result.stderr)
 
-    def test_fixture_materialization_marker_does_not_disable_active_handoff_by_default(self) -> None:
+    def test_fixture_materialization_marker_does_not_disable_active_handoff_with_env(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
@@ -445,7 +460,15 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             )
             packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
 
-            result = run_cli("--root", str(root), "check", "--packet", str(packet_path), "--require-stable")
+            result = run_cli_with_env(
+                {"AI_META_HARNESS_TEST_FIXTURE_MATERIALIZATION": "1"},
+                "--root",
+                str(root),
+                "check",
+                "--packet",
+                str(packet_path),
+                "--require-stable",
+            )
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("active stable handoff requires base-ref mode", result.stderr)
@@ -540,6 +563,117 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("active base-ref stable packet changed_paths require HEAD-pinned git source refs", result.stderr)
 
+    def test_base_ref_stable_rejects_broad_active_source_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            (root / "docs" / "old.md").write_text("stable docs\naccepted bytes\n", encoding="utf-8")
+            (root / "docs" / "provenance.md").write_text("operator note\n", encoding="utf-8")
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "docs change")
+            head = git_stdout(root, "rev-parse", "HEAD")
+            command = "git diff --check HEAD~1...HEAD"
+
+            packet = load_fixture("finalized-routine.yml")
+            acceptance_packet = packet["AcceptancePacket"]
+            acceptance_packet["meta"]["mode"] = "base-ref"
+            changed_ref = f"git:{head}:docs/old.md"
+            extra_ref = "file:docs/provenance.md"
+            acceptance_packet["input"]["source_refs"] = [changed_ref, extra_ref]
+            result = acceptance_packet["result"]
+            result["inference"]["changed_paths"] = ["docs/old.md"]
+            result["inference"]["required_evidence"] = [command]
+            evidence = result["evidence"]
+            evidence["baseline_ref"] = "HEAD~1"
+            evidence["comparison_ref"] = "HEAD~1"
+            evidence["evaluator_boundary"]["commands"] = [command]
+            evidence["source_refs"] = [changed_ref, extra_ref]
+            evidence["resolved_refs"] = [
+                record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+            ]
+            evidence["resolved_refs"].extend(
+                [
+                    {
+                        "origin": "input",
+                        "relation": "source",
+                        "ref": changed_ref,
+                        "status": "resolved",
+                        "target": f"{head}:docs/old.md",
+                    },
+                    {
+                        "origin": "input",
+                        "relation": "source",
+                        "ref": extra_ref,
+                        "status": "resolved",
+                        "target": "docs/provenance.md",
+                    },
+                ]
+            )
+            add_skip_for_command(packet, command)
+            packet_path = root / "packets" / "broad-source.yml"
+            packet_path.parent.mkdir()
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("--root", str(root), "check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("active base-ref stable packet source_refs must only cover changed_paths", result.stderr)
+
+    def test_base_ref_stable_rejects_mutable_ref_for_changed_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            (root / "docs" / "old.md").write_text("stable docs\naccepted bytes\n", encoding="utf-8")
+            git(root, "add", "docs/old.md")
+            git(root, "commit", "-m", "docs change")
+            head = git_stdout(root, "rev-parse", "HEAD")
+            command = "git diff --check HEAD~1...HEAD"
+
+            packet = load_fixture("finalized-routine.yml")
+            acceptance_packet = packet["AcceptancePacket"]
+            acceptance_packet["meta"]["mode"] = "base-ref"
+            pinned_ref = f"git:{head}:docs/old.md"
+            mutable_ref = "file:docs/old.md"
+            acceptance_packet["input"]["source_refs"] = [pinned_ref, mutable_ref]
+            result = acceptance_packet["result"]
+            result["inference"]["changed_paths"] = ["docs/old.md"]
+            result["inference"]["required_evidence"] = [command]
+            evidence = result["evidence"]
+            evidence["baseline_ref"] = "HEAD~1"
+            evidence["comparison_ref"] = "HEAD~1"
+            evidence["evaluator_boundary"]["commands"] = [command]
+            evidence["source_refs"] = [pinned_ref, mutable_ref]
+            evidence["resolved_refs"] = [
+                record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+            ]
+            evidence["resolved_refs"].extend(
+                [
+                    {
+                        "origin": "input",
+                        "relation": "source",
+                        "ref": pinned_ref,
+                        "status": "resolved",
+                        "target": f"{head}:docs/old.md",
+                    },
+                    {
+                        "origin": "input",
+                        "relation": "source",
+                        "ref": mutable_ref,
+                        "status": "resolved",
+                        "target": "docs/old.md",
+                    },
+                ]
+            )
+            add_skip_for_command(packet, command)
+            packet_path = root / "packets" / "mutable-source.yml"
+            packet_path.parent.mkdir()
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("--root", str(root), "check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("active base-ref stable packet source_refs must use commit-pinned git refs only", result.stderr)
+
     def test_base_ref_stable_deleted_paths_accept_comparison_pinned_source_refs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -607,6 +741,89 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             result = run_cli("--root", str(root), "check", "--packet", str(packet_path), "--require-stable")
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_base_ref_stable_deleted_paths_require_comparison_pinned_source_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            (root / "docs" / "provenance.md").write_text("targeted evidence skip rationale\n", encoding="utf-8")
+            git(root, "add", "docs/provenance.md")
+            git(root, "commit", "-m", "add provenance note")
+            (root / "docs" / "old.md").unlink()
+            git(root, "add", "docs/old.md")
+            git(root, "commit", "-m", "delete old docs")
+            command = "git diff --check HEAD~1...HEAD"
+
+            packet = load_fixture("finalized-routine.yml")
+            acceptance_packet = packet["AcceptancePacket"]
+            acceptance_packet["meta"]["mode"] = "base-ref"
+            source_ref = "file:docs/provenance.md"
+            acceptance_packet["input"]["source_refs"] = [source_ref]
+            result = acceptance_packet["result"]
+            result["inference"]["changed_paths"] = ["docs/old.md"]
+            result["inference"]["required_evidence"] = [command]
+            evidence = result["evidence"]
+            evidence["baseline_ref"] = "HEAD~1"
+            evidence["comparison_ref"] = "HEAD~1"
+            evidence["evaluator_boundary"]["commands"] = [command]
+            evidence["source_refs"] = [source_ref]
+            evidence["command_results"] = []
+            evidence["skipped"] = [
+                {
+                    "evidence": command,
+                    "actor": "maintainer",
+                    "role": "maintainer",
+                    "date": "2026-05-06",
+                    "reason": "deletion-only handoff without deleted source bytes.",
+                    "source_ref": "file:docs/provenance.md",
+                }
+            ]
+            evidence["resolved_refs"] = [
+                record
+                for record in evidence["resolved_refs"]
+                if record.get("relation") not in {"source", "artifact", "waiver-provenance"}
+            ]
+            evidence["resolved_refs"].extend(
+                [
+                    {
+                        "origin": "input",
+                        "relation": "source",
+                        "ref": source_ref,
+                        "status": "resolved",
+                        "target": "docs/provenance.md",
+                    },
+                    {
+                        "origin": "generated",
+                        "relation": "waiver-provenance",
+                        "ref": "file:docs/provenance.md",
+                        "status": "resolved",
+                        "target": "docs/provenance.md",
+                    },
+                ]
+            )
+            packet_path = root / "packets" / "deleted-docs.yml"
+            packet_path.parent.mkdir()
+            packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("--root", str(root), "check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "active base-ref stable packet deleted changed_paths require comparison-ref-pinned git source refs",
+            result.stderr,
+        )
+
+    def test_stable_rejects_unknown_user_judgment_entries(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        packet["AcceptancePacket"]["input"]["user_judgment"]["approval_note"] = {"text": "looks good"}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "packet.yml"
+            path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
+            result = run_cli("check", "--packet", str(path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("input.user_judgment.approval_note: key must declare", result.stderr)
 
     def test_base_ref_stable_baseline_must_match_comparison_even_when_evidence_is_skipped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -814,6 +1031,18 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         self.assertEqual(
             checker.command_base_ref("python3 scripts/check-v1-archive-boundary.py --base-ref=origin/main"),
             "origin/main",
+        )
+
+    def test_command_base_ref_parses_quoted_refs(self) -> None:
+        checker = load_checker()
+
+        self.assertEqual(
+            checker.command_base_ref("python3 scripts/verify-release.py --base-ref 'feature/ref with space'"),
+            "feature/ref with space",
+        )
+        self.assertEqual(
+            checker.command_base_ref("git diff --check 'feature/ref with space...HEAD'"),
+            "feature/ref with space",
         )
 
     def test_yaml_timestamp_is_not_date_only(self) -> None:

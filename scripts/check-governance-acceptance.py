@@ -10,7 +10,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
+import shlex
 import subprocess
 import sys
 import uuid
@@ -91,16 +93,14 @@ REVIEW_MIRROR_FIELDS = REVIEW_LINEAGE_FIELDS
 VACUOUS_REVIEW_VALUES = {
     "",
     "none",
-    "n/a",
     "na",
     "ok",
     "pass",
     "checked",
     "generic",
-    "not applicable",
-    "self-attested",
-    "self attested",
-    "read the plan",
+    "notapplicable",
+    "selfattested",
+    "readtheplan",
 }
 TARGET_FIELDS = ("evidence", "review", "from")
 LIFECYCLES = {"start", "finalized", "blocked"}
@@ -136,6 +136,7 @@ PROOF_LIKE_RE = re.compile(
     r"\b(verified|guaranteed|proves?|runtime|public API|release-ready|production-ready)\b",
     re.IGNORECASE,
 )
+SEARCH_SET_TRACE_ANCHORS = {"active"}
 RAW_CLAIM_EVIDENCE_PATH_PARTS = {
     ".harness",
     "artifact",
@@ -272,6 +273,60 @@ def trace_ref_has_anchor(ref: str) -> bool:
     return bool(rel and sep and anchor)
 
 
+def trace_ref_path(ref: str) -> str | None:
+    if not isinstance(ref, str) or not ref.startswith("trace:"):
+        return None
+    body = ref.removeprefix("trace:")
+    rel, _sep, _anchor = body.partition("#")
+    path = Path(rel)
+    if path.is_absolute() or ".." in path.parts:
+        return None
+    normalized = posixpath.normpath(rel)
+    return None if normalized == "." else normalized
+
+
+def trace_ref_anchor(ref: str) -> str | None:
+    if not isinstance(ref, str) or not ref.startswith("trace:"):
+        return None
+    body = ref.removeprefix("trace:")
+    _rel, sep, anchor = body.partition("#")
+    return anchor if sep and anchor else None
+
+
+def canonical_trace_ref(ref: str) -> str | None:
+    path = trace_ref_path(ref)
+    anchor = trace_ref_anchor(ref)
+    if not path or not anchor:
+        return None
+    return f"trace:{path}#{anchor}"
+
+
+def is_search_set_trace_ref(ref: str) -> bool:
+    return (
+        trace_ref_has_anchor(ref)
+        and trace_ref_path(ref) == ".harness/traces/search-set.md"
+        and trace_ref_anchor(ref) in SEARCH_SET_TRACE_ANCHORS
+    )
+
+
+def is_harness_trace_ref(ref: str) -> bool:
+    path = trace_ref_path(ref)
+    return bool(trace_ref_has_anchor(ref) and path and path.startswith(".harness/traces/"))
+
+
+def is_claim_evidence_trace_ref(ref: str) -> bool:
+    return is_harness_trace_ref(ref) and not is_search_set_trace_ref(ref)
+
+
+def is_bucket_trace_ref(ref: str, bucket_name: str) -> bool:
+    path = trace_ref_path(ref)
+    return bool(
+        trace_ref_has_anchor(ref)
+        and path
+        and path.startswith(f".harness/traces/{bucket_name}/")
+    )
+
+
 def is_raw_claim_file_ref(root: Path, ref: str) -> bool:
     resolved = resolve_ref(root, ref)
     if resolved is None:
@@ -297,18 +352,26 @@ def write_packet(path: Path, packet: dict, *, overwrite: bool = False) -> None:
 def date_like(value: object, *, allow_none: bool = False) -> bool:
     if value is None:
         return allow_none
+    parsed = parsed_date(value)
+    return parsed is not None and parsed <= dt.date.today()
+
+
+def parsed_date(value: object) -> dt.date | None:
     if isinstance(value, dt.datetime):
-        return False
+        return None
     if isinstance(value, dt.date):
-        parsed = value
-        return parsed <= dt.date.today()
+        return value
     if isinstance(value, str):
         try:
-            parsed = dt.date.fromisoformat(value)
+            return dt.date.fromisoformat(value)
         except ValueError:
-            return False
-        return parsed <= dt.date.today()
-    return False
+            return None
+    return None
+
+
+def canonical_vacuous_value(value: str) -> str:
+    normalized = " ".join(value.strip().strip("\"'").casefold().split())
+    return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
 def required_targets(packet: dict) -> tuple[set[str], set[str]]:
@@ -725,6 +788,9 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
             errors.append(f"{source}: trace refs must use trace: scheme")
         elif not trace_ref_has_anchor(record["ref"]):
             errors.append(f"{source}: trace refs must include an anchor")
+    if record["relation"] == "source" and str(record["ref"]).startswith("trace:"):
+        if not trace_ref_has_anchor(record["ref"]):
+            errors.append(f"{source}: trace source refs must include an anchor")
     if record["relation"] == "source" and str(record["ref"]).startswith("git:"):
         source_path = git_source_ref_path(root, record["ref"])
         if source_path is None:
@@ -785,7 +851,10 @@ def has_resolved_relation(
 
 
 def command_base_ref(command: str) -> str | None:
-    parts = command.split()
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        parts = command.split()
     if "--base-ref" in parts:
         index = parts.index("--base-ref")
         if index + 1 < len(parts):
@@ -972,8 +1041,7 @@ def normalize_review_field(value: object) -> str:
         return "true" if value else "false"
     if isinstance(value, dt.date):
         return value.isoformat()
-    normalized = " ".join(str(value).strip().strip("\"'").casefold().split())
-    return normalized
+    return canonical_vacuous_value(str(value))
 
 
 def review_value_is_substantive(value: object) -> bool:
@@ -1295,8 +1363,13 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
     for field in ("false_green_risk", "invariant_checked"):
         if not review_value_is_substantive_string(record.get(field)):
             errors.append(f"{source}: {field} must be substantive")
-    if not isinstance(record.get("evidence"), list) or not review_value_is_substantive(record.get("evidence")):
+    evidence_items = record.get("evidence")
+    if not isinstance(evidence_items, list) or not evidence_items:
         errors.append(f"{source}: evidence must be a non-empty substantive list")
+    else:
+        for index, item in enumerate(evidence_items):
+            if not review_value_is_substantive_string(item):
+                errors.append(f"{source}: evidence[{index}] must be a substantive string")
     source_refs = record.get("source_refs")
     if not isinstance(source_refs, list) or not source_refs:
         errors.append(f"{source}: source_refs must be a non-empty list")
@@ -1337,8 +1410,9 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
         errors.append(f"{source}: fixed_finding_ids must contain only substantive string ids")
     elif len(fixed) != len(set(fixed)):
         errors.append(f"{source}: fixed_finding_ids must not contain duplicates")
-    if record.get("rerun_of"):
-        if not isinstance(record.get("rerun_of"), str):
+    rerun_of = record.get("rerun_of")
+    if rerun_of is not None:
+        if not review_value_is_substantive_string(rerun_of):
             errors.append(f"{source}: rerun_of must be a review_id string")
         if not fixed:
             errors.append(f"{source}: rerun requires fixed_finding_ids")
@@ -1393,6 +1467,11 @@ def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tupl
             continue
         if fixed != target_findings:
             errors.append(f"{source}: rerun {rerun_id} fixed_finding_ids must exactly cover {target_id}: {sorted(target_findings)}")
+            continue
+        rerun_date = parsed_date(record.get("date"))
+        target_date = parsed_date(target.get("date"))
+        if rerun_date is not None and target_date is not None and rerun_date < target_date:
+            errors.append(f"{source}: rerun {rerun_id} date must not precede rerun_of review date: {target_id}")
             continue
         if target_id in closed_blocking_ids:
             errors.append(f"{source}: multiple reruns close review_id: {target_id}")
@@ -1668,8 +1747,66 @@ def commit_pinned_source_paths(
             continue
         parts = git_source_ref_parts(root, ref)
         if parts and parts[0] == commit:
-            paths.add(parts[1])
+                paths.add(parts[1])
     return paths
+
+
+def active_source_ref_violations(
+    root: Path,
+    records: list[dict],
+    *,
+    listed_refs: set[str],
+    declared_changed_paths: set[str],
+    deleted_paths: set[str],
+    comparison_ref: str | None,
+) -> list[str]:
+    errors: list[str] = []
+    head_commit = git_ref_commit(root, "HEAD")
+    comparison_commit = git_ref_commit(root, comparison_ref) if comparison_ref else None
+    extra_paths: set[str] = set()
+    mutable_refs: list[str] = []
+    wrong_commit_refs: list[str] = []
+    for record in records:
+        if (
+            not isinstance(record, dict)
+            or record.get("relation") != "source"
+            or record.get("status") != "resolved"
+            or not isinstance(record.get("target"), str)
+        ):
+            continue
+        ref = record.get("ref")
+        if not isinstance(ref, str) or ref not in listed_refs:
+            continue
+        parts = git_source_ref_parts(root, ref)
+        if parts is None:
+            mutable_refs.append(ref)
+            target = source_target_path(ref, record["target"])
+            if target not in declared_changed_paths:
+                extra_paths.add(target)
+            continue
+        commit, path = parts
+        if path not in declared_changed_paths:
+            extra_paths.add(path)
+            continue
+        expected_commit = comparison_commit if path in deleted_paths else head_commit
+        if expected_commit is None or commit != expected_commit:
+            wrong_commit_refs.append(ref)
+    if extra_paths:
+        errors.append(
+            "active base-ref stable packet source_refs must only cover changed_paths: "
+            f"{sorted(extra_paths)}"
+        )
+    if mutable_refs:
+        errors.append(
+            "active base-ref stable packet source_refs must use commit-pinned git refs only: "
+            f"{sorted(mutable_refs)}"
+        )
+    if wrong_commit_refs:
+        errors.append(
+            "active base-ref stable packet source_refs use the wrong boundary commit: "
+            f"{sorted(wrong_commit_refs)}"
+        )
+    return errors
 
 
 def git_source_ref_path(root: Path, ref: str) -> str | None:
@@ -1936,6 +2073,10 @@ def validate_packet(
                     source=f"input.user_judgment.{key}",
                 )
             )
+        else:
+            errors.append(
+                f"input.user_judgment.{key}: key must declare waiver, downgrade, skipped, or residual"
+            )
 
     for waiver in waiver_records:
         errors.extend(
@@ -2055,10 +2196,21 @@ def validate_packet(
             comparison_ref = evidence.get("comparison_ref")
             if isinstance(comparison_ref, str) and git_ref_is_commit(root, comparison_ref):
                 deleted_paths = set(current_base_ref_deleted_paths(root, comparison_ref))
+            source_ref_set = {ref for ref in evidence_source_refs if isinstance(ref, str)}
+            errors.extend(
+                active_source_ref_violations(
+                    root,
+                    resolved_refs,
+                    listed_refs=source_ref_set,
+                    declared_changed_paths=declared_changed_paths,
+                    deleted_paths=deleted_paths,
+                    comparison_ref=comparison_ref if isinstance(comparison_ref, str) else None,
+                )
+            )
             head_pinned_paths = commit_pinned_source_paths(
                 root,
                 resolved_refs,
-                listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
+                listed_refs=source_ref_set,
                 commit_ref="HEAD",
             )
             missing_head_sources = sorted(
@@ -2073,7 +2225,7 @@ def validate_packet(
                 base_pinned_paths = commit_pinned_source_paths(
                     root,
                     resolved_refs,
-                    listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
+                    listed_refs=source_ref_set,
                     commit_ref=comparison_ref,
                 )
                 missing_deleted_sources = sorted(
@@ -2211,6 +2363,8 @@ def validate_packet(
                 errors.append(f"stable trace_refs.{trace_name} must use trace: scheme: {trace_ref}")
             elif not trace_ref_has_anchor(trace_ref):
                 errors.append(f"stable trace_refs.{trace_name} must include an anchor: {trace_ref}")
+            elif not is_search_set_trace_ref(trace_ref):
+                errors.append(f"stable trace_refs.{trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
             elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                 errors.append(f"stable trace_refs.{trace_name} lacks resolved generated trace relation: {trace_ref}")
         for bucket_name in ("evolution", "failures"):
@@ -2223,6 +2377,10 @@ def validate_packet(
                     errors.append(f"stable trace_refs.{bucket_name} entries must use trace: scheme: {trace_ref}")
                 elif not trace_ref_has_anchor(trace_ref):
                     errors.append(f"stable trace_refs.{bucket_name} entries must include an anchor: {trace_ref}")
+                elif not is_bucket_trace_ref(trace_ref, bucket_name):
+                    errors.append(
+                        f"stable trace_refs.{bucket_name} entries must point to .harness/traces/{bucket_name}/ evidence: {trace_ref}"
+                    )
                 elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                     errors.append(f"stable trace_refs.{bucket_name} lacks resolved generated trace relation: {trace_ref}")
 
@@ -2230,7 +2388,9 @@ def validate_packet(
             if isinstance(trace_refs, dict):
                 search_set_before = trace_refs.get("search_set_before")
                 search_set_after = trace_refs.get("search_set_after")
-                if search_set_before and search_set_before == search_set_after:
+                canonical_before = canonical_trace_ref(search_set_before) if isinstance(search_set_before, str) else None
+                canonical_after = canonical_trace_ref(search_set_after) if isinstance(search_set_after, str) else None
+                if canonical_before and canonical_before == canonical_after:
                     errors.append(
                         "stable protected packet search_set_before and search_set_after must be distinct or explicitly skipped"
                     )
@@ -2252,6 +2412,8 @@ def validate_packet(
                     continue
                 if not trace_ref:
                     errors.append(f"stable protected packet missing {trace_name}")
+                elif not is_search_set_trace_ref(trace_ref):
+                    errors.append(f"stable protected packet {trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
                 elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                     errors.append(f"stable protected packet {trace_name} lacks resolved generated trace relation: {trace_ref}")
 
@@ -2292,6 +2454,10 @@ def validate_packet(
             for raw_ref in raw_refs:
                 if not isinstance(raw_ref, str) or not raw_ref.startswith(("file:", "trace:")):
                     errors.append(f"claim evidence ref must use file: or trace: scheme: {raw_ref}")
+                elif raw_ref.startswith("trace:") and not trace_ref_has_anchor(raw_ref):
+                    errors.append(f"claim evidence trace ref must include an anchor: {raw_ref}")
+                elif raw_ref.startswith("trace:") and not is_claim_evidence_trace_ref(raw_ref):
+                    errors.append(f"claim evidence trace ref must point to .harness/traces/ evidence and not search-set index: {raw_ref}")
                 elif not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref, origin="generated"):
                     errors.append(f"claim evidence ref lacks resolved generated claim-evidence relation: {raw_ref}")
                 elif raw_ref.startswith("file:") and not is_raw_claim_file_ref(root, raw_ref):
@@ -2471,10 +2637,34 @@ def packet_has_fixture_binding(packet: dict) -> bool:
     return False
 
 
+def packet_has_materialized_fixture_binding(packet: dict, packet_ref: str | None, *, root: Path) -> bool:
+    if not packet_ref_is_fixture_materialization(root, packet_ref):
+        return False
+    path = Path(str(packet_ref))
+    packet_rel = path.as_posix()
+    materialization_dir = path.parent.as_posix()
+    review_imports = packet.get("result", {}).get("evidence", {}).get("review_imports", [])
+    if not isinstance(review_imports, list):
+        return False
+    for item in review_imports:
+        if not isinstance(item, dict):
+            continue
+        binding = item.get("target_binding")
+        source_ref = item.get("source_ref")
+        if not isinstance(binding, dict) or binding.get("packet_ref") != packet_rel:
+            continue
+        if not isinstance(source_ref, str) or not source_ref.startswith("file:"):
+            continue
+        source_path = source_ref.removeprefix("file:")
+        if source_path == materialization_dir or source_path.startswith(f"{materialization_dir}/"):
+            return True
+    return False
+
+
 def packet_is_active_handoff(packet: dict, packet_ref: str | None, *, root: Path) -> bool:
     return (
         not packet_ref_is_fixture(packet_ref)
-        and not packet_ref_is_fixture_materialization(root, packet_ref)
+        and not packet_has_materialized_fixture_binding(packet, packet_ref, root=root)
         and not packet_has_fixture_binding(packet)
     )
 

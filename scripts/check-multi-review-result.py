@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 from pathlib import Path
+import re
 import shlex
 import subprocess
 import sys
@@ -102,24 +103,22 @@ PROBE_TRANSCRIPT_FIELDS = {
 VACUOUS_VALUES = {
     "",
     "none",
-    "n/a",
     "na",
     "ok",
     "checked",
     "generic",
-    "not applicable",
+    "notapplicable",
     "pass",
-    "read the plan",
-    "read plan",
-    "not run",
-    "not executed",
-    "did not run",
-    "no probe run",
-    "self-attested",
-    "self attested",
-    "definitely-not-a-real-command --should-fail",
-    "existing review says pass",
-    "existing acceptance says pass",
+    "readtheplan",
+    "readplan",
+    "notrun",
+    "notexecuted",
+    "didnotrun",
+    "noproberun",
+    "selfattested",
+    "definitelynotarealcommandshouldfail",
+    "existingreviewsayspass",
+    "existingacceptancesayspass",
 }
 
 
@@ -148,7 +147,8 @@ def validate_exact_fields(
 
 
 def normalize_text(value: str) -> str:
-    return " ".join(value.casefold().split())
+    normalized = " ".join(value.strip().strip("\"'").casefold().split())
+    return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
 def is_substantive(value: Any) -> bool:
@@ -171,7 +171,7 @@ def is_substantive_string(value: Any) -> bool:
 
 def date_like(value: Any) -> bool:
     if isinstance(value, dt.datetime):
-        value = value.date()
+        return False
     if isinstance(value, dt.date):
         return value <= dt.date.today()
     if not isinstance(value, str):
@@ -325,9 +325,9 @@ def is_sha256(value: object) -> bool:
 
 
 def transcript_cwd_is_repo_root(value: object) -> bool:
-    if not isinstance(value, str) or not is_substantive(value):
+    if not isinstance(value, str) or not value.strip():
         return False
-    path = Path(value)
+    path = Path(value.strip())
     if path.is_absolute():
         return False
     if ".." in path.parts:
@@ -554,8 +554,10 @@ def validate_critic_shape(critic: Any, *, index: int, errors: list[str]) -> dict
     validate_probe_evidence_refs(critic.get("probe_evidence_refs"), source=f"{source}.probe_evidence_refs", errors=errors)
     if not isinstance(critic.get("evidence"), list) or not critic.get("evidence"):
         error(errors, source, "evidence must be a non-empty list")
-    elif not any(is_substantive(item) for item in critic.get("evidence", [])):
-        error(errors, source, "evidence must include substantive entries")
+    else:
+        for index, item in enumerate(critic.get("evidence", [])):
+            if not is_substantive_string(item):
+                error(errors, source, f"evidence[{index}] must be a substantive string")
     return critic
 
 

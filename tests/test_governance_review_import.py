@@ -309,6 +309,14 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "false_green_risk must be substantive")
 
+    def test_rejects_boolean_review_lineage_evidence(self) -> None:
+        def mutate_wrapper(wrapper: dict) -> None:
+            wrapper["review_lineage"][0]["evidence"] = [True]
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+
+        self.assert_rejected(packet_path, "evidence[0] must be a substantive string")
+
     def test_rejects_non_list_review_lineage_without_traceback(self) -> None:
         def mutate_after_digest(packet: dict, wrapper_path: Path) -> None:
             wrapper_doc = load_yaml(wrapper_path)
@@ -574,6 +582,40 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "date must be an ISO date")
 
+    def test_rejects_rerun_dated_before_blocking_review(self) -> None:
+        def add_backdated_rerun(wrapper: dict) -> None:
+            failed = copy.deepcopy(wrapper["review_lineage"][0])
+            failed.update(
+                {
+                    "review_id": "review-harness-checker-failed",
+                    "score": 8,
+                    "veto": True,
+                    "date": "2026-05-07",
+                    "blocking_findings": [{"finding_id": "F1", "summary": "Missing target binding replay test."}],
+                    "why_not_10": None,
+                    "disposition": None,
+                }
+            )
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update(
+                {
+                    "review_id": "review-harness-checker-rerun",
+                    "score": 9,
+                    "veto": False,
+                    "date": "2026-05-06",
+                    "blocking_findings": [],
+                    "why_not_10": "Rerun claims to cover the blocking finding.",
+                    "disposition": "Accepted.",
+                    "rerun_of": failed["review_id"],
+                    "fixed_finding_ids": ["F1"],
+                }
+            )
+            wrapper["review_lineage"] = [failed, rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_backdated_rerun)
+
+        self.assert_rejected(packet_path, "date must not precede rerun_of review date")
+
     def test_rejects_duplicate_blocking_finding_ids(self) -> None:
         def add_duplicate_finding_ids(wrapper: dict) -> None:
             failed = copy.deepcopy(wrapper["review_lineage"][0])
@@ -640,6 +682,19 @@ class GovernanceReviewImportTests(unittest.TestCase):
         self.assertIn("fixed_finding_ids must contain only substantive string ids", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_rejects_empty_rerun_container_without_traceback(self) -> None:
+        def add_empty_rerun_container(wrapper: dict) -> None:
+            rerun = copy.deepcopy(wrapper["review_lineage"][0])
+            rerun.update({"review_id": "review-empty-rerun", "rerun_of": [], "fixed_finding_ids": []})
+            wrapper["review_lineage"] = [rerun, *wrapper["review_lineage"][1:]]
+
+        packet_path = self.materialize_packet(mutate_wrapper=add_empty_rerun_container)
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rerun_of must be a review_id string", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_rejects_duplicate_fixed_finding_ids(self) -> None:
         def add_duplicate_fixed_ids(wrapper: dict) -> None:
             failed = copy.deepcopy(wrapper["review_lineage"][0])
@@ -700,6 +755,20 @@ class GovernanceReviewImportTests(unittest.TestCase):
     def test_rejects_generic_false_green_and_broad_not_required_bypass(self) -> None:
         packet_path = self.materialize_packet(
             mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].__setitem__("false_green_risk", "generic")
+        )
+        self.assert_rejected(packet_path, "false_green_risk must be substantive")
+
+        packet_path = self.materialize_packet(
+            mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].update(
+                {"false_green_risk": "none.", "invariant_checked": "checked."}
+            )
+        )
+        self.assert_rejected(packet_path, "false_green_risk must be substantive")
+
+        packet_path = self.materialize_packet(
+            mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].update(
+                {"false_green_risk": "N.A.", "invariant_checked": "N.A."}
+            )
         )
         self.assert_rejected(packet_path, "false_green_risk must be substantive")
 

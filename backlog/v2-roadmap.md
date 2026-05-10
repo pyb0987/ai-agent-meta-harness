@@ -168,8 +168,8 @@ Initial high-risk surfaces:
    `scripts/check-v1-archive-boundary.py` reports that `archive/v1/` is frozen
    historical evidence, allows the initial import, and blocks later archive
    changes unless a maintainer/reviewer waiver records a concrete reason.
-5. After packet validation exists, require new completed active work to point to
-   finalized accepted packets.
+5. After release/pre-commit packet-pointer gating exists, require new completed
+   active work to point to finalized accepted packets.
 
 ## Implementation Plan
 

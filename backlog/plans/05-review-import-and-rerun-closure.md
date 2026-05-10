@@ -419,10 +419,11 @@ binding, not that a removed historical review can be rediscovered independently.
   review artifact bytes must fail.
 - A stable packet with score 9 but no `why_not_10` or no `disposition` must fail.
 - A stable packet with terminal-only review provenance must fail.
-- A stable packet with null, empty, vacuous, or non-scalar `false_green_risk` or
-  `invariant_checked` must fail. Generic but grammatical prose is not accepted
-  as semantically adequate by this plan; it is outside deterministic checker
-  authority and must be handled by review quality or future evaluator evidence.
+- A stable packet with null, empty, punctuation-wrapped vacuous, or non-scalar
+  `false_green_risk` or `invariant_checked` must fail. The deterministic
+  checker rejects only structural/vacuous values; full semantic adequacy of
+  generic but grammatical prose remains review-quality or future evaluator
+  responsibility.
 - A stable packet where a review waiver or downgrade omits `kind: review` for a
   review target must fail.
 - A stable packet where `not required` appears as a broad bypass instead of a

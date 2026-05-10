@@ -239,6 +239,29 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "trace_refs.evolution entries must include an anchor")
 
+    def test_stable_trace_source_refs_require_anchors(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        trace_ref = "trace:.harness/traces/evolution/001-repository-self-application-root.md"
+        changed_path = result["inference"]["changed_paths"][0]
+        packet["AcceptancePacket"]["input"]["source_refs"] = [trace_ref]
+        evidence["source_refs"] = [trace_ref]
+        evidence["resolved_refs"] = [
+            record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+        ]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "input",
+                "relation": "source",
+                "ref": trace_ref,
+                "status": "resolved",
+                "target": changed_path,
+            }
+        )
+
+        self.assert_rejected(packet, "trace source refs must include an anchor")
+
     def test_stable_missing_artifact_file_fails(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         artifact_ref = "file:backlog/fixtures/acceptance-packets/artifacts/missing.log"
@@ -283,6 +306,78 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             packet,
             "stable protected packet search_set_after cannot have both trace evidence and skipped evidence",
         )
+
+    def test_stable_protected_packet_search_set_refs_must_use_search_set_trace(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        bad_ref = "trace:README.md#ai-agent-meta-harness"
+        evidence["trace_refs"]["search_set_before"] = bad_ref
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": bad_ref,
+                "status": "resolved",
+                "target": "README.md#ai-agent-meta-harness",
+            }
+        )
+
+        self.assert_rejected(packet, "stable trace_refs.search_set_before must point to .harness/traces/search-set.md")
+
+    def test_stable_protected_packet_search_set_refs_must_use_allowed_anchor(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        bad_ref = "trace:.harness/traces/search-set.md#harness-search-set"
+        evidence["trace_refs"]["search_set_after"] = bad_ref
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": bad_ref,
+                "status": "resolved",
+                "target": ".harness/traces/search-set.md#harness-search-set",
+            }
+        )
+
+        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
+
+    def test_stable_protected_packet_search_set_distinctness_uses_normalized_ref(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        before_ref = "trace:.harness/traces/./search-set.md#active"
+        after_ref = "trace:.harness/traces/search-set.md#active"
+        evidence["trace_refs"]["search_set_before"] = before_ref
+        evidence["trace_refs"]["search_set_after"] = after_ref
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": before_ref,
+                "status": "resolved",
+                "target": ".harness/traces/./search-set.md#active",
+            }
+        )
+
+        self.assert_rejected(packet, "search_set_before and search_set_after must be distinct")
+
+    def test_stable_evolution_and_failure_traces_must_use_bucket_paths(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        bad_ref = "trace:README.md#ai-agent-meta-harness"
+        evidence["trace_refs"]["evolution"] = [bad_ref]
+        evidence["trace_refs"]["failures"] = [bad_ref]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": bad_ref,
+                "status": "resolved",
+                "target": "README.md#ai-agent-meta-harness",
+            }
+        )
+
+        self.assert_rejected(packet, "stable trace_refs.evolution entries must point to .harness/traces/evolution/ evidence")
+        self.assert_rejected(packet, "stable trace_refs.failures entries must point to .harness/traces/failures/ evidence")
 
     def test_stable_command_base_ref_must_match_boundary_refs(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
@@ -381,6 +476,65 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         )
 
         self.assert_rejected(packet, "claim evidence ref must use file: or trace: scheme")
+
+    def test_stable_claim_evidence_trace_ref_requires_anchor(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        raw_ref = "trace:.harness/traces/evolution/001-repository-self-application-root.md"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "claim-evidence",
+                "ref": raw_ref,
+                "status": "resolved",
+                "target": ".harness/traces/evolution/001-repository-self-application-root.md",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence trace ref must include an anchor")
+
+    def test_stable_claim_evidence_trace_ref_must_use_harness_trace(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        raw_ref = "trace:README.md#ai-agent-meta-harness"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "claim-evidence",
+                "ref": raw_ref,
+                "status": "resolved",
+                "target": "README.md#ai-agent-meta-harness",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence")
+
+    def test_stable_claim_evidence_trace_ref_must_not_use_search_set_index(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        raw_ref = "trace:.harness/traces/search-set.md#active"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+
+        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
+
+    def test_stable_claim_evidence_normalizes_search_set_trace_path(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        raw_ref = "trace:.harness/traces/./search-set.md#active"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "claim-evidence",
+                "ref": raw_ref,
+                "status": "resolved",
+                "target": ".harness/traces/./search-set.md#active",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
 
     def test_stable_claim_evidence_rejects_source_file_as_raw_evidence(self) -> None:
         packet = load_fixture("finalized-routine.yml")

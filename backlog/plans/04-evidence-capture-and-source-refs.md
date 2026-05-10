@@ -118,7 +118,10 @@ Allowed source-ref forms:
 - `trace:<repo-path>#<anchor>`
 - `terminal:<id>` for current Plan 03/04 local terminal placeholders in valid
   non-stable packets only
-- `git:<ref>` or `git:<ref>:<path>` when git can resolve the ref
+- `git:<ref>` or `git:<ref>:<path>` when git can resolve the ref in non-active
+  fixture contexts. Active base-ref stable changed-path refs are narrower:
+  they use commit-pinned `git:<full-commit-sha>:<path>` refs, with `HEAD` for
+  additions/modifications and the comparison-side commit for deletions.
 
 Unsupported or missing refs fail stable handoff.
 

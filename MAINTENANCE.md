@@ -16,14 +16,16 @@ target.
 AI Agent Meta-Harness v2 replaces human-authored maintenance gates with
 generated acceptance packets. The active roadmap is `backlog/v2-roadmap.md`.
 
-The v2 maintenance model is:
+The v2 maintenance target model is:
 
 1. Humans provide small intent and judgment inputs.
 2. The harness infers change class, impact, required evidence, required review,
    and eligibility from git state, path/content rules, traces, and artifacts.
 3. The harness stores the result as an `AcceptancePacket`.
-4. Stable handoff is accepted only from packet-backed base-ref verification;
-   staged verification is preflight evidence, not active stable handoff.
+4. Stable handoff is accepted by the packet checker only from packet-backed
+   base-ref verification; staged verification is preflight evidence, not active
+   stable handoff. Release/pre-commit packet-pointer gating is still Plan 08
+   transition work.
 
 The main v2 product requirement is simplicity: reduce the user interface and
 the mental model, not the methodology evidence. If a maintenance change makes
@@ -157,8 +159,9 @@ During the v2 transition, keep the active operator model to four boundaries:
   archive/trusted-runner provenance responsibility for Plan 07.
 - generated artifact refs use explicit schemes. Stable artifact and probe
   evidence refs use `file:`, trace refs use `trace:`, and active base-ref
-  stable changed-path source refs use HEAD-pinned `git:<full-commit-sha>:<path>`
-  refs. Broader source refs are allowed only for non-active fixtures or later
+  stable changed-path source refs use commit-pinned `git:<full-commit-sha>:<path>`
+  refs: `HEAD` for additions/modifications and the comparison side for deleted
+  paths. Broader source refs are allowed only for non-active fixtures or later
   archive policy decisions.
 
 ## Verification During Transition
@@ -298,7 +301,8 @@ evidence, not actively revalidated by legacy v1 gates. The initial import is
 allowed while `archive/v1/` is absent from `HEAD`; later changes fail unless a
 maintainer/reviewer waiver is supplied with a concrete reason.
 
-After the v2 checker exists, release and pre-commit should prefer packet checks:
+After Plan 08 release/pre-commit integration exists, release and pre-commit
+should prefer packet checks:
 
 ```bash
 governance check --packet <packet>
