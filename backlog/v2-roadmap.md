@@ -23,7 +23,7 @@ CLI surface:
 ```bash
 governance start --intent "..."
 governance finalize --packet <packet> --base-ref <comparison-ref>
-governance check --packet <packet>
+governance check --packet <packet> --require-stable
 ```
 
 Stable handoff should use `--base-ref`. `--staged` is a preflight mode, and
@@ -112,9 +112,9 @@ v2 must preserve the Meta-Harness essentials:
 Create one checker command:
 
 ```bash
-python3 scripts/check-governance-acceptance.py start --output <packet>
+python3 scripts/check-governance-acceptance.py start --intent "..." --output <packet>
 python3 scripts/check-governance-acceptance.py finalize --packet <packet> --base-ref <comparison-ref>
-python3 scripts/check-governance-acceptance.py check --packet <packet>
+python3 scripts/check-governance-acceptance.py check --packet <packet> --require-stable
 ```
 
 Required behavior:
@@ -226,8 +226,9 @@ Initial high-risk surfaces:
 Validate v2 using the method it introduces:
 
 - Use the current packet lifecycle for active v2 implementation work:
-  `governance start`, `governance finalize --base-ref`, and
-  `governance check --require-stable`.
+  `governance start --intent "..."`,
+  `governance finalize --packet <packet> --base-ref <comparison-ref>`, and
+  `governance check --packet <packet> --require-stable`.
 - Treat older bootstrap transition notes as archived compatibility evidence,
   not as the current implementation path.
 - Preserve before/after search-set evidence where relevant.

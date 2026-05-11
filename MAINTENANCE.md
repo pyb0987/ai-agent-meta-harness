@@ -70,7 +70,7 @@ Target commands:
 ```bash
 governance start --intent "..." [--exception ...] [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
-governance check --packet <packet>
+governance check --packet <packet> --require-stable
 ```
 
 Lifecycle rules:
@@ -314,7 +314,7 @@ After Plan 08 release/pre-commit integration exists, release and pre-commit
 should prefer packet checks:
 
 ```bash
-governance check --packet <packet>
+governance check --packet <packet> --require-stable
 governance finalize --packet <packet> --staged
 governance finalize --packet <packet> --base-ref origin/main
 ```

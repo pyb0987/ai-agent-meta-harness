@@ -14,7 +14,7 @@
     "required_critics": [
       "advisory-critic"
     ],
-    "reported_final_verdict": "PASS",
+    "reported_final_verdict": "ADVISORY_PASS",
     "derived_verdict": null,
     "derivation_errors": [],
     "critics": [

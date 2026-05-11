@@ -26,6 +26,27 @@ ORACLE_TYPES = {"structural", "semantic", "probe-replay"}
 SCORING_MODES = {"validator-only", "contract-only"}
 ASSERTION_SEVERITIES = {"acceptance", "advisory", "blocking", "warning"}
 VACUOUS_SEMANTIC_VALUES = {"", "none", "na", "ok", "checked", "generic", "notapplicable", "pass"}
+SEALED_ORACLE_FIELDS = {
+    "expected_derived_verdict",
+    "expected_errors",
+    "false_green_target",
+    "forbidden_errors",
+    "oracle_assertions",
+    "oracle_type",
+    "primary_invariant",
+    "scoring_mode",
+    "semantic_oracle",
+}
+ORACLE_ASSERTION_FIELDS = {
+    "acceptable_disposition",
+    "forbidden_shortcuts",
+    "id",
+    "invariant_id",
+    "kind",
+    "required_evidence_refs",
+    "severity",
+    "target_path",
+}
 SEMANTIC_ORACLE_FIELDS = {
     "accepted_disposition",
     "expected_false_premise",
@@ -162,6 +183,46 @@ def sealed_oracle_public_terms(oracle: dict[str, Any]) -> tuple[set[str], set[st
     return substring_terms, exact_terms
 
 
+def sealed_oracle_forbidden_terms(oracle: dict[str, Any]) -> set[str]:
+    terms: set[str] = set()
+    for source, value in recursive_strings(oracle, "sealed_oracle"):
+        leaf = source.rsplit(".", 1)[-1].split("[", 1)[0]
+        if leaf != "forbidden_oracle_terms":
+            continue
+        token = canonical_public_token(value)
+        if token:
+            terms.add(token)
+    return terms
+
+
+def public_string_leakage_errors(
+    scenario_path: Path,
+    value: str,
+    *,
+    source: str,
+    forbidden_substrings: set[str],
+    forbidden_exact: set[str],
+    expected_generated_ref: str | None = None,
+) -> list[str]:
+    failures: list[str] = []
+    normalized_value = canonical_public_token(value)
+    for term in forbidden_substrings:
+        if term and term in normalized_value:
+            failures.append(f"{scenario_path}: {source} must not contain sealed oracle term: {term}")
+    for term in forbidden_exact:
+        if term and term == normalized_value:
+            failures.append(f"{scenario_path}: {source} must not copy sealed oracle value: {term}")
+    for embedded_error in embedded_repo_ref_errors(value, source=source):
+        failures.append(f"{scenario_path}: {embedded_error}")
+    for generated_error in embedded_generated_ref_errors(
+        value,
+        source=source,
+        expected_result_ref=expected_generated_ref,
+    ):
+        failures.append(f"{scenario_path}: {generated_error}")
+    return failures
+
+
 def public_text_leakage_errors(scenario_path: Path, public_input: dict[str, Any], oracle: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     forbidden_substrings, forbidden_exact = sealed_oracle_public_terms(oracle)
@@ -169,21 +230,16 @@ def public_text_leakage_errors(scenario_path: Path, public_input: dict[str, Any]
         value = public_input.get(field)
         if not isinstance(value, str):
             continue
-        normalized_value = canonical_public_token(value)
-        for term in forbidden_substrings:
-            if term and term in normalized_value:
-                failures.append(f"{scenario_path}: public_input.{field} must not contain sealed oracle term: {term}")
-        for term in forbidden_exact:
-            if term and term == normalized_value:
-                failures.append(f"{scenario_path}: public_input.{field} must not copy sealed oracle value: {term}")
-        for embedded_error in embedded_repo_ref_errors(value, source=f"public_input.{field}"):
-            failures.append(f"{scenario_path}: {embedded_error}")
-        for generated_error in embedded_generated_ref_errors(
-            value,
-            source=f"public_input.{field}",
-            expected_result_ref=None,
-        ):
-            failures.append(f"{scenario_path}: {generated_error}")
+        failures.extend(
+            public_string_leakage_errors(
+                scenario_path,
+                value,
+                source=f"public_input.{field}",
+                forbidden_substrings=forbidden_substrings,
+                forbidden_exact=forbidden_exact,
+                expected_generated_ref=None,
+            )
+        )
     return failures
 
 
@@ -376,6 +432,37 @@ def get_pointer(document: Any, pointer: str) -> Any:
     return current
 
 
+def pointer_exists(document: Any, pointer: str) -> bool:
+    if pointer == "/":
+        return True
+    try:
+        tokens = pointer_tokens(pointer)
+    except ScenarioError:
+        return False
+
+    def walk(current: Any, remaining: list[str]) -> bool:
+        if not remaining:
+            return True
+        token, rest = remaining[0], remaining[1:]
+        if token == "*":
+            if isinstance(current, list):
+                return any(walk(item, rest) for item in current)
+            if isinstance(current, dict):
+                return any(walk(item, rest) for item in current.values())
+            return False
+        if isinstance(current, dict):
+            return token in current and walk(current[token], rest)
+        if isinstance(current, list):
+            try:
+                index = int(token)
+            except ValueError:
+                return False
+            return 0 <= index < len(current) and walk(current[index], rest)
+        return False
+
+    return walk(document, tokens)
+
+
 def parent_for(document: Any, pointer: str) -> tuple[Any, str]:
     tokens = pointer_tokens(pointer)
     if not tokens:
@@ -475,12 +562,18 @@ def validate_oracle_shape(
     scenario_path: Path,
     scenario: dict[str, Any],
     *,
+    result: dict[str, Any] | None = None,
     expected_result_ref: str | None = None,
     expected_result_digest: str | None = None,
 ) -> list[str]:
     failures: list[str] = []
     public_input = scenario["public_input"]
     oracle = scenario["sealed_oracle"]
+    extra_oracle_fields = sorted_key_names(
+        key for key in oracle if not isinstance(key, str) or key not in SEALED_ORACLE_FIELDS
+    )
+    if extra_oracle_fields:
+        failures.append(f"{scenario_path}: sealed_oracle extra fields are not allowed: {extra_oracle_fields}")
     extra_public_fields = sorted_key_names(
         key for key in public_input if not isinstance(key, str) or key not in PUBLIC_INPUT_FIELDS
     )
@@ -508,6 +601,7 @@ def validate_oracle_shape(
                     scenario_path,
                     artifact,
                     source=f"public_input.input_artifacts[{index}]",
+                    oracle=oracle,
                     expected_result_ref=expected_result_ref,
                     expected_result_digest=expected_result_digest,
                 )
@@ -546,6 +640,13 @@ def validate_oracle_shape(
         if not isinstance(assertion, dict):
             failures.append(f"{scenario_path}: oracle_assertions[{index}] must be a mapping")
             continue
+        extra_assertion_fields = sorted_key_names(
+            key for key in assertion if not isinstance(key, str) or key not in ORACLE_ASSERTION_FIELDS
+        )
+        if extra_assertion_fields:
+            failures.append(
+                f"{scenario_path}: oracle_assertions[{index}] extra fields are not allowed: {extra_assertion_fields}"
+            )
         for field in (
             "id",
             "kind",
@@ -563,6 +664,8 @@ def validate_oracle_shape(
                 failures.append(f"{scenario_path}: oracle_assertions[{index}].{field} must be a non-empty string")
         if "target_path" in assertion and isinstance(assertion.get("target_path"), str) and not assertion["target_path"].startswith("/"):
             failures.append(f"{scenario_path}: oracle_assertions[{index}].target_path must be a JSON pointer")
+        elif result is not None and isinstance(assertion.get("target_path"), str) and not pointer_exists(result, assertion["target_path"]):
+            failures.append(f"{scenario_path}: oracle_assertions[{index}].target_path must resolve against the mutated result")
         if "severity" in assertion and (
             not isinstance(assertion["severity"], str) or assertion["severity"] not in ASSERTION_SEVERITIES
         ):
@@ -593,9 +696,9 @@ def validate_oracle_shape(
     semantic_oracle_present = "semantic_oracle" in oracle
     if semantic_oracle_present and oracle_type != "semantic":
         failures.append(f"{scenario_path}: sealed_oracle.semantic_oracle requires oracle_type: semantic")
-    if oracle.get("scoring_mode") == "contract-only":
+    if oracle_type == "semantic" or oracle.get("scoring_mode") == "contract-only":
         if "semantic_oracle" not in oracle:
-            failures.append(f"{scenario_path}: contract-only oracle must include semantic_oracle")
+            failures.append(f"{scenario_path}: semantic oracle must include semantic_oracle")
         elif not isinstance(oracle.get("semantic_oracle"), dict) or not oracle.get("semantic_oracle"):
             failures.append(f"{scenario_path}: sealed_oracle.semantic_oracle must be a non-empty mapping")
         else:
@@ -704,6 +807,7 @@ def validate_result_fixture_refs(
                             scenario_path,
                             ref,
                             source=f"critics[{critic_index}].probe_evidence_refs[{ref_index}]",
+                            oracle=scenario["sealed_oracle"],
                             expected_result_ref=expected_result_ref,
                             expected_result_digest=expected_result_digest,
                         )
@@ -716,19 +820,54 @@ def validate_probe_transcript_public_metadata(
     ref: str,
     *,
     source: str,
-    expected_result_ref: str | None,
-    expected_result_digest: str | None,
+    oracle: dict[str, Any] | None = None,
+    expected_result_ref: str | None = None,
+    expected_result_digest: str | None = None,
 ) -> list[str]:
     failures: list[str] = []
     rel_path = repo_relative_file(ref)
     if rel_path is None:
         return failures
+    artifact_forbidden_terms = sealed_oracle_forbidden_terms(oracle or {})
     try:
-        loaded = yaml.safe_load((ROOT / rel_path).read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError):
+        raw_text = (ROOT / rel_path).read_text(encoding="utf-8")
+    except OSError:
         return failures
+    failures.extend(
+        public_string_leakage_errors(
+            scenario_path,
+            raw_text,
+            source=source,
+            forbidden_substrings=artifact_forbidden_terms,
+            forbidden_exact=set(),
+            expected_generated_ref=expected_result_ref,
+        )
+    )
+    try:
+        loaded = yaml.safe_load(raw_text)
+    except yaml.YAMLError:
+        return failures
+    forbidden_terms = sealed_oracle_forbidden_terms(oracle or {})
     if not isinstance(loaded, dict) or "ProbeTranscript" not in loaded:
         return failures
+    for nested_source, text in recursive_strings(loaded, source):
+        for generated_error in embedded_generated_ref_errors(
+            text,
+            source=nested_source,
+            expected_result_ref=expected_result_ref,
+        ):
+            failures.append(f"{scenario_path}: {generated_error}")
+        sealed_error = sealed_benchmark_file_error(text, source=nested_source)
+        if sealed_error:
+            failures.append(f"{scenario_path}: {sealed_error}")
+        for embedded_error in embedded_repo_ref_errors(text, source=nested_source):
+            failures.append(f"{scenario_path}: {embedded_error}")
+        for term in forbidden_terms:
+            if term and term in canonical_public_token(text):
+                failures.append(f"{scenario_path}: {nested_source} must not contain sealed oracle term: {term}")
+        if ".source_refs[" in nested_source:
+            for ref_error in public_fixture_ref_errors(text, source=nested_source):
+                failures.append(f"{scenario_path}: {ref_error}")
     transcript = loaded["ProbeTranscript"]
     if not isinstance(transcript, dict):
         return failures
@@ -737,6 +876,7 @@ def validate_probe_transcript_public_metadata(
             scenario_path,
             transcript,
             source=f"{source}.ProbeTranscript",
+            oracle=oracle,
             expected_result_ref=expected_result_ref,
             expected_result_digest=expected_result_digest,
         )
@@ -749,12 +889,14 @@ def validate_probe_transcript_public_fields(
     fields: Any,
     *,
     source: str,
-    expected_result_ref: str | None,
-    expected_result_digest: str | None,
+    oracle: dict[str, Any] | None = None,
+    expected_result_ref: str | None = None,
+    expected_result_digest: str | None = None,
 ) -> list[str]:
     failures: list[str] = []
     if not isinstance(fields, dict):
         return failures
+    forbidden_terms = sealed_oracle_forbidden_terms(oracle or {})
     for nested_source, text in recursive_strings(fields, source):
         for generated_error in embedded_generated_ref_errors(
             text,
@@ -767,6 +909,9 @@ def validate_probe_transcript_public_fields(
             failures.append(f"{scenario_path}: {sealed_error}")
         for embedded_error in embedded_repo_ref_errors(text, source=nested_source):
             failures.append(f"{scenario_path}: {embedded_error}")
+        for term in forbidden_terms:
+            if term and term in canonical_public_token(text):
+                failures.append(f"{scenario_path}: {nested_source} must not contain sealed oracle term: {term}")
         if ".source_refs[" in nested_source:
             for ref_error in public_fixture_ref_errors(text, source=nested_source):
                 failures.append(f"{scenario_path}: {ref_error}")
@@ -811,6 +956,7 @@ def check_scenario(path: Path, *, replay_probe_commands: bool = False) -> tuple[
     failures = validate_oracle_shape(
         path,
         scenario,
+        result=result,
         expected_result_ref=result_ref,
         expected_result_digest=result_digest,
     )

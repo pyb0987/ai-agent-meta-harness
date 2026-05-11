@@ -118,6 +118,18 @@ class MultiReviewResultCliTests(unittest.TestCase):
 
         self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be a non-empty string")
 
+    def test_rejects_contradictory_reported_final_verdict(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["reported_final_verdict"] = "VETO"
+
+        self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be an acceptance verdict")
+
+    def test_rejects_advisory_reported_verdict_for_governance_result(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["reported_final_verdict"] = "ADVISORY_PASS"
+
+        self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be PASS for governance review_mode")
+
     def test_rejects_mixed_mapping_keys_without_traceback(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         result["MultiReviewResult"][1] = "extra"

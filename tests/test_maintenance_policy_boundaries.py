@@ -30,7 +30,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "Release/pre-commit packet-pointer gating is still Plan 08 transition work",
             "governance start --intent",
             "governance finalize --packet <packet> --staged|--base-ref REF|--worktree",
-            "governance check --packet <packet>",
+            "governance check --packet <packet> --require-stable",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)

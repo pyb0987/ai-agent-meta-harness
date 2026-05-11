@@ -3,7 +3,7 @@ ProbeTranscript:
   probe_command: python3 scripts/check-multi-review-result.py --result backlog/fixtures/multi-review/advisory-pass.json
   probe_exit_code: 0
   result_ref: backlog/fixtures/multi-review/advisory-pass.json
-  result_digest: 253db40d8367d3bf8ad2a4effd63733baa5ff8e972ae432926698a42260d39d4
+  result_digest: 9581ec8bcfbf83fcab73534636d87c913cb74ea8421f2d2d8c5bfcd21f1b74d8
   packet_ref: null
   packet_sha256: null
   source_refs:

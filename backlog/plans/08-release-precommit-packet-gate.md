@@ -26,7 +26,7 @@ verification to packet-backed stable acceptance.
 
 - Release and pre-commit gates fail when a required active packet pointer is
   absent.
-- Release and pre-commit gates fail when the pointed packet is not finalized,
+- Release and pre-commit gates fail unless the pointed packet is finalized,
   base-ref mode, and stable eligible.
 - Legacy verification commands remain runnable for compatibility but are not
   described as sufficient stable handoff.

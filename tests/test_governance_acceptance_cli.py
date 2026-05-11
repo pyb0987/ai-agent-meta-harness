@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
@@ -45,6 +46,19 @@ def init_repo(root: Path) -> None:
     (root / "docs" / "note.md").write_text("initial\n", encoding="utf-8")
     git(root, "add", "-A")
     git(root, "commit", "-m", "initial")
+
+
+def load_checker():
+    spec = importlib.util.spec_from_file_location("check_governance_acceptance", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def provenance_marker(record: dict) -> str:
+    checker = load_checker()
+    return f"provenance_record_sha256:{checker.provenance_record_digest(record)}"
 
 
 class GovernanceAcceptanceCliTests(unittest.TestCase):
@@ -871,8 +885,10 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("required review has multiple closures", result.stderr)
 
     def test_check_accepts_targeted_skipped_required_evidence_closure(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory(dir=ROOT) as repo_tmp:
             packet_path = Path(tmpdir) / "packet.yml"
+            provenance_path = Path(repo_tmp) / "skip-provenance.md"
+            provenance_ref = f"file:{provenance_path.relative_to(ROOT).as_posix()}"
             packet = yaml.safe_load((FIXTURE_ROOT / "finalized-routine.yml").read_text(encoding="utf-8"))
             packet["AcceptancePacket"]["meta"]["mode"] = "base-ref"
             packet["AcceptancePacket"]["input"]["source_refs"] = []
@@ -884,23 +900,23 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             evidence["evaluator_boundary"]["commands"] = ["git diff --check HEAD...HEAD"]
             evidence["source_refs"] = []
             evidence["command_results"] = []
-            evidence["skipped"] = [
-                {
-                    "evidence": "git diff --check HEAD...HEAD",
-                    "actor": "maintainer",
-                    "role": "maintainer",
-                    "date": "2026-05-06",
-                    "reason": "targeted skip regression",
-                    "source_ref": "file:tests/test_governance_acceptance_cli.py",
-                }
-            ]
+            skipped_record = {
+                "evidence": "git diff --check HEAD...HEAD",
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "targeted skip regression",
+                "source_ref": provenance_ref,
+            }
+            provenance_path.write_text(f"{provenance_marker(skipped_record)}\n", encoding="utf-8")
+            evidence["skipped"] = [skipped_record]
             evidence["resolved_refs"].append(
                 {
                     "origin": "generated",
                     "relation": "waiver-provenance",
-                    "ref": "file:tests/test_governance_acceptance_cli.py",
+                    "ref": provenance_ref,
                     "status": "resolved",
-                    "target": "tests/test_governance_acceptance_cli.py",
+                    "target": provenance_path.relative_to(ROOT).as_posix(),
                 }
             )
             packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")

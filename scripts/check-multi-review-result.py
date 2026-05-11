@@ -82,6 +82,7 @@ VALIDATION_LAYERS = {
 }
 PRIMARY_VALIDATION_LAYERS = {"structured-validator", "raw-artifact", "derived-verdict"}
 DERIVED_VERDICTS = {"PASS", "ADVISORY_PASS", "VETO", "INCOMPLETE", "FALLBACK_NONINDEPENDENT"}
+REPORTED_ACCEPTANCE_VERDICTS = {"PASS", "ADVISORY_PASS"}
 TARGET_FIELDS = {"summary", "source_refs"}
 PROBE_TRANSCRIPT_FIELDS = {
     "schema_version",
@@ -247,8 +248,23 @@ def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
     if not isinstance(result.get("review_id"), str) or not is_substantive(result.get("review_id")):
         error(errors, "MultiReviewResult.review_id", "must be a substantive string")
     reported_final_verdict = result.get("reported_final_verdict")
+    reported_verdict = (
+        reported_final_verdict.strip().upper().replace("-", "_").replace(" ", "_")
+        if isinstance(reported_final_verdict, str)
+        else None
+    )
     if not isinstance(reported_final_verdict, str) or not reported_final_verdict.strip():
         error(errors, "MultiReviewResult.reported_final_verdict", "must be a non-empty string")
+    elif reported_verdict not in REPORTED_ACCEPTANCE_VERDICTS:
+        error(
+            errors,
+            "MultiReviewResult.reported_final_verdict",
+            f"must be an acceptance verdict: {sorted(REPORTED_ACCEPTANCE_VERDICTS)}",
+        )
+    elif result.get("review_mode") == "governance" and reported_verdict != "PASS":
+        error(errors, "MultiReviewResult.reported_final_verdict", "must be PASS for governance review_mode")
+    elif result.get("review_mode") == "advisory" and reported_verdict != "ADVISORY_PASS":
+        error(errors, "MultiReviewResult.reported_final_verdict", "must be ADVISORY_PASS for advisory review_mode")
     if not isinstance(result.get("lifecycle"), str) or result.get("lifecycle") not in LIFECYCLES:
         error(errors, "MultiReviewResult.lifecycle", "must be draft or finalized")
     if not isinstance(result.get("review_mode"), str) or result.get("review_mode") not in REVIEW_MODES:

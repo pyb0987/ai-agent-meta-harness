@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the repository stable-handoff verification gate."""
+"""Run broad legacy release verification until Plan 08 packet gates exist."""
 
 from __future__ import annotations
 

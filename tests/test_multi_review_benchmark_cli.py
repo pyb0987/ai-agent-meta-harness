@@ -701,6 +701,62 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("target_path must be a JSON pointer", completed.stderr)
 
+    def test_rejects_oracle_target_path_that_does_not_resolve(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "critic_independence_and_redundancy"
+            / "ci-duplicate-scope"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["sealed_oracle"]["oracle_assertions"][0]["target_path"] = "/does/not/exist"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("target_path must resolve against the mutated result", completed.stderr)
+
+    def test_rejects_extra_oracle_assertion_fields(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "critic_independence_and_redundancy"
+            / "ci-duplicate-scope"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["sealed_oracle"]["oracle_assertions"][0]["unexpected_result_ref"] = (
+            "benchmark-generated:leaked#mutated-result"
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("oracle_assertions[0] extra fields are not allowed", completed.stderr)
+
+    def test_rejects_top_level_forbidden_oracle_terms(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "critic_independence_and_redundancy"
+            / "ci-duplicate-scope"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["sealed_oracle"]["forbidden_oracle_terms"] = ["secretmarker"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("sealed_oracle extra fields are not allowed", completed.stderr)
+
     def test_rejects_untracked_base_result(self) -> None:
         source = (
             SCENARIOS_ROOT
@@ -762,6 +818,26 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
 
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("sealed_oracle.semantic_oracle must be a non-empty mapping", completed.stderr)
+
+    def test_rejects_semantic_oracle_type_without_contract(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "evidence_relevance_and_source_support"
+            / "er-existing-unrelated-file"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["sealed_oracle"]["oracle_type"] = "semantic"
+        scenario["sealed_oracle"]["scoring_mode"] = "validator-only"
+        scenario["sealed_oracle"].pop("semantic_oracle", None)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("semantic oracle must include semantic_oracle", completed.stderr)
 
     def test_rejects_semantic_oracle_on_structural_oracle(self) -> None:
         source = (
@@ -1098,6 +1174,73 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
             any("metadata.note benchmark-generated ref must match" in failure for failure in failures),
             failures,
         )
+
+    def test_rejects_sealed_ref_in_probe_transcript_sibling_fields(self) -> None:
+        checker = load_benchmark_checker()
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            transcript = Path(tmpdir) / "public-transcript.yml"
+            transcript.write_text(
+                yaml.safe_dump(
+                    {
+                        "ProbeTranscript": {
+                            "result_ref": "benchmark-generated:scenario#mutated-result",
+                            "result_digest": "1" * 64,
+                        },
+                        "note": (
+                            "benchmarks/multi-review/scenarios/critic_independence_and_redundancy/"
+                            "ci-duplicate-scope/scenario.yml"
+                        ),
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            ref = transcript.relative_to(ROOT).as_posix()
+            failures = checker.validate_probe_transcript_public_metadata(
+                Path("scenario.yml"),
+                ref,
+                source="public_input.input_artifacts[0]",
+                oracle={},
+                expected_result_ref="benchmark-generated:scenario#mutated-result",
+                expected_result_digest="1" * 64,
+            )
+
+        self.assertTrue(any("cannot point to scenario files with sealed_oracle data" in failure for failure in failures), failures)
+
+    def test_rejects_forbidden_oracle_term_in_ordinary_public_artifact(self) -> None:
+        checker = load_benchmark_checker()
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmpdir:
+            artifact = Path(tmpdir) / "public-note.md"
+            artifact.write_text("This model-visible artifact says secretmarker.\n", encoding="utf-8")
+            ref = artifact.relative_to(ROOT).as_posix()
+            failures = checker.validate_probe_transcript_public_metadata(
+                Path("scenario.yml"),
+                ref,
+                source="public_input.input_artifacts[0]",
+                oracle={"semantic_oracle": {"forbidden_oracle_terms": ["secretmarker"]}},
+                expected_result_ref="benchmark-generated:scenario#mutated-result",
+                expected_result_digest="1" * 64,
+            )
+
+        self.assertTrue(any("must not contain sealed oracle term" in failure for failure in failures), failures)
+
+    def test_rejects_forbidden_oracle_term_in_public_transcript_output(self) -> None:
+        checker = load_benchmark_checker()
+
+        failures = checker.validate_probe_transcript_public_fields(
+            Path("scenario.yml"),
+            {
+                "result_ref": "benchmark-generated:scenario#mutated-result",
+                "result_digest": "1" * 64,
+                "stdout": "the transcript mentions secretmarker",
+            },
+            source="public_input.input_artifacts[0].ProbeTranscript",
+            oracle={"semantic_oracle": {"forbidden_oracle_terms": ["secretmarker"]}},
+            expected_result_ref="benchmark-generated:scenario#mutated-result",
+            expected_result_digest="1" * 64,
+        )
+
+        self.assertTrue(any("stdout must not contain sealed oracle term" in failure for failure in failures), failures)
 
     def test_rejects_public_transcript_result_digest_drift(self) -> None:
         self.assert_public_transcript_field_rejected(

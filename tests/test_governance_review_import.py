@@ -235,6 +235,25 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_rejects_noncanonical_trace_refs_in_review_lineage(self) -> None:
+        def mutate_wrapper(wrapper: dict) -> None:
+            for review in wrapper["review_lineage"]:
+                review["source_refs"] = ["trace:.harness/traces/./search-set.md#active"]
+
+        packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
+
+        self.assert_rejected(packet_path, "trace refs must be canonical")
+
+    def test_rejects_malformed_review_lineage_id_without_traceback(self) -> None:
+        packet_path = self.materialize_packet(
+            mutate_wrapper=lambda wrapper: wrapper["review_lineage"][0].__setitem__("review_id", ["bad-id"])
+        )
+        result = run_cli("check", "--packet", str(packet_path), "--require-stable")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review_id is required", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_review_target_digest_is_order_insensitive_but_target_sensitive(self) -> None:
         packet_doc = load_yaml(FIXTURE_ROOT / "finalized-harness-affecting.yml")
         packet = packet_doc["AcceptancePacket"]
@@ -334,6 +353,30 @@ class GovernanceReviewImportTests(unittest.TestCase):
                     ]
 
         packet_path = self.materialize_packet(mutate_after_lineage_marker=remove_lineage_marker)
+
+        self.assert_rejected(packet_path, "review_lineage digest must be represented by a passing required MultiReviewResult critic")
+
+    def test_rejects_lineage_digest_only_in_unlisted_required_critic(self) -> None:
+        def move_marker_to_unlisted_critic(wrapper: dict) -> None:
+            marker = ""
+            for critic in wrapper["MultiReviewResult"]["critics"]:
+                evidence = critic.get("evidence")
+                if not isinstance(evidence, list):
+                    continue
+                kept = []
+                for item in evidence:
+                    if isinstance(item, str) and item.startswith("review_lineage_sha256:"):
+                        marker = item
+                    else:
+                        kept.append(item)
+                critic["evidence"] = kept
+            extra = copy.deepcopy(wrapper["MultiReviewResult"]["critics"][0])
+            extra["critic_id"] = "unlisted-lineage-reviewer"
+            extra["required"] = True
+            extra["evidence"] = [marker]
+            wrapper["MultiReviewResult"]["critics"].append(extra)
+
+        packet_path = self.materialize_packet(mutate_after_lineage_marker=move_marker_to_unlisted_critic)
 
         self.assert_rejected(packet_path, "review_lineage digest must be represented by a passing required MultiReviewResult critic")
 

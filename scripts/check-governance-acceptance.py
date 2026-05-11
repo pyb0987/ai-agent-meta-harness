@@ -302,8 +302,9 @@ def canonical_trace_ref(ref: str) -> str | None:
 
 
 def is_search_set_trace_ref(ref: str) -> bool:
+    canonical = canonical_trace_ref(ref)
     return (
-        trace_ref_has_anchor(ref)
+        canonical == ref
         and trace_ref_path(ref) == ".harness/traces/search-set.md"
         and trace_ref_anchor(ref) in SEARCH_SET_TRACE_ANCHORS
     )
@@ -314,8 +315,9 @@ def is_search_set_trace_path_ref(ref: str) -> bool:
 
 
 def is_harness_trace_ref(ref: str) -> bool:
+    canonical = canonical_trace_ref(ref)
     path = trace_ref_path(ref)
-    return bool(trace_ref_has_anchor(ref) and path and path.startswith(".harness/traces/"))
+    return bool(canonical == ref and path and path.startswith(".harness/traces/"))
 
 
 def is_claim_evidence_trace_ref(ref: str) -> bool:
@@ -323,9 +325,10 @@ def is_claim_evidence_trace_ref(ref: str) -> bool:
 
 
 def is_bucket_trace_ref(ref: str, bucket_name: str) -> bool:
+    canonical = canonical_trace_ref(ref)
     path = trace_ref_path(ref)
     return bool(
-        trace_ref_has_anchor(ref)
+        canonical == ref
         and path
         and path.startswith(f".harness/traces/{bucket_name}/")
     )
@@ -1141,13 +1144,16 @@ def review_lineage_digest(lineage: list[dict]) -> str:
     return hashlib.sha256(canonical_json_bytes(lineage)).hexdigest()
 
 
-def passing_required_critic_evidence(multi_review: dict) -> set[str]:
+def passing_required_critic_evidence(multi_review: dict, required_ids: set[str]) -> set[str]:
     evidence: set[str] = set()
     critics = multi_review.get("critics", [])
     if not isinstance(critics, list):
         return evidence
     for critic in critics:
         if not isinstance(critic, dict):
+            continue
+        critic_id = critic.get("critic_id")
+        if not isinstance(critic_id, str) or critic_id not in required_ids:
             continue
         if critic.get("required") is not True:
             continue
@@ -1332,7 +1338,13 @@ def derive_multi_review_result(
 
 
 def review_lineage_ids(lineage: list[dict]) -> list[str]:
-    return [str(record.get("review_id")) for record in lineage if isinstance(record, dict) and record.get("review_id")]
+    return [
+        record["review_id"]
+        for record in lineage
+        if isinstance(record, dict)
+        and isinstance(record.get("review_id"), str)
+        and record["review_id"]
+    ]
 
 
 def finding_ids(record: dict) -> set[str]:
@@ -1354,7 +1366,10 @@ def review_is_blocking(record: dict) -> bool:
 
 
 def review_is_open_passing(record: dict, closed_blocking_ids: set[str]) -> bool:
-    if record.get("review_id") in closed_blocking_ids:
+    review_id = record.get("review_id")
+    if not isinstance(review_id, str) or not review_id:
+        return False
+    if review_id in closed_blocking_ids:
         return False
     score = record.get("score")
     return isinstance(score, (int, float)) and score >= 9 and record.get("veto") is False and not record.get("blocking_findings")
@@ -1408,6 +1423,8 @@ def validate_review_lineage_record(record: object, *, source: str, import_source
                 errors.append(f"{source}: source_refs[{index}] must be a non-empty string")
             elif ref.startswith("trace:") and not trace_ref_has_anchor(ref):
                 errors.append(f"{source}: source_refs[{index}] trace refs must include an anchor")
+            elif ref.startswith("trace:") and canonical_trace_ref(ref) != ref:
+                errors.append(f"{source}: source_refs[{index}] trace refs must be canonical: {ref}")
             elif resolve_ref(root, ref) is None:
                 errors.append(f"{source}: source_refs[{index}] does not resolve: {ref}")
     if not isinstance(record.get("blocking_findings"), list):
@@ -1513,6 +1530,8 @@ def validate_review_lineage_closure(lineage: list[dict], *, source: str) -> tupl
         if not isinstance(record, dict):
             continue
         review_id = record.get("review_id")
+        if not isinstance(review_id, str) or not review_id:
+            continue
         if review_is_blocking(record) and review_id not in closed_blocking_ids:
             errors.append(f"{source}: unclosed blocking review: {review_id}")
 
@@ -1640,8 +1659,14 @@ def validate_review_imports(
             errors.append(f"{source}: review_ids must contain only strings")
         elif sorted(review_ids) != sorted(ids):
             errors.append(f"{source}: review_ids must match imported review_lineage ids")
+        required_critics = multi_review.get("required_critics") if isinstance(multi_review, dict) else None
+        required_ids = {
+            critic_id
+            for critic_id in required_critics
+            if isinstance(critic_id, str)
+        } if isinstance(required_critics, list) else set()
         lineage_digest_marker = f"review_lineage_sha256:{review_lineage_digest(lineage)}"
-        if not isinstance(multi_review, dict) or lineage_digest_marker not in passing_required_critic_evidence(multi_review):
+        if not isinstance(multi_review, dict) or lineage_digest_marker not in passing_required_critic_evidence(multi_review, required_ids):
             errors.append(
                 f"{source}: review_lineage digest must be represented by a passing required MultiReviewResult critic: {lineage_digest_marker}"
             )
@@ -1751,7 +1776,24 @@ def current_base_ref_deleted_paths(root: Path, base_ref: str) -> list[str]:
         fields = line.split("\t")
         if len(fields) >= 2 and fields[0].startswith("D"):
             deleted.append(fields[1])
+        elif len(fields) >= 3 and fields[0].startswith("R"):
+            deleted.append(fields[1])
     return sorted(set(deleted))
+
+
+def name_status_changed_paths(output: str) -> list[str]:
+    paths: set[str] = set()
+    for line in output.splitlines():
+        fields = line.split("\t")
+        if len(fields) < 2:
+            continue
+        status = fields[0]
+        if status.startswith(("R", "C")) and len(fields) >= 3:
+            paths.add(fields[1])
+            paths.add(fields[2])
+        else:
+            paths.add(fields[1])
+    return sorted(paths)
 
 
 def git_text(root: Path, commit_ref: str, path: str) -> str | None:
@@ -1889,10 +1931,10 @@ def same_git_boundary(root: Path, left: str | None, right: str | None) -> bool:
     return left_commit is not None and left_commit == right_commit
 
 
-def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
+def provenance_source_refs(packet: dict) -> list[tuple[str, dict, str]]:
     input_data = packet["input"]
     result = packet["result"]
-    refs: list[tuple[str, str]] = []
+    refs: list[tuple[str, dict, str]] = []
     user_judgment = input_data.get("user_judgment", {})
     if isinstance(user_judgment, dict):
         for key, record in user_judgment.items():
@@ -1902,7 +1944,7 @@ def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
                 and isinstance(record.get("source_ref"), str)
                 and record.get("source_ref")
             ):
-                refs.append((f"input.user_judgment.{key}", record["source_ref"]))
+                refs.append((f"input.user_judgment.{key}", record, record["source_ref"]))
     for source, records in (
         ("result.evidence.skipped", result["evidence"].get("skipped", [])),
         ("result.judgment.waivers", result["judgment"].get("waivers", [])),
@@ -1913,8 +1955,19 @@ def provenance_source_refs(packet: dict) -> list[tuple[str, str]]:
             continue
         for index, record in enumerate(records):
             if isinstance(record, dict) and isinstance(record.get("source_ref"), str) and record.get("source_ref"):
-                refs.append((f"{source}[{index}]", record["source_ref"]))
+                refs.append((f"{source}[{index}]", record, record["source_ref"]))
     return refs
+
+
+def provenance_record_digest(record: dict) -> str:
+    return hashlib.sha256(canonical_json_bytes(record)).hexdigest()
+
+
+def provenance_source_ref_binds_record(root: Path, source_ref: str, record: dict) -> bool:
+    text = ref_text(root, source_ref)
+    if text is None:
+        return False
+    return f"provenance_record_sha256:{provenance_record_digest(record)}" in text
 
 
 def review_source_refs(packet: dict) -> list[tuple[str, str, dict]]:
@@ -2269,7 +2322,7 @@ def validate_packet(
                 )
                 if missing_deleted_sources:
                     errors.append(
-                        "active base-ref stable packet deleted changed_paths require comparison-ref-pinned git source refs: "
+                        "active base-ref stable packet deleted or renamed-preimage changed_paths require comparison-ref-pinned git source refs: "
                         f"{missing_deleted_sources}"
                     )
         if mode == "staged" and packet_ref_is_repo_local(packet_ref) and active_stable_handoff:
@@ -2314,11 +2367,15 @@ def validate_packet(
                     f"actual={sorted(base_ref_paths)}"
                 )
 
-        for source, source_ref in provenance_source_refs(packet):
+        for source, record, source_ref in provenance_source_refs(packet):
             if not has_resolved_relation(ref_index, relation="waiver-provenance", ref=source_ref, origin="generated"):
                 errors.append(f"{source}: source_ref lacks resolved waiver-provenance relation with generated origin: {source_ref}")
             elif ref_is_acceptance_packet(root, source_ref):
                 errors.append(f"{source}: waiver-provenance source_ref cannot be an acceptance packet: {source_ref}")
+            elif active_stable_handoff and not provenance_source_ref_binds_record(root, source_ref, record):
+                errors.append(
+                    f"{source}: waiver-provenance source_ref must contain provenance_record_sha256 marker: {source_ref}"
+                )
         for index, record in enumerate(residual_risk_records):
             errors.extend(
                 validate_residual_risk_record(
@@ -2614,9 +2671,9 @@ def mode_from_args(args: argparse.Namespace) -> tuple[str, str | None]:
 
 def changed_paths(root: Path, *, mode: str, base_ref: str | None) -> list[str]:
     if mode == "staged":
-        result = git(root, ["diff", "--cached", "--name-only"])
+        result = git(root, ["diff", "--cached", "--name-status"])
     elif mode == "base-ref":
-        result = git(root, ["diff", "--name-only", f"{base_ref}...HEAD"])
+        result = git(root, ["diff", "--name-status", f"{base_ref}...HEAD"])
     else:
         result = git(root, ["status", "--porcelain=v1", "--untracked-files=all"])
         if result.returncode == 0:
@@ -2624,13 +2681,14 @@ def changed_paths(root: Path, *, mode: str, base_ref: str | None) -> list[str]:
             for line in result.stdout.splitlines():
                 path = line[3:] if len(line) > 3 else ""
                 if " -> " in path:
-                    path = path.split(" -> ", 1)[1]
-                if path:
+                    before, after = path.split(" -> ", 1)
+                    paths.extend([before, after])
+                elif path:
                     paths.append(path)
             return sorted(set(paths))
     if result.returncode != 0:
         raise PacketError(result.stderr.strip() or "failed to read git changes")
-    return sorted(path for path in result.stdout.splitlines() if path)
+    return name_status_changed_paths(result.stdout)
 
 
 def packet_ref_is_repo_local(packet_ref: str | None) -> bool:

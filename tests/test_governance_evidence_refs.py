@@ -341,6 +341,23 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
 
+    def test_stable_protected_packet_search_set_refs_must_be_canonical(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        bad_ref = "trace:.harness//traces/search-set.md#active"
+        evidence["trace_refs"]["search_set_after"] = bad_ref
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": bad_ref,
+                "status": "resolved",
+                "target": ".harness//traces/search-set.md#active",
+            }
+        )
+
+        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
+
     def test_stable_protected_packet_search_set_distinctness_uses_normalized_ref(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
@@ -396,6 +413,29 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "stable trace_refs.evolution entries must point to .harness/traces/evolution/ evidence")
         self.assert_rejected(packet, "stable trace_refs.failures entries must point to .harness/traces/failures/ evidence")
+
+    def test_stable_bucket_trace_refs_must_be_canonical(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        bad_ref = (
+            "trace:.harness/traces/./evolution/"
+            "001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root"
+        )
+        evidence["trace_refs"]["evolution"] = [bad_ref]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "generated",
+                "relation": "trace",
+                "ref": bad_ref,
+                "status": "resolved",
+                "target": (
+                    ".harness/traces/./evolution/"
+                    "001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root"
+                ),
+            }
+        )
+
+        self.assert_rejected(packet, "stable trace_refs.evolution entries must point to .harness/traces/evolution/ evidence")
 
     def test_stable_command_base_ref_must_match_boundary_refs(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
