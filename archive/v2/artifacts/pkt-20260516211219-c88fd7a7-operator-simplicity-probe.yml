@@ -1,0 +1,20 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('plan09 operator simplicity pass')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-import.yml
+  result_digest: 8f4ddd56208a2285d5cc8b5f82a9b06beb94302347ead30bc266a22ca6c128d1
+  packet_ref: archive/v2/packets/pkt-20260516211219-c88fd7a7.yml
+  packet_sha256: 0ef1b3711512d9d92e97d95302b98424d3befbdaecf1b1a9bd1454d3549ebd69
+  source_refs:
+  - scripts/check-active-packet-gate.py
+  - tests/test_active_packet_gate.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-16'
+  stdout: 'plan09 operator simplicity pass
+
+    '
+  stderr: ''
+  stdout_sha256: 5be4351e09852dbb1b95d53176958e987a38280264f613c2eccd69b66f2fe504
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

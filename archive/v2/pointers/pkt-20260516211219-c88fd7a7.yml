@@ -1,0 +1,63 @@
+AcceptancePacketPointer:
+  schema_version: acceptance-packet-pointer/v1
+  packet_id: pkt-20260516211219-c88fd7a7
+  packet_ref: archive/v2/packets/pkt-20260516211219-c88fd7a7.yml
+  packet_sha256: 0ef1b3711512d9d92e97d95302b98424d3befbdaecf1b1a9bd1454d3549ebd69
+  checker_version: v2.0-draft
+  inference_rule_version: v2.0-draft
+  baseline_ref: 151fdb4329a54f56676c17b92d4ae5469aa5acb8
+  comparison_ref: 151fdb4329a54f56676c17b92d4ae5469aa5acb8
+  head_commit: 9bfcf4d2b8a35d0327fedc98fca067f10c759dfa
+  archive_commit: 04416fc150438ae68c83385f3eefe42eadb54afe
+  stable_target: base-ref:151fdb4329a54f56676c17b92d4ae5469aa5acb8...151fdb4329a54f56676c17b92d4ae5469aa5acb8@9bfcf4d2b8a35d0327fedc98fca067f10c759dfa
+  decision_status: accepted
+  command_artifacts:
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check-2.log
+    artifact_sha256: 2c7083eb0cb7bec51cd86bd23b852c040e1ddae83171ebdedf5341f919ec2cf7
+    command: python3 -m unittest tests/test_pre_commit_hook.py tests/test_active_packet_gate.py
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check-3.log
+    artifact_sha256: 6720f987dffbe1e15f970e9cec3633e0d0a73cdf9fc6a861212569e88d39e1f2
+    command: python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check-4.log
+    artifact_sha256: 5a9e1148506ed91e3876bd480d19a1fa8f24f306a537a9e9e8396611bcfab77e
+    command: python3 scripts/check-v1-archive-boundary.py --base-ref 151fdb4329a54f56676c17b92d4ae5469aa5acb8
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check-5.log
+    artifact_sha256: 1f4ec0e94201897be94c155eea67f16a4a7794808025547b55cc5a41ad6c375b
+    command: python3 scripts/verify-release.py --list --base-ref 151fdb4329a54f56676c17b92d4ae5469aa5acb8
+      --skip-clean-worktree
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check-6.log
+    artifact_sha256: 1e6bcb22287102c1910d507e9ab9cc1d5338a4ae8b8520902fb5bb69c0f09f12
+    command: sh .githooks/pre-commit
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-git-diff-check.log
+    artifact_sha256: 36e05bf00376361841a6d109f70404f3745d4cf6135823b8dc1e09bc25d29100
+    command: python3 -m unittest tests/test_active_packet_gate.py tests/test_verify_release.py
+  review_import_artifacts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-import.yml
+    source_sha256: 8f4ddd56208a2285d5cc8b5f82a9b06beb94302347ead30bc266a22ca6c128d1
+    review_target_digest: 655ceb2257df1b8d4bf0bab57f79d9183c9f386c3429f5566083ecef5d1f0d7b
+    review_ids:
+    - review-plan09-checker-correctness
+    - review-plan09-claim-evidence
+    - review-plan09-evidence-auditability
+    - review-plan09-methodology-fidelity
+    - review-plan09-release-integration
+    - review-plan09-scope-boundary
+  probe_transcripts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-operator-simplicity-probe.yml
+    transcript_sha256: 053877136ad2a019955be70dd1a65a3abb0b218bc7a71e17ec4814f90835c51f
+    result_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-import.yml
+    result_digest: 8f4ddd56208a2285d5cc8b5f82a9b06beb94302347ead30bc266a22ca6c128d1
+    packet_ref: archive/v2/packets/pkt-20260516211219-c88fd7a7.yml
+    packet_sha256: 0ef1b3711512d9d92e97d95302b98424d3befbdaecf1b1a9bd1454d3549ebd69
+  - source_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-quality-probe.yml
+    transcript_sha256: 8b6aa81c8bfef4b90004904065365b3458d006ee80d556ab791f508c5d5d9042
+    result_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-import.yml
+    result_digest: 8f4ddd56208a2285d5cc8b5f82a9b06beb94302347ead30bc266a22ca6c128d1
+    packet_ref: archive/v2/packets/pkt-20260516211219-c88fd7a7.yml
+    packet_sha256: 0ef1b3711512d9d92e97d95302b98424d3befbdaecf1b1a9bd1454d3549ebd69
+  - source_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-validation-probe.yml
+    transcript_sha256: e0bd871abab5081f7b4053417ef14d1f8d1ec51b00f29fcdf7a6b7c6b4a72d67
+    result_ref: file:archive/v2/artifacts/pkt-20260516211219-c88fd7a7-review-import.yml
+    result_digest: 8f4ddd56208a2285d5cc8b5f82a9b06beb94302347ead30bc266a22ca6c128d1
+    packet_ref: archive/v2/packets/pkt-20260516211219-c88fd7a7.yml
+    packet_sha256: 0ef1b3711512d9d92e97d95302b98424d3befbdaecf1b1a9bd1454d3549ebd69
