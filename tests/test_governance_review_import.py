@@ -421,6 +421,24 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
         self.assert_rejected(packet_path, "source_digest does not match current artifact bytes")
 
+    def test_rejects_stale_probe_transcript_result_digest(self) -> None:
+        packet_path = self.materialize_packet()
+        transcript_path = next(self.tmp_path.glob("probe-*.yml"))
+        transcript = load_yaml(transcript_path)
+        transcript["ProbeTranscript"]["result_digest"] = "1" * 64
+        transcript_path.write_text(yaml.safe_dump(transcript, sort_keys=False), encoding="utf-8")
+
+        self.assert_rejected(packet_path, "probe_evidence_refs must include a structured transcript matching probe_command")
+
+    def test_rejects_stale_probe_transcript_packet_sha256(self) -> None:
+        packet_path = self.materialize_packet()
+        transcript_path = next(self.tmp_path.glob("probe-*.yml"))
+        transcript = load_yaml(transcript_path)
+        transcript["ProbeTranscript"]["packet_sha256"] = "1" * 64
+        transcript_path.write_text(yaml.safe_dump(transcript, sort_keys=False), encoding="utf-8")
+
+        self.assert_rejected(packet_path, "probe_evidence_refs must include a structured transcript matching probe_command")
+
     def test_rejects_advisory_multi_review_import(self) -> None:
         def mutate_wrapper(wrapper: dict) -> None:
             wrapper["MultiReviewResult"]["review_mode"] = "advisory"

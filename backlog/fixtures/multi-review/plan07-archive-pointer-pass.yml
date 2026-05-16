@@ -1,0 +1,504 @@
+MultiReviewResult:
+  schema_version: multi-review-result/v1
+  review_id: mr-plan07-archive-pointer-2026-05-12
+  lifecycle: finalized
+  review_mode: governance
+  independence: independent
+  target:
+    summary: Plan 07 archive pointer, artifact freshness, source-ref archive policy,
+      semantic boundary, command provenance, replay, and release boundary implementation.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    - tests/test_governance_review_import.py
+    - MAINTENANCE.md
+    - README.md
+    - backlog/plans/07-packet-archive-and-integrity-backlog.md
+  required_critics:
+  - archive-integrity
+  - artifact-freshness
+  - source-ref-archive-policy
+  - command-provenance
+  - semantic-boundary
+  - operator-input-minimization
+  - release-simplicity
+  - review-quality
+  reported_final_verdict: PASS
+  derived_verdict: null
+  derivation_errors: []
+  critics:
+  - critic_id: archive-integrity
+    name: Archive Integrity Critic
+    critic_type: validation_layer
+    persona: Archive validator maintainer who trusts only pointer-bound bytes.
+    scope: Validate active pointer schema, archived packet hash checks, finalized
+      base-ref packet requirements, decision status binding, and pointer-owned artifact
+      lists.
+    anti_scope: Does not evaluate semantic evidence policy or Plan 08 release/pre-commit
+      wiring.
+    attack_surface: A stale archived packet or mutable pointer claims accepted stable
+      handoff after packet bytes drift.
+    primary_failure_mode: Pointer status is trusted without recomputing archived packet
+      bytes and stable eligibility.
+    frame_challenge: true
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: A stale active pointer could claim accepted status after archived
+      packet, command artifact, review import, probe transcript, packet-bound accepted
+      HEAD, reproducible archive hash, or mutable boundary ref
+      meaning changed.
+    invariant_checked: check-pointer recomputes archived packet SHA-256, command artifact
+      SHA-256, review import artifact SHA-256, probe transcript SHA-256, reproducible
+      archive commit hash, stable target, accepted decision status,
+      packet-bound accepted HEAD commit, and active full-SHA boundary refs.
+    validation_layer: structured-validator
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_and_check_pointer_accept_archive_bound_packet'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_archived_packet_hash_mismatch'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_command_artifact_digest_drift'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_mutable_boundary_refs'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_accepts_committed_archive_publication'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_stale_active_head'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_non_archive_head_after_acceptance'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_pointer_only_head_rewrite'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_requires_archive_commit_packet_and_artifact_bytes'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_replay_rejects_forged_command_output_hashes'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_archive_integrity_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_archive_integrity_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Archive pointer positive, packet hash mismatch, command artifact
+      digest drift, mutable boundary-ref rejection, committed archive publication
+      acceptance, stale active HEAD rejection, non-archive HEAD rejection, pointer-only
+      accepted HEAD rewrite rejection, reproducible archive hash rejection, and
+      forged replay hash tests passed.
+    probe_interpretation: The executable checker recomputes archived bytes,
+      reproducible archive hash, and command artifact/review/probe digests rather than
+      trusting pointer prose.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-archive-integrity.txt
+    reason_no_probe: null
+    evidence:
+    - Active pointer fields are exact and recomputed against archived packet bytes
+      plus reproducible archive hash.
+    - Negative tests mutate archived packet bytes, command artifact bytes, boundary
+      refs, active HEAD, non-archive HEAD movement, pointer-only accepted HEAD,
+      reproducible archive hash, and replay hashes.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    why_not_10: The pointer layer validates archived local artifacts; release/pre-commit
+      pointer entry remains Plan 08.
+    residual_risk_disposition: Accepted for Plan 07; Plan 08 owns release/pre-commit
+      wiring.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: artifact-freshness
+    name: Artifact Freshness Critic
+    critic_type: domain
+    persona: Freshness reviewer looking for stale review imports and stale probe transcripts.
+    scope: Validate review-import source digests, target binding, probe transcript
+      result digests, packet refs, and packet SHA-256 binding.
+    anti_scope: Does not judge semantic relevance or release wiring.
+    attack_surface: A historical review import or probe transcript is reused to certify
+      a changed packet or changed review result.
+    primary_failure_mode: Freshness is inferred from file existence or dates instead
+      of digest and target binding.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: A stale transcript could match a command but point at an old
+      result digest or old packet SHA.
+    invariant_checked: Imported review results derive PASS only when wrapper source_digest,
+      review target binding, transcript result_digest, packet_ref, packet_sha256,
+      and pointer-bound publication bytes match the current packet and result artifact.
+    validation_layer: raw-artifact
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_source_digest_drift'"'"',
+      '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_wrong_packet_or_stale_target_binding'"'"',
+      '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_stale_probe_transcript_result_digest'"'"',
+      '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_stale_probe_transcript_packet_sha256'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_archive_commit_binds_review_import_and_probe_transcript_bytes'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_artifact_freshness_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_artifact_freshness_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Source digest drift, stale target binding, stale transcript result
+      digest, stale packet SHA, and publication review/probe byte membership
+      tests passed.
+    probe_interpretation: Review imports and transcripts are accepted only when bound
+      to current artifact bytes and packet identity.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-artifact-freshness.txt
+    reason_no_probe: null
+    evidence:
+    - Review import validation checks source_digest and target_binding against the
+      current packet.
+    - Probe transcript validation checks result_digest and packet_sha256 against current
+      imported artifacts.
+    - Active archive pointer validation checks review import and probe transcript
+      bytes against reproducible archive hash and publication byte membership.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_review_import.py
+    - tests/test_governance_acceptance_cli.py
+    why_not_10: The freshness model is local digest binding, not external timestamp
+      or signature attestation.
+    residual_risk_disposition: Accepted for Plan 07 because wall-clock freshness is
+      intentionally replaced by digest binding.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: source-ref-archive-policy
+    name: Source-Ref Archive Policy Critic
+    critic_type: domain
+    persona: Archive source-ref reviewer looking for mutable or path-only source evidence.
+    scope: Validate archived active source refs reject bare paths, mutable git refs,
+      opaque blobs, and protected directory roots.
+    anti_scope: Does not evaluate review import freshness or command provenance.
+    attack_surface: An archived pointer certifies source evidence that drifts with
+      the working tree or hides a protected directory root.
+    primary_failure_mode: Archived source refs are accepted because they resolve now,
+      not because they are boundary-pinned.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: Bare paths, git:HEAD refs, opaque blob refs, or protected directory
+      refs could certify a different source surface later.
+    invariant_checked: Archive pointer validation applies active base-ref source policy
+      and requires commit-pinned git refs for changed-path evidence.
+    validation_layer: structured-validator
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_bare_source_refs'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_mutable_git_source_refs'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_opaque_git_source_refs'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_protected_directory_root_source_refs'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_source_ref_policy_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_source_ref_policy_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Archived bare source ref, mutable git ref, opaque blob ref, and
+      protected directory-root tests passed.
+    probe_interpretation: Archive source evidence must be explicit and boundary-pinned
+      rather than merely repo-local.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-source-ref-policy.txt
+    reason_no_probe: null
+    evidence:
+    - Archive pointer tests exercise source refs through write-pointer, not only standalone
+      stable check.
+    - Protected directory roots are rejected as source evidence outside changed_paths.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    why_not_10: Existing fixture materialization still permits legacy bare refs outside
+      active archive handoff.
+    residual_risk_disposition: Accepted because active archived pointers reject mutable
+      source evidence; fixture migration remains explicit.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: command-provenance
+    name: Command Provenance Critic
+    critic_type: domain
+    persona: Adversarial artifact reviewer looking for forged PASS logs.
+    scope: Validate pointer-owned command evidence materialization, artifact digest
+      binding, and explicit replay output-hash checks.
+    anti_scope: Does not evaluate broad release/pre-commit wiring or semantic evidence
+      relevance.
+    attack_surface: A hand-authored command log echoes packet id, packet hash, command,
+      pass status, plausible replay metadata fields, and matching replay hashes.
+    primary_failure_mode: Command evidence authenticity is inferred from matching
+      text rather than generated by the archive pointer writer.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: 'A PASS-looking # Command Evidence block could be manually edited
+      with plausible replay metadata and correct output hashes.'
+    invariant_checked: write-pointer rejects pre-authored replay/provenance fields
+      and materializes replayed exit/stdout/stderr hashes; check-pointer accepts
+      only pointer-bound replay metadata, binds those bytes, and can replay them
+      explicitly without claiming independent writer identity.
+    validation_layer: raw-artifact
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_hand_authored_command_evidence_without_replay_metadata'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_unauthenticated_replay_metadata_labels'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_pre_authored_replay_metadata_even_with_matching_replay_hashes'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_artifact_bound_to_pre_archive_packet_ref'"'"',
+      '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_replay_rejects_forged_command_output_hashes'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_command_provenance_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_command_provenance_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Missing replay metadata, unauthenticated replay metadata labels,
+      pre-authored replay metadata, pre-archive packet-ref binding, and forged
+      replay-output hash tests passed.
+    probe_interpretation: 'Archive checking is pointer-bound: prewritten replay metadata
+      is rejected in the writer path, and explicit replay can reject forged output
+      hashes after pointer creation without treating the fields as writer-identity
+      proof.'
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-command-provenance.txt
+    reason_no_probe: null
+    evidence:
+    - The pointer writer materializes archive command evidence from replay output.
+    - The command evidence parser rejects pre-authored replay metadata, unauthenticated
+      replay metadata labels, and stale packet-ref bindings.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    why_not_10: Replay and writer-owned materialization are local trust checks, not
+      cryptographic signing, external runner attestation, or independent proof of
+      who wrote a matching pointer/artifact pair.
+    residual_risk_disposition: Accepted for Plan 07; cryptographic signing can remain
+      future hardening.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: semantic-boundary
+    name: Semantic Evidence Boundary Critic
+    critic_type: domain
+    persona: Boundary reviewer preventing semantic relevance from becoming broad path
+      heuristics.
+    scope: Validate semantic relevance remains a benchmark/evaluator seed and not
+      a broad structural PASS rule.
+    anti_scope: Does not revalidate archive pointer bytes or command provenance.
+    attack_surface: A structurally valid but semantically unrelated evidence file
+      is accepted as full semantic proof.
+    primary_failure_mode: The checker grows ad hoc semantic path rules instead of
+      keeping semantic cases pending for evaluator work.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: Evidence relevance could be overclaimed by structural validators
+      that only know paths and digests.
+    invariant_checked: Semantic benchmark scenarios remain pending/non-acceptance
+      unless an explicit semantic oracle contract accepts them.
+    validation_layer: structured-validator
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_multi_review_benchmark_cli.MultiReviewBenchmarkCliTests.test_replays_and_allows_semantic_pending_with_explicit_flags'"'"',
+      '"'"'tests.test_multi_review_benchmark_cli.MultiReviewBenchmarkCliTests.test_semantic_oracle_accepted_disposition_can_make_pass_pending'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_semantic_boundary_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_semantic_boundary_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Semantic pending and accepted-disposition benchmark tests passed.
+    probe_interpretation: Plan 07 keeps semantic evidence relevance as benchmark/evaluator
+      work rather than structural source-ref acceptance.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-semantic-boundary.txt
+    reason_no_probe: null
+    evidence:
+    - Semantic benchmark tests distinguish structural derivation from semantic acceptance.
+    - Plan 07 docs keep deeper semantic truth evaluation out of check-governance-acceptance.py.
+    source_refs:
+    - benchmarks/multi-review/check-fixtures.py
+    - benchmarks/multi-review/scenarios/acceptance_authority_spoof/aa-reported-pass-typed-veto/scenario.yml
+    - benchmarks/multi-review/scenarios/acceptance_authority_spoof/aa-valid-governance-pass/scenario.yml
+    - benchmarks/multi-review/scenarios/critic_independence_and_redundancy/ci-duplicate-scope/scenario.yml
+    - benchmarks/multi-review/scenarios/evidence_relevance_and_source_support/er-existing-unrelated-file/scenario.yml
+    - benchmarks/multi-review/scenarios/frame_challenge_and_presupposition/fc-missing-frame-challenge/scenario.yml
+    - benchmarks/multi-review/scenarios/invocation_and_mode_calibration/im-fallback-nonindependent-governance-pass/scenario.yml
+    - benchmarks/multi-review/scenarios/invocation_and_mode_calibration/im-score-9-no-why/scenario.yml
+    - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+    - benchmarks/multi-review/scenarios/probe_failure_or_partial_success/pf-exit-1-hidden/scenario.yml
+    - benchmarks/multi-review/scenarios/probe_provenance_and_replay/pp-fabricated-transcript/scenario.yml
+    - benchmarks/multi-review/scenarios/typed_artifact_integrity/ta-list-wrapped-frame/scenario.yml
+    - benchmarks/multi-review/scenarios/validation_layer_confusion/vl-prose-smoke-only/scenario.yml
+    - scripts/check-multi-review-result.py
+    - tests/test_multi_review_benchmark_cli.py
+    why_not_10: A real semantic evaluator is still future work; this layer preserves
+      benchmark seeds and boundaries.
+    residual_risk_disposition: Accepted because Plan 07 intentionally records semantic
+      relevance as pending evaluator scope.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: operator-input-minimization
+    name: Operator Input Minimization Critic
+    critic_type: domain
+    persona: Operator-surface reviewer looking for hidden hand-authoring work.
+    scope: Validate Plan 07 keeps the public packet surface small and generates
+      archive source refs/replay metadata instead of requiring operators to hand-author
+      digests, commit-pinned refs, or replay metadata.
+    anti_scope: Does not revalidate semantic evidence relevance or Plan 08 release
+      gate wiring.
+    attack_surface: The packet schema stays small while routine operators must
+      manually edit commit-pinned source refs, replay metadata fields, or pointer digests
+      to pass archive validation.
+    primary_failure_mode: Simplification is only cosmetic because generated archive
+      fields are shifted into user-authored YAML.
+    frame_challenge: true
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: A structurally valid pointer could still require manual
+      boundary SHA, source-ref, stable promotion, command artifact, or replay metadata
+      edits if start/finalize/write-pointer did not materialize the archive-owned
+      fields atomically.
+    invariant_checked: Base-ref start/finalize normalize mutable input refs to
+      full commit SHAs, base-ref finalization generates commit-pinned source refs
+      for changed paths, archive-path finalization materializes durable command
+      artifacts for pointer publication, the packet input shape rejects new public
+      fields, write-pointer rejects pre-authored replay metadata, and failed
+      pointer materialization rolls artifact bytes back.
+    validation_layer: structured-validator
+    probe_command: >-
+      python3 -c 'import subprocess, sys; tests=["tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_start_and_finalize_base_ref_normalize_boundary_refs_for_audit", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_base_ref_generates_head_pinned_source_refs_for_changed_paths", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_base_ref_generates_comparison_pinned_source_refs_for_deleted_paths", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_archive_base_ref_materializes_stable_artifact_for_pointer", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_rejects_extra_meta_or_input_fields", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_pre_authored_replay_metadata_even_with_matching_replay_hashes", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_preflight_failure_does_not_materialize_command_artifact", "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_output_failure_rolls_back_command_artifact_materialization"]; r=subprocess.run([sys.executable, "-m", "unittest", *tests], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print("probe_plan07_operator_input_minimization_pass" if r.returncode == 0 else "probe_plan07_operator_input_minimization_fail"); sys.exit(r.returncode)'
+    probe_result: Base-ref boundary normalization, finalization source-ref generation,
+      archive-path stable artifact materialization, public input-shape rejection,
+      pre-authored replay metadata rejection, failed preflight non-mutation,
+      and output-failure rollback tests passed.
+    probe_interpretation: Routine source refs and replay metadata are generated
+      by the lifecycle/pointer tools; operators are not asked to hand-author the
+      new Plan 07 archive fields.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-operator-input-minimization.txt
+    reason_no_probe: null
+    evidence:
+    - Base-ref start/finalize accepts mutable operator refs like HEAD~1 while
+      recording full commit SHA boundaries and audit commands.
+    - Base-ref finalization leaves input.source_refs empty while adding generated
+      commit-pinned source refs for changed paths.
+    - Archive-path base-ref finalization writes durable command evidence and stable
+      eligibility, so routine start/finalize/write-pointer reaches publication.
+    - Packet schema still rejects extra public input fields.
+    - write-pointer refuses pre-authored replay metadata and materializes it
+      itself.
+    - write-pointer preflights stable packet validation before materializing
+      command artifacts, so failed source-ref policy checks do not poison retries.
+    - write-pointer rolls command artifact materialization back when pointer-file
+      replacement fails.
+    source_refs:
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    why_not_10: Operators can still choose non-archive packet paths, which remain
+      preflight-only until copied or finalized under the archive namespace.
+    residual_risk_disposition: Accepted for Plan 07 because the routine base-ref
+      path no longer needs hand-authored archive source refs or replay metadata fields.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: release-simplicity
+    name: Release Boundary and Anti-Bloat Critic
+    critic_type: domain
+    persona: Simplicity reviewer guarding the public packet surface and Plan 08 boundary.
+    scope: Validate README/MAINTENANCE wording, fixture drift release policy, and
+      that pointer support stays outside AcceptancePacket meta/input/result.
+    anti_scope: Does not evaluate command provenance parser internals or semantic
+      scoring.
+    attack_surface: Legacy verify-release or fixture drift helper is mistaken for
+      packet-backed stable handoff.
+    primary_failure_mode: Plan 07 silently expands operator surface or performs Plan
+      08 release/pre-commit wiring.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: Operators could treat verify-release or fixture drift checks
+      as stable packet acceptance before Plan 08.
+    invariant_checked: Documentation and tests distinguish legacy verification from
+      packet-backed stable handoff and keep fixture drift helper outside release gate.
+    validation_layer: structured-validator
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_verify_release.VerifyReleaseTests.test_release_commands_include_stable_handoff_gates'"'"',
+      '"'"'tests.test_verify_release.VerifyReleaseTests.test_maintenance_documents_verify_release'"'"',
+      '"'"'tests.test_pre_commit_hook.PreCommitHookTests.test_root_readme_distinguishes_quick_hook_from_release_gate'"'"',
+      '"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_packet_archive_direction_avoids_v1_archive_semantics'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_release_simplicity_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_release_simplicity_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Release boundary, README wording, and archive pointer policy tests
+      passed.
+    probe_interpretation: Historical Plan07 release boundary remains limited to archive
+      pointer validation; active release/pre-commit pointer wiring is covered by Plan08.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-release-simplicity.txt
+    reason_no_probe: null
+    evidence:
+    - README and maintenance docs now route release/pre-commit packet gating through
+      Plan08 active pointer checks.
+    - verify-release tests keep update-governance-fixtures outside the release command
+      set while including the active packet gate.
+    source_refs:
+    - MAINTENANCE.md
+    - README.md
+    - scripts/verify-release.py
+    - tests/test_maintenance_policy_boundaries.py
+    - tests/test_pre_commit_hook.py
+    - tests/test_verify_release.py
+    why_not_10: This fixture is a historical Plan07 review artifact; current release/pre-commit
+      active pointer gate coverage belongs to Plan08 evidence.
+    residual_risk_disposition: Accepted because Plan 07 explicitly stops at archive
+      pointer validation.
+    probe_run: true
+    probe_exit_code: 0
+  - critic_id: review-quality
+    name: Review Quality Meta-Critic
+    critic_type: review_quality
+    persona: Governance review auditor checking independence, replayable probes, and
+      structured result authority.
+    scope: Validate that this Plan 07 review is structured, probe-backed, and not
+      accepted from prose self-attestation.
+    anti_scope: Does not redo archive, command, source-ref, freshness, release, or
+      semantic domain judgments.
+    attack_surface: A narrative PASS summary bypasses required critic frames, frame
+      challenge, or transcript replay.
+    primary_failure_mode: Multi-review acceptance relies on prose summaries instead
+      of validator-derived MultiReviewResult facts.
+    frame_challenge: false
+    required: true
+    actor: codex
+    date: '2026-05-12'
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: A reviewer could cite this conversation or a hand-authored PASS
+      label instead of a validator-derived artifact.
+    invariant_checked: check-multi-review-result derives PASS only from required critic
+      facts, frame challenge, and matching probe transcripts.
+    validation_layer: derived-verdict
+    probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_probe_without_matching_transcript'"'"',
+      '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_replays_probe_commands_when_requested'"'"',
+      '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_fallback_nonindependent_for_governance_pass'"'"',
+      '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_missing_frame_challenge_for_governance_pass'"'"'];
+      r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_review_quality_pass'"'"'
+      if r.returncode == 0 else '"'"'probe_plan07_review_quality_fail'"'"'); sys.exit(r.returncode)'
+    probe_result: Multi-review validator negative and replay tests passed.
+    probe_interpretation: The review artifact must carry distinct required critics
+      and matching replayable probe transcripts.
+    probe_evidence_refs:
+    - file:backlog/fixtures/multi-review/probe-transcripts/plan07-review-quality.txt
+    reason_no_probe: null
+    evidence:
+    - The multi-review validator rejects missing transcripts and nonindependent governance
+      PASS.
+    - This artifact records required critics and probe transcript refs.
+    source_refs:
+    - scripts/check-multi-review-result.py
+    - tests/test_multi_review_result_cli.py
+    why_not_10: The artifact proves review consistency, not stable handoff acceptance
+      by itself.
+    residual_risk_disposition: Accepted; stable handoff still belongs to packet/pointer
+      checks.
+    probe_run: true
+    probe_exit_code: 0

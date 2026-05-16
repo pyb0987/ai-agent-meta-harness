@@ -1,0 +1,28 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_source_digest_drift'"'"',
+    '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_wrong_packet_or_stale_target_binding'"'"',
+    '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_stale_probe_transcript_result_digest'"'"',
+    '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_rejects_stale_probe_transcript_packet_sha256'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_archive_commit_binds_review_import_and_probe_transcript_bytes'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_artifact_freshness_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_artifact_freshness_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  - tests/test_governance_review_import.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_artifact_freshness_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 8e4e530687c505f34da7bad7b4c263756451a3ed52c7b87e7b1bd97e88638ec9
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

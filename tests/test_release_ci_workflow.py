@@ -15,7 +15,8 @@ class ReleaseCiWorkflowTests(unittest.TestCase):
     def test_workflow_runs_verify_release_with_ci_safe_flags(self) -> None:
         text = WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("python3 scripts/verify-release.py --ci --skip-clean-worktree --base-ref \"$BASE_REF\"", text)
+        self.assertIn("python3 scripts/verify-release.py --ci --base-ref \"$BASE_REF\"", text)
+        self.assertNotIn("--ci --skip-clean-worktree", text)
         self.assertIn("fetch-depth: 0", text)
         self.assertIn("BASE_REF=\"origin/${{ github.base_ref }}\"", text)
         self.assertIn("BASE_REF=\"${{ github.event.before }}\"", text)

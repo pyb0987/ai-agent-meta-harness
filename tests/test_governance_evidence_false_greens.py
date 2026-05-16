@@ -326,6 +326,29 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
 
         self.assert_rejected(packet, "required_evidence must match checker-derived required evidence")
 
+    def test_active_packet_gate_changes_require_release_gate_evidence(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        acceptance_packet = packet["AcceptancePacket"]
+        acceptance_packet["input"]["source_refs"] = ["scripts/check-active-packet-gate.py"]
+        result = acceptance_packet["result"]
+        result["inference"]["changed_paths"] = ["scripts/check-active-packet-gate.py"]
+        evidence = result["evidence"]
+        evidence["source_refs"] = ["scripts/check-active-packet-gate.py"]
+        evidence["resolved_refs"] = [
+            record for record in evidence["resolved_refs"] if record.get("relation") != "source"
+        ]
+        evidence["resolved_refs"].append(
+            {
+                "origin": "input",
+                "relation": "source",
+                "ref": "scripts/check-active-packet-gate.py",
+                "status": "resolved",
+                "target": "scripts/check-active-packet-gate.py",
+            }
+        )
+
+        self.assert_rejected(packet, "required_evidence must match checker-derived required evidence")
+
     def test_staged_stable_changed_paths_must_match_current_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -526,7 +549,9 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             init_repo(root)
             git(root, "mv", "scripts/check-governance-acceptance.py", "docs/checker.py")
             git(root, "commit", "-m", "rename protected checker to docs")
+            base = git_stdout(root, "rev-parse", "HEAD~1")
             head = git_stdout(root, "rev-parse", "HEAD")
+            command = f"git diff --check {base}...{head}"
 
             packet = load_fixture("finalized-routine.yml")
             acceptance_packet = packet["AcceptancePacket"]
@@ -535,11 +560,12 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             acceptance_packet["input"]["source_refs"] = [source_ref]
             result = acceptance_packet["result"]
             result["inference"]["changed_paths"] = ["docs/checker.py"]
-            result["inference"]["required_evidence"] = ["git diff --check HEAD~1...HEAD"]
+            result["inference"]["required_evidence"] = [command]
             evidence = result["evidence"]
-            evidence["baseline_ref"] = "HEAD~1"
-            evidence["comparison_ref"] = "HEAD~1"
-            evidence["evaluator_boundary"]["commands"] = ["git diff --check HEAD~1...HEAD"]
+            evidence["baseline_ref"] = base
+            evidence["comparison_ref"] = base
+            evidence["accepted_head_commit"] = head
+            evidence["evaluator_boundary"]["commands"] = [command]
             evidence["source_refs"] = [source_ref]
             evidence["resolved_refs"] = [
                 record for record in evidence["resolved_refs"] if record.get("relation") != "source"
@@ -726,7 +752,15 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            command = "git diff --check HEAD~1...HEAD"
+            (root / "docs" / "provenance.md").write_text("placeholder provenance\n", encoding="utf-8")
+            git(root, "add", "docs/provenance.md")
+            git(root, "commit", "-m", "add provenance note")
+            base = git_stdout(root, "rev-parse", "HEAD")
+            (root / "docs" / "old.md").unlink()
+            git(root, "add", "docs/old.md")
+            git(root, "commit", "-m", "delete old docs")
+            head = git_stdout(root, "rev-parse", "HEAD")
+            command = f"git diff --check {base}...{head}"
             skipped_record = {
                 "evidence": command,
                 "actor": "maintainer",
@@ -737,18 +771,12 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             }
             (root / "docs" / "provenance.md").write_text(
                 (
-                    "git diff --check HEAD~1...HEAD\n"
+                    f"{command}\n"
                     "deletion-only handoff uses comparison-side source bytes.\n"
                     f"{provenance_marker(skipped_record)}\n"
                 ),
                 encoding="utf-8",
             )
-            git(root, "add", "docs/provenance.md")
-            git(root, "commit", "-m", "add provenance note")
-            base = git_stdout(root, "rev-parse", "HEAD")
-            (root / "docs" / "old.md").unlink()
-            git(root, "add", "docs/old.md")
-            git(root, "commit", "-m", "delete old docs")
 
             packet = load_fixture("finalized-routine.yml")
             acceptance_packet = packet["AcceptancePacket"]
@@ -759,8 +787,9 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             result["inference"]["changed_paths"] = ["docs/old.md"]
             result["inference"]["required_evidence"] = [command]
             evidence = result["evidence"]
-            evidence["baseline_ref"] = "HEAD~1"
-            evidence["comparison_ref"] = "HEAD~1"
+            evidence["baseline_ref"] = base
+            evidence["comparison_ref"] = base
+            evidence["accepted_head_commit"] = head
             evidence["evaluator_boundary"]["commands"] = [command]
             evidence["source_refs"] = [source_ref]
             evidence["command_results"] = []
@@ -800,7 +829,14 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            command = "git diff --check HEAD~1...HEAD"
+            (root / "docs" / "provenance.md").write_text("placeholder provenance\n", encoding="utf-8")
+            git(root, "add", "docs/provenance.md")
+            git(root, "commit", "-m", "add provenance note")
+            base = git_stdout(root, "rev-parse", "HEAD")
+            git(root, "mv", "docs/old.md", "docs/new.md")
+            git(root, "commit", "-m", "rename docs")
+            head = git_stdout(root, "rev-parse", "HEAD")
+            command = f"git diff --check {base}...{head}"
             skipped_record = {
                 "evidence": command,
                 "actor": "maintainer",
@@ -813,12 +849,6 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
                 f"{provenance_marker(skipped_record)}\n",
                 encoding="utf-8",
             )
-            git(root, "add", "docs/provenance.md")
-            git(root, "commit", "-m", "add provenance note")
-            base = git_stdout(root, "rev-parse", "HEAD")
-            git(root, "mv", "docs/old.md", "docs/new.md")
-            git(root, "commit", "-m", "rename docs")
-            head = git_stdout(root, "rev-parse", "HEAD")
 
             packet = load_fixture("finalized-routine.yml")
             acceptance_packet = packet["AcceptancePacket"]
@@ -830,8 +860,9 @@ class GovernanceEvidenceFalseGreenTests(unittest.TestCase):
             result["inference"]["changed_paths"] = ["docs/old.md", "docs/new.md"]
             result["inference"]["required_evidence"] = [command]
             evidence = result["evidence"]
-            evidence["baseline_ref"] = "HEAD~1"
-            evidence["comparison_ref"] = "HEAD~1"
+            evidence["baseline_ref"] = base
+            evidence["comparison_ref"] = base
+            evidence["accepted_head_commit"] = head
             evidence["evaluator_boundary"]["commands"] = [command]
             evidence["source_refs"] = [old_ref, new_ref]
             evidence["command_results"] = []

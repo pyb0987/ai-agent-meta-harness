@@ -190,28 +190,32 @@ generated plugin, marketplace, or backlog-review changes, run the tracked hook:
 sh .githooks/pre-commit
 ```
 
-For a stable handoff or release-like local verification, prefer the executable
-release gate:
+For release-like local verification during the v2 transition, prefer the
+executable release gate:
 
 ```bash
 python3 scripts/verify-release.py --base-ref origin/main
 ```
 
 That release gate runs the Standard verification set plus this repository's
-Active search-set and clean-worktree gate. The `--base-ref` flag makes the
-search-set evidence and v1 archive boundary checks compare committed changes
-against `REF...HEAD`, which is the intended mode for a clean release candidate.
-During an in-progress
-maintenance diff, use `python3 scripts/verify-release.py --skip-clean-worktree`
-without `--base-ref` to validate the worktree-status command list before the
-final clean handoff.
+Active search-set, active packet pointer gate, and clean-worktree gate. The
+`--base-ref` flag makes the search-set evidence, v1 archive boundary, and active
+packet pointer checks compare committed changes against `REF...HEAD`, which is
+the intended mode for a clean release candidate. A release diff should publish
+one active pointer; use `--pointer <archive/v2/pointers/...>` only with
+`--base-ref` when explicitly selecting that single publication. During an
+in-progress maintenance diff, use
+`python3 scripts/verify-release.py --skip-clean-worktree` without `--base-ref` to
+validate the worktree-status command list before final local verification; that
+preflight does not require an active packet pointer.
 
 The checked-in GitHub Actions workflow runs the deterministic CI release-gate
-subset for pull requests and pushes to `main` with `--ci --skip-clean-worktree
---base-ref <base>`. Maintainers still run the full local stable-handoff command
-with the clean-worktree gate and Codex local plugin activation smoke before
-release-like handoff. CI does not prove Codex Desktop/runtime plugin skill
-surfacing, plugin hook event delivery, or maintainer-local Codex CLI activation.
+subset for pull requests and pushes to `main` with `--ci --base-ref <base>`.
+Maintainers still run the full local legacy verification
+command with the clean-worktree gate and Codex local plugin activation smoke
+before release-like handoff. CI does not prove Codex Desktop/runtime plugin
+skill surfacing, plugin hook event delivery, or maintainer-local Codex CLI
+activation.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.
@@ -224,7 +228,7 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-v1-archive-boundary.py --staged`, `python3 scripts/check-search-set-evidence.py --staged`, and `python3 scripts/check-backlog-archive-lifecycle.py --staged` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, maintenance review records, the frozen v1 archive boundary, search-set evidence, and completed backlog archive pointers cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
+The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-v1-archive-boundary.py --staged`, `python3 scripts/check-search-set-evidence.py --staged`, `python3 scripts/check-backlog-archive-lifecycle.py --staged`, and `python3 scripts/check-active-packet-gate.py --staged` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, maintenance review records, the frozen v1 archive boundary, search-set evidence, completed backlog archive pointers, and staged active packet publications cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
 
 ## How It Works
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run broad legacy release verification until Plan 08 packet gates exist."""
+"""Run release verification plus the active packet gate when a base ref is supplied."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ class ReleaseCommand:
     clean_worktree: bool = False
     search_set_evidence: bool = False
     v1_archive_boundary: bool = False
+    packet_gate: bool = False
     ci_local_only: bool = False
 
     def __post_init__(self) -> None:
@@ -69,6 +70,11 @@ RELEASE_COMMANDS = (
         search_set_evidence=True,
     ),
     ReleaseCommand("backlog archive lifecycle", ("python3", "scripts/check-backlog-archive-lifecycle.py")),
+    ReleaseCommand(
+        "active packet pointer gate",
+        ("python3", "scripts/check-active-packet-gate.py"),
+        packet_gate=True,
+    ),
     ReleaseCommand("repository search-set", ("python3", "scripts/run-search-set.py")),
     ReleaseCommand("repository tests", ("python3", "-m", "unittest", "discover", "-s", "tests")),
     ReleaseCommand("claude adapter tests", ("python3", "-m", "unittest", "discover", "-s", "adapters/claude/tests")),
@@ -78,7 +84,7 @@ RELEASE_COMMANDS = (
 
 
 def with_base_ref_mode(command: ReleaseCommand, *, base_ref: str | None) -> ReleaseCommand:
-    if base_ref is None or not (command.search_set_evidence or command.v1_archive_boundary):
+    if base_ref is None or not (command.search_set_evidence or command.v1_archive_boundary or command.packet_gate):
         return command
     return ReleaseCommand(
         name=f"{command.name} (base-ref: {base_ref})",
@@ -86,6 +92,21 @@ def with_base_ref_mode(command: ReleaseCommand, *, base_ref: str | None) -> Rele
         clean_worktree=command.clean_worktree,
         search_set_evidence=command.search_set_evidence,
         v1_archive_boundary=command.v1_archive_boundary,
+        packet_gate=command.packet_gate,
+        ci_local_only=command.ci_local_only,
+    )
+
+
+def with_pointer_mode(command: ReleaseCommand, *, pointer: str | None) -> ReleaseCommand:
+    if pointer is None or not command.packet_gate:
+        return command
+    return ReleaseCommand(
+        name=command.name,
+        argv=(*command.argv, "--pointer", pointer),
+        clean_worktree=command.clean_worktree,
+        search_set_evidence=command.search_set_evidence,
+        v1_archive_boundary=command.v1_archive_boundary,
+        packet_gate=command.packet_gate,
         ci_local_only=command.ci_local_only,
     )
 
@@ -95,14 +116,20 @@ def selected_commands(
     skip_clean_worktree: bool,
     base_ref: str | None = None,
     ci: bool = False,
+    pointer: str | None = None,
 ) -> tuple[ReleaseCommand, ...]:
-    if not skip_clean_worktree:
+    if not skip_clean_worktree and not ci:
         commands = RELEASE_COMMANDS
     else:
         commands = tuple(command for command in RELEASE_COMMANDS if not command.clean_worktree)
+    if base_ref is None:
+        commands = tuple(command for command in commands if not command.packet_gate)
     if ci:
         commands = tuple(command for command in commands if not command.ci_local_only)
-    return tuple(with_base_ref_mode(command, base_ref=base_ref) for command in commands)
+    return tuple(
+        with_pointer_mode(with_base_ref_mode(command, base_ref=base_ref), pointer=pointer)
+        for command in commands
+    )
 
 
 def print_command_list(commands: tuple[ReleaseCommand, ...]) -> None:
@@ -142,23 +169,33 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--base-ref",
         help=(
-            "run search-set evidence validation against REF...HEAD for a clean "
-            "release candidate or branch handoff"
+            "validate release-scoped gates against REF...HEAD, including search-set "
+            "evidence, v1 archive boundaries, and the active packet pointer gate"
         ),
+    )
+    parser.add_argument(
+        "--pointer",
+        help="with --base-ref, select the active packet pointer path published in the release diff",
     )
     parser.add_argument(
         "--ci",
         action="store_true",
         help=(
             "run the deterministic CI subset; excludes local-only checks such "
-            "as the Codex CLI activation smoke and should be combined with "
-            "--skip-clean-worktree"
+            "as the Codex CLI activation smoke and the clean-worktree gate"
         ),
     )
     parser.add_argument("--timeout", type=int, default=300, help="timeout per command in seconds")
     args = parser.parse_args(argv)
+    if args.pointer and not args.base_ref:
+        parser.error("--pointer requires --base-ref; use check-governance-acceptance.py check-pointer for pointer-only checks")
 
-    commands = selected_commands(skip_clean_worktree=args.skip_clean_worktree, base_ref=args.base_ref, ci=args.ci)
+    commands = selected_commands(
+        skip_clean_worktree=args.skip_clean_worktree,
+        base_ref=args.base_ref,
+        ci=args.ci,
+        pointer=args.pointer,
+    )
     evidence_mode = f"base-ref diff ({args.base_ref})" if args.base_ref else "worktree status"
     if args.ci:
         print("release-gate mode: ci deterministic subset")

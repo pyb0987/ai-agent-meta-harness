@@ -27,10 +27,12 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "The harness infers change class, impact, required evidence, required review, and eligibility",
             "The harness stores the result as an `AcceptancePacket`",
             "Stable handoff is accepted by the packet checker only from packet-backed base-ref verification; staged verification is preflight evidence, not active stable handoff",
-            "Release/pre-commit packet-pointer gating is still Plan 08 transition work",
-            "governance start --intent",
+            "Release/pre-commit now route active archive packet publication through the packet-pointer gate",
+            "governance start --base-ref REF --intent",
             "governance finalize --packet <packet> --staged|--base-ref REF|--worktree",
             "governance check --packet <packet> --require-stable",
+            "python3 scripts/check-active-packet-gate.py --base-ref origin/main",
+            "python3 scripts/check-active-packet-gate.py --staged",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
@@ -87,11 +89,25 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
 
         for marker in (
             "Use a distinct v2 packet namespace",
-            "Prefer `archive/v2/packets/`",
+            "Routine active base-ref starts default to",
+            "reject non-archive output paths",
             "Do not reuse v1 backlog archive semantics for v2 packets",
+            "python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml",
             "packet lifecycle is finalized",
             "`result.decision.accepted: yes`",
             "required source refs resolve",
+            "checker version, inference rule version, baseline/comparison refs, packet-bound accepted HEAD commit, stable target, and decision status match the archived packet",
+            "`write-pointer` records a reproducible synthetic `archive_commit` hash",
+            "The synthetic commit object is not required to remain reachable in every clone",
+            "routine base-ref finalization into `archive/v2/packets/` also materializes the durable command artifact",
+            "archived review-import artifacts and linked probe transcripts are bound by",
+            "archived active source refs use commit-pinned `git:<full-commit-sha>:<path>`",
+            "`write-pointer` materializes pointer-bound replay metadata and recorded exit/stdout/stderr hashes",
+            "`--overwrite` regenerates existing pointer-bound replay metadata",
+            "archived command artifacts are bound by SHA-256 and include pointer-bound replay metadata",
+            "explicit pointer replay can rerun archived command evidence and compare recorded exit/stdout/stderr hashes",
+            "historical `archive/v2/` bytes are committed repository bytes, not a future whitelist",
+            "Routine `finalize`, stable `check`, release, and pre-commit flows do not execute or trust prior pointer command results",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)

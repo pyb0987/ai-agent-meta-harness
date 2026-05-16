@@ -12,3 +12,4 @@ python3 scripts/check-maintenance-review.py
 python3 scripts/check-v1-archive-boundary.py --staged
 python3 scripts/check-search-set-evidence.py --staged
 python3 scripts/check-backlog-archive-lifecycle.py --staged
+python3 scripts/check-active-packet-gate.py --staged

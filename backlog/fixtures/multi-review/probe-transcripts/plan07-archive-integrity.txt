@@ -1,0 +1,32 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_and_check_pointer_accept_archive_bound_packet'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_archived_packet_hash_mismatch'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_command_artifact_digest_drift'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_mutable_boundary_refs'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_accepts_committed_archive_publication'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_stale_active_head'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_non_archive_head_after_acceptance'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_pointer_only_head_rewrite'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_requires_archive_commit_packet_and_artifact_bytes'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_replay_rejects_forged_command_output_hashes'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_archive_integrity_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_archive_integrity_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_archive_integrity_pass
+
+    '
+  stderr: ''
+  stdout_sha256: fa384872056a0c92c820d0e42b0e6d2464bff4090a5b8e9eff9a72dc4eef1b61
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

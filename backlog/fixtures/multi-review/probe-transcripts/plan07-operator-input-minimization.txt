@@ -1,0 +1,30 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=["tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_start_and_finalize_base_ref_normalize_boundary_refs_for_audit",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_base_ref_generates_head_pinned_source_refs_for_changed_paths",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_base_ref_generates_comparison_pinned_source_refs_for_deleted_paths",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_finalize_archive_base_ref_materializes_stable_artifact_for_pointer",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_rejects_extra_meta_or_input_fields",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_pre_authored_replay_metadata_even_with_matching_replay_hashes",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_preflight_failure_does_not_materialize_command_artifact",
+    "tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_output_failure_rolls_back_command_artifact_materialization"];
+    r=subprocess.run([sys.executable, "-m", "unittest", *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print("probe_plan07_operator_input_minimization_pass"
+    if r.returncode == 0 else "probe_plan07_operator_input_minimization_fail"); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_operator_input_minimization_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 5ee74792da7fde45723d7324039d9541db7dee65b42f60732a6a908875b93302
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

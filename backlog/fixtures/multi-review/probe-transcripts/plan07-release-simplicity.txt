@@ -1,0 +1,30 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_verify_release.VerifyReleaseTests.test_release_commands_include_stable_handoff_gates'"'"',
+    '"'"'tests.test_verify_release.VerifyReleaseTests.test_maintenance_documents_verify_release'"'"',
+    '"'"'tests.test_pre_commit_hook.PreCommitHookTests.test_root_readme_distinguishes_quick_hook_from_release_gate'"'"',
+    '"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_packet_archive_direction_avoids_v1_archive_semantics'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_release_simplicity_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_release_simplicity_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - MAINTENANCE.md
+  - README.md
+  - scripts/verify-release.py
+  - tests/test_maintenance_policy_boundaries.py
+  - tests/test_pre_commit_hook.py
+  - tests/test_verify_release.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_release_simplicity_pass
+
+    '
+  stderr: ''
+  stdout_sha256: affa6f50df59fa4af5bface365410cd913f40278b0db57b6d0b9f5f25835cd7d
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

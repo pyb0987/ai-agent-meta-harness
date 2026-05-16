@@ -24,8 +24,8 @@ The v2 maintenance target model is:
 3. The harness stores the result as an `AcceptancePacket`.
 4. Stable handoff is accepted by the packet checker only from packet-backed
    base-ref verification; staged verification is preflight evidence, not active
-   stable handoff. Release/pre-commit packet-pointer gating is still Plan 08
-   transition work.
+   stable handoff. Release/pre-commit now route active archive packet
+   publication through the packet-pointer gate.
 
 The main v2 product requirement is simplicity: reduce the user interface and
 the mental model, not the methodology evidence. If a maintenance change makes
@@ -68,7 +68,7 @@ Maintenance work must preserve these Meta-Harness anchors:
 Target commands:
 
 ```bash
-governance start --intent "..." [--exception ...] [--output <packet>]
+governance start --base-ref REF --intent "..." [--exception ...] [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
 governance check --packet <packet> --require-stable
 ```
@@ -76,7 +76,12 @@ governance check --packet <packet> --require-stable
 Lifecycle rules:
 
 - `start` captures baseline state before edits.
-- `finalize` updates evidence and computes `result.decision.eligibility`.
+- For active base-ref archive flows, omit `--output` to use the default
+  `archive/v2/packets/<packet_id>.yml` path.
+- `start` and `finalize` resolve `--base-ref` to a full commit SHA before
+  writing packet boundary fields or evidence commands.
+- `finalize` updates evidence and computes `result.decision.stable_handoff_eligible`;
+  `--base-ref` also generates commit-pinned changed-path source refs.
 - `check` is read-only and does not mutate packet lifecycle state.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.
 - `--worktree` is exploratory or in-progress unless explicitly marked
@@ -132,22 +137,72 @@ claiming stable packet governance:
 
 ## Packet Archive Direction
 
-Use a distinct v2 packet namespace. Prefer `archive/v2/packets/` unless an
+Use a distinct v2 packet namespace. Routine active base-ref starts default to
+`archive/v2/packets/` and reject non-archive output paths, unless an
 implementation review chooses a stronger location such as
 `.harness/governance/packets/`.
 
 Do not reuse v1 backlog archive semantics for v2 packets. A completed active
-pointer should eventually validate:
+pointer is a generated artifact outside the public packet shape. The normal
+publication path is:
+
+```bash
+python3 scripts/check-governance-acceptance.py write-pointer --packet archive/v2/packets/<packet_id>.yml
+python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml
+```
+
+Optional audit/debug replay is explicit and not part of routine release,
+pre-commit, `finalize`, or stable `check` flows:
+
+```bash
+python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml --replay-command-evidence
+```
+
+The active pointer validates:
 
 - packet file exists
-- packet hash matches if present
+- packet hash matches archived packet bytes
 - packet lifecycle is finalized
 - `result.decision.accepted: yes`
 - required source refs resolve
+- checker version, inference rule version, baseline/comparison refs, packet-bound
+  accepted HEAD commit, stable target, and decision status match the archived
+  packet
+- `write-pointer` records a reproducible synthetic `archive_commit` hash over
+  the packet, command artifact, review import artifact, and linked probe
+  transcript bytes it hashed; `check-pointer` recomputes that hash and verifies
+  committed publication bytes when a pointer has been published. The synthetic
+  commit object is not required to remain reachable in every clone.
+- archived active base-ref boundary refs use full commit SHAs; mutable refs such
+  as `HEAD` cannot certify archived stable boundaries. Routine start/finalize
+  normalizes user-provided refs such as `HEAD~1` or `origin/main` to the resolved
+  commit SHA.
+- archived review-import artifacts and linked probe transcripts are bound by
+  SHA-256, target digest, result digest, packet ref, and packet SHA-256
+- archived active source refs use commit-pinned `git:<full-commit-sha>:<path>`
+  refs for changed-path evidence; bare paths, mutable `git:` refs, opaque blobs,
+  and protected directory-root refs cannot certify archived stable source
+  evidence. Routine base-ref finalization generates these changed-path refs, so
+  operators do not hand-author them.
+- routine base-ref finalization into `archive/v2/packets/` also materializes the
+  durable command artifact and marks the packet stable when the generated
+  evidence validates, so `write-pointer` can publish without manual packet or
+  artifact edits
+- `write-pointer` materializes pointer-bound replay metadata and recorded
+  exit/stdout/stderr hashes for matched `# Command Evidence` sections rather
+  than accepting pre-authored replay/provenance fields; `--overwrite` regenerates
+  existing pointer-bound replay metadata for retry/output recovery; stable packet
+  preflight runs before artifact mutation, and pointer/materialization failures
+  roll artifact bytes back so retries are not poisoned
+- archived command artifacts are bound by SHA-256 and include pointer-bound
+  replay metadata for the matched `# Command Evidence` section
+- explicit pointer replay can rerun archived command evidence and compare
+  recorded exit/stdout/stderr hashes without making stable `check` execute
+  artifact-supplied commands
 
 ## Active Governance Boundaries
 
-During the v2 transition, keep the active operator model to four boundaries:
+During the v2 transition, keep the active operator model to these boundaries:
 
 - `check` is read-only. Stable handoff validation may read packets, source
   refs, transcripts, and command artifacts, but it must not execute
@@ -158,14 +213,21 @@ During the v2 transition, keep the active operator model to four boundaries:
 - `stable` validates durable structural evidence. A stable packet proves
   closure through recomputed required evidence/review, structured imports,
   source refs, transcripts, and reopenable packet-bound command artifacts, not
-  by trusting reported PASS prose. Command artifact authenticity remains an
-  archive/trusted-runner provenance responsibility for Plan 07.
+  by trusting reported PASS prose. Plan 07 binds command artifact bytes with
+  pointer-bound replay metadata and explicit replay, but it is not an external
+  runner identity or signature attestation.
+- historical `archive/v2/` bytes are committed repository bytes, not a future
+  whitelist. Routine `finalize`, stable `check`, release, and pre-commit flows
+  do not execute or trust prior pointer command results to close a later packet;
+  unexpected new `archive/v2/` bytes still require the current active pointer
+  publication path.
 - generated artifact refs use explicit schemes. Stable artifact and probe
   evidence refs use `file:`, trace refs use `trace:`, and active base-ref
   stable changed-path source refs use commit-pinned `git:<full-commit-sha>:<path>`
   refs: `HEAD` for additions/modifications and the comparison side for deleted
-  paths. Broader source refs are allowed only for non-active fixtures or later
-  archive policy decisions.
+  paths. Base-ref finalization generates those changed-path refs automatically;
+  broader source refs are allowed only for non-active fixtures or later archive
+  policy decisions.
 
 ## Verification During Transition
 
@@ -195,16 +257,20 @@ python3 -m unittest discover -s adapters/claude/tests
 python3 -m unittest discover -s adapters/codex/tests
 ```
 
-Until Plan 08 wires packet pointers into release/pre-commit gates, the broad
-legacy release verification command is:
+For release-like local verification, use:
 
 ```bash
 python3 scripts/verify-release.py --base-ref origin/main
 ```
 
-This command is not a packet-backed stable handoff by itself; active stable
-handoff still requires `governance check --packet <packet> --require-stable`
-against a finalized base-ref packet.
+With `--base-ref`, `verify-release.py` also runs the active packet pointer gate
+and discovers the pointer from `REF...HEAD`. A packet-backed stable handoff for
+a clean release candidate therefore requires a published pointer under
+`archive/v2/pointers/` whose pointed packet is finalized, base-ref mode, and
+stable-handoff eligible. The release diff should publish one active pointer.
+Use `--pointer <archive/v2/pointers/...>` only together with `--base-ref` when
+explicitly selecting that single publication; split multiple pointer
+publications instead of hiding them behind one release command.
 
 During an in-progress maintenance diff, use:
 
@@ -222,26 +288,56 @@ It is not part of pre-commit because in-progress staged checks must be able to
 run before the working tree is clean.
 
 When editing governance fixtures or transcript artifacts, also run the Plan 06
-developer helper. It remains outside the stable release gate until v2 archive
-integration defines the release policy:
+developer helper. Plan 07 keeps this helper outside the stable release gate:
+archive pointer validation binds archived packet, command artifact, review
+import artifact, and probe transcript bytes, but fixture regeneration remains a
+developer maintenance action rather than stable handoff evidence.
 
 ```bash
 python3 scripts/update-governance-fixtures.py --check
 ```
 
-For staged pre-commit evidence, use:
+For staged pre-commit evidence, use the hook wrapper:
+
+```bash
+sh .githooks/pre-commit
+```
+
+The hook runs the staged archive boundary, search-set evidence, backlog
+lifecycle, and active packet pointer gates. Use the lower-level commands only
+when debugging a failing hook result:
 
 ```bash
 python3 scripts/check-v1-archive-boundary.py --staged
 python3 scripts/check-search-set-evidence.py --staged
 python3 scripts/check-backlog-archive-lifecycle.py --staged
+python3 scripts/check-active-packet-gate.py --staged
 ```
 
-For release-candidate search-set evidence, use:
+The staged active packet gate is preflight only: it passes ordinary staged
+non-archive changes, but staged `archive/v2/` packet/artifact/pointer changes
+must include exactly one active pointer candidate or an explicit `--pointer`.
+Stage active pointer publication separately from work/content changes: commit
+the accepted work first, then stage only the generated `archive/v2/` packet,
+artifact, and pointer bytes for the publication preflight. In staged mode the
+gate validates the Git index snapshot, not worktree bytes, so unrelated
+unstaged or untracked files do not affect the pre-commit result and untracked
+archive artifacts cannot satisfy a staged publication.
+
+For release-candidate verification, use the release wrapper:
+
+```bash
+python3 scripts/verify-release.py --base-ref origin/main
+```
+
+The release wrapper runs the base-ref v1 archive boundary, search-set evidence,
+and active packet pointer gates. Use the lower-level commands only when
+debugging a failing release result:
 
 ```bash
 python3 scripts/check-v1-archive-boundary.py --base-ref origin/main
 python3 scripts/check-search-set-evidence.py --base-ref origin/main
+python3 scripts/check-active-packet-gate.py --base-ref origin/main
 ```
 
 The v1 archive boundary checker has three modes: worktree, `--staged`, and
@@ -310,13 +406,16 @@ evidence, not actively revalidated by legacy v1 gates. The initial import is
 allowed while `archive/v1/` is absent from `HEAD`; later changes fail unless a
 maintainer/reviewer waiver is supplied with a concrete reason.
 
-After Plan 08 release/pre-commit integration exists, release and pre-commit
-should prefer packet checks:
+Release and pre-commit packet integration normally runs through
+`python3 scripts/verify-release.py --base-ref origin/main` and
+`.githooks/pre-commit`. Raw packet-gate triage commands are:
 
 ```bash
-governance check --packet <packet> --require-stable
-governance finalize --packet <packet> --staged
-governance finalize --packet <packet> --base-ref origin/main
+python3 scripts/check-active-packet-gate.py --base-ref origin/main
+python3 scripts/check-active-packet-gate.py --staged
+python3 scripts/check-governance-acceptance.py check --packet <packet> --require-stable
+python3 scripts/check-governance-acceptance.py finalize --packet <packet> --staged
+python3 scripts/check-governance-acceptance.py finalize --packet <packet> --base-ref origin/main
 ```
 
 Keep release commands argv-based and inspectable. Do not hide governance

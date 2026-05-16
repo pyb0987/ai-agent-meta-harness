@@ -66,14 +66,15 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertTrue(SCRIPT.stat().st_mode & 0o111)
 
     def test_skip_clean_worktree_only_removes_clean_gate(self) -> None:
-        all_commands = verify_release.RELEASE_COMMANDS
+        all_commands = tuple(command for command in verify_release.RELEASE_COMMANDS if not command.packet_gate)
         selected = verify_release.selected_commands(skip_clean_worktree=True)
 
         self.assertEqual(len(all_commands) - len(selected), 1)
         self.assertFalse(any(command.clean_worktree for command in selected))
+        self.assertFalse(any(command.packet_gate for command in selected))
 
     def test_ci_mode_omits_clean_gate_and_local_codex_activation_smoke(self) -> None:
-        selected = verify_release.selected_commands(skip_clean_worktree=True, ci=True)
+        selected = verify_release.selected_commands(skip_clean_worktree=False, ci=True)
         commands = {command.name: command.command for command in selected}
 
         self.assertNotIn("clean worktree", commands)
@@ -92,6 +93,10 @@ class VerifyReleaseTests(unittest.TestCase):
             commands["v1 archive boundary (base-ref: origin/main)"],
             "python3 scripts/check-v1-archive-boundary.py --base-ref origin/main",
         )
+        self.assertEqual(
+            commands["active packet pointer gate (base-ref: origin/main)"],
+            "python3 scripts/check-active-packet-gate.py --base-ref origin/main",
+        )
         self.assertIn("python3 scripts/run-search-set.py", commands.values())
         self.assertNotIn("python3 scripts/check-clean-worktree.py", commands.values())
 
@@ -109,6 +114,48 @@ class VerifyReleaseTests(unittest.TestCase):
         self.assertTrue(rewritten.ci_local_only)
         self.assertEqual(rewritten.argv, (*command.argv, "--base-ref", "origin/main"))
 
+    def test_base_ref_wrapper_preserves_packet_gate_flag(self) -> None:
+        command = verify_release.ReleaseCommand(
+            "active packet pointer gate",
+            ("python3", "scripts/check-active-packet-gate.py"),
+            packet_gate=True,
+        )
+
+        rewritten = verify_release.with_base_ref_mode(command, base_ref="origin/main")
+
+        self.assertTrue(rewritten.packet_gate)
+        self.assertEqual(rewritten.argv, (*command.argv, "--base-ref", "origin/main"))
+
+    def test_pointer_passthrough_reaches_active_packet_gate(self) -> None:
+        selected = verify_release.selected_commands(
+            skip_clean_worktree=True,
+            base_ref="origin/main",
+            pointer="archive/v2/pointers/pkt.yml",
+        )
+        commands = {command.name: command.command for command in selected}
+
+        self.assertEqual(
+            commands["active packet pointer gate (base-ref: origin/main)"],
+            "python3 scripts/check-active-packet-gate.py --base-ref origin/main --pointer archive/v2/pointers/pkt.yml",
+        )
+
+    def test_pointer_without_base_ref_does_not_enable_packet_gate(self) -> None:
+        selected = verify_release.selected_commands(
+            skip_clean_worktree=True,
+            pointer="archive/v2/pointers/pkt.yml",
+        )
+        commands = {command.name: command.command for command in selected}
+
+        self.assertNotIn("active packet pointer gate", commands)
+
+    def test_pointer_cli_requires_base_ref(self) -> None:
+        with mock.patch("sys.stderr", io.StringIO()) as stderr:
+            with self.assertRaises(SystemExit) as raised:
+                verify_release.main(["--list", "--skip-clean-worktree", "--pointer", "archive/v2/pointers/pkt.yml"])
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--pointer requires --base-ref", stderr.getvalue())
+        self.assertIn("check-governance-acceptance.py check-pointer", stderr.getvalue())
 
     def test_base_ref_is_shell_quoted_in_search_set_evidence_command(self) -> None:
         selected = verify_release.selected_commands(skip_clean_worktree=True, base_ref="feature/ref with space")
@@ -154,28 +201,51 @@ class VerifyReleaseTests(unittest.TestCase):
         text = output.getvalue()
         self.assertIn("python3 scripts/check-compat-mirrors.py", text)
         self.assertIn("python3 scripts/check-clean-worktree.py", text)
+        self.assertNotIn("python3 scripts/check-active-packet-gate.py", text)
         self.assertIn("search-set evidence mode: worktree status", text)
 
     def test_list_mode_prints_base_ref_search_set_evidence_command(self) -> None:
         output = io.StringIO()
 
         with mock.patch("sys.stdout", output):
-            status = verify_release.main(["--list", "--ci", "--skip-clean-worktree", "--base-ref", "origin/main"])
+            status = verify_release.main(["--list", "--ci", "--base-ref", "origin/main"])
 
         self.assertEqual(status, 0)
         text = output.getvalue()
         self.assertIn("release-gate mode: ci deterministic subset", text)
         self.assertIn("search-set evidence mode: base-ref diff (origin/main)", text)
+        self.assertIn("python3 scripts/check-active-packet-gate.py --base-ref origin/main", text)
         self.assertIn("python3 scripts/check-search-set-evidence.py --base-ref origin/main", text)
         self.assertNotIn("smoke-local-plugin-activation.py", text)
+
+    def test_list_mode_prints_pointer_passthrough(self) -> None:
+        output = io.StringIO()
+
+        with mock.patch("sys.stdout", output):
+            status = verify_release.main(
+                [
+                    "--list",
+                    "--skip-clean-worktree",
+                    "--base-ref",
+                    "origin/main",
+                    "--pointer",
+                    "archive/v2/pointers/pkt.yml",
+                ]
+            )
+
+        self.assertEqual(status, 0)
+        self.assertIn(
+            "python3 scripts/check-active-packet-gate.py --base-ref origin/main --pointer archive/v2/pointers/pkt.yml",
+            output.getvalue(),
+        )
 
     def test_maintenance_documents_verify_release(self) -> None:
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
 
         self.assertIn("python3 scripts/verify-release.py", text)
         self.assertIn("python3 scripts/verify-release.py --base-ref origin/main", text)
-        self.assertIn("legacy release verification command", text)
-        self.assertIn("not a packet-backed stable handoff by itself", text)
+        self.assertIn("active packet pointer gate", text)
+        self.assertIn("packet-backed stable handoff", text)
 
 
 if __name__ == "__main__":

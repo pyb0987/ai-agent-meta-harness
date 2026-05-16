@@ -1,0 +1,27 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_hand_authored_command_evidence_without_replay_metadata'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_unauthenticated_replay_metadata_labels'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_pre_authored_replay_metadata_even_with_matching_replay_hashes'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_rejects_artifact_bound_to_pre_archive_packet_ref'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_check_pointer_replay_rejects_forged_command_output_hashes'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_command_provenance_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_command_provenance_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_command_provenance_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 24e2326b431bf73e0d3906eae9bc74bcd8b4aed810cae6b375dbad42210b18fb
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

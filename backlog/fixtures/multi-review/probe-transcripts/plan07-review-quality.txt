@@ -1,0 +1,26 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_probe_without_matching_transcript'"'"',
+    '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_replays_probe_commands_when_requested'"'"',
+    '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_fallback_nonindependent_for_governance_pass'"'"',
+    '"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_missing_frame_challenge_for_governance_pass'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_review_quality_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_review_quality_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-multi-review-result.py
+  - tests/test_multi_review_result_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_review_quality_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 4d6b7f525a3b1c5d96593e05f3e97e8332e10a59417523dcd97b566b5566aee4
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

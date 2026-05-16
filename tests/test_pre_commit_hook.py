@@ -35,6 +35,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
 
+    def test_hook_runs_staged_active_packet_gate(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-active-packet-gate.py --staged", text)
+
     def test_hook_runs_codex_marketplace_metadata_checker(self):
         text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
 
@@ -51,8 +56,10 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
         self.assertIn("python3 scripts/check-v1-archive-boundary.py --staged", text)
+        self.assertIn("python3 scripts/check-active-packet-gate.py --staged", text)
         self.assertIn("completed backlog archive pointers", text)
         self.assertIn("frozen v1 archive boundary", text)
+        self.assertIn("staged active packet publications", text)
 
     def test_standard_verification_runs_codex_activation_smoke(self):
         text = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
@@ -79,10 +86,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("quick pre-commit-adjacent check", normalized)
         self.assertIn("sh .githooks/pre-commit", text)
-        self.assertIn("stable handoff or release-like local verification", normalized)
+        self.assertIn("release-like local verification during the v2 transition", normalized)
         self.assertIn("python3 scripts/verify-release.py", text)
         self.assertIn("python3 scripts/verify-release.py --skip-clean-worktree", text)
         self.assertIn("runs the Standard verification set plus this repository's Active search-set", normalized)
+        self.assertIn("active packet pointer gate", normalized)
         self.assertIn("clean-worktree gate", normalized)
         self.assertIn("During an in-progress maintenance diff", normalized)
 

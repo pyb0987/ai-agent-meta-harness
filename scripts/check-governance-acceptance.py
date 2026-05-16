@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import datetime as dt
 import hashlib
 import importlib.util
@@ -12,9 +13,11 @@ import os
 from pathlib import Path
 import posixpath
 import re
+import shutil
 import shlex
 import subprocess
 import sys
+import tempfile
 import uuid
 
 import yaml
@@ -22,11 +25,69 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = "v2.0-draft"
+INFERENCE_RULE_VERSION = "v2.0-draft"
 PACKET_KEY = "AcceptancePacket"
+POINTER_KEY = "AcceptancePacketPointer"
+POINTER_SCHEMA_VERSION = "acceptance-packet-pointer/v1"
 COMMAND_EVIDENCE_HEADING = "# Command Evidence"
 COMMAND_EVIDENCE_FIELD_RE = re.compile(r"^\s*([A-Za-z0-9_-]+):\s*(.*?)\s*$")
+CHECKER_REF = "scripts/check-governance-acceptance.py"
+COMMAND_ARCHIVE_REPLAY_METADATA_VALUES = {"pointer-bound"}
+COMMAND_ARCHIVE_REPLAY_METADATA_FIELDS = (
+    "replay_metadata",
+    "replay_recorded_by",
+    "replay_recorded_at",
+    "replay_checker_ref",
+)
+LEGACY_COMMAND_ARCHIVE_PROVENANCE_FIELDS = ("archive_provenance", "generated_by", "generated_at", "runner_ref")
+COMMAND_ARCHIVE_REPLAY_FIELDS = ("exit_code", "stdout_sha256", "stderr_sha256")
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 FULL_COMMIT_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 PUBLIC_SECTIONS = ("meta", "input", "result")
+ARCHIVE_PACKET_PREFIX = "archive/v2/packets/"
+ARCHIVE_ARTIFACT_PREFIX = "archive/v2/artifacts/"
+DEFAULT_POINTER_PREFIX = "archive/v2/pointers/"
+ARCHIVE_COMMIT_AUTHOR_NAME = "Acceptance Archive"
+ARCHIVE_COMMIT_AUTHOR_EMAIL = "acceptance-archive@example.invalid"
+ARCHIVE_COMMIT_DATE = "2000-01-01T00:00:00+0000"
+TRUSTED_REPLAY_PATH_ENTRIES = tuple(
+    dict.fromkeys(
+        [
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
+        ]
+    )
+)
+TRUSTED_REPLAY_PATH = os.pathsep.join(TRUSTED_REPLAY_PATH_ENTRIES)
+POINTER_FIELDS = {
+    "schema_version",
+    "packet_id",
+    "packet_ref",
+    "packet_sha256",
+    "checker_version",
+    "inference_rule_version",
+    "baseline_ref",
+    "comparison_ref",
+    "head_commit",
+    "archive_commit",
+    "stable_target",
+    "decision_status",
+    "command_artifacts",
+    "review_import_artifacts",
+    "probe_transcripts",
+}
+POINTER_COMMAND_ARTIFACT_FIELDS = {"artifact_ref", "artifact_sha256", "command"}
+POINTER_REVIEW_IMPORT_ARTIFACT_FIELDS = {"source_ref", "source_sha256", "review_target_digest", "review_ids"}
+POINTER_PROBE_TRANSCRIPT_FIELDS = {
+    "source_ref",
+    "transcript_sha256",
+    "result_ref",
+    "result_digest",
+    "packet_ref",
+    "packet_sha256",
+}
 CANONICAL_ACCEPTANCE_PACKET_FIXTURES = {
     "backlog/fixtures/acceptance-packets/blocked.yml",
     "backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml",
@@ -164,21 +225,76 @@ RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES = {
     ".webp",
 }
 RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES = {".json", ".txt", ".xml", ".yaml", ".yml"}
+POINTER_SUFFIXES = (".yml", ".yaml")
+GIT_ENV_PREFIX = "GIT_"
 
 class PacketError(ValueError):
     pass
 
 
-def git(root: Path, args: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
+def git_env(*, keep_index: bool = False) -> dict[str, str]:
+    safe_names = (
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TMPDIR",
+        "TMP",
+        "TEMP",
+        "SYSTEMROOT",
+        "COMSPEC",
+        "PATHEXT",
+    )
+    env = {name: value for name in safe_names if (value := os.environ.get(name))}
+    if keep_index and (index_path := os.environ.get("GIT_INDEX_FILE")):
+        env["GIT_INDEX_FILE"] = index_path
+    env["PATH"] = TRUSTED_REPLAY_PATH
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_SYSTEM"] = os.devnull
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    return env
+
+
+def git(root: Path, args: list[str], *, check: bool = False, keep_index: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
         cwd=root,
+        env=git_env(keep_index=keep_index),
         encoding="utf-8",
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=check,
     )
+
+
+def git_bytes(root: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env=git_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def git_with_env(root: Path, args: list[str], *, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env=env,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def git_objects_dir(root: Path) -> Path | None:
+    result = git(root, ["rev-parse", "--git-path", "objects"])
+    if result.returncode != 0:
+        return None
+    path = Path(result.stdout.strip())
+    return path if path.is_absolute() else root / path
 
 
 def today() -> dt.date:
@@ -202,6 +318,21 @@ def load_packet(path: Path) -> dict:
     if not isinstance(packet, dict):
         raise PacketError(f"{path}: {PACKET_KEY} must be a mapping")
     return packet
+
+
+def load_pointer(path: Path) -> dict:
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise PacketError(f"{path}: cannot read pointer: {exc}") from exc
+    except yaml.YAMLError as exc:
+        raise PacketError(f"{path}: invalid YAML: {exc}") from exc
+    if not isinstance(loaded, dict) or POINTER_KEY not in loaded:
+        raise PacketError(f"{path}: missing {POINTER_KEY}")
+    pointer = loaded[POINTER_KEY]
+    if not isinstance(pointer, dict):
+        raise PacketError(f"{path}: {POINTER_KEY} must be a mapping")
+    return pointer
 
 
 def file_sha256(path: Path) -> str:
@@ -235,6 +366,34 @@ def resolve_repo_path(root: Path, ref_path: str) -> str | None:
     return candidate.relative_to(root_resolved).as_posix()
 
 
+def repo_path_has_symlink(root: Path, path: Path) -> bool:
+    root_abs = Path(os.path.abspath(os.path.normpath(root)))
+    candidate_abs = Path(os.path.abspath(os.path.normpath(path)))
+    try:
+        rel = candidate_abs.relative_to(root_abs)
+    except ValueError:
+        return path.is_symlink()
+    current = root_abs
+    for part in rel.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
+
+
+def resolve_archive_file_ref_path(root: Path, ref_path: str) -> str | None:
+    path = Path(ref_path)
+    if path.is_absolute() or ".." in path.parts:
+        return None
+    rel = path.as_posix()
+    if not rel.startswith("archive/v2/"):
+        return None
+    candidate = root / rel
+    if repo_path_has_symlink(root, candidate) or not candidate.is_file():
+        return None
+    return rel
+
+
 def resolve_ref(root: Path, ref: str) -> str | None:
     if not isinstance(ref, str) or not ref:
         return None
@@ -242,6 +401,8 @@ def resolve_ref(root: Path, ref: str) -> str | None:
         return None
     if ref.startswith("file:"):
         rel = ref.removeprefix("file:")
+        if rel.startswith("archive/v2/"):
+            return resolve_archive_file_ref_path(root, rel)
         return resolve_repo_path(root, rel)
     if ref.startswith("trace:"):
         body = ref.removeprefix("trace:")
@@ -348,12 +509,28 @@ def is_raw_claim_file_ref(root: Path, ref: str) -> bool:
     return False
 
 
+def write_text_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        tmp_path.write_text(text, encoding="utf-8")
+        os.replace(tmp_path, path)
+    except OSError:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def packet_document_text(packet: dict) -> str:
+    return yaml.safe_dump({PACKET_KEY: packet}, sort_keys=False, allow_unicode=False)
+
+
 def write_packet(path: Path, packet: dict, *, overwrite: bool = False) -> None:
     if path.exists() and not overwrite:
         raise PacketError(f"{path}: already exists; refusing to overwrite")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    text = yaml.safe_dump({PACKET_KEY: packet}, sort_keys=False, allow_unicode=False)
-    path.write_text(text, encoding="utf-8")
+    write_text_atomic(path, packet_document_text(packet))
 
 
 def date_like(value: object, *, allow_none: bool = False) -> bool:
@@ -401,31 +578,52 @@ def checker_required_evidence(packet: dict) -> set[str]:
     evidence = packet["result"]["evidence"]
     mode = meta.get("mode")
     comparison_ref = evidence.get("comparison_ref")
+    accepted_head_commit = evidence.get("accepted_head_commit")
+    head_ref = accepted_head_commit if isinstance(accepted_head_commit, str) and accepted_head_commit else "HEAD"
     changed_paths = string_list_values(inference.get("changed_paths", []))
     changed = set(changed_paths)
 
     archive_changed = any(path.startswith("archive/v1/") for path in changed)
-    release_gate_changed = bool({"scripts/verify-release.py", "scripts/check-v1-archive-boundary.py"} & changed)
-
-    if release_gate_changed and mode == "base-ref" and comparison_ref:
-        return {
-            f"python3 scripts/verify-release.py --list --base-ref {comparison_ref} --skip-clean-worktree",
-            f"python3 scripts/check-v1-archive-boundary.py --base-ref {comparison_ref}",
-            "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py",
-        }
+    legacy_release_gate_changed = bool({"scripts/verify-release.py", "scripts/check-v1-archive-boundary.py"} & changed)
+    active_release_gate_changed = "scripts/check-active-packet-gate.py" in changed
+    pre_commit_gate_changed = ".githooks/pre-commit" in changed
+    release_gate_changed = legacy_release_gate_changed or active_release_gate_changed or pre_commit_gate_changed
 
     required: set[str] = set()
+
+    if release_gate_changed and mode == "base-ref" and comparison_ref:
+        required.add(f"python3 scripts/verify-release.py --list --base-ref {comparison_ref} --skip-clean-worktree")
+        if legacy_release_gate_changed:
+            required.update(
+                {
+                    f"python3 scripts/check-v1-archive-boundary.py --base-ref {comparison_ref}",
+                    "python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py",
+                }
+            )
+        if active_release_gate_changed:
+            required.add("python3 -m unittest tests/test_active_packet_gate.py tests/test_verify_release.py")
+        if pre_commit_gate_changed:
+            required.update(
+                {
+                    "sh .githooks/pre-commit",
+                    "python3 -m unittest tests/test_pre_commit_hook.py tests/test_active_packet_gate.py",
+                }
+            )
+
     if archive_changed:
         if mode == "staged":
             required.add("python3 scripts/check-v1-archive-boundary.py --staged")
+            required.add("python3 scripts/verify-release.py")
         elif mode == "base-ref" and comparison_ref:
             required.add(f"python3 scripts/check-v1-archive-boundary.py --base-ref {comparison_ref}")
-        required.add("python3 scripts/verify-release.py")
+            required.add(f"python3 scripts/verify-release.py --list --base-ref {comparison_ref} --skip-clean-worktree")
+        else:
+            required.add("python3 scripts/verify-release.py")
 
     if mode == "staged":
         required.add("git diff --cached --check")
     elif mode == "base-ref" and comparison_ref and not required:
-        required.add(f"git diff --check {comparison_ref}...HEAD")
+        required.add(f"git diff --check {comparison_ref}...{head_ref}")
     elif mode == "worktree":
         required.add("git diff --check")
     return required
@@ -496,8 +694,10 @@ def base_ref_content_refs(packet: dict) -> list[str] | None:
     result = packet.get("result", {})
     evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
     comparison_ref = evidence.get("comparison_ref")
+    accepted_head = evidence.get("accepted_head_commit")
     if isinstance(meta, dict) and meta.get("mode") == "base-ref" and isinstance(comparison_ref, str):
-        return [comparison_ref, "HEAD"]
+        head_ref = accepted_head if isinstance(accepted_head, str) and accepted_head else "HEAD"
+        return list(dict.fromkeys([comparison_ref, head_ref]))
     return None
 
 
@@ -542,7 +742,12 @@ def checker_required_review(packet: dict, *, root: Path = ROOT) -> set[str]:
 
     if any(
         path.startswith(".githooks/")
-        or path in {"scripts/verify-release.py", "scripts/check-v1-archive-boundary.py"}
+        or path
+        in {
+            "scripts/verify-release.py",
+            "scripts/check-v1-archive-boundary.py",
+            "scripts/check-active-packet-gate.py",
+        }
         or "pre-commit" in path
         or "release" in path
         or "archive-boundary" in path
@@ -943,11 +1148,284 @@ def command_evidence_section_duplicate_fields(lines: list[str], start: int, end:
     return duplicates
 
 
-def command_evidence_record_error(
-    text: str,
+def archive_replay_command_policy_error(command: object) -> str | None:
+    if not isinstance(command, str) or not command:
+        return "archive command replay requires command field"
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        return f"archive command replay command is not shell-parseable: {exc}"
+    if release_gate_archive_replay_argv_allowed(argv):
+        return None
+    if len(argv) != 4 or argv[:3] != ["git", "diff", "--check"]:
+        return (
+            "archive command replay is limited to: git diff --check <full-sha>...<full-sha> "
+            "or fixed release/pre-commit gate evidence commands"
+        )
+    if "..." not in argv[3]:
+        return "archive command replay diff range must use <full-sha>...<full-sha>"
+    left, right = argv[3].split("...", 1)
+    if not FULL_COMMIT_RE.fullmatch(left) or not FULL_COMMIT_RE.fullmatch(right):
+        return "archive command replay diff range must use full commit SHAs"
+    return None
+
+
+def release_gate_archive_replay_argv_allowed(argv: list[str]) -> bool:
+    if release_gate_unittest_replay_argv_allowed(argv):
+        return True
+    if argv == ["sh", ".githooks/pre-commit"]:
+        return True
+    if len(argv) == 6 and argv[:4] == ["python3", "scripts/verify-release.py", "--list", "--base-ref"]:
+        return FULL_COMMIT_RE.fullmatch(argv[4]) is not None and argv[5] == "--skip-clean-worktree"
+    if len(argv) == 4 and argv[:3] == ["python3", "scripts/check-v1-archive-boundary.py", "--base-ref"]:
+        return FULL_COMMIT_RE.fullmatch(argv[3]) is not None
+    return False
+
+
+def release_gate_unittest_replay_argv_allowed(argv: list[str]) -> bool:
+    return argv in (
+        [
+            "python3",
+            "-m",
+            "unittest",
+            "tests/test_v1_archive_boundary.py",
+            "tests/test_verify_release.py",
+        ],
+        [
+            "python3",
+            "-m",
+            "unittest",
+            "tests/test_active_packet_gate.py",
+            "tests/test_verify_release.py",
+        ],
+        [
+            "python3",
+            "-m",
+            "unittest",
+            "tests/test_pre_commit_hook.py",
+            "tests/test_active_packet_gate.py",
+        ],
+    )
+
+
+def archive_replay_normalized_streams(command: object) -> set[str]:
+    if not isinstance(command, str) or not command:
+        return set()
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        return set()
+    if (
+        len(argv) == 4
+        and argv[:3] == ["git", "diff", "--check"]
+        and "..." in argv[3]
+        and all(FULL_COMMIT_RE.fullmatch(part) for part in argv[3].split("...", 1))
+    ):
+        return {"stdout", "stderr"}
+    if release_gate_unittest_replay_argv_allowed(argv):
+        return {"stderr"}
+    return set()
+
+
+def archive_replay_requires_empty_pass_hashes(command: object) -> bool:
+    return bool(archive_replay_normalized_streams(command))
+
+
+def archive_replay_empty_pass_hash_error(section: dict[str, str]) -> str | None:
+    if section.get("status") != "pass":
+        return None
+    if section.get("exit_code") != "0":
+        return "pass archive command evidence must record exit_code 0"
+    for stream in sorted(archive_replay_normalized_streams(section.get("command"))):
+        field = f"{stream}_sha256"
+        if section.get(field) != EMPTY_SHA256:
+            return f"pass archive command evidence must record empty {stream} hash"
+    return None
+
+
+def command_archive_replay_metadata_error(section: dict[str, str], *, root: Path) -> str | None:
+    legacy_fields = sorted(field for field in LEGACY_COMMAND_ARCHIVE_PROVENANCE_FIELDS if field in section)
+    if legacy_fields:
+        return f"archive command evidence legacy provenance fields are not allowed with replay metadata: {legacy_fields}"
+    for field in COMMAND_ARCHIVE_REPLAY_METADATA_FIELDS:
+        if not review_value_is_substantive_string(section.get(field)):
+            return f"archive command evidence missing replay metadata field: {field}"
+    for field in COMMAND_ARCHIVE_REPLAY_FIELDS:
+        if not review_value_is_substantive_string(section.get(field)):
+            return f"archive command evidence missing replay field: {field}"
+    metadata = section["replay_metadata"]
+    if metadata not in COMMAND_ARCHIVE_REPLAY_METADATA_VALUES:
+        return f"replay_metadata must be one of {sorted(COMMAND_ARCHIVE_REPLAY_METADATA_VALUES)}"
+    if section["replay_recorded_by"] != CHECKER_REF:
+        return f"replay_recorded_by must be {CHECKER_REF}"
+    if not date_like(section["replay_recorded_at"]):
+        return "replay_recorded_at must be an ISO date"
+    if section["replay_checker_ref"] != CHECKER_REF:
+        return f"replay_checker_ref must be {CHECKER_REF}"
+    if resolve_ref(root, section["replay_checker_ref"]) is None:
+        return f"replay_checker_ref does not resolve: {section['replay_checker_ref']}"
+    exit_code = section["exit_code"]
+    if not exit_code.isdecimal():
+        return "exit_code must be a non-negative integer"
+    if section.get("status") == "pass" and exit_code != "0":
+        return "pass archive command evidence must record exit_code 0"
+    for field in ("stdout_sha256", "stderr_sha256"):
+        if not re.fullmatch(r"[0-9a-f]{64}", section[field]):
+            return f"{field} must be a SHA-256 hex digest"
+    return None
+
+
+def run_archive_command(command: str, *, root: Path) -> tuple[subprocess.CompletedProcess[bytes] | None, str | None]:
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        return None, f"command is not shell-parseable: {exc}"
+    if not argv:
+        return None, "command replay requires non-empty argv"
+    argv, executable_error = trusted_replay_argv(argv)
+    if executable_error:
+        return None, executable_error
+    with trusted_replay_tool_dir() as (tool_dir, tool_error):
+        if tool_error:
+            return None, tool_error
+        try:
+            return subprocess.run(
+                argv,
+                cwd=root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=archive_replay_env(tool_dir=tool_dir),
+                timeout=120,
+            ), None
+        except FileNotFoundError:
+            return None, f"command executable not found: {argv[0]}"
+        except OSError as exc:
+            return None, f"command replay failed: {exc}"
+        except subprocess.TimeoutExpired:
+            return None, "command replay timed out after 120s"
+
+
+def trusted_replay_argv(argv: list[str]) -> tuple[list[str], str | None]:
+    executable = argv[0]
+    if executable == "python3":
+        return [sys.executable, *argv[1:]], None
+    if executable not in {"git", "sh"}:
+        return argv, None
+    trusted, error = trusted_replay_executable(executable)
+    if error:
+        return argv, error
+    return [trusted, *argv[1:]], None
+
+
+def trusted_replay_executable(executable: str) -> tuple[str, str | None]:
+    if executable == "python3":
+        return str(Path(sys.executable).resolve()), None
+    trusted = shutil.which(executable, path=TRUSTED_REPLAY_PATH)
+    if trusted is None:
+        return executable, f"trusted replay executable not found: {executable}"
+    return trusted, None
+
+
+@contextmanager
+def trusted_replay_tool_dir():
+    targets: dict[str, str] = {}
+    for executable in ("python3", "git", "sh"):
+        target, error = trusted_replay_executable(executable)
+        if error:
+            yield None, error
+            return
+        targets[executable] = target
+    with tempfile.TemporaryDirectory(prefix="acceptance-replay-tools.") as tmpdir:
+        tool_dir = Path(tmpdir)
+        for name, target in targets.items():
+            wrapper = tool_dir / name
+            wrapper.write_text(f"#!/bin/sh\nexec {shlex.quote(target)} \"$@\"\n", encoding="utf-8")
+            wrapper.chmod(0o755)
+        yield tool_dir, None
+
+
+def archive_replay_env(*, tool_dir: Path | None = None) -> dict[str, str]:
+    safe_names = (
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TMPDIR",
+        "TMP",
+        "TEMP",
+        "SYSTEMROOT",
+        "COMSPEC",
+        "PATHEXT",
+    )
+    env = {name: value for name in safe_names if (value := os.environ.get(name))}
+    path_entries = [str(tool_dir)] if tool_dir is not None else []
+    path_entries.append(TRUSTED_REPLAY_PATH)
+    env["PATH"] = os.pathsep.join(path_entries)
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_SYSTEM"] = os.devnull
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    return env
+
+
+def archive_replay_stream_sha256(command: str, completed: subprocess.CompletedProcess[bytes], stream: str) -> str:
+    data = completed.stdout if stream == "stdout" else completed.stderr
+    if completed.returncode == 0 and stream in archive_replay_normalized_streams(command):
+        data = b""
+    return hashlib.sha256(data).hexdigest()
+
+
+def command_archive_replay_error(section: dict[str, str], *, root: Path) -> str | None:
+    command = section.get("command")
+    if not isinstance(command, str) or not command:
+        return "command replay requires command field"
+    policy_error = archive_replay_command_policy_error(command)
+    if policy_error:
+        return policy_error
+    completed, error = run_archive_command(command, root=root)
+    if error:
+        return error
+    assert completed is not None
+    expected_exit = int(section["exit_code"])
+    if completed.returncode != expected_exit:
+        return f"command replay exit mismatch: expected {expected_exit}, got {completed.returncode}"
+    stdout_sha = archive_replay_stream_sha256(command, completed, "stdout")
+    stderr_sha = archive_replay_stream_sha256(command, completed, "stderr")
+    if section["stdout_sha256"] != stdout_sha:
+        return "command replay stdout hash mismatch"
+    if section["stderr_sha256"] != stderr_sha:
+        return "command replay stderr hash mismatch"
+    return None
+
+
+def command_evidence_refreshable_packet_sha(
+    lines: list[str],
     *,
     identity: dict[str, str],
     status: str,
+) -> bool:
+    relaxed_identity = {key: value for key, value in identity.items() if key != "packet_sha256"}
+    matches: list[dict[str, str]] = []
+    for start, end in command_evidence_section_bounds(lines):
+        section = command_evidence_section_fields(lines, start, end)
+        if not all(section.get(field) == value for field, value in relaxed_identity.items()):
+            continue
+        if command_evidence_section_duplicate_fields(lines, start, end):
+            return False
+        matches.append(section)
+    return len(matches) == 1 and matches[0].get("status") == status
+
+
+def command_evidence_record_error(
+    text: str,
+    *,
+    root: Path,
+    identity: dict[str, str],
+    status: str,
+    require_archive_replay_metadata: bool = False,
+    require_safe_archive_replay_command: bool = False,
+    require_empty_pass_replay_hashes: bool = False,
+    replay_archive_command: bool = False,
+    replay_root: Path | None = None,
+    allow_stale_packet_sha: bool = False,
 ) -> str | None:
     lines = text.splitlines()
     matching_sections: list[dict[str, str]] = []
@@ -965,12 +1443,35 @@ def command_evidence_record_error(
         duplicate_fields = sorted({field for fields in duplicate_matches for field in fields})
         return f"duplicate fields in matching # Command Evidence section: {duplicate_fields}"
     if not matching_sections:
+        if (
+            allow_stale_packet_sha
+            and not require_archive_replay_metadata
+            and not require_safe_archive_replay_command
+            and not require_empty_pass_replay_hashes
+            and not replay_archive_command
+            and command_evidence_refreshable_packet_sha(lines, identity=identity, status=status)
+        ):
+            return None
         return "missing matching # Command Evidence section"
     if len(matching_sections) > 1:
         return "ambiguous # Command Evidence sections for packet/ref/command identity"
     recorded_status = matching_sections[0].get("status")
     if recorded_status != status:
         return f"# Command Evidence status mismatch: expected {status}, got {recorded_status}"
+    if require_archive_replay_metadata:
+        metadata_error = command_archive_replay_metadata_error(matching_sections[0], root=root)
+        if metadata_error:
+            return metadata_error
+    if require_safe_archive_replay_command:
+        policy_error = archive_replay_command_policy_error(matching_sections[0].get("command"))
+        if policy_error:
+            return policy_error
+    if require_empty_pass_replay_hashes:
+        digest_error = archive_replay_empty_pass_hash_error(matching_sections[0])
+        if digest_error:
+            return digest_error
+    if replay_archive_command:
+        return command_archive_replay_error(matching_sections[0], root=replay_root or root)
     return None
 
 
@@ -983,12 +1484,19 @@ def artifact_command_evidence_error(
     packet_id: str,
     packet_ref: str,
     packet_sha256: str,
+    require_archive_replay_metadata: bool = False,
+    require_safe_archive_replay_command: bool = False,
+    require_empty_pass_replay_hashes: bool = False,
+    replay_archive_command: bool = False,
+    replay_root: Path | None = None,
+    allow_stale_packet_sha: bool = False,
 ) -> str | None:
     text = artifact_text(root, artifact_ref)
     if text is None:
         return "command evidence artifact could not be read"
     return command_evidence_record_error(
         text,
+        root=root,
         identity={
             "packet_id": packet_id,
             "packet_ref": packet_ref,
@@ -996,7 +1504,244 @@ def artifact_command_evidence_error(
             "command": command,
         },
         status=status,
+        require_archive_replay_metadata=require_archive_replay_metadata,
+        require_safe_archive_replay_command=require_safe_archive_replay_command,
+        require_empty_pass_replay_hashes=require_empty_pass_replay_hashes,
+        replay_archive_command=replay_archive_command,
+        replay_root=replay_root,
+        allow_stale_packet_sha=allow_stale_packet_sha,
     )
+
+
+def apply_text_updates_with_rollback(updates: dict[Path, str]) -> tuple[str | None, dict[Path, str | None]]:
+    originals: dict[Path, str | None] = {}
+    written: list[Path] = []
+    try:
+        for path, text in updates.items():
+            originals[path] = path.read_text(encoding="utf-8") if path.exists() else None
+            write_text_atomic(path, text)
+            written.append(path)
+    except OSError as exc:
+        rollback_text_updates({path: originals[path] for path in written})
+        return str(exc), originals
+    return None, originals
+
+
+def rollback_text_updates(originals: dict[Path, str | None]) -> None:
+    for path, text in reversed(list(originals.items())):
+        try:
+            if text is None:
+                if path.exists():
+                    path.unlink()
+            else:
+                write_text_atomic(path, text)
+        except OSError:
+            pass
+
+
+def init_archive_replay_snapshot(root: Path, snapshot: Path, commit_ref: str) -> list[str]:
+    init = git(snapshot, ["init"])
+    if init.returncode != 0:
+        return [init.stderr.strip() or "failed to initialize archive replay snapshot"]
+    source_objects = git_objects_dir(root)
+    if source_objects is None:
+        return ["archive replay snapshot could not locate source git object directory"]
+    alternates = snapshot / ".git" / "objects" / "info" / "alternates"
+    alternates.parent.mkdir(parents=True, exist_ok=True)
+    alternates.write_text(f"{source_objects.resolve()}\n", encoding="utf-8")
+    git(snapshot, ["config", "user.name", "Acceptance Replay"])
+    git(snapshot, ["config", "user.email", "acceptance-replay@example.invalid"])
+    update = git(snapshot, ["update-ref", "refs/heads/main", commit_ref])
+    if update.returncode != 0:
+        return [update.stderr.strip() or "failed to set archive replay snapshot HEAD"]
+    symbolic = git(snapshot, ["symbolic-ref", "HEAD", "refs/heads/main"])
+    if symbolic.returncode != 0:
+        return [symbolic.stderr.strip() or "failed to set archive replay snapshot symbolic HEAD"]
+    checkout = git(snapshot, ["checkout", "-f", "main"])
+    if checkout.returncode != 0:
+        return [checkout.stderr.strip() or "failed to checkout archive replay snapshot"]
+    return []
+
+
+@contextmanager
+def archive_command_replay_root(root: Path, packet: dict):
+    evidence = packet.get("result", {}).get("evidence", {}) if isinstance(packet.get("result"), dict) else {}
+    accepted_head = evidence.get("accepted_head_commit") if isinstance(evidence, dict) else None
+    if not isinstance(accepted_head, str) or not FULL_COMMIT_RE.fullmatch(accepted_head):
+        yield root, []
+        return
+    with tempfile.TemporaryDirectory(prefix="acceptance-replay-snapshot.") as tmpdir:
+        snapshot = Path(tmpdir)
+        errors = init_archive_replay_snapshot(root, snapshot, accepted_head)
+        yield snapshot, errors
+
+
+def planned_archive_command_evidence_updates(
+    packet: dict,
+    *,
+    root: Path,
+    packet_ref: str,
+    packet_sha256: str,
+    replay_root: Path | None = None,
+    allow_existing_replay_metadata: bool = False,
+) -> tuple[dict[Path, str], list[str]]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    command_results = evidence.get("command_results", []) if isinstance(evidence, dict) else []
+    if not isinstance(command_results, list):
+        return {}, []
+    packet_id = packet.get("meta", {}).get("packet_id")
+    errors: list[str] = []
+    updates: dict[Path, str] = {}
+    for index, item in enumerate(command_results):
+        if not isinstance(item, dict):
+            continue
+        command = item.get("command")
+        status = item.get("status")
+        artifact_ref = item.get("artifact_ref")
+        if not isinstance(command, str) or not command:
+            continue
+        if not isinstance(status, str) or not status:
+            continue
+        if not isinstance(artifact_ref, str) or not artifact_ref.startswith("file:"):
+            continue
+        path = local_ref_path(root, artifact_ref)
+        if path is None:
+            errors.append(
+                f"result.evidence.command_results[{index}].artifact_ref: {artifact_ref}: "
+                "command evidence artifact could not be read"
+            )
+            continue
+        updated_text, error = archive_command_artifact_updated_text(
+            root,
+            artifact_ref,
+            identity={
+                "packet_id": str(packet_id),
+                "packet_ref": packet_ref,
+                "packet_sha256": packet_sha256,
+                "command": command,
+            },
+            status=status,
+            current_text=updates.get(path),
+            replay_root=replay_root,
+            allow_existing_replay_metadata=allow_existing_replay_metadata,
+        )
+        if error:
+            errors.append(f"result.evidence.command_results[{index}].artifact_ref: {artifact_ref}: {error}")
+            continue
+        assert updated_text is not None
+        updates[path] = updated_text
+    return updates, errors
+
+
+def archive_command_artifact_updated_text(
+    root: Path,
+    artifact_ref: str,
+    *,
+    identity: dict[str, str],
+    status: str,
+    current_text: str | None = None,
+    replay_root: Path | None = None,
+    allow_existing_replay_metadata: bool = False,
+) -> tuple[str | None, str | None]:
+    path = local_ref_path(root, artifact_ref)
+    if path is None:
+        return None, "command evidence artifact could not be read"
+    if current_text is None:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return None, "command evidence artifact could not be read"
+    else:
+        text = current_text
+    lines = text.splitlines()
+    matches: list[tuple[int, int, dict[str, str]]] = []
+    stale_packet_sha_matches: list[tuple[int, int, dict[str, str]]] = []
+    duplicate_matches: list[set[str]] = []
+    relaxed_identity = {key: value for key, value in identity.items() if key != "packet_sha256"}
+    for start, end in command_evidence_section_bounds(lines):
+        section = command_evidence_section_fields(lines, start, end)
+        strict_match = all(section.get(field) == value for field, value in identity.items())
+        relaxed_match = all(section.get(field) == value for field, value in relaxed_identity.items())
+        if not strict_match and not relaxed_match:
+            continue
+        duplicates = command_evidence_section_duplicate_fields(lines, start, end)
+        if duplicates:
+            duplicate_matches.append(duplicates)
+            continue
+        if strict_match:
+            matches.append((start, end, section))
+        else:
+            stale_packet_sha_matches.append((start, end, section))
+    if duplicate_matches:
+        duplicate_fields = sorted({field for fields in duplicate_matches for field in fields})
+        return None, f"duplicate fields in matching # Command Evidence section: {duplicate_fields}"
+    if not matches:
+        matches = stale_packet_sha_matches
+    if not matches:
+        return None, "missing matching # Command Evidence section"
+    if len(matches) > 1:
+        return None, "ambiguous # Command Evidence sections for packet/ref/command identity"
+    start, end, section = matches[0]
+    recorded_status = section.get("status")
+    if recorded_status != status:
+        return None, f"# Command Evidence status mismatch: expected {status}, got {recorded_status}"
+    preexisting_legacy_fields = [
+        field
+        for field in LEGACY_COMMAND_ARCHIVE_PROVENANCE_FIELDS
+        if field in section
+    ]
+    if preexisting_legacy_fields:
+        return None, (
+            "archive command evidence legacy provenance fields are not allowed; "
+            f"remove preexisting fields: {sorted(preexisting_legacy_fields)}"
+        )
+    preexisting_replay_fields = [
+        field
+        for field in (
+            *COMMAND_ARCHIVE_REPLAY_METADATA_FIELDS,
+            *COMMAND_ARCHIVE_REPLAY_FIELDS,
+        )
+        if field in section
+    ]
+    if preexisting_replay_fields and not allow_existing_replay_metadata:
+        return None, (
+            "archive command evidence replay metadata must be materialized by write-pointer; "
+            f"remove preexisting fields: {sorted(preexisting_replay_fields)}"
+        )
+    command = identity["command"]
+    policy_error = archive_replay_command_policy_error(command)
+    if policy_error:
+        return None, policy_error
+    completed, error = run_archive_command(command, root=replay_root or root)
+    if error:
+        return None, error
+    assert completed is not None
+    if status == "pass" and completed.returncode != 0:
+        return None, f"command replay exit mismatch: expected 0 for pass status, got {completed.returncode}"
+    replay_fields = [
+        "replay_metadata: pointer-bound",
+        f"replay_recorded_by: {CHECKER_REF}",
+        f"replay_recorded_at: {today().isoformat()}",
+        f"replay_checker_ref: {CHECKER_REF}",
+        f"exit_code: {completed.returncode}",
+        f"stdout_sha256: {archive_replay_stream_sha256(command, completed, 'stdout')}",
+        f"stderr_sha256: {archive_replay_stream_sha256(command, completed, 'stderr')}",
+    ]
+    replay_field_names = set(COMMAND_ARCHIVE_REPLAY_METADATA_FIELDS) | set(COMMAND_ARCHIVE_REPLAY_FIELDS)
+    section_lines: list[str] = []
+    for line in lines[start:end]:
+        match = COMMAND_EVIDENCE_FIELD_RE.match(line)
+        field_name = match.group(1).casefold().replace("-", "_") if match else None
+        if field_name in replay_field_names:
+            continue
+        if field_name == "packet_sha256":
+            section_lines.append(f"packet_sha256: {identity['packet_sha256']}")
+        else:
+            section_lines.append(line)
+    lines = [*lines[:start], *section_lines, *lines[end:]]
+    end = start + len(section_lines)
+    lines[end:end] = replay_fields
+    return "\n".join(lines) + "\n", None
 
 
 def multiple_required_closure_errors(
@@ -1305,6 +2050,24 @@ def load_review_import_wrapper(root: Path, source_ref: str) -> tuple[dict | None
     if not isinstance(wrapper, dict):
         return None, [f"{REVIEW_IMPORT_KEY} must be a mapping: {source_ref}"]
     return wrapper, []
+
+
+def load_probe_transcript(root: Path, source_ref: str) -> dict | None:
+    path = local_ref_path(root, source_ref)
+    if path is None:
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    try:
+        loaded = json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
+    except (json.JSONDecodeError, yaml.YAMLError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    transcript = loaded.get("ProbeTranscript")
+    return transcript if isinstance(transcript, dict) else None
 
 
 def derive_multi_review_result(
@@ -1763,12 +2526,24 @@ def current_staged_changed_paths(root: Path) -> list[str]:
     return changed_paths(root, mode="staged", base_ref=None)
 
 
-def current_base_ref_changed_paths(root: Path, base_ref: str) -> list[str]:
-    return changed_paths(root, mode="base-ref", base_ref=base_ref)
+def current_base_ref_changed_paths(
+    root: Path,
+    base_ref: str,
+    *,
+    head_ref: str = "HEAD",
+    exclude_archive_v2: bool = False,
+) -> list[str]:
+    result = git(root, ["diff", "--name-status", f"{base_ref}...{head_ref}"])
+    if result.returncode != 0:
+        raise PacketError(result.stderr.strip() or "failed to read git changed paths")
+    paths = name_status_changed_paths(result.stdout)
+    if exclude_archive_v2:
+        paths = [path for path in paths if not path.startswith("archive/v2/")]
+    return paths
 
 
-def current_base_ref_deleted_paths(root: Path, base_ref: str) -> list[str]:
-    result = git(root, ["diff", "--name-status", f"{base_ref}...HEAD"])
+def current_base_ref_deleted_paths(root: Path, base_ref: str, *, head_ref: str = "HEAD") -> list[str]:
+    result = git(root, ["diff", "--name-status", f"{base_ref}...{head_ref}"])
     if result.returncode != 0:
         raise PacketError(result.stderr.strip() or "failed to read git deleted paths")
     deleted: list[str] = []
@@ -1781,19 +2556,77 @@ def current_base_ref_deleted_paths(root: Path, base_ref: str) -> list[str]:
     return sorted(set(deleted))
 
 
+def generated_base_ref_source_refs(
+    root: Path,
+    paths: list[str],
+    base_ref: str | None,
+    *,
+    head_ref: str = "HEAD",
+) -> list[tuple[str, str]]:
+    if base_ref is None:
+        return []
+    head_commit = git_ref_commit(root, head_ref)
+    comparison_commit = git_ref_commit(root, base_ref)
+    if head_commit is None or comparison_commit is None:
+        return []
+    deleted_paths = set(current_base_ref_deleted_paths(root, base_ref, head_ref=head_ref))
+    refs: list[tuple[str, str]] = []
+    for path in paths:
+        commit = comparison_commit if path in deleted_paths else head_commit
+        ref = f"git:{commit}:{path}"
+        resolved = resolve_ref(root, ref)
+        if resolved is not None:
+            refs.append((ref, resolved))
+    return refs
+
+
 def name_status_changed_paths(output: str) -> list[str]:
-    paths: set[str] = set()
+    return sorted({path for _status, paths in name_status_records(output) for path in paths})
+
+
+def name_status_records(output: str) -> list[tuple[str, list[str]]]:
+    records: list[tuple[str, list[str]]] = []
     for line in output.splitlines():
         fields = line.split("\t")
         if len(fields) < 2:
             continue
         status = fields[0]
         if status.startswith(("R", "C")) and len(fields) >= 3:
-            paths.add(fields[1])
-            paths.add(fields[2])
+            records.append((status, [fields[1], fields[2]]))
         else:
-            paths.add(fields[1])
+            records.append((status, [fields[1]]))
+    return records
+
+
+def porcelain_status_paths(output: str) -> list[str]:
+    paths: set[str] = set()
+    for line in output.splitlines():
+        path = line[3:] if len(line) > 3 else ""
+        if not path:
+            continue
+        if " -> " in path:
+            before, after = path.split(" -> ", 1)
+            paths.update([before, after])
+        else:
+            paths.add(path)
     return sorted(paths)
+
+
+def porcelain_status_records(output: str) -> list[tuple[str, list[str]]]:
+    records: list[tuple[str, list[str]]] = []
+    for line in output.splitlines():
+        if len(line) < 4:
+            continue
+        status = line[:2]
+        path = line[3:]
+        if not path:
+            continue
+        if " -> " in path:
+            before, after = path.split(" -> ", 1)
+            records.append((status, [before, after]))
+        else:
+            records.append((status, [path]))
+    return records
 
 
 def git_text(root: Path, commit_ref: str, path: str) -> str | None:
@@ -1837,9 +2670,10 @@ def active_source_ref_violations(
     declared_changed_paths: set[str],
     deleted_paths: set[str],
     comparison_ref: str | None,
+    accepted_head_commit: str | None,
 ) -> list[str]:
     errors: list[str] = []
-    head_commit = git_ref_commit(root, "HEAD")
+    head_commit = git_ref_commit(root, accepted_head_commit) if accepted_head_commit else None
     comparison_commit = git_ref_commit(root, comparison_ref) if comparison_ref else None
     extra_paths: set[str] = set()
     mutable_refs: list[str] = []
@@ -1921,6 +2755,83 @@ def git_ref_is_commit(root: Path, ref: object) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "commit"
 
 
+def git_ref_is_full_commit(root: Path, ref: object) -> bool:
+    return isinstance(ref, str) and FULL_COMMIT_RE.fullmatch(ref) is not None and git_ref_is_commit(root, ref)
+
+
+def git_blob_bytes(root: Path, commit_ref: str, path: str) -> bytes | None:
+    result = git_bytes(root, ["cat-file", "blob", f"{commit_ref}:{path}"])
+    return result.stdout if result.returncode == 0 else None
+
+
+def git_file_sha256(root: Path, commit_ref: str, path: str) -> str | None:
+    data = git_blob_bytes(root, commit_ref, path)
+    return hashlib.sha256(data).hexdigest() if data is not None else None
+
+
+def git_diff_name_only(root: Path, left_ref: str, right_ref: str) -> list[str] | None:
+    result = git(root, ["diff", "--name-only", left_ref, right_ref])
+    if result.returncode != 0:
+        return None
+    return sorted(path for path in result.stdout.splitlines() if path)
+
+
+def git_diff_changed_paths(root: Path, left_ref: str, right_ref: str) -> list[str] | None:
+    result = git(root, ["diff", "--name-status", left_ref, right_ref])
+    if result.returncode != 0:
+        return None
+    return name_status_changed_paths(result.stdout)
+
+
+def git_diff_name_status_records(root: Path, left_ref: str, right_ref: str) -> list[tuple[str, list[str]]] | None:
+    result = git(root, ["diff", "--name-status", left_ref, right_ref])
+    if result.returncode != 0:
+        return None
+    return name_status_records(result.stdout)
+
+
+def git_diff_name_status_records_for_spec(root: Path, diff_spec: str) -> list[tuple[str, list[str]]] | None:
+    result = git(root, ["diff", "--name-status", diff_spec])
+    if result.returncode != 0:
+        return None
+    return name_status_records(result.stdout)
+
+
+def git_tree_paths(root: Path, commit_ref: str, pathspec: str) -> list[str] | None:
+    result = git(root, ["ls-tree", "-r", "--name-only", commit_ref, "--", pathspec])
+    if result.returncode != 0:
+        return None
+    return sorted(path for path in result.stdout.splitlines() if path)
+
+
+def git_commit_count_between(root: Path, left_ref: str, right_ref: str) -> int | None:
+    result = git(root, ["rev-list", "--count", f"{left_ref}..{right_ref}"])
+    if result.returncode != 0:
+        return None
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return None
+
+
+def git_rev_list_between(root: Path, left_ref: str, right_ref: str) -> list[str] | None:
+    result = git(root, ["rev-list", "--reverse", "--ancestry-path", f"{left_ref}..{right_ref}"])
+    if result.returncode != 0:
+        return None
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def git_commit_parents(root: Path, commit_ref: str) -> list[str] | None:
+    result = git(root, ["show", "-s", "--format=%P", commit_ref])
+    if result.returncode != 0:
+        return None
+    return [parent for parent in result.stdout.strip().split() if parent]
+
+
+def git_is_ancestor(root: Path, ancestor_ref: str, descendant_ref: str) -> bool:
+    return git(root, ["merge-base", "--is-ancestor", ancestor_ref, descendant_ref]).returncode == 0
+
+
 def same_git_boundary(root: Path, left: str | None, right: str | None) -> bool:
     if not left or not right:
         return False
@@ -1985,7 +2896,11 @@ def validate_packet(
     packet: dict,
     *,
     require_stable: bool = False,
+    require_archive_command_replay_metadata: bool = False,
+    replay_archive_command_evidence: bool = False,
+    allow_stale_archive_command_artifacts: bool = False,
     root: Path = ROOT,
+    replay_root: Path | None = None,
     packet_ref: str | None = None,
     packet_sha256: str | None = None,
 ) -> list[str]:
@@ -2202,6 +3117,24 @@ def validate_packet(
         errors.append("worktree packets cannot be stable-handoff eligible")
     if stable and accepted is not True:
         errors.append("stable-handoff packet must be accepted")
+    if lifecycle == "finalized" and mode == "base-ref" and packet_is_active_handoff(packet, packet_ref, root=root):
+        comparison_ref = evidence.get("comparison_ref")
+        accepted_head_commit = evidence.get("accepted_head_commit")
+        accepted_head_ref = (
+            accepted_head_commit
+            if isinstance(accepted_head_commit, str) and git_ref_is_commit(root, accepted_head_commit)
+            else "HEAD"
+        )
+        if isinstance(comparison_ref, str) and git_ref_is_commit(root, comparison_ref) and isinstance(packet_ref, str):
+            errors.extend(
+                accepted_head_archive_scope_errors(
+                    root,
+                    packet,
+                    packet_ref=packet_ref,
+                    comparison_ref=comparison_ref,
+                    accepted_head=accepted_head_ref,
+                )
+            )
 
     for review in review_records:
         score = review.get("score")
@@ -2270,6 +3203,14 @@ def validate_packet(
             listed_refs={ref for ref in evidence_source_refs if isinstance(ref, str)},
         )
         declared_changed_paths = set(string_list_values(inference.get("changed_paths", [])))
+        accepted_head_commit = evidence.get("accepted_head_commit")
+        if active_stable_handoff and mode == "base-ref":
+            if not accepted_head_commit:
+                errors.append("active base-ref stable packet accepted_head_commit is required")
+            elif not git_ref_is_full_commit(root, accepted_head_commit):
+                errors.append(
+                    f"active base-ref stable packet accepted_head_commit must be a full commit SHA: {accepted_head_commit}"
+                )
         missing_changed_sources = sorted(path for path in declared_changed_paths if path not in source_paths)
         if missing_changed_sources:
             errors.append(f"stable packet changed_paths lack resolved source refs: {missing_changed_sources}")
@@ -2283,8 +3224,13 @@ def validate_packet(
         if active_stable_handoff and mode == "base-ref":
             deleted_paths: set[str] = set()
             comparison_ref = evidence.get("comparison_ref")
+            accepted_head_ref = (
+                accepted_head_commit
+                if isinstance(accepted_head_commit, str) and git_ref_is_commit(root, accepted_head_commit)
+                else "HEAD"
+            )
             if isinstance(comparison_ref, str) and git_ref_is_commit(root, comparison_ref):
-                deleted_paths = set(current_base_ref_deleted_paths(root, comparison_ref))
+                deleted_paths = set(current_base_ref_deleted_paths(root, comparison_ref, head_ref=accepted_head_ref))
             source_ref_set = {ref for ref in evidence_source_refs if isinstance(ref, str)}
             errors.extend(
                 active_source_ref_violations(
@@ -2294,13 +3240,14 @@ def validate_packet(
                     declared_changed_paths=declared_changed_paths,
                     deleted_paths=deleted_paths,
                     comparison_ref=comparison_ref if isinstance(comparison_ref, str) else None,
+                    accepted_head_commit=accepted_head_ref,
                 )
             )
             head_pinned_paths = commit_pinned_source_paths(
                 root,
                 resolved_refs,
                 listed_refs=source_ref_set,
-                commit_ref="HEAD",
+                commit_ref=accepted_head_ref,
             )
             missing_head_sources = sorted(
                 path for path in declared_changed_paths - deleted_paths if path not in head_pinned_paths
@@ -2339,6 +3286,10 @@ def validate_packet(
                 errors.append(f"stable packet {boundary_ref_name} is required")
             elif not git_ref_is_commit(root, boundary_ref):
                 errors.append(f"stable packet {boundary_ref_name} must resolve to a git commit: {boundary_ref}")
+            elif active_stable_handoff and mode == "base-ref" and not git_ref_is_full_commit(root, boundary_ref):
+                errors.append(
+                    f"active base-ref stable packet {boundary_ref_name} must be a full commit SHA: {boundary_ref}"
+                )
             elif mode == "staged" and not same_git_boundary(root, boundary_ref, "HEAD"):
                 errors.append(f"staged stable packet {boundary_ref_name} must match HEAD: {boundary_ref}")
         comparison_ref = evidence.get("comparison_ref")
@@ -2359,11 +3310,24 @@ def validate_packet(
             and isinstance(comparison_ref, str)
             and git_ref_is_commit(root, comparison_ref)
         ):
-            base_ref_paths = set(current_base_ref_changed_paths(root, comparison_ref))
+            accepted_head_ref = (
+                accepted_head_commit
+                if isinstance(accepted_head_commit, str) and git_ref_is_commit(root, accepted_head_commit)
+                else "HEAD"
+            )
+            base_ref_paths = set(
+                current_base_ref_changed_paths(
+                    root,
+                    comparison_ref,
+                    head_ref=accepted_head_ref,
+                    exclude_archive_v2=True,
+                )
+            )
             if base_ref_paths != declared_changed_paths:
                 errors.append(
                     "base-ref stable packet changed_paths must match git diff boundary: "
                     f"declared={sorted(declared_changed_paths)} base_ref={comparison_ref} "
+                    f"accepted_head={accepted_head_ref} "
                     f"actual={sorted(base_ref_paths)}"
                 )
 
@@ -2429,6 +3393,11 @@ def validate_packet(
                 errors.append(f"terminal placeholder cannot satisfy stable evidence: {artifact_ref}")
             elif not str(artifact_ref).startswith("file:"):
                 errors.append(f"stable command artifact_ref must use file: scheme: {artifact_ref}")
+            elif active_stable_handoff and mode == "base-ref" and not str(artifact_ref).startswith(f"file:{ARCHIVE_ARTIFACT_PREFIX}"):
+                errors.append(
+                    "active stable command artifact_ref must be under "
+                    f"{ARCHIVE_ARTIFACT_PREFIX}: {artifact_ref}"
+                )
             elif not has_resolved_relation(ref_index, relation="artifact", ref=artifact_ref, origin="generated"):
                 errors.append(f"stable command artifact lacks resolved generated artifact relation: {artifact_ref}")
             else:
@@ -2440,6 +3409,12 @@ def validate_packet(
                     packet_id=meta["packet_id"],
                     packet_ref=packet_ref or "",
                     packet_sha256=packet_sha256 or "",
+                    require_archive_replay_metadata=require_archive_command_replay_metadata,
+                    require_safe_archive_replay_command=require_archive_command_replay_metadata,
+                    require_empty_pass_replay_hashes=require_archive_command_replay_metadata,
+                    replay_archive_command=replay_archive_command_evidence,
+                    replay_root=replay_root,
+                    allow_stale_packet_sha=allow_stale_archive_command_artifacts,
                 )
                 if artifact_error:
                     errors.append(f"stable command artifact does not record command evidence: {artifact_ref}: {artifact_error}")
@@ -2660,6 +3635,1192 @@ def validate_packet(
     return errors
 
 
+def stable_target_for_packet(packet: dict) -> str:
+    meta = packet.get("meta", {}) if isinstance(packet.get("meta"), dict) else {}
+    result = packet.get("result", {})
+    evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
+    target = f"{meta.get('mode')}:{evidence.get('baseline_ref')}...{evidence.get('comparison_ref')}"
+    accepted_head = evidence.get("accepted_head_commit")
+    return f"{target}@{accepted_head}" if accepted_head else target
+
+
+def decision_status_for_packet(packet: dict) -> str:
+    result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
+    decision = result.get("decision", {}) if isinstance(result, dict) else {}
+    if not isinstance(decision, dict):
+        return "unknown"
+    if decision.get("accepted") is True and decision.get("stable_handoff_eligible") is True:
+        return "accepted"
+    if decision.get("accepted") is False:
+        return "blocked"
+    return "pending"
+
+
+def safe_artifact_stem(value: object) -> str:
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value)).strip(".-")
+    return stem or "packet"
+
+
+def default_archive_packet_output(packet_id_value: str) -> Path:
+    return Path(ARCHIVE_PACKET_PREFIX) / f"{safe_artifact_stem(packet_id_value)}.yml"
+
+
+def repo_relative_path(root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(root).as_posix()
+    except ValueError as exc:
+        raise PacketError(f"{path}: path must be inside repository root") from exc
+
+
+def pointer_packet_ref_error(packet_ref: object) -> str | None:
+    if not isinstance(packet_ref, str) or not packet_ref:
+        return "packet_ref must be a non-empty string"
+    path = Path(packet_ref)
+    if path.is_absolute() or ".." in path.parts:
+        return "packet_ref must be a repository-local path"
+    normalized = path.as_posix()
+    if not normalized.startswith(ARCHIVE_PACKET_PREFIX):
+        return f"packet_ref must start with {ARCHIVE_PACKET_PREFIX}"
+    if not normalized.endswith((".yml", ".yaml", ".json")):
+        return "packet_ref must point to a packet artifact file"
+    return None
+
+
+def archive_command_artifact_rel(packet: dict, *, index: int) -> str:
+    packet_id = safe_artifact_stem(packet.get("meta", {}).get("packet_id", "packet"))
+    suffix = "git-diff-check" if index == 0 else f"git-diff-check-{index + 1}"
+    return f"{ARCHIVE_ARTIFACT_PREFIX}{packet_id}-{suffix}.log"
+
+
+def command_evidence_artifact_text(
+    packet: dict,
+    *,
+    packet_ref: str,
+    packet_sha256: str,
+    command: str,
+    status: str,
+) -> str:
+    packet_id = str(packet.get("meta", {}).get("packet_id", ""))
+    return "\n".join(
+        [
+            COMMAND_EVIDENCE_HEADING,
+            f"packet_id: {packet_id}",
+            f"packet_ref: {packet_ref}",
+            f"packet_sha256: {packet_sha256}",
+            f"command: {command}",
+            f"status: {status}",
+            "summary: finalized base-ref command evidence",
+            "",
+        ]
+    )
+
+
+def promote_archive_command_artifacts(packet: dict, *, packet_ref: str) -> dict[str, tuple[str, str]]:
+    if pointer_packet_ref_error(packet_ref):
+        return {}
+    if packet.get("meta", {}).get("lifecycle") != "finalized" or packet.get("meta", {}).get("mode") != "base-ref":
+        return {}
+    result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
+    decision = result.get("decision", {}) if isinstance(result, dict) else {}
+    accepted = decision.get("accepted") is True
+    evidence = result.get("evidence", {}) if isinstance(result.get("evidence"), dict) else {}
+    command_results = evidence.get("command_results", [])
+    if not isinstance(command_results, list):
+        return {}
+
+    updates: dict[str, tuple[str, str]] = {}
+    resolved_refs = evidence.get("resolved_refs", [])
+    if not isinstance(resolved_refs, list):
+        resolved_refs = []
+    terminal_refs: set[str] = set()
+    for index, item in enumerate(command_results):
+        if not isinstance(item, dict):
+            continue
+        artifact_ref = item.get("artifact_ref")
+        command = item.get("command")
+        status = item.get("status")
+        if not isinstance(command, str) or not command:
+            continue
+        if not isinstance(status, str) or not status:
+            continue
+        if archive_replay_command_policy_error(command):
+            continue
+        if isinstance(artifact_ref, str) and artifact_ref.startswith("file:"):
+            continue
+        if not isinstance(artifact_ref, str) or not artifact_ref.startswith("terminal:"):
+            continue
+        artifact_rel = archive_command_artifact_rel(packet, index=index)
+        generated_ref = f"file:{artifact_rel}"
+        item["artifact_ref"] = generated_ref
+        terminal_refs.add(artifact_ref)
+        updates[artifact_rel] = (command, status)
+        resolved_refs.append(
+            {
+                "origin": "generated",
+                "relation": "artifact",
+                "ref": generated_ref,
+                "status": "resolved",
+                "target": artifact_rel,
+            }
+        )
+    if not updates:
+        return {}
+    evidence["resolved_refs"] = [
+        record
+        for record in resolved_refs
+        if not (
+            isinstance(record, dict)
+            and record.get("relation") == "observation"
+            and record.get("ref") in terminal_refs
+        )
+    ]
+    if accepted:
+        decision["stable_handoff_eligible"] = True
+        decision["reason"] = "Required routine archive evidence passed."
+        decision["next_action"] = "Publish active archive pointer."
+    return updates
+
+
+def file_ref_repo_path(root: Path, ref: object) -> str | None:
+    if not isinstance(ref, str) or not ref.startswith("file:"):
+        return None
+    rel = ref.removeprefix("file:").split("#", 1)[0]
+    resolved = resolve_repo_path(root, rel)
+    if resolved is None or not (root / resolved).is_file():
+        return None
+    return resolved
+
+
+def review_import_probe_refs(root: Path, source_ref: str) -> list[str]:
+    wrapper, _wrapper_errors = load_review_import_wrapper(root, source_ref)
+    if wrapper is None:
+        return []
+    multi_review = wrapper.get("MultiReviewResult")
+    critics = multi_review.get("critics", []) if isinstance(multi_review, dict) else []
+    refs: list[str] = []
+    if not isinstance(critics, list):
+        return refs
+    for critic in critics:
+        if not isinstance(critic, dict):
+            continue
+        probe_refs = critic.get("probe_evidence_refs", [])
+        if isinstance(probe_refs, list):
+            refs.extend(ref for ref in probe_refs if isinstance(ref, str))
+    return refs
+
+
+def archive_artifact_paths(packet: dict, *, root: Path) -> list[str]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    command_results = evidence.get("command_results", []) if isinstance(evidence, dict) else []
+    paths: list[str] = []
+    if isinstance(command_results, list):
+        for item in command_results:
+            if not isinstance(item, dict):
+                continue
+            artifact_path = file_ref_repo_path(root, item.get("artifact_ref"))
+            if artifact_path is not None:
+                paths.append(artifact_path)
+    review_imports = evidence.get("review_imports", []) if isinstance(evidence, dict) else []
+    if isinstance(review_imports, list):
+        for item in review_imports:
+            if not isinstance(item, dict):
+                continue
+            source_ref = item.get("source_ref")
+            source_path = file_ref_repo_path(root, source_ref)
+            if source_path is not None:
+                paths.append(source_path)
+            if isinstance(source_ref, str):
+                for probe_ref in review_import_probe_refs(root, source_ref):
+                    probe_path = file_ref_repo_path(root, probe_ref)
+                    if probe_path is not None:
+                        paths.append(probe_path)
+    return sorted(set(paths))
+
+
+def archive_commit_env(
+    root: Path,
+    *,
+    index_path: Path | None = None,
+    object_dir: Path | None = None,
+) -> dict[str, str]:
+    env = git_env()
+    if index_path is not None:
+        env["GIT_INDEX_FILE"] = str(index_path)
+    if object_dir is not None:
+        object_dir.mkdir(parents=True, exist_ok=True)
+        env["GIT_OBJECT_DIRECTORY"] = str(object_dir)
+        alternates: list[str] = []
+        repo_objects = git_objects_dir(root)
+        if repo_objects is not None:
+            alternates.append(str(repo_objects.resolve()))
+        if env.get("GIT_ALTERNATE_OBJECT_DIRECTORIES"):
+            alternates.append(env["GIT_ALTERNATE_OBJECT_DIRECTORIES"])
+        if alternates:
+            env["GIT_ALTERNATE_OBJECT_DIRECTORIES"] = os.pathsep.join(alternates)
+    env.update(
+        {
+            "GIT_AUTHOR_NAME": ARCHIVE_COMMIT_AUTHOR_NAME,
+            "GIT_AUTHOR_EMAIL": ARCHIVE_COMMIT_AUTHOR_EMAIL,
+            "GIT_AUTHOR_DATE": ARCHIVE_COMMIT_DATE,
+            "GIT_COMMITTER_NAME": ARCHIVE_COMMIT_AUTHOR_NAME,
+            "GIT_COMMITTER_EMAIL": ARCHIVE_COMMIT_AUTHOR_EMAIL,
+            "GIT_COMMITTER_DATE": ARCHIVE_COMMIT_DATE,
+        }
+    )
+    return env
+
+
+def archive_parent_ref(packet: dict) -> str:
+    accepted_head = packet.get("result", {}).get("evidence", {}).get("accepted_head_commit")
+    return accepted_head if isinstance(accepted_head, str) and accepted_head else "HEAD"
+
+
+def create_archive_commit(
+    root: Path,
+    packet: dict,
+    *,
+    packet_ref: str,
+    parent_ref: str | None = None,
+    materialize: bool = False,
+) -> tuple[str | None, str | None]:
+    parent_commit = git_ref_commit(root, parent_ref or archive_parent_ref(packet))
+    if parent_commit is None:
+        return None, "archive commit parent does not resolve to a commit"
+    paths = [packet_ref, *archive_artifact_paths(packet, root=root)]
+    if not paths:
+        return None, "archive commit requires at least the packet path"
+    with tempfile.TemporaryDirectory(prefix="acceptance-archive-objects.") as tmpdir:
+        tmp_path = Path(tmpdir)
+        object_dir = None if materialize else tmp_path / "objects"
+        env = archive_commit_env(root, index_path=tmp_path / "index", object_dir=object_dir)
+        read_tree = git_with_env(root, ["read-tree", parent_commit], env=env)
+        if read_tree.returncode != 0:
+            return None, read_tree.stderr.strip() or "failed to prepare archive commit index"
+        for rel_path in paths:
+            if Path(rel_path).is_absolute() or ".." in Path(rel_path).parts:
+                return None, f"archive path must be repository-local: {rel_path}"
+            path = root / rel_path
+            if not path.is_file():
+                return None, f"archive path does not exist: {rel_path}"
+            blob = git_with_env(root, ["hash-object", "-w", rel_path], env=env)
+            if blob.returncode != 0:
+                return None, blob.stderr.strip() or f"failed to hash archive path: {rel_path}"
+            update = git_with_env(root, ["update-index", "--add", "--cacheinfo", "100644", blob.stdout.strip(), rel_path], env=env)
+            if update.returncode != 0:
+                return None, update.stderr.strip() or f"failed to stage archive path in synthetic commit: {rel_path}"
+        tree = git_with_env(root, ["write-tree"], env=env)
+        if tree.returncode != 0:
+            return None, tree.stderr.strip() or "failed to write archive commit tree"
+        commit = git_with_env(
+            root,
+            [
+                "commit-tree",
+                tree.stdout.strip(),
+                "-p",
+                parent_commit,
+                "-m",
+                f"archive acceptance packet {packet.get('meta', {}).get('packet_id', '')}",
+            ],
+            env=env,
+        )
+        if commit.returncode != 0:
+            return None, commit.stderr.strip() or "failed to create archive commit"
+        return commit.stdout.strip(), None
+
+
+def pointer_command_artifacts(packet: dict, *, root: Path) -> list[dict]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    command_results = evidence.get("command_results", []) if isinstance(evidence, dict) else []
+    artifacts: list[dict] = []
+    if not isinstance(command_results, list):
+        return artifacts
+    for item in command_results:
+        if not isinstance(item, dict):
+            continue
+        artifact_ref = item.get("artifact_ref")
+        command = item.get("command")
+        if not isinstance(artifact_ref, str) or not artifact_ref.startswith("file:"):
+            continue
+        if not isinstance(command, str) or not command:
+            continue
+        path = local_ref_path(root, artifact_ref)
+        artifacts.append(
+            {
+                "artifact_ref": artifact_ref,
+                "artifact_sha256": file_sha256(path) if path else "",
+                "command": command,
+            }
+        )
+    return sorted(artifacts, key=lambda item: (item["artifact_ref"], item["command"]))
+
+
+def pointer_review_import_artifacts(packet: dict, *, root: Path) -> list[dict]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    review_imports = evidence.get("review_imports", []) if isinstance(evidence, dict) else []
+    artifacts: list[dict] = []
+    if not isinstance(review_imports, list):
+        return artifacts
+    for item in review_imports:
+        if not isinstance(item, dict):
+            continue
+        source_ref = item.get("source_ref")
+        if not isinstance(source_ref, str) or not source_ref.startswith("file:"):
+            continue
+        path = local_ref_path(root, source_ref)
+        binding = item.get("target_binding")
+        review_ids = item.get("review_ids")
+        artifacts.append(
+            {
+                "source_ref": source_ref,
+                "source_sha256": file_sha256(path) if path else "",
+                "review_target_digest": binding.get("review_target_digest", "") if isinstance(binding, dict) else "",
+                "review_ids": sorted_string_values(review_ids),
+            }
+        )
+    return sorted(artifacts, key=lambda item: item["source_ref"])
+
+
+def pointer_probe_transcripts(packet: dict, *, root: Path) -> list[dict]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    review_imports = evidence.get("review_imports", []) if isinstance(evidence, dict) else []
+    transcripts: list[dict] = []
+    if not isinstance(review_imports, list):
+        return transcripts
+    for import_record in review_imports:
+        if not isinstance(import_record, dict):
+            continue
+        source_ref = import_record.get("source_ref")
+        if not isinstance(source_ref, str):
+            continue
+        wrapper, _wrapper_errors = load_review_import_wrapper(root, source_ref)
+        if wrapper is None:
+            continue
+        multi_review = wrapper.get("MultiReviewResult")
+        critics = multi_review.get("critics", []) if isinstance(multi_review, dict) else []
+        if not isinstance(critics, list):
+            continue
+        for critic in critics:
+            if not isinstance(critic, dict):
+                continue
+            refs = critic.get("probe_evidence_refs", [])
+            if not isinstance(refs, list):
+                continue
+            for probe_ref in refs:
+                if not isinstance(probe_ref, str) or not probe_ref.startswith("file:"):
+                    continue
+                path = local_ref_path(root, probe_ref)
+                transcript = load_probe_transcript(root, probe_ref) or {}
+                transcripts.append(
+                    {
+                        "source_ref": probe_ref,
+                        "transcript_sha256": file_sha256(path) if path else "",
+                        "result_ref": transcript.get("result_ref", ""),
+                        "result_digest": transcript.get("result_digest", ""),
+                        "packet_ref": transcript.get("packet_ref", ""),
+                        "packet_sha256": transcript.get("packet_sha256", ""),
+                    }
+                )
+    return sorted(transcripts, key=lambda item: item["source_ref"])
+
+
+def archive_tree_errors(
+    pointer: dict,
+    *,
+    root: Path,
+    packet_ref: str,
+    commit_ref: object,
+    label: str,
+) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(commit_ref, str) or not FULL_COMMIT_RE.fullmatch(commit_ref):
+        return [f"{label} must be the full commit SHA containing archived packet artifacts"]
+    if not git_ref_is_commit(root, commit_ref):
+        return [f"{label} must resolve to a git commit: {commit_ref}"]
+
+    packet_sha = git_file_sha256(root, commit_ref, packet_ref)
+    if packet_sha is None:
+        errors.append(f"{label} does not contain packet_ref: {packet_ref}")
+    elif packet_sha != pointer.get("packet_sha256"):
+        errors.append(f"{label} packet bytes do not match pointer packet_sha256")
+
+    command_artifacts = pointer.get("command_artifacts", [])
+    if not isinstance(command_artifacts, list):
+        command_artifacts = []
+    for index, item in enumerate(command_artifacts):
+        if not isinstance(item, dict):
+            continue
+        artifact_ref = item.get("artifact_ref")
+        if not isinstance(artifact_ref, str) or not artifact_ref.startswith("file:"):
+            continue
+        artifact_path = artifact_ref.removeprefix("file:")
+        artifact_sha = git_file_sha256(root, commit_ref, artifact_path)
+        if artifact_sha is None:
+            errors.append(f"{label} does not contain command_artifacts[{index}].artifact_ref: {artifact_ref}")
+        elif artifact_sha != item.get("artifact_sha256"):
+            errors.append(f"{label} command_artifacts[{index}] bytes do not match artifact_sha256")
+
+    review_import_artifacts = pointer.get("review_import_artifacts", [])
+    if not isinstance(review_import_artifacts, list):
+        review_import_artifacts = []
+    for index, item in enumerate(review_import_artifacts):
+        if not isinstance(item, dict):
+            continue
+        source_ref = item.get("source_ref")
+        source_path = file_ref_repo_path(root, source_ref)
+        if source_path is None:
+            continue
+        source_sha = git_file_sha256(root, commit_ref, source_path)
+        if source_sha is None:
+            errors.append(f"{label} does not contain review_import_artifacts[{index}].source_ref: {source_ref}")
+        elif source_sha != item.get("source_sha256"):
+            errors.append(f"{label} review_import_artifacts[{index}] bytes do not match source_sha256")
+
+    probe_transcripts = pointer.get("probe_transcripts", [])
+    if not isinstance(probe_transcripts, list):
+        probe_transcripts = []
+    for index, item in enumerate(probe_transcripts):
+        if not isinstance(item, dict):
+            continue
+        source_ref = item.get("source_ref")
+        source_path = file_ref_repo_path(root, source_ref)
+        if source_path is None:
+            continue
+        transcript_sha = git_file_sha256(root, commit_ref, source_path)
+        if transcript_sha is None:
+            errors.append(f"{label} does not contain probe_transcripts[{index}].source_ref: {source_ref}")
+        elif transcript_sha != item.get("transcript_sha256"):
+            errors.append(f"{label} probe_transcripts[{index}] bytes do not match transcript_sha256")
+    return errors
+
+
+def archive_commit_tree_errors(
+    pointer: dict,
+    *,
+    root: Path,
+    packet_ref: str,
+) -> list[str]:
+    return archive_tree_errors(
+        pointer,
+        root=root,
+        packet_ref=packet_ref,
+        commit_ref=pointer.get("archive_commit"),
+        label="archive_commit",
+    )
+
+
+def archive_file_ref_path(ref: object) -> str | None:
+    if not isinstance(ref, str) or not ref.startswith("file:"):
+        return None
+    path = ref.removeprefix("file:").split("#", 1)[0]
+    return path if path.startswith("archive/v2/") else None
+
+
+def pointer_bound_archive_paths(pointer: dict) -> set[str]:
+    paths: set[str] = set()
+
+    def add_path(path: object) -> None:
+        if isinstance(path, str) and path.startswith("archive/v2/"):
+            paths.add(path)
+
+    add_path(pointer.get("packet_ref"))
+    for item in pointer.get("command_artifacts", []) if isinstance(pointer.get("command_artifacts"), list) else []:
+        if isinstance(item, dict):
+            add_path(archive_file_ref_path(item.get("artifact_ref")))
+    for item in (
+        pointer.get("review_import_artifacts", [])
+        if isinstance(pointer.get("review_import_artifacts"), list)
+        else []
+    ):
+        if isinstance(item, dict):
+            add_path(archive_file_ref_path(item.get("source_ref")))
+    for item in pointer.get("probe_transcripts", []) if isinstance(pointer.get("probe_transcripts"), list) else []:
+        if isinstance(item, dict):
+            add_path(archive_file_ref_path(item.get("source_ref")))
+    return paths
+
+
+def pointer_publication_paths(pointer: dict, *, pointer_ref: str | None) -> set[str]:
+    paths = pointer_bound_archive_paths(pointer)
+    if isinstance(pointer_ref, str) and pointer_ref.startswith("archive/v2/"):
+        paths.add(pointer_ref)
+    return paths
+
+
+def packet_bound_archive_paths(packet: dict, *, root: Path, packet_ref: str) -> set[str]:
+    return {packet_ref, *archive_artifact_paths(packet, root=root)}
+
+
+def archive_pointer_ref_error(pointer_ref: object) -> str | None:
+    if not isinstance(pointer_ref, str) or not pointer_ref:
+        return "active pointer path must be repository-local under archive/v2/pointers/"
+    if not pointer_ref.startswith(DEFAULT_POINTER_PREFIX):
+        return f"active pointer path must be under {DEFAULT_POINTER_PREFIX}"
+    if not pointer_ref.endswith(POINTER_SUFFIXES):
+        return "active pointer path must end with .yml or .yaml"
+    return None
+
+
+def archive_pointer_output_error(output_ref: str, *, packet_ref: str, bound_paths: set[str]) -> str | None:
+    if output_ref == packet_ref or output_ref.startswith(ARCHIVE_PACKET_PREFIX) or output_ref.startswith(ARCHIVE_ARTIFACT_PREFIX):
+        return "write-pointer output must not overwrite archived packet or artifact paths"
+    if output_ref in bound_paths:
+        return "write-pointer output must not overwrite pointer-bound packet or artifact paths"
+    return archive_pointer_ref_error(output_ref)
+
+
+def archive_commit_scope_errors(pointer: dict, packet: dict, *, root: Path) -> list[str]:
+    archive_commit = pointer.get("archive_commit")
+    accepted_head = packet.get("result", {}).get("evidence", {}).get("accepted_head_commit")
+    if not isinstance(archive_commit, str) or not isinstance(accepted_head, str):
+        return []
+    if not git_ref_is_commit(root, archive_commit) or not git_ref_is_commit(root, accepted_head):
+        return []
+    errors: list[str] = []
+    if not git_is_ancestor(root, accepted_head, archive_commit):
+        errors.append("archive_commit must be at or after accepted_head_commit")
+    parents = git_commit_parents(root, archive_commit)
+    if parents is None:
+        errors.append("archive_commit parents could not be checked")
+    elif parents != [accepted_head]:
+        errors.append("archive_commit must have accepted_head_commit as its only parent")
+    records = git_diff_name_status_records(root, accepted_head, archive_commit)
+    if records is None:
+        errors.append("archive_commit scope could not be compared to accepted_head_commit")
+        return errors
+    errors.extend(
+        archive_v2_diff_errors(
+            records,
+            expected_paths=pointer_bound_archive_paths(pointer),
+            label="archive_commit",
+            allowed_modified_start_packet=(
+                root,
+                accepted_head,
+                pointer["packet_ref"],
+                packet,
+            )
+            if isinstance(pointer.get("packet_ref"), str)
+            else None,
+        )
+    )
+    return errors
+
+
+def active_pointer_dirty_worktree_errors(
+    root: Path,
+    *,
+    allowed_archive_paths: set[str],
+    allowed_modified_start_packet: tuple[Path, str, str, dict] | None = None,
+    ignore_non_archive_dirty: bool = False,
+) -> list[str]:
+    result = git(root, ["status", "--porcelain=v1", "--untracked-files=all"])
+    if result.returncode != 0:
+        return ["active pointer worktree status could not be checked"]
+    non_publication_paths: set[str] = set()
+    invalid_publication_records: list[str] = []
+    for status, paths in porcelain_status_records(result.stdout):
+        unexpected_archive_paths = [
+            path for path in paths if path.startswith("archive/v2/") and path not in allowed_archive_paths
+        ]
+        if unexpected_archive_paths:
+            non_publication_paths.update(unexpected_archive_paths)
+            continue
+        if any(not path.startswith("archive/v2/") for path in paths):
+            if not ignore_non_archive_dirty:
+                non_publication_paths.update(paths)
+            continue
+        if status in {"??", "A "}:
+            continue
+        if allowed_modified_start_packet is not None:
+            draft_root, accepted_head, packet_ref, packet = allowed_modified_start_packet
+            if (
+                "M" in status
+                and paths == [packet_ref]
+                and accepted_archive_packet_is_start_draft(draft_root, accepted_head, packet_ref, packet)
+            ):
+                continue
+        invalid_publication_records.append(f"{status} {paths}")
+    errors: list[str] = []
+    if non_publication_paths:
+        errors.append(f"active pointer worktree includes non-publication changes: {sorted(non_publication_paths)}")
+    if invalid_publication_records:
+        errors.append(
+            "active pointer worktree may only add publication paths or modify the current start-draft packet: "
+            f"{invalid_publication_records}"
+        )
+    return errors
+
+
+def accepted_archive_packet_is_start_draft(root: Path, accepted_head: str, packet_ref: str, packet: dict) -> bool:
+    text = git_text(root, accepted_head, packet_ref)
+    if text is None:
+        return False
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return False
+    draft = loaded.get(PACKET_KEY) if isinstance(loaded, dict) else None
+    if not isinstance(draft, dict):
+        return False
+    draft_meta = draft.get("meta", {}) if isinstance(draft.get("meta"), dict) else {}
+    packet_meta = packet.get("meta", {}) if isinstance(packet.get("meta"), dict) else {}
+    draft_evidence = draft.get("result", {}).get("evidence", {}) if isinstance(draft.get("result"), dict) else {}
+    packet_evidence = packet.get("result", {}).get("evidence", {}) if isinstance(packet.get("result"), dict) else {}
+    return (
+        draft_meta.get("packet_id") == packet_meta.get("packet_id")
+        and draft_meta.get("schema_version") == packet_meta.get("schema_version")
+        and draft_meta.get("lifecycle") == "start"
+        and packet_meta.get("lifecycle") == "finalized"
+        and draft_meta.get("mode") == packet_meta.get("mode")
+        and draft_evidence.get("baseline_ref") == packet_evidence.get("baseline_ref")
+    )
+
+
+def archive_v2_diff_errors(
+    records: list[tuple[str, list[str]]],
+    *,
+    expected_paths: set[str],
+    label: str,
+    allowed_modified_start_packet: tuple[Path, str, str, dict] | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    changed_paths = {path for _status, paths in records for path in paths}
+    non_archive_paths = sorted(path for path in changed_paths if not path.startswith("archive/v2/"))
+    if non_archive_paths:
+        errors.append(f"{label} includes non-archive changes: {non_archive_paths}")
+    unexpected_archive_paths = sorted(
+        path for path in changed_paths if path.startswith("archive/v2/") and path not in expected_paths
+    )
+    if unexpected_archive_paths:
+        errors.append(f"{label} includes unexpected archive/v2 paths: {unexpected_archive_paths}")
+    for status, paths in records:
+        if not any(path.startswith("archive/v2/") for path in paths):
+            continue
+        if status == "A":
+            continue
+        if allowed_modified_start_packet is not None:
+            root, accepted_head, packet_ref, packet = allowed_modified_start_packet
+            if (
+                status == "M"
+                and paths == [packet_ref]
+                and accepted_archive_packet_is_start_draft(root, accepted_head, packet_ref, packet)
+            ):
+                continue
+        errors.append(f"{label} may only add expected archive/v2 paths: {status} {paths}")
+    return errors
+
+
+def accepted_head_archive_scope_errors(
+    root: Path,
+    packet: dict,
+    *,
+    packet_ref: str | None,
+    comparison_ref: str,
+    accepted_head: str,
+) -> list[str]:
+    if not isinstance(packet_ref, str):
+        return []
+    errors: list[str] = []
+    records = git_diff_name_status_records_for_spec(root, f"{comparison_ref}...{accepted_head}")
+    if records is None:
+        errors.append("active base-ref accepted_head archive scope could not be compared to comparison_ref")
+        return errors
+    archive_records = [
+        (status, paths)
+        for status, paths in records
+        if any(path.startswith("archive/v2/") for path in paths)
+    ]
+    if not archive_records:
+        return errors
+    expected_paths = (
+        {packet_ref}
+        if accepted_archive_packet_is_start_draft(root, accepted_head, packet_ref, packet)
+        else set()
+    )
+    changed_paths = {path for _status, paths in archive_records for path in paths}
+    unexpected_archive_paths = sorted(path for path in changed_paths if path not in expected_paths)
+    if unexpected_archive_paths:
+        errors.append(f"active base-ref accepted_head includes unexpected archive/v2 paths: {unexpected_archive_paths}")
+    for status, paths in archive_records:
+        if status in {"A", "M"} and paths == [packet_ref] and packet_ref in expected_paths:
+            continue
+        errors.append(f"active base-ref accepted_head may only carry the current start-draft packet: {status} {paths}")
+    return errors
+
+
+def publication_commit_errors(
+    root: Path,
+    accepted_head: str,
+    publication_commit: str,
+    *,
+    pointer: dict,
+    packet: dict,
+    pointer_ref: str | None,
+    label: str,
+) -> list[str]:
+    parents = git_commit_parents(root, publication_commit)
+    if parents is None:
+        return [f"{label} parents could not be read: {publication_commit}"]
+    baseline = parents[0] if parents else accepted_head
+    records = git_diff_name_status_records(root, baseline, publication_commit)
+    if records is None:
+        return [f"{label} scope could not be compared to its parent"]
+    if not records:
+        return ["head_commit does not match current HEAD or first archive/v2 publication commit"]
+    expected_paths = pointer_publication_paths(pointer, pointer_ref=pointer_ref)
+    errors = archive_v2_diff_errors(
+        records,
+        expected_paths=expected_paths,
+        label=label,
+        allowed_modified_start_packet=(
+            root,
+            accepted_head,
+            pointer["packet_ref"],
+            packet,
+        )
+        if isinstance(pointer.get("packet_ref"), str)
+        else None,
+    )
+    changed_paths = {path for _status, paths in records for path in paths}
+    if pointer_ref is None:
+        errors.append(f"{label} requires a repository-local pointer path")
+    elif pointer_ref not in changed_paths:
+        errors.append(f"{label} must add the active pointer path: {pointer_ref}")
+    packet_ref = pointer.get("packet_ref")
+    if isinstance(packet_ref, str):
+        errors.extend(
+            archive_tree_errors(
+                pointer,
+                root=root,
+                packet_ref=packet_ref,
+                commit_ref=publication_commit,
+                label=label,
+            )
+        )
+    return errors
+
+
+def commit_archive_v2_paths(root: Path, commit: str) -> list[str] | None:
+    parents = git_commit_parents(root, commit)
+    if parents is None:
+        return None
+    baseline = parents[0] if parents else f"{commit}^"
+    records = git_diff_name_status_records(root, baseline, commit)
+    if records is None:
+        return None
+    return sorted(
+        {
+            path
+            for _status, paths in records
+            for path in paths
+            if path.startswith("archive/v2/")
+        }
+    )
+
+
+def post_publication_archive_history_errors(
+    root: Path,
+    publication_commit: str,
+    current_head: str,
+    *,
+    protected_paths: set[str],
+) -> list[str]:
+    commits = git_rev_list_between(root, publication_commit, current_head)
+    if commits is None:
+        return ["current HEAD post-publication history could not be compared to active pointer publication"]
+    errors: list[str] = []
+    for commit in commits:
+        parents = git_commit_parents(root, commit)
+        if parents is None:
+            errors.append(f"post-publication commit parents could not be read: {commit}")
+            continue
+        baseline = parents[0] if parents else f"{commit}^"
+        records = git_diff_name_status_records(root, baseline, commit)
+        if records is None:
+            errors.append(f"post-publication commit scope could not be compared: {commit}")
+            continue
+        touched_protected_paths = sorted(
+            {
+                path
+                for _status, paths in records
+                for path in paths
+                if path in protected_paths
+            }
+        )
+        if touched_protected_paths:
+            errors.append(
+                "current HEAD history includes archive/v2 changes after active pointer publication "
+                f"to pointer-bound bytes: {commit} {touched_protected_paths}"
+            )
+    return errors
+
+
+def current_head_publication_errors(
+    root: Path,
+    accepted_head: str,
+    *,
+    pointer: dict,
+    packet: dict,
+    pointer_ref: str | None,
+    ignore_non_archive_dirty: bool = False,
+) -> list[str]:
+    current_head = git_ref_commit(root, "HEAD")
+    if current_head is None:
+        return ["head_commit cannot be checked because HEAD does not resolve"]
+    if current_head == accepted_head:
+        return active_pointer_dirty_worktree_errors(
+            root,
+            allowed_archive_paths=pointer_publication_paths(pointer, pointer_ref=pointer_ref),
+            ignore_non_archive_dirty=ignore_non_archive_dirty,
+            allowed_modified_start_packet=(
+                root,
+                accepted_head,
+                pointer["packet_ref"],
+                packet,
+            )
+            if isinstance(pointer.get("packet_ref"), str)
+            else None,
+        )
+    if not git_is_ancestor(root, accepted_head, current_head):
+        return ["head_commit does not match current HEAD or first archive/v2 publication commit"]
+    commits = git_rev_list_between(root, accepted_head, current_head)
+    if commits is None:
+        return ["current HEAD history could not be compared to accepted_head_commit"]
+    if not commits:
+        return ["head_commit does not match current HEAD or first archive/v2 publication commit"]
+    publication_commit: str | None = None
+    for commit in commits:
+        archive_paths = commit_archive_v2_paths(root, commit)
+        if archive_paths is None:
+            return [f"current HEAD commit scope could not be compared: {commit}"]
+        if archive_paths:
+            publication_commit = commit
+            break
+    if publication_commit is None:
+        return ["head_commit does not match current HEAD or first archive/v2 publication commit"]
+    label = "current HEAD publication" if publication_commit == current_head else "historical pointer publication"
+    errors = publication_commit_errors(
+        root,
+        accepted_head,
+        publication_commit,
+        pointer=pointer,
+        packet=packet,
+        pointer_ref=pointer_ref,
+        label=label,
+    )
+    if errors:
+        return errors
+    errors.extend(
+        post_publication_archive_history_errors(
+            root,
+            publication_commit,
+            current_head,
+            protected_paths=pointer_publication_paths(pointer, pointer_ref=pointer_ref),
+        )
+    )
+    errors.extend(
+        active_pointer_dirty_worktree_errors(
+            root,
+            allowed_archive_paths=set(),
+            ignore_non_archive_dirty=True,
+        )
+    )
+    return errors
+
+
+def pointer_for_packet(
+    packet: dict,
+    *,
+    root: Path,
+    packet_ref: str,
+    packet_sha256: str,
+    archive_commit: str,
+) -> dict:
+    evidence = packet["result"]["evidence"]
+    head_commit = evidence.get("accepted_head_commit") or git_ref_commit(root, "HEAD") or ""
+    return {
+        "schema_version": POINTER_SCHEMA_VERSION,
+        "packet_id": packet["meta"]["packet_id"],
+        "packet_ref": packet_ref,
+        "packet_sha256": packet_sha256,
+        "checker_version": SCHEMA_VERSION,
+        "inference_rule_version": INFERENCE_RULE_VERSION,
+        "baseline_ref": evidence.get("baseline_ref"),
+        "comparison_ref": evidence.get("comparison_ref"),
+        "head_commit": head_commit,
+        "archive_commit": archive_commit,
+        "stable_target": stable_target_for_packet(packet),
+        "decision_status": decision_status_for_packet(packet),
+        "command_artifacts": pointer_command_artifacts(packet, root=root),
+        "review_import_artifacts": pointer_review_import_artifacts(packet, root=root),
+        "probe_transcripts": pointer_probe_transcripts(packet, root=root),
+    }
+
+
+def validate_pointer_review_import_artifacts(
+    pointer: dict,
+    packet: dict,
+    *,
+    root: Path,
+    errors: list[str],
+) -> None:
+    review_import_artifacts = pointer.get("review_import_artifacts")
+    if not isinstance(review_import_artifacts, list):
+        errors.append("review_import_artifacts must be a list")
+        return
+    for index, item in enumerate(review_import_artifacts):
+        source = f"review_import_artifacts[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{source} must be a mapping")
+            continue
+        errors.extend(
+            schema_field_errors(
+                item,
+                POINTER_REVIEW_IMPORT_ARTIFACT_FIELDS,
+                source=source,
+                label="review import artifact",
+            )
+        )
+        source_ref = item.get("source_ref")
+        if not isinstance(source_ref, str) or not source_ref.startswith("file:"):
+            errors.append(f"{source}.source_ref must use file: scheme")
+        elif local_ref_path(root, source_ref) is None:
+            errors.append(f"{source}.source_ref does not resolve: {source_ref}")
+        source_sha256 = item.get("source_sha256")
+        if not isinstance(source_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+            errors.append(f"{source}.source_sha256 must be a SHA-256 hex digest")
+        review_target_digest = item.get("review_target_digest")
+        if not isinstance(review_target_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", review_target_digest):
+            errors.append(f"{source}.review_target_digest must be a SHA-256 hex digest")
+        if not isinstance(item.get("review_ids"), list) or any(not isinstance(review_id, str) for review_id in item.get("review_ids", [])):
+            errors.append(f"{source}.review_ids must be a list of strings")
+    expected = pointer_review_import_artifacts(packet, root=root)
+    if normalize_for_mirror(review_import_artifacts) != normalize_for_mirror(expected):
+        errors.append("review_import_artifacts do not match archived packet review import artifact bytes")
+
+
+def validate_pointer_probe_transcripts(
+    pointer: dict,
+    packet: dict,
+    *,
+    root: Path,
+    errors: list[str],
+) -> None:
+    probe_transcripts = pointer.get("probe_transcripts")
+    if not isinstance(probe_transcripts, list):
+        errors.append("probe_transcripts must be a list")
+        return
+    pointer_packet_ref = pointer.get("packet_ref")
+    pointer_packet_sha256 = pointer.get("packet_sha256")
+    for index, item in enumerate(probe_transcripts):
+        source = f"probe_transcripts[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{source} must be a mapping")
+            continue
+        errors.extend(
+            schema_field_errors(
+                item,
+                POINTER_PROBE_TRANSCRIPT_FIELDS,
+                source=source,
+                label="probe transcript",
+            )
+        )
+        source_ref = item.get("source_ref")
+        if not isinstance(source_ref, str) or not source_ref.startswith("file:"):
+            errors.append(f"{source}.source_ref must use file: scheme")
+        elif local_ref_path(root, source_ref) is None:
+            errors.append(f"{source}.source_ref does not resolve: {source_ref}")
+        transcript_sha256 = item.get("transcript_sha256")
+        if not isinstance(transcript_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", transcript_sha256):
+            errors.append(f"{source}.transcript_sha256 must be a SHA-256 hex digest")
+        result_ref = item.get("result_ref")
+        if not review_value_is_substantive_string(result_ref):
+            errors.append(f"{source}.result_ref must be a substantive string")
+        result_digest = item.get("result_digest")
+        if not isinstance(result_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", result_digest):
+            errors.append(f"{source}.result_digest must be a SHA-256 hex digest")
+        if item.get("packet_ref") != pointer_packet_ref:
+            errors.append(f"{source}.packet_ref must match active pointer packet_ref")
+        if item.get("packet_sha256") != pointer_packet_sha256:
+            errors.append(f"{source}.packet_sha256 must match active pointer packet_sha256")
+    expected = pointer_probe_transcripts(packet, root=root)
+    if normalize_for_mirror(probe_transcripts) != normalize_for_mirror(expected):
+        errors.append("probe_transcripts do not match archived packet probe transcript bytes")
+
+
+def validate_pointer(
+    pointer: dict,
+    *,
+    root: Path,
+    pointer_ref: str | None = None,
+    replay_archive_command_evidence: bool = False,
+    check_publication_scope: bool = True,
+    ignore_non_archive_dirty: bool = False,
+) -> list[str]:
+    errors: list[str] = []
+    if set(pointer) != POINTER_FIELDS:
+        errors.append(f"{POINTER_KEY} fields must be exactly {sorted(POINTER_FIELDS)}")
+        return errors
+    pointer_path_error = archive_pointer_ref_error(pointer_ref)
+    if pointer_path_error:
+        errors.append(pointer_path_error)
+    if pointer.get("schema_version") != POINTER_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {POINTER_SCHEMA_VERSION}")
+    packet_ref_error = pointer_packet_ref_error(pointer.get("packet_ref"))
+    if packet_ref_error:
+        errors.append(packet_ref_error)
+        return errors
+    packet_ref = pointer["packet_ref"]
+    packet_rel = resolve_repo_path(root, packet_ref)
+    if packet_rel is None:
+        errors.append(f"packet_ref does not resolve to an archived packet: {packet_ref}")
+        return errors
+    packet_path = root / packet_rel
+    actual_sha256 = file_sha256(packet_path)
+    if pointer.get("packet_sha256") != actual_sha256:
+        errors.append("packet_sha256 does not match archived packet bytes")
+    try:
+        packet = load_packet(packet_path)
+    except PacketError as exc:
+        errors.append(str(exc))
+        return errors
+
+    if pointer.get("packet_id") != packet.get("meta", {}).get("packet_id"):
+        errors.append("packet_id does not match archived packet meta.packet_id")
+    if pointer.get("checker_version") != SCHEMA_VERSION:
+        errors.append(f"checker_version must be {SCHEMA_VERSION}")
+    if pointer.get("inference_rule_version") != INFERENCE_RULE_VERSION:
+        errors.append(f"inference_rule_version must be {INFERENCE_RULE_VERSION}")
+
+    result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
+    evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
+    if pointer.get("baseline_ref") != evidence.get("baseline_ref"):
+        errors.append("baseline_ref does not match archived packet evidence.baseline_ref")
+    if pointer.get("comparison_ref") != evidence.get("comparison_ref"):
+        errors.append("comparison_ref does not match archived packet evidence.comparison_ref")
+    head_commit = pointer.get("head_commit")
+    accepted_head_commit = evidence.get("accepted_head_commit")
+    publication_commit: str | None = None
+    if not isinstance(head_commit, str) or not FULL_COMMIT_RE.fullmatch(head_commit):
+        errors.append("head_commit must be the full accepted_head_commit SHA")
+    else:
+        if not isinstance(accepted_head_commit, str) or not FULL_COMMIT_RE.fullmatch(accepted_head_commit):
+            errors.append("archived packet accepted_head_commit must be a full commit SHA")
+        elif head_commit != accepted_head_commit:
+            errors.append("head_commit does not match archived packet accepted_head_commit")
+        elif check_publication_scope:
+            publication_errors = current_head_publication_errors(
+                root,
+                accepted_head_commit,
+                pointer=pointer,
+                packet=packet,
+                pointer_ref=pointer_ref,
+                ignore_non_archive_dirty=ignore_non_archive_dirty,
+            )
+            errors.extend(publication_errors)
+            current_head = git_ref_commit(root, "HEAD")
+            commit_count = (
+                git_commit_count_between(root, accepted_head_commit, current_head)
+                if not publication_errors and isinstance(current_head, str) and current_head != accepted_head_commit
+                else None
+            )
+            if commit_count == 1:
+                publication_commit = current_head
+    archive_commit = pointer.get("archive_commit")
+    if not isinstance(archive_commit, str) or not FULL_COMMIT_RE.fullmatch(archive_commit):
+        errors.append("archive_commit must be the full commit SHA containing archived packet artifacts")
+    else:
+        expected_archive_commit, archive_commit_error = create_archive_commit(
+            root,
+            packet,
+            packet_ref=packet_ref,
+            parent_ref=accepted_head_commit if isinstance(accepted_head_commit, str) else None,
+        )
+        if archive_commit_error:
+            errors.append(f"archive_commit could not be reproduced from pointer-bound bytes: {archive_commit_error}")
+        elif archive_commit != expected_archive_commit:
+            errors.append("archive_commit does not match reproducible pointer-bound archive bytes")
+        if publication_commit is not None:
+            errors.extend(
+                archive_tree_errors(
+                    pointer,
+                    root=root,
+                    packet_ref=packet_ref,
+                    commit_ref=publication_commit,
+                    label="publication commit",
+                )
+            )
+        elif git_ref_is_commit(root, archive_commit):
+            errors.extend(archive_commit_tree_errors(pointer, root=root, packet_ref=packet_ref))
+            errors.extend(archive_commit_scope_errors(pointer, packet, root=root))
+    expected_stable_target = stable_target_for_packet(packet)
+    if pointer.get("stable_target") != expected_stable_target:
+        errors.append(f"stable_target must be {expected_stable_target}")
+    expected_decision_status = decision_status_for_packet(packet)
+    if pointer.get("decision_status") != expected_decision_status:
+        errors.append(f"decision_status must match archived packet decision status: {expected_decision_status}")
+    if pointer.get("decision_status") != "accepted":
+        errors.append("active pointer decision_status must be accepted")
+    if packet.get("meta", {}).get("lifecycle") != "finalized":
+        errors.append("active pointer packet must have finalized lifecycle")
+    if packet.get("meta", {}).get("mode") != "base-ref":
+        errors.append("active pointer packet must use base-ref mode")
+    command_artifacts = pointer.get("command_artifacts")
+    if not isinstance(command_artifacts, list):
+        errors.append("command_artifacts must be a list")
+    else:
+        for index, item in enumerate(command_artifacts):
+            source = f"command_artifacts[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{source} must be a mapping")
+                continue
+            errors.extend(schema_field_errors(item, POINTER_COMMAND_ARTIFACT_FIELDS, source=source, label="command artifact"))
+            artifact_ref = item.get("artifact_ref")
+            artifact_sha256 = item.get("artifact_sha256")
+            if not isinstance(artifact_ref, str) or not artifact_ref.startswith("file:"):
+                errors.append(f"{source}.artifact_ref must use file: scheme")
+            elif local_ref_path(root, artifact_ref) is None:
+                errors.append(f"{source}.artifact_ref does not resolve: {artifact_ref}")
+            if not isinstance(artifact_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", artifact_sha256):
+                errors.append(f"{source}.artifact_sha256 must be a SHA-256 hex digest")
+            if not review_value_is_substantive_string(item.get("command")):
+                errors.append(f"{source}.command must be a substantive string")
+        expected_artifacts = pointer_command_artifacts(packet, root=root)
+        if normalize_for_mirror(command_artifacts) != normalize_for_mirror(expected_artifacts):
+            errors.append("command_artifacts do not match archived packet command artifact bytes")
+    validate_pointer_review_import_artifacts(pointer, packet, root=root, errors=errors)
+    validate_pointer_probe_transcripts(pointer, packet, root=root, errors=errors)
+
+    pointer_sha = pointer.get("packet_sha256")
+    packet_errors = validate_packet(
+        packet,
+        require_stable=True,
+        require_archive_command_replay_metadata=True,
+        replay_archive_command_evidence=False,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=pointer_sha if isinstance(pointer_sha, str) else None,
+    )
+    errors.extend(f"archived packet: {error}" for error in packet_errors)
+    if errors:
+        return errors
+    if replay_archive_command_evidence:
+        with archive_command_replay_root(root, packet) as (replay_root, replay_root_errors):
+            replay_errors = list(replay_root_errors)
+            if not replay_errors:
+                replay_errors = validate_packet(
+                    packet,
+                    require_stable=True,
+                    require_archive_command_replay_metadata=True,
+                    replay_archive_command_evidence=True,
+                    root=root,
+                    replay_root=replay_root,
+                    packet_ref=packet_ref,
+                    packet_sha256=pointer_sha if isinstance(pointer_sha, str) else None,
+                )
+        errors.extend(f"archived packet: {error}" for error in replay_errors)
+    return errors
+
+
 def mode_from_args(args: argparse.Namespace) -> tuple[str, str | None]:
     selected = [name for name in ("staged", "worktree", "base_ref") if getattr(args, name, None)]
     if len(selected) != 1:
@@ -2669,26 +4830,30 @@ def mode_from_args(args: argparse.Namespace) -> tuple[str, str | None]:
     return selected[0], None
 
 
+def normalize_base_ref(root: Path, base_ref: str | None) -> str | None:
+    if base_ref is None:
+        return None
+    commit = git_ref_commit(root, base_ref)
+    if commit is None:
+        raise PacketError(f"base-ref must resolve to a git commit: {base_ref}")
+    return commit
+
+
 def changed_paths(root: Path, *, mode: str, base_ref: str | None) -> list[str]:
     if mode == "staged":
-        result = git(root, ["diff", "--cached", "--name-status"])
+        result = git(root, ["diff", "--cached", "--name-status"], keep_index=True)
     elif mode == "base-ref":
         result = git(root, ["diff", "--name-status", f"{base_ref}...HEAD"])
     else:
         result = git(root, ["status", "--porcelain=v1", "--untracked-files=all"])
         if result.returncode == 0:
-            paths: list[str] = []
-            for line in result.stdout.splitlines():
-                path = line[3:] if len(line) > 3 else ""
-                if " -> " in path:
-                    before, after = path.split(" -> ", 1)
-                    paths.extend([before, after])
-                elif path:
-                    paths.append(path)
-            return sorted(set(paths))
+            return porcelain_status_paths(result.stdout)
     if result.returncode != 0:
         raise PacketError(result.stderr.strip() or "failed to read git changes")
-    return name_status_changed_paths(result.stdout)
+    paths = name_status_changed_paths(result.stdout)
+    if mode == "base-ref":
+        paths = [path for path in paths if not path.startswith("archive/v2/")]
+    return paths
 
 
 def packet_ref_is_repo_local(packet_ref: str | None) -> bool:
@@ -2780,17 +4945,88 @@ def path_has_proof_like_claim(root: Path, path: str) -> bool:
     return bool(PROOF_LIKE_RE.search(text))
 
 
+def terminal_ref_for_command(command: str, *, index: int) -> str:
+    if command.startswith("git diff"):
+        return "terminal:git-diff-check"
+    return f"terminal:required-evidence-{index + 1}"
+
+
+def command_result_status_for_finalize(
+    root: Path,
+    command: str,
+    *,
+    cached_statuses: dict[str, str],
+    replay_root_errors: list[str],
+) -> str:
+    if command in cached_statuses:
+        return cached_statuses[command]
+    if replay_root_errors:
+        return "fail"
+    policy_error = archive_replay_command_policy_error(command)
+    if policy_error:
+        return "fail"
+    completed, error = run_archive_command(command, root=root)
+    if error:
+        return "fail"
+    assert completed is not None
+    return "pass" if completed.returncode == 0 else "fail"
+
+
+def finalize_required_evidence_commands(
+    root: Path,
+    packet: dict,
+    *,
+    cached_statuses: dict[str, str],
+) -> None:
+    required = sorted(checker_required_evidence(packet))
+    packet["result"]["inference"]["required_evidence"] = required
+    evaluator_boundary = packet["result"]["evidence"].setdefault("evaluator_boundary", {})
+    if isinstance(evaluator_boundary, dict):
+        evaluator_boundary["commands"] = required
+    command_results: list[dict[str, str]] = []
+    resolved_refs = packet["result"]["evidence"].setdefault("resolved_refs", [])
+    if not isinstance(resolved_refs, list):
+        resolved_refs = []
+        packet["result"]["evidence"]["resolved_refs"] = resolved_refs
+    with archive_command_replay_root(root, packet) as (replay_root, replay_root_errors):
+        for index, command in enumerate(required):
+            terminal_ref = terminal_ref_for_command(command, index=index)
+            command_results.append(
+                {
+                    "command": command,
+                    "status": command_result_status_for_finalize(
+                        replay_root,
+                        command,
+                        cached_statuses=cached_statuses,
+                        replay_root_errors=replay_root_errors,
+                    ),
+                    "artifact_ref": terminal_ref,
+                }
+            )
+            resolved_refs.append(
+                {
+                    "origin": "generated",
+                    "relation": "observation",
+                    "ref": terminal_ref,
+                    "status": "local-placeholder",
+                    "target": terminal_ref,
+                }
+            )
+    packet["result"]["evidence"]["command_results"] = command_results
+
+
 def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | None) -> dict:
     paths = changed_paths(root, mode=mode, base_ref=base_ref)
-    baseline_ref = packet["result"].get("evidence", {}).get("baseline_ref")
+    baseline_ref = base_ref if mode == "base-ref" else packet["result"].get("evidence", {}).get("baseline_ref")
     comparison_ref = base_ref if mode == "base-ref" else baseline_ref
+    accepted_head_commit = git_ref_commit(root, "HEAD") if mode == "base-ref" else None
     protected = any(is_protected(path) for path in paths)
     if mode == "base-ref":
         proof_like = any(
             path.endswith(".md")
             and (
                 path_has_proof_like_claim_at_commit(root, str(base_ref), path)
-                or path_has_proof_like_claim_at_commit(root, "HEAD", path)
+                or path_has_proof_like_claim_at_commit(root, str(accepted_head_commit or "HEAD"), path)
             )
             for path in paths
         )
@@ -2802,16 +5038,37 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
         diff_command = ["git", "diff", "--cached", "--check"]
         evidence_command = "git diff --cached --check"
     elif mode == "base-ref":
-        diff_command = ["git", "diff", "--check", f"{base_ref}...HEAD"]
-        evidence_command = f"git diff --check {base_ref}...HEAD"
+        diff_command = ["git", "diff", "--check", f"{base_ref}...{accepted_head_commit or 'HEAD'}"]
+        evidence_command = f"git diff --check {base_ref}...{accepted_head_commit or 'HEAD'}"
     else:
         diff_command = ["git", "diff", "--check"]
         evidence_command = "git diff --check"
-    required_evidence = [evidence_command]
-    diff_check = git(root, diff_command[1:])
+    diff_check = git(root, diff_command[1:], keep_index=(mode == "staged"))
     diff_status = "pass" if diff_check.returncode == 0 else "fail"
     resolved_refs = []
-    for ref in packet["input"].get("source_refs", []):
+    input_source_refs = list(packet["input"].get("source_refs", []))
+    if mode == "base-ref" and not high_risk:
+        packet["input"]["source_refs"] = []
+        input_source_refs = []
+    source_refs = list(input_source_refs)
+    generated_source_refs = (
+        generated_base_ref_source_refs(root, paths, base_ref, head_ref=accepted_head_commit or "HEAD")
+        if mode == "base-ref"
+        else []
+    )
+    for ref, resolved in generated_source_refs:
+        if ref not in source_refs:
+            source_refs.append(ref)
+            resolved_refs.append(
+                {
+                    "origin": "generated",
+                    "relation": "source",
+                    "ref": ref,
+                    "status": "resolved",
+                    "target": resolved,
+                }
+            )
+    for ref in input_source_refs:
         resolved = resolve_ref(root, ref)
         if resolved:
             resolved_refs.append(
@@ -2823,15 +5080,7 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
                     "target": resolved,
                 }
             )
-    resolved_refs.append(
-        {
-            "origin": "generated",
-            "relation": "observation",
-            "ref": "terminal:git-diff-check",
-            "status": "local-placeholder",
-            "target": "terminal:git-diff-check",
-        }
-    )
+    cached_statuses = {evidence_command: diff_status}
     skipped_evidence: list[dict] = []
     if protected:
         skip_source_ref = "file:backlog/plans/04-evidence-capture-and-source-refs.md"
@@ -2868,24 +5117,19 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "deviations": [],
             "isolation": "isolated" if paths else "no-op",
             "protected_boundary_changed": protected,
-            "required_evidence": required_evidence,
+            "required_evidence": [],
             "required_review": [],
         },
         "evidence": {
             "baseline_ref": baseline_ref,
             "comparison_ref": comparison_ref,
+            "accepted_head_commit": accepted_head_commit,
             "evaluator_boundary": {
                 "status": "unchanged",
-                "commands": [evidence_command],
+                "commands": [],
             },
-            "command_results": [
-                {
-                    "command": evidence_command,
-                    "status": diff_status,
-                    "artifact_ref": "terminal:git-diff-check",
-                }
-            ],
-            "source_refs": list(packet["input"].get("source_refs", [])),
+            "command_results": [],
+            "source_refs": source_refs,
             "resolved_refs": resolved_refs,
             "trace_refs": {
                 "search_set_before": None,
@@ -2907,6 +5151,20 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "next_action": "Add durable evidence refs and run check --require-stable.",
         },
     }
+    finalize_required_evidence_commands(root, packet, cached_statuses=cached_statuses)
+    required_evidence = set(packet["result"]["inference"]["required_evidence"])
+    command_results = packet["result"]["evidence"].get("command_results", [])
+    required_evidence_passed = (
+        isinstance(command_results, list)
+        and all(
+            isinstance(item, dict)
+            and item.get("status") == "pass"
+            and item.get("command") in required_evidence
+            for item in command_results
+        )
+        and {item.get("command") for item in command_results if isinstance(item, dict)} == required_evidence
+    )
+    packet["result"]["decision"]["accepted"] = required_evidence_passed and not high_risk
     if protected:
         packet["result"]["decision"]["reason"] = (
             "Plan 03 cannot accept protected changes yet; review import and protected-change stable promotion are out of scope."
@@ -2927,10 +5185,30 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
 def start_packet(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     mode, base_ref = mode_from_args(args)
-    output = Path(args.output)
+    if mode == "base-ref":
+        base_ref = normalize_base_ref(root, base_ref)
+    new_packet_id = packet_id()
+    if args.output:
+        output = Path(args.output)
+    elif mode == "base-ref":
+        output = default_archive_packet_output(new_packet_id)
+    else:
+        raise PacketError("start --staged and start --worktree require --output; archive defaults are base-ref only")
+    output_path = root / output if not output.is_absolute() else output
+    try:
+        output_ref = repo_relative_path(root, output_path)
+    except PacketError as exc:
+        raise PacketError(str(exc)) from exc
+    if mode == "base-ref":
+        output_error = pointer_packet_ref_error(output_ref)
+        if output_error:
+            raise PacketError(
+                "active base-ref start output must be an archived packet path; "
+                f"{output_error}; omit --output to use the default archive path"
+            )
     packet = {
         "meta": {
-            "packet_id": packet_id(),
+            "packet_id": new_packet_id,
             "schema_version": SCHEMA_VERSION,
             "lifecycle": "start",
             "mode": mode,
@@ -2977,14 +5255,16 @@ def start_packet(args: argparse.Namespace) -> int:
     errors = validate_packet(packet, root=root)
     if errors:
         raise PacketError("; ".join(errors))
-    write_packet(root / output if not output.is_absolute() else output, packet)
-    print(f"wrote start packet: {output}")
+    write_packet(output_path, packet)
+    print(f"wrote start packet: {output_ref}")
     return 0
 
 
 def finalize_packet(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     mode, base_ref = mode_from_args(args)
+    if mode == "base-ref":
+        base_ref = normalize_base_ref(root, base_ref)
     path = Path(args.packet)
     packet_path = root / path if not path.is_absolute() else path
     packet = load_packet(packet_path)
@@ -2994,13 +5274,47 @@ def finalize_packet(args: argparse.Namespace) -> int:
         raise PacketError(f"{packet_path}: finalize mode must match packet mode")
     if mode == "base-ref":
         packet_base_ref = packet["result"].get("evidence", {}).get("baseline_ref")
-        if packet_base_ref != base_ref:
+        if not same_git_boundary(root, packet_base_ref, base_ref):
             raise PacketError(f"{packet_path}: finalize base-ref must match start baseline_ref: {packet_base_ref}")
     packet = infer_packet_result(root, packet, mode=mode, base_ref=base_ref)
-    errors = validate_packet(packet, root=root)
-    if errors:
-        raise PacketError("; ".join(errors))
-    write_packet(packet_path, packet, overwrite=True)
+    packet_ref = repo_relative_path(root, packet_path)
+    artifact_plan = promote_archive_command_artifacts(packet, packet_ref=packet_ref)
+    if artifact_plan:
+        packet_text = packet_document_text(packet)
+        packet_sha256 = hashlib.sha256(packet_text.encode("utf-8")).hexdigest()
+        artifact_updates = {
+            root / artifact_rel: command_evidence_artifact_text(
+                packet,
+                packet_ref=packet_ref,
+                packet_sha256=packet_sha256,
+                command=command,
+                status=status,
+            )
+            for artifact_rel, (command, status) in artifact_plan.items()
+        }
+        write_error, originals = apply_text_updates_with_rollback(artifact_updates)
+        if write_error:
+            raise PacketError(write_error)
+        errors = validate_packet(
+            packet,
+            require_stable=packet["result"]["decision"].get("stable_handoff_eligible") is True,
+            root=root,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+        )
+        if errors:
+            rollback_text_updates(originals)
+            raise PacketError("; ".join(errors))
+        try:
+            write_text_atomic(packet_path, packet_text)
+        except OSError as exc:
+            rollback_text_updates(originals)
+            raise PacketError(str(exc)) from exc
+    else:
+        errors = validate_packet(packet, root=root)
+        if errors:
+            raise PacketError("; ".join(errors))
+        write_packet(packet_path, packet, overwrite=True)
     print(f"finalized packet: {path}")
     return 0
 
@@ -3031,13 +5345,139 @@ def check_packet(args: argparse.Namespace) -> int:
     return 0
 
 
+def write_pointer(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    packet_arg = Path(args.packet)
+    packet_path = root / packet_arg if not packet_arg.is_absolute() else packet_arg
+    if repo_path_has_symlink(root, packet_path):
+        print(f"ERROR: archived packet must be a regular file, not a symlink: {args.packet}", file=sys.stderr)
+        return 1
+    packet = load_packet(packet_path)
+    try:
+        packet_ref = packet_path.resolve().relative_to(root).as_posix()
+    except ValueError as exc:
+        raise PacketError(f"{packet_path}: archived packet must be inside repository root") from exc
+    packet_sha256 = file_sha256(packet_path)
+    packet_ref_error = pointer_packet_ref_error(packet_ref)
+    if packet_ref_error:
+        print(f"ERROR: {packet_ref_error}", file=sys.stderr)
+        return 1
+    preflight_errors = validate_packet(
+        packet,
+        require_stable=True,
+        require_archive_command_replay_metadata=False,
+        allow_stale_archive_command_artifacts=True,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+    )
+    if preflight_errors:
+        for error in preflight_errors:
+            print(f"ERROR: archived packet: {error}", file=sys.stderr)
+        return 1
+    output = Path(args.output) if args.output else Path(DEFAULT_POINTER_PREFIX) / f"{packet['meta']['packet_id']}.yml"
+    output_path = root / output if not output.is_absolute() else output
+    try:
+        output_ref = repo_relative_path(root, output_path)
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    output_error = archive_pointer_output_error(
+        output_ref,
+        packet_ref=packet_ref,
+        bound_paths=packet_bound_archive_paths(packet, root=root, packet_ref=packet_ref),
+    )
+    if output_error:
+        print(f"ERROR: {output_error}", file=sys.stderr)
+        return 1
+    if output_path.exists() and not args.overwrite:
+        raise PacketError(f"{output_path}: already exists; use --overwrite to replace")
+    with archive_command_replay_root(root, packet) as (replay_root, replay_root_errors):
+        if replay_root_errors:
+            for error in replay_root_errors:
+                print(f"ERROR: {error}", file=sys.stderr)
+            return 1
+        updates, materialize_errors = planned_archive_command_evidence_updates(
+            packet,
+            root=root,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+            replay_root=replay_root,
+            allow_existing_replay_metadata=args.overwrite,
+        )
+    if materialize_errors:
+        for error in materialize_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    materialize_error, originals = apply_text_updates_with_rollback(updates)
+    if materialize_error:
+        print(f"ERROR: {materialize_error}", file=sys.stderr)
+        return 1
+    try:
+        archive_commit, archive_commit_error = create_archive_commit(root, packet, packet_ref=packet_ref)
+        if archive_commit_error:
+            rollback_text_updates(originals)
+            print(f"ERROR: {archive_commit_error}", file=sys.stderr)
+            return 1
+        assert archive_commit is not None
+        pointer = pointer_for_packet(
+            packet,
+            root=root,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+            archive_commit=archive_commit,
+        )
+        errors = validate_pointer(pointer, root=root, pointer_ref=output_ref, ignore_non_archive_dirty=True)
+        if errors:
+            rollback_text_updates(originals)
+            for error in errors:
+                print(f"ERROR: {error}", file=sys.stderr)
+            return 1
+
+        pointer_text = yaml.safe_dump({POINTER_KEY: pointer}, sort_keys=False, allow_unicode=False)
+        write_text_atomic(output_path, pointer_text)
+    except OSError as exc:
+        rollback_text_updates(originals)
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except PacketError:
+        rollback_text_updates(originals)
+        raise
+    print(f"wrote active pointer: {output}")
+    return 0
+
+
+def check_pointer(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    path = Path(args.pointer)
+    pointer_path = root / path if not path.is_absolute() else path
+    pointer = load_pointer(pointer_path)
+    try:
+        pointer_ref = repo_relative_path(root, pointer_path)
+    except PacketError:
+        pointer_ref = None
+    errors = validate_pointer(
+        pointer,
+        root=root,
+        pointer_ref=pointer_ref,
+        replay_archive_command_evidence=args.replay_command_evidence,
+        ignore_non_archive_dirty=True,
+    )
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    print(f"POINTER: STABLE: {pointer_path} -> {pointer['packet_ref']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(ROOT), help=argparse.SUPPRESS)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     start = subparsers.add_parser("start")
-    start.add_argument("--output", required=True)
+    start.add_argument("--output")
     start.add_argument("--intent", required=True)
     start.add_argument("--actor", default="codex")
     start.add_argument("--source-ref", action="append")
@@ -3057,6 +5497,17 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--packet", required=True)
     check.add_argument("--require-stable", action="store_true")
     check.set_defaults(func=check_packet)
+
+    write_pointer_parser = subparsers.add_parser("write-pointer")
+    write_pointer_parser.add_argument("--packet", required=True)
+    write_pointer_parser.add_argument("--output")
+    write_pointer_parser.add_argument("--overwrite", action="store_true")
+    write_pointer_parser.set_defaults(func=write_pointer)
+
+    check_pointer_parser = subparsers.add_parser("check-pointer")
+    check_pointer_parser.add_argument("--pointer", required=True)
+    check_pointer_parser.add_argument("--replay-command-evidence", action="store_true")
+    check_pointer_parser.set_defaults(func=check_pointer)
     return parser
 
 

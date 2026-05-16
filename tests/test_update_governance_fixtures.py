@@ -32,12 +32,21 @@ class UpdateGovernanceFixturesTests(unittest.TestCase):
         target_root = tmp_root / "backlog" / "fixtures"
         shutil.copytree(source_root / "acceptance-packets", target_root / "acceptance-packets")
         shutil.copytree(source_root / "multi-review", target_root / "multi-review")
+        self.copy_benchmark_source_ref_placeholders(tmp_root)
         for rel in (
+            "MAINTENANCE.md",
+            "README.md",
+            "benchmarks/multi-review/check-fixtures.py",
             "scripts/check-multi-review-result.py",
             "scripts/check-governance-acceptance.py",
+            "scripts/verify-release.py",
             "tests/test_governance_acceptance_cli.py",
             "tests/test_governance_review_import.py",
+            "tests/test_maintenance_policy_boundaries.py",
+            "tests/test_multi_review_benchmark_cli.py",
             "tests/test_multi_review_result_cli.py",
+            "tests/test_pre_commit_hook.py",
+            "tests/test_verify_release.py",
         ):
             target = tmp_root / rel
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -47,7 +56,17 @@ class UpdateGovernanceFixturesTests(unittest.TestCase):
     def copy_benchmark_scenarios(self, tmp_root: Path) -> None:
         source_root = ROOT / "benchmarks" / "multi-review" / "scenarios"
         target_root = tmp_root / "benchmarks" / "multi-review" / "scenarios"
-        shutil.copytree(source_root, target_root)
+        shutil.copytree(source_root, target_root, dirs_exist_ok=True)
+
+    def copy_benchmark_source_ref_placeholders(self, tmp_root: Path) -> None:
+        source_root = ROOT / "benchmarks" / "multi-review" / "scenarios"
+        target_root = tmp_root / "benchmarks" / "multi-review" / "scenarios"
+        for source in sorted(source_root.glob("**/scenario.yml")):
+            scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+            scenario["replay_probe_commands"] = False
+            target = target_root / source.relative_to(source_root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
 
     def test_check_accepts_current_fixtures(self) -> None:
         completed = run_helper("--check")

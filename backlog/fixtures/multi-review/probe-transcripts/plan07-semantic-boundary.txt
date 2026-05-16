@@ -1,0 +1,37 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_multi_review_benchmark_cli.MultiReviewBenchmarkCliTests.test_replays_and_allows_semantic_pending_with_explicit_flags'"'"',
+    '"'"'tests.test_multi_review_benchmark_cli.MultiReviewBenchmarkCliTests.test_semantic_oracle_accepted_disposition_can_make_pass_pending'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_semantic_boundary_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_semantic_boundary_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - benchmarks/multi-review/check-fixtures.py
+  - benchmarks/multi-review/scenarios/acceptance_authority_spoof/aa-reported-pass-typed-veto/scenario.yml
+  - benchmarks/multi-review/scenarios/acceptance_authority_spoof/aa-valid-governance-pass/scenario.yml
+  - benchmarks/multi-review/scenarios/critic_independence_and_redundancy/ci-duplicate-scope/scenario.yml
+  - benchmarks/multi-review/scenarios/evidence_relevance_and_source_support/er-existing-unrelated-file/scenario.yml
+  - benchmarks/multi-review/scenarios/frame_challenge_and_presupposition/fc-missing-frame-challenge/scenario.yml
+  - benchmarks/multi-review/scenarios/invocation_and_mode_calibration/im-fallback-nonindependent-governance-pass/scenario.yml
+  - benchmarks/multi-review/scenarios/invocation_and_mode_calibration/im-score-9-no-why/scenario.yml
+  - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+  - benchmarks/multi-review/scenarios/probe_failure_or_partial_success/pf-exit-1-hidden/scenario.yml
+  - benchmarks/multi-review/scenarios/probe_provenance_and_replay/pp-fabricated-transcript/scenario.yml
+  - benchmarks/multi-review/scenarios/typed_artifact_integrity/ta-list-wrapped-frame/scenario.yml
+  - benchmarks/multi-review/scenarios/validation_layer_confusion/vl-prose-smoke-only/scenario.yml
+  - scripts/check-multi-review-result.py
+  - tests/test_multi_review_benchmark_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_semantic_boundary_pass
+
+    '
+  stderr: ''
+  stdout_sha256: e45e723c5e3e048d626e977d957ea0e36706a8637f3e27b49c02044ed3307e15
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

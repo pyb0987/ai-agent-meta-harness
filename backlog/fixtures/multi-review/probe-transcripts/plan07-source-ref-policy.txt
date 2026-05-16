@@ -1,0 +1,26 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess, sys; tests=['"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_bare_source_refs'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_mutable_git_source_refs'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_opaque_git_source_refs'"'"',
+    '"'"'tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_write_pointer_rejects_archived_protected_directory_root_source_refs'"'"'];
+    r=subprocess.run([sys.executable, '"'"'-m'"'"', '"'"'unittest'"'"', *tests], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, text=True); print('"'"'probe_plan07_source_ref_policy_pass'"'"'
+    if r.returncode == 0 else '"'"'probe_plan07_source_ref_policy_fail'"'"'); sys.exit(r.returncode)'
+  probe_exit_code: 0
+  result_ref: backlog/fixtures/multi-review/plan07-archive-pointer-pass.yml
+  result_digest: 5f84ea4cffa5ee62288abfd715d80c2ccab82b9e15c4dd85c84d7fce8e9e0cee
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-12'
+  stdout: 'probe_plan07_source_ref_policy_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 9f318b779e517c6dc682c28e40edac4d237ca883ba649bdbda05dd3ff4adc954
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
