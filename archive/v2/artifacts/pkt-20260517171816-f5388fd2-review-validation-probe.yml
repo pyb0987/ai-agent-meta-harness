@@ -1,0 +1,21 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('plan10 validation probe')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+  result_digest: e6a2322f9073cf80fc7b070b6b52968884a4551bf4df6d92e1c34257455093d9
+  packet_ref: archive/v2/packets/pkt-20260517171816-f5388fd2.yml
+  packet_sha256: 1edf4013d00239830cf143cf2ea31c34ad9d91ef1df25a00fe227a0e60d6f48f
+  source_refs:
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_review_import.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-17'
+  stdout: 'plan10 validation probe
+
+    '
+  stderr: ''
+  stdout_sha256: 9b8b62b92b24d6d3f01a1f5d09ad54b7091918a7913493afa187a86041dc74af
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

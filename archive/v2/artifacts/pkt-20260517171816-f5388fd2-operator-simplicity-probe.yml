@@ -1,0 +1,22 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('plan10 operator simplicity probe')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+  result_digest: e6a2322f9073cf80fc7b070b6b52968884a4551bf4df6d92e1c34257455093d9
+  packet_ref: archive/v2/packets/pkt-20260517171816-f5388fd2.yml
+  packet_sha256: 1edf4013d00239830cf143cf2ea31c34ad9d91ef1df25a00fe227a0e60d6f48f
+  source_refs:
+  - governance
+  - MAINTENANCE.md
+  - backlog/v2-roadmap.md
+  - tests/test_governance_wrapper.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-17'
+  stdout: 'plan10 operator simplicity probe
+
+    '
+  stderr: ''
+  stdout_sha256: 78ca2f4b7f40d04277f12889c9e6eda124fb9b797bfab96dda85e47fab80f64f
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

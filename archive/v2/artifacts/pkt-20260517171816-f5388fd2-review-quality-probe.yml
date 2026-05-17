@@ -1,0 +1,20 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('plan10 review quality probe')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+  result_digest: e6a2322f9073cf80fc7b070b6b52968884a4551bf4df6d92e1c34257455093d9
+  packet_ref: archive/v2/packets/pkt-20260517171816-f5388fd2.yml
+  packet_sha256: 1edf4013d00239830cf143cf2ea31c34ad9d91ef1df25a00fe227a0e60d6f48f
+  source_refs:
+  - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+  - tests/test_maintenance_policy_boundaries.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-17'
+  stdout: 'plan10 review quality probe
+
+    '
+  stderr: ''
+  stdout_sha256: b5b59784f2d2ec9c415d48f9dbf9938ce4ed53ae389f73b88d09e2a4fba07d68
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

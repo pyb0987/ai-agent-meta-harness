@@ -1,0 +1,382 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260517171816-f5388fd2
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-17
+    finalized_at: 2026-05-17
+  input:
+    intent: Complete Plan10 stable packet materialization and operator-minimal governance
+      CLI.
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - MAINTENANCE.md
+      - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+      - backlog/v2-roadmap.md
+      - governance
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      - tests/test_governance_review_import.py
+      - tests/test_governance_wrapper.py
+      - tests/test_maintenance_policy_boundaries.py
+      intended_scope: Complete Plan10 stable packet materialization and operator-minimal
+        governance CLI.
+      actual_scope: MAINTENANCE.md, backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md,
+        backlog/v2-roadmap.md, governance, scripts/check-governance-acceptance.py,
+        tests/test_governance_acceptance_cli.py, tests/test_governance_review_import.py,
+        tests/test_governance_wrapper.py, tests/test_maintenance_policy_boundaries.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - git diff --check 27c1ff891cbc49d1a24d6125e9ec4af423638281...63681253805649a0965ed51f9be0138926a0d03a
+      required_review:
+      - checker correctness
+      - claim evidence
+      - evidence auditability
+      - methodology fidelity
+      - release integration
+      - scope boundary
+    evidence:
+      baseline_ref: 27c1ff891cbc49d1a24d6125e9ec4af423638281
+      comparison_ref: 27c1ff891cbc49d1a24d6125e9ec4af423638281
+      accepted_head_commit: 63681253805649a0965ed51f9be0138926a0d03a
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: git diff --check 27c1ff891cbc49d1a24d6125e9ec4af423638281...63681253805649a0965ed51f9be0138926a0d03a
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-git-diff-check.log
+      source_refs:
+      - git:63681253805649a0965ed51f9be0138926a0d03a:MAINTENANCE.md
+      - git:63681253805649a0965ed51f9be0138926a0d03a:backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+      - git:63681253805649a0965ed51f9be0138926a0d03a:backlog/v2-roadmap.md
+      - git:63681253805649a0965ed51f9be0138926a0d03a:governance
+      - git:63681253805649a0965ed51f9be0138926a0d03a:scripts/check-governance-acceptance.py
+      - git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_acceptance_cli.py
+      - git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_review_import.py
+      - git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_wrapper.py
+      - git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_maintenance_policy_boundaries.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:MAINTENANCE.md
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:MAINTENANCE.md
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:backlog/v2-roadmap.md
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:backlog/v2-roadmap.md
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:governance
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:governance
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:scripts/check-governance-acceptance.py
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:scripts/check-governance-acceptance.py
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_acceptance_cli.py
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_acceptance_cli.py
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_review_import.py
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_review_import.py
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_wrapper.py
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:tests/test_governance_wrapper.py
+      - origin: generated
+        relation: source
+        ref: git:63681253805649a0965ed51f9be0138926a0d03a:tests/test_maintenance_policy_boundaries.py
+        status: resolved
+        target: 63681253805649a0965ed51f9be0138926a0d03a:tests/test_maintenance_policy_boundaries.py
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260517171816-f5388fd2-git-diff-check.log
+      - origin: generated
+        relation: claim-evidence
+        ref: trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+        status: resolved
+        target: .harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Trace capture is deferred to Plan 04.
+      skipped:
+      - evidence: search_set_before
+        actor: codex
+        role: operator
+        date: 2026-05-17
+        reason: Finalize did not capture search_set_before; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-05-17
+        reason: Finalize did not capture search_set_after; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+      claims:
+      - claim: Plan10 operator-minimal and evidence-honesty claims are backed by repository
+          regression evidence and imported review judgment.
+        raw_evidence_refs:
+        - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: e6a2322f9073cf80fc7b070b6b52968884a4551bf4df6d92e1c34257455093d9
+        status: imported
+        review_ids:
+        - review-plan10-checker-correctness
+        - review-plan10-claim-evidence
+        - review-plan10-evidence-auditability
+        - review-plan10-methodology-fidelity
+        - review-plan10-release-integration
+        - review-plan10-scope-boundary
+        target_binding:
+          packet_id: pkt-20260517171816-f5388fd2
+          packet_ref: archive/v2/packets/pkt-20260517171816-f5388fd2.yml
+          review_target_digest: 7b83747eadf2745a5d0c566603077310e8f5c6d4978824374134fc77c16fedd9
+          baseline_ref: 27c1ff891cbc49d1a24d6125e9ec4af423638281
+          comparison_ref: 27c1ff891cbc49d1a24d6125e9ec4af423638281
+          source_refs: []
+          changed_paths:
+          - MAINTENANCE.md
+          - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+          - backlog/v2-roadmap.md
+          - governance
+          - scripts/check-governance-acceptance.py
+          - tests/test_governance_acceptance_cli.py
+          - tests/test_governance_review_import.py
+          - tests/test_governance_wrapper.py
+          - tests/test_maintenance_policy_boundaries.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - evidence auditability
+          - methodology fidelity
+          - release integration
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-plan10-checker-correctness
+        critic: checker correctness
+        scope: Plan10 checker correctness boundary for stable packet materialization
+          and governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: checker correctness could be marked closed without durable
+          artifact binding or focused regression evidence.
+        invariant_checked: The packet recomputes required checker correctness review
+          and imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 checker correctness review passed with no blocking findings.
+        source_refs:
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_review_import.py
+        - tests/test_governance_acceptance_cli.py
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-plan10-claim-evidence
+        critic: claim evidence
+        scope: Plan10 claim evidence boundary for stable packet materialization and
+          governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: claim evidence could be marked closed without durable artifact
+          binding or focused regression evidence.
+        invariant_checked: The packet recomputes required claim evidence review and
+          imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 claim evidence review passed with no blocking findings.
+        source_refs:
+        - MAINTENANCE.md
+        - backlog/v2-roadmap.md
+        - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-plan10-evidence-auditability
+        critic: evidence auditability
+        scope: Plan10 evidence auditability boundary for stable packet materialization
+          and governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: evidence auditability could be marked closed without durable
+          artifact binding or focused regression evidence.
+        invariant_checked: The packet recomputes required evidence auditability review
+          and imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 evidence auditability review passed with no blocking findings.
+        source_refs:
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_review_import.py
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-plan10-methodology-fidelity
+        critic: methodology fidelity
+        scope: Plan10 methodology fidelity boundary for stable packet materialization
+          and governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: methodology fidelity could be marked closed without durable
+          artifact binding or focused regression evidence.
+        invariant_checked: The packet recomputes required methodology fidelity review
+          and imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 methodology fidelity review passed with no blocking findings.
+        source_refs:
+        - MAINTENANCE.md
+        - backlog/v2-roadmap.md
+        - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-plan10-release-integration
+        critic: release integration
+        scope: Plan10 release integration boundary for stable packet materialization
+          and governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: release integration could be marked closed without durable
+          artifact binding or focused regression evidence.
+        invariant_checked: The packet recomputes required release integration review
+          and imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 release integration review passed with no blocking findings.
+        source_refs:
+        - governance
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_wrapper.py
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-plan10-scope-boundary
+        critic: scope boundary
+        scope: Plan10 scope boundary boundary for stable packet materialization and
+          governance CLI publication.
+        anti_scope: Does not claim unrelated roadmap items or future packaging work
+          are complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-17'
+        source_ref: file:archive/v2/artifacts/pkt-20260517171816-f5388fd2-review-import.yml
+        false_green_risk: scope boundary could be marked closed without durable artifact
+          binding or focused regression evidence.
+        invariant_checked: The packet recomputes required scope boundary review and
+          imports this lineage from a target-bound wrapper.
+        evidence:
+        - Plan10 scope boundary review passed with no blocking findings.
+        source_refs:
+        - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+        - tests/test_maintenance_policy_boundaries.py
+        blocking_findings: []
+        why_not_10: The publication still relies on local repository validation rather
+          than an independently pushed release candidate.
+        disposition: Accepted for this active archive pointer publication after targeted
+          and full regression checks.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.
