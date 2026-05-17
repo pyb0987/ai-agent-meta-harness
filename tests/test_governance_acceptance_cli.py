@@ -1569,6 +1569,64 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertEqual(write_result.returncode, 0, write_result.stderr)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_status_reports_published_active_pointer_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet_rel, _artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+            pointer_rel = "archive/v2/pointers/pkt-archived-pointer-test.yml"
+            write_result = run_cli("--root", str(root), "write-pointer", "--packet", packet_rel, "--output", pointer_rel)
+            git(root, "add", "archive/v2")
+            git(root, "commit", "-m", "publish archive pointer")
+            publication = git(root, "rev-parse", "HEAD").stdout.strip()
+
+            result = run_cli("--root", str(root), "status", "--base-ref", base_ref)
+
+        self.assertEqual(write_result.returncode, 0, write_result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("pointers: 1", result.stdout)
+        self.assertIn(f"- pointer: {pointer_rel}", result.stdout)
+        self.assertIn("packet_id: pkt-archived-pointer-test", result.stdout)
+        self.assertIn(f"publication: {publication}", result.stdout)
+        self.assertIn("audit: PASS", result.stdout)
+        self.assertIn("pending_packets: 0", result.stdout)
+
+    def test_status_reports_invalid_pointer_without_failing_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet_rel, _artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+            pointer_rel = "archive/v2/pointers/pkt-archived-pointer-test.yml"
+            write_result = run_cli("--root", str(root), "write-pointer", "--packet", packet_rel, "--output", pointer_rel)
+            pointer_path = root / pointer_rel
+            pointer = yaml.safe_load(pointer_path.read_text(encoding="utf-8"))
+            pointer["AcceptancePacketPointer"]["packet_sha256"] = "0" * 64
+            pointer_path.write_text(yaml.safe_dump(pointer, sort_keys=False), encoding="utf-8")
+
+            result = run_cli("--root", str(root), "status", "--base-ref", base_ref)
+
+        self.assertEqual(write_result.returncode, 0, write_result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("audit: FAIL", result.stdout)
+        self.assertIn("packet_sha256 does not match archived packet bytes", result.stdout)
+
+    def test_status_reports_pending_stable_packet_before_pointer_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet_rel, _artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+
+            result = run_cli("--root", str(root), "status", "--base-ref", base_ref)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("pointers: 0", result.stdout)
+        self.assertIn("pending_packets: 1", result.stdout)
+        self.assertIn(f"- packet: {packet_rel}", result.stdout)
+        self.assertIn("status: READY", result.stdout)
+
     def test_check_pointer_accepts_historical_publication_after_later_content_commit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

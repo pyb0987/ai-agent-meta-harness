@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 from contextlib import contextmanager
 import datetime as dt
 import hashlib
@@ -118,6 +119,7 @@ REVIEW_PROVENANCE_FIELDS = ("actor", "role", "date", "source_ref")
 REVIEW_IMPORT_KEY = "AcceptancePacketReviewImport"
 REVIEW_IMPORT_SCHEMA_VERSION = "acceptance-packet-review-import/v1"
 REVIEW_IMPORT_FIELDS = {"schema_version", "target_binding", "MultiReviewResult", "review_lineage"}
+PROBE_TRANSCRIPT_KEY = "ProbeTranscript"
 REVIEW_IMPORT_RECORD_FIELDS = {"source_ref", "format", "source_digest", "status", "review_ids", "target_binding"}
 TARGET_BINDING_FIELDS = {
     "packet_id",
@@ -2472,6 +2474,398 @@ def validate_review_imports(
         errors.append(f"result.judgment.reviews missing imported review_lineage records: {missing_from_packet}")
 
     return open_passing_reviews, errors
+
+
+def load_review_import_wrapper_text(text: str, *, source: str) -> tuple[dict | None, list[str]]:
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        return None, [f"invalid review import artifact syntax: {source}: {exc}"]
+    if not isinstance(loaded, dict) or REVIEW_IMPORT_KEY not in loaded:
+        return None, [f"review import artifact missing {REVIEW_IMPORT_KEY}: {source}"]
+    wrapper = loaded[REVIEW_IMPORT_KEY]
+    if not isinstance(wrapper, dict):
+        return None, [f"{REVIEW_IMPORT_KEY} must be a mapping: {source}"]
+    return wrapper, []
+
+
+def review_import_source_from_arg(root: Path, value: str) -> tuple[dict | None, str | None, Path | None, list[str]]:
+    if value == "-":
+        wrapper, errors = load_review_import_wrapper_text(sys.stdin.read(), source="stdin")
+        return wrapper, None, None, errors
+    if value.startswith("file:"):
+        source_ref = value
+    else:
+        path = Path(value)
+        source_ref = f"file:{repo_relative_path(root, root / path if not path.is_absolute() else path)}"
+    if "#" in source_ref:
+        raise PacketError("import-review source_ref must name a whole local file, not an anchored ref")
+    source_path = local_ref_path(root, source_ref)
+    if source_path is None:
+        raise PacketError(f"review import source_ref does not resolve to a local file: {source_ref}")
+    if repo_path_has_symlink(root, source_path):
+        raise PacketError(f"review import artifact must be a regular file, not a symlink: {source_ref}")
+    wrapper, errors = load_review_import_wrapper(root, source_ref)
+    return wrapper, source_ref, source_path, errors
+
+
+def review_import_output_ref_from_arg(
+    root: Path,
+    packet: dict,
+    *,
+    source_ref: str | None,
+    source_path: Path | None,
+    output: str | None,
+    overwrite: bool,
+) -> tuple[str, Path]:
+    if output:
+        output_value = output.removeprefix("file:")
+        output_path = Path(output_value)
+        output_path = root / output_path if not output_path.is_absolute() else output_path
+    elif source_ref and source_ref.startswith(f"file:{ARCHIVE_ARTIFACT_PREFIX}") and source_path is not None:
+        output_path = source_path
+    else:
+        packet_id = packet.get("meta", {}).get("packet_id", "packet")
+        output_path = root / ARCHIVE_ARTIFACT_PREFIX / f"{safe_artifact_stem(packet_id)}-review-import.yml"
+    output_ref = f"file:{repo_relative_path(root, output_path)}"
+    output_rel = output_ref.removeprefix("file:")
+    if not output_rel.startswith(ARCHIVE_ARTIFACT_PREFIX):
+        raise PacketError("import-review output must be under archive/v2/artifacts/")
+    if Path(output_rel).suffix not in {".yml", ".yaml"}:
+        raise PacketError("import-review output must be a .yml or .yaml file")
+    if repo_path_has_symlink(root, output_path):
+        raise PacketError(f"review import output must be a regular file, not a symlink: {output_ref}")
+    same_source = source_path is not None and output_path.resolve() == source_path.resolve()
+    if output_path.exists() and not overwrite and not same_source:
+        raise PacketError(f"{output_path}: already exists; use --overwrite to replace")
+    return output_ref, output_path
+
+
+def refresh_review_lineage_marker(wrapper: dict) -> None:
+    lineage = wrapper.get("review_lineage")
+    multi_review = wrapper.get("MultiReviewResult")
+    if not isinstance(lineage, list) or not isinstance(multi_review, dict):
+        return
+    marker = f"review_lineage_sha256:{review_lineage_digest(lineage)}"
+    critics = multi_review.get("critics", [])
+    if not isinstance(critics, list):
+        return
+    for critic in critics:
+        if not isinstance(critic, dict):
+            continue
+        evidence = critic.get("evidence")
+        if isinstance(evidence, list):
+            critic["evidence"] = [
+                item
+                for item in evidence
+                if not (isinstance(item, str) and item.startswith("review_lineage_sha256:"))
+            ]
+    required_ids = set(string_list_values(multi_review.get("required_critics", [])))
+    for critic in critics:
+        if not isinstance(critic, dict):
+            continue
+        score = critic.get("score")
+        if (
+            critic.get("critic_id") in required_ids
+            and critic.get("required") is True
+            and critic.get("verdict") == "pass"
+            and critic.get("veto") is False
+            and isinstance(score, int)
+            and not isinstance(score, bool)
+            and score >= 9
+        ):
+            evidence = critic.get("evidence")
+            if not isinstance(evidence, list):
+                evidence = []
+                critic["evidence"] = evidence
+            evidence.append(marker)
+            return
+
+
+def review_import_target_errors(wrapper: dict, *, target_binding: dict, packet_ref: str) -> list[str]:
+    errors: list[str] = []
+    wrapper_binding = wrapper.get("target_binding")
+    if not isinstance(wrapper_binding, dict) or set(wrapper_binding) != TARGET_BINDING_FIELDS:
+        errors.append(f"wrapper target_binding fields must be exactly {sorted(TARGET_BINDING_FIELDS)}")
+    elif normalize_for_mirror(wrapper_binding) != normalize_for_mirror(target_binding):
+        errors.append("wrapper target_binding does not match current packet review target")
+    multi_review = wrapper.get("MultiReviewResult")
+    if not isinstance(multi_review, dict):
+        errors.append("wrapper MultiReviewResult must be a mapping")
+    else:
+        target_errors = multi_review_target_matches_binding(
+            multi_review,
+            wrapper_binding if isinstance(wrapper_binding, dict) else target_binding,
+        )
+        errors.extend(target_errors)
+        target = multi_review.get("target")
+        source_refs = target.get("source_refs") if isinstance(target, dict) else []
+        if isinstance(source_refs, list) and packet_ref not in source_refs:
+            errors.append(f"imported MultiReviewResult target.source_refs must include current packet ref: {packet_ref}")
+    return errors
+
+
+def materialized_review_import_wrapper(wrapper: dict, *, source_ref: str) -> dict:
+    updated = copy.deepcopy(wrapper)
+    lineage = updated.get("review_lineage")
+    if isinstance(lineage, list):
+        for record in lineage:
+            if isinstance(record, dict):
+                record["source_ref"] = source_ref
+    refresh_review_lineage_marker(updated)
+    return updated
+
+
+def add_multi_review_evidence_markers(wrapper: dict, markers: list[str]) -> None:
+    if not markers:
+        return
+    multi_review = wrapper.get("MultiReviewResult")
+    if not isinstance(multi_review, dict):
+        return
+    critics = multi_review.get("critics", [])
+    if not isinstance(critics, list):
+        return
+    required_ids = set(string_list_values(multi_review.get("required_critics", [])))
+    selected: dict | None = None
+    for critic in critics:
+        if not isinstance(critic, dict):
+            continue
+        score = critic.get("score")
+        if (
+            critic.get("critic_id") in required_ids
+            and critic.get("required") is True
+            and critic.get("verdict") == "pass"
+            and critic.get("veto") is False
+            and isinstance(score, int)
+            and not isinstance(score, bool)
+            and score >= 9
+        ):
+            selected = critic
+            break
+    if selected is None:
+        return
+    evidence = selected.get("evidence")
+    if not isinstance(evidence, list):
+        evidence = []
+        selected["evidence"] = evidence
+    existing = {item for item in evidence if isinstance(item, str)}
+    for marker in markers:
+        if marker not in existing:
+            evidence.append(marker)
+
+
+def bind_skipped_provenance_to_review_import(packet: dict, wrapper: dict, *, source_ref: str) -> None:
+    result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
+    evidence = result.get("evidence", {}) if isinstance(result.get("evidence"), dict) else {}
+    skipped = evidence.get("skipped", [])
+    if not isinstance(skipped, list):
+        return
+    markers: list[str] = []
+    changed = False
+    for record in skipped:
+        if not isinstance(record, dict):
+            continue
+        record["source_ref"] = source_ref
+        markers.append(f"provenance_record_sha256:{provenance_record_digest(record)}")
+        changed = True
+    if not changed:
+        return
+    resolved_refs = evidence.get("resolved_refs", [])
+    if not isinstance(resolved_refs, list):
+        resolved_refs = []
+    evidence["resolved_refs"] = [
+        item
+        for item in resolved_refs
+        if not (
+            isinstance(item, dict)
+            and item.get("relation") == "waiver-provenance"
+            and item.get("ref") == source_ref
+        )
+    ]
+    evidence["resolved_refs"].append(
+        {
+            "origin": "generated",
+            "relation": "waiver-provenance",
+            "ref": source_ref,
+            "status": "resolved",
+            "target": source_ref.removeprefix("file:"),
+        }
+    )
+    add_multi_review_evidence_markers(wrapper, markers)
+
+
+def promote_imported_review_decision(packet: dict, wrapper: dict, *, source_ref: str, root: Path) -> None:
+    if packet.get("meta", {}).get("lifecycle") != "finalized" or packet.get("meta", {}).get("mode") != "base-ref":
+        return
+    result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
+    inference = result.get("inference", {}) if isinstance(result.get("inference"), dict) else {}
+    decision = result.get("decision", {}) if isinstance(result.get("decision"), dict) else {}
+    protected_review_required = (
+        inference.get("protected_boundary_changed") is True
+        or inference.get("change_class") == "harness-affecting"
+        or inference.get("impact") == "high"
+        or any(requires_review_for_path(path) for path in string_list_values(inference.get("changed_paths", [])))
+    )
+    if not protected_review_required:
+        return
+    inference["required_review"] = sorted(checker_required_review(packet, root=root))
+    bind_skipped_provenance_to_review_import(packet, wrapper, source_ref=source_ref)
+    decision["accepted"] = True
+    decision["stable_handoff_eligible"] = True
+    decision["reason"] = "Required durable evidence and imported multi-review passed."
+    decision["next_action"] = "Publish active archive pointer."
+
+
+def review_import_document_text(wrapper: dict) -> str:
+    return yaml.safe_dump({REVIEW_IMPORT_KEY: wrapper}, sort_keys=False, allow_unicode=False)
+
+
+def probe_transcript_document_text(transcript: dict) -> str:
+    return yaml.safe_dump({PROBE_TRANSCRIPT_KEY: transcript}, sort_keys=False, allow_unicode=False)
+
+
+def review_import_probe_transcript_updates(
+    root: Path,
+    wrapper: dict,
+    *,
+    source_ref: str,
+    source_digest: str,
+    packet_ref: str,
+    packet_sha256: str,
+) -> tuple[dict[Path, str], list[str]]:
+    updates: dict[Path, str] = {}
+    errors: list[str] = []
+    multi_review = wrapper.get("MultiReviewResult")
+    critics = multi_review.get("critics", []) if isinstance(multi_review, dict) else []
+    if not isinstance(critics, list):
+        return updates, errors
+    for critic_index, critic in enumerate(critics):
+        if not isinstance(critic, dict):
+            continue
+        refs = critic.get("probe_evidence_refs", [])
+        if not isinstance(refs, list):
+            continue
+        for ref_index, ref in enumerate(refs):
+            source = f"MultiReviewResult.critics[{critic_index}].probe_evidence_refs[{ref_index}]"
+            if not isinstance(ref, str) or not ref.startswith("file:"):
+                continue
+            path = local_ref_path(root, ref)
+            if path is None:
+                errors.append(f"{source}: probe transcript ref does not resolve to a local file: {ref}")
+                continue
+            if repo_path_has_symlink(root, path):
+                errors.append(f"{source}: probe transcript must be a regular file, not a symlink: {ref}")
+                continue
+            transcript = load_probe_transcript(root, ref)
+            if transcript is None:
+                errors.append(f"{source}: probe transcript must be a structured {PROBE_TRANSCRIPT_KEY} artifact: {ref}")
+                continue
+            updated = copy.deepcopy(transcript)
+            updated["result_ref"] = source_ref
+            updated["result_digest"] = source_digest
+            updated["packet_ref"] = packet_ref
+            updated["packet_sha256"] = packet_sha256
+            updates[path] = probe_transcript_document_text(updated)
+    return updates, errors
+
+
+def review_import_record(
+    *,
+    source_ref: str,
+    source_digest: str,
+    wrapper: dict,
+    target_binding: dict,
+) -> dict:
+    lineage = wrapper.get("review_lineage", [])
+    return {
+        "source_ref": source_ref,
+        "format": REVIEW_IMPORT_SCHEMA_VERSION,
+        "source_digest": source_digest,
+        "status": "imported",
+        "review_ids": review_lineage_ids(lineage if isinstance(lineage, list) else []),
+        "target_binding": copy.deepcopy(target_binding),
+    }
+
+
+def apply_review_import_to_packet(
+    packet: dict,
+    *,
+    source_ref: str,
+    source_digest: str,
+    wrapper: dict,
+    target_binding: dict,
+) -> dict:
+    updated = copy.deepcopy(packet)
+    result = updated["result"]
+    evidence = result["evidence"]
+    judgment = result["judgment"]
+    lineage = wrapper.get("review_lineage")
+    imported_reviews = copy.deepcopy(lineage if isinstance(lineage, list) else [])
+    imported_ids = {
+        review["review_id"]
+        for review in imported_reviews
+        if isinstance(review, dict) and isinstance(review.get("review_id"), str)
+    }
+
+    existing_imports = evidence.get("review_imports", [])
+    if not isinstance(existing_imports, list):
+        existing_imports = []
+    evidence["review_imports"] = [
+        item
+        for item in existing_imports
+        if not (
+            isinstance(item, dict)
+            and (
+                item.get("source_ref") == source_ref
+                or bool(imported_ids & set(string_list_values(item.get("review_ids", []))))
+            )
+        )
+    ]
+    evidence["review_imports"].append(
+        review_import_record(
+            source_ref=source_ref,
+            source_digest=source_digest,
+            wrapper=wrapper,
+            target_binding=target_binding,
+        )
+    )
+
+    resolved_refs = evidence.get("resolved_refs", [])
+    if not isinstance(resolved_refs, list):
+        resolved_refs = []
+    evidence["resolved_refs"] = [
+        item
+        for item in resolved_refs
+        if not (
+            isinstance(item, dict)
+            and item.get("relation") == "review-provenance"
+            and item.get("ref") == source_ref
+        )
+    ]
+    evidence["resolved_refs"].append(
+        {
+            "origin": "generated",
+            "relation": "review-provenance",
+            "ref": source_ref,
+            "status": "resolved",
+            "target": source_ref.removeprefix("file:"),
+        }
+    )
+
+    existing_reviews = judgment.get("reviews", [])
+    if not isinstance(existing_reviews, list):
+        existing_reviews = []
+    judgment["reviews"] = [
+        review
+        for review in existing_reviews
+        if not (
+            isinstance(review, dict)
+            and isinstance(review.get("review_id"), str)
+            and review["review_id"] in imported_ids
+        )
+    ]
+    judgment["reviews"].extend(imported_reviews)
+    return updated
 
 
 def resolved_targets(records: list[dict], *, relation: str) -> set[str]:
@@ -4920,7 +5314,8 @@ def packet_has_materialized_fixture_binding(packet: dict, packet_ref: str | None
 
 def packet_is_active_handoff(packet: dict, packet_ref: str | None, *, root: Path) -> bool:
     return (
-        not packet_ref_is_fixture(packet_ref)
+        pointer_packet_ref_error(packet_ref) is None
+        and not packet_ref_is_fixture(packet_ref)
         and not packet_has_materialized_fixture_binding(packet, packet_ref, root=root)
         and not packet_has_fixture_binding(packet)
     )
@@ -5345,6 +5740,137 @@ def check_packet(args: argparse.Namespace) -> int:
     return 0
 
 
+def import_review(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    packet_arg = Path(args.packet)
+    packet_path = root / packet_arg if not packet_arg.is_absolute() else packet_arg
+    if repo_path_has_symlink(root, packet_path):
+        print(f"ERROR: archived packet must be a regular file, not a symlink: {args.packet}", file=sys.stderr)
+        return 1
+    packet = load_packet(packet_path)
+    try:
+        packet_ref = repo_relative_path(root, packet_path)
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    try:
+        wrapper, input_source_ref, input_source_path, wrapper_errors = review_import_source_from_arg(root, args.source)
+        target_binding = review_target_binding(packet, root=root, packet_ref=packet_ref)
+        source_ref, source_path = review_import_output_ref_from_arg(
+            root,
+            packet,
+            source_ref=input_source_ref,
+            source_path=input_source_path,
+            output=args.output,
+            overwrite=args.overwrite,
+        )
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    if wrapper_errors or wrapper is None:
+        for error in wrapper_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    target_errors = review_import_target_errors(wrapper, target_binding=target_binding, packet_ref=packet_ref)
+    if target_errors:
+        for error in target_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+
+    wrapper = materialized_review_import_wrapper(wrapper, source_ref=source_ref)
+    updated = apply_review_import_to_packet(
+        packet,
+        source_ref=source_ref,
+        source_digest="",
+        wrapper=wrapper,
+        target_binding=target_binding,
+    )
+    promote_imported_review_decision(updated, wrapper, source_ref=source_ref, root=root)
+    wrapper_text = review_import_document_text(wrapper)
+    source_digest = hashlib.sha256(wrapper_text.encode("utf-8")).hexdigest()
+    for import_record in updated["result"]["evidence"].get("review_imports", []):
+        if isinstance(import_record, dict) and import_record.get("source_ref") == source_ref:
+            import_record["source_digest"] = source_digest
+    packet_text = packet_document_text(updated)
+    packet_sha256 = hashlib.sha256(packet_text.encode("utf-8")).hexdigest()
+    probe_updates, probe_errors = review_import_probe_transcript_updates(
+        root,
+        wrapper,
+        source_ref=source_ref,
+        source_digest=source_digest,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+    )
+    if probe_errors:
+        for error in probe_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    protected_update_paths = {source_path.resolve(), packet_path.resolve()}
+    conflicting_probe_paths = sorted(
+        path.as_posix()
+        for path in probe_updates
+        if path.resolve() in protected_update_paths
+    )
+    if conflicting_probe_paths:
+        print(
+            "ERROR: review import probe transcript refs must not point at the packet or review-import output: "
+            f"{conflicting_probe_paths}",
+            file=sys.stderr,
+        )
+        return 1
+    command_updates: dict[Path, str] = {}
+    command_update_errors: list[str] = []
+    archive_packet_ref = pointer_packet_ref_error(packet_ref) is None
+    if archive_packet_ref and packet_is_active_handoff(updated, packet_ref, root=root):
+        command_updates, command_update_errors = planned_archive_command_evidence_updates(
+            updated,
+            root=root,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+            allow_existing_replay_metadata=True,
+        )
+    if command_update_errors:
+        for error in command_update_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    updates = {source_path: wrapper_text, **probe_updates, **command_updates, packet_path: packet_text}
+    write_error, originals = apply_text_updates_with_rollback(updates)
+    if write_error:
+        print(f"ERROR: {write_error}", file=sys.stderr)
+        return 1
+    evidence = updated["result"]["evidence"]
+    resolved_refs = evidence.get("resolved_refs", [])
+    ref_index = resolved_ref_index(resolved_refs if isinstance(resolved_refs, list) else [])
+    _open_reviews, import_errors = validate_review_imports(
+        updated,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+        ref_index=ref_index,
+    )
+    if import_errors:
+        rollback_text_updates(originals)
+        for error in import_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    packet_errors = validate_packet(
+        updated,
+        require_stable=updated["result"]["decision"].get("stable_handoff_eligible") is True,
+        allow_stale_archive_command_artifacts=not archive_packet_ref
+        or not packet_is_active_handoff(updated, packet_ref, root=root),
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=packet_sha256,
+    )
+    if packet_errors:
+        rollback_text_updates(originals)
+        for error in packet_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    print(f"imported review artifact: {source_ref}")
+    return 0
+
+
 def write_pointer(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     packet_arg = Path(args.packet)
@@ -5471,6 +5997,214 @@ def check_pointer(args: argparse.Namespace) -> int:
     return 0
 
 
+def status_archive_refs(root: Path, prefix: str, suffixes: tuple[str, ...]) -> list[str]:
+    directory = root / prefix
+    if not directory.is_dir():
+        return []
+    return sorted(
+        path.relative_to(root).as_posix()
+        for path in directory.rglob("*")
+        if path.is_file() and path.name.endswith(suffixes)
+    )
+
+
+def status_base_ref_matches(root: Path, record: dict, base_commit: str | None) -> bool:
+    if base_commit is None:
+        return True
+    for key in ("comparison_ref", "baseline_ref"):
+        value = record.get(key)
+        if isinstance(value, str) and same_git_boundary(root, value, base_commit):
+            return True
+    evidence = record.get("result", {}).get("evidence", {}) if isinstance(record.get("result"), dict) else {}
+    for key in ("comparison_ref", "baseline_ref"):
+        value = evidence.get(key) if isinstance(evidence, dict) else None
+        if isinstance(value, str) and same_git_boundary(root, value, base_commit):
+            return True
+    return False
+
+
+def status_packet_for_pointer(root: Path, pointer: dict) -> tuple[dict | None, str | None]:
+    packet_ref = pointer.get("packet_ref")
+    if not isinstance(packet_ref, str):
+        return None, None
+    packet_rel = resolve_repo_path(root, packet_ref)
+    if packet_rel is None:
+        return None, packet_ref
+    try:
+        return load_packet(root / packet_rel), packet_rel
+    except PacketError:
+        return None, packet_rel
+
+
+def status_publication_commit(root: Path, pointer: dict, packet: dict | None) -> str:
+    if packet is None:
+        return "unknown"
+    result = packet.get("result", {})
+    evidence = result.get("evidence", {}) if isinstance(result, dict) else {}
+    accepted_head = evidence.get("accepted_head_commit") if isinstance(evidence, dict) else None
+    current_head = git_ref_commit(root, "HEAD")
+    if not isinstance(accepted_head, str) or current_head is None:
+        return "unknown"
+    if current_head == accepted_head:
+        return "prepublication"
+    if not git_is_ancestor(root, accepted_head, current_head):
+        return "unknown"
+    commits = git_rev_list_between(root, accepted_head, current_head)
+    if commits is None:
+        return "unknown"
+    for commit in commits:
+        archive_paths = commit_archive_v2_paths(root, commit)
+        if archive_paths:
+            return commit
+    return "unpublished"
+
+
+def status_issue_buckets(errors: list[str]) -> tuple[list[str], list[str], list[str]]:
+    human_markers = (
+        "required review",
+        "missing required review",
+        "review",
+        "waiver",
+        "downgrade",
+        "skipped",
+        "residual",
+        "human",
+        "provenance",
+        "claim evidence",
+    )
+    generated_markers = (
+        "command artifact",
+        "command evidence",
+        "artifact",
+        "archive_commit",
+        "packet_sha256",
+        "source_digest",
+        "replay metadata",
+        "probe transcript",
+        "resolved generated",
+        "generated artifact",
+        "terminal placeholder",
+    )
+    human: list[str] = []
+    generated: list[str] = []
+    other: list[str] = []
+    for error in errors:
+        lowered = error.lower()
+        if any(marker in lowered for marker in human_markers):
+            human.append(error)
+        elif any(marker in lowered for marker in generated_markers):
+            generated.append(error)
+        else:
+            other.append(error)
+    return human, generated, other
+
+
+def status_print_issue_summary(errors: list[str], *, indent: str = "  ") -> None:
+    human, generated, other = status_issue_buckets(errors)
+    print(f"{indent}human_decisions: {len(human)}")
+    print(f"{indent}generated_refreshes: {len(generated)}")
+    print(f"{indent}other_issues: {len(other)}")
+    if errors:
+        print(f"{indent}issues:")
+        for error in errors[:8]:
+            print(f"{indent}  - {error}")
+        if len(errors) > 8:
+            print(f"{indent}  - ... {len(errors) - 8} more")
+
+
+def status_packet_errors(root: Path, packet_ref: str, packet: dict) -> list[str]:
+    return validate_packet(
+        packet,
+        require_stable=True,
+        require_archive_command_replay_metadata=False,
+        allow_stale_archive_command_artifacts=True,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=file_sha256(root / packet_ref),
+    )
+
+
+def status_command(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    base_commit = git_ref_commit(root, args.base_ref) if args.base_ref else None
+    if args.base_ref and base_commit is None:
+        print(f"ERROR: base-ref does not resolve to a commit: {args.base_ref}", file=sys.stderr)
+        return 1
+
+    print("governance status")
+    print(f"base_ref: {base_commit or '(none)'}")
+
+    pointer_refs = status_archive_refs(root, DEFAULT_POINTER_PREFIX, POINTER_SUFFIXES)
+    pointer_summaries: list[tuple[str, dict | None, str | None, dict | None, list[str]]] = []
+    referenced_packets: set[str] = set()
+    for pointer_ref in pointer_refs:
+        pointer_path = root / pointer_ref
+        try:
+            pointer = load_pointer(pointer_path)
+        except PacketError as exc:
+            pointer_summaries.append((pointer_ref, None, None, None, [str(exc)]))
+            continue
+        if not status_base_ref_matches(root, pointer, base_commit):
+            continue
+        packet, packet_ref = status_packet_for_pointer(root, pointer)
+        if packet_ref:
+            referenced_packets.add(packet_ref)
+        errors = validate_pointer(
+            pointer,
+            root=root,
+            pointer_ref=pointer_ref,
+            replay_archive_command_evidence=False,
+            ignore_non_archive_dirty=True,
+        )
+        pointer_summaries.append((pointer_ref, pointer, packet_ref, packet, errors))
+
+    print(f"pointers: {len(pointer_summaries)}")
+    for pointer_ref, pointer, packet_ref, packet, errors in pointer_summaries:
+        print(f"- pointer: {pointer_ref}")
+        print(f"  packet: {packet_ref or 'unknown'}")
+        packet_id_value = (
+            pointer.get("packet_id")
+            if isinstance(pointer, dict)
+            else None
+        )
+        print(f"  packet_id: {packet_id_value or 'unknown'}")
+        decision = packet.get("result", {}).get("decision", {}) if isinstance(packet, dict) else {}
+        stable = decision.get("stable_handoff_eligible") if isinstance(decision, dict) else None
+        decision_status = pointer.get("decision_status") if isinstance(pointer, dict) else None
+        print(f"  stable_handoff: {stable if stable is not None else 'unknown'}")
+        print(f"  decision: {decision_status or 'unknown'}")
+        print(f"  publication: {status_publication_commit(root, pointer, packet) if isinstance(pointer, dict) else 'unknown'}")
+        print(f"  audit: {'PASS' if not errors else 'FAIL'}")
+        status_print_issue_summary(errors)
+
+    packet_refs = status_archive_refs(root, ARCHIVE_PACKET_PREFIX, (".yml", ".yaml", ".json"))
+    pending_summaries: list[tuple[str, dict | None, list[str]]] = []
+    for packet_ref in packet_refs:
+        if packet_ref in referenced_packets:
+            continue
+        try:
+            packet = load_packet(root / packet_ref)
+        except PacketError as exc:
+            pending_summaries.append((packet_ref, None, [str(exc)]))
+            continue
+        if not status_base_ref_matches(root, packet, base_commit):
+            continue
+        pending_summaries.append((packet_ref, packet, status_packet_errors(root, packet_ref, packet)))
+
+    print(f"pending_packets: {len(pending_summaries)}")
+    for packet_ref, packet, errors in pending_summaries:
+        print(f"- packet: {packet_ref}")
+        meta = packet.get("meta", {}) if isinstance(packet, dict) else {}
+        result = packet.get("result", {}) if isinstance(packet, dict) else {}
+        decision = result.get("decision", {}) if isinstance(result, dict) else {}
+        print(f"  packet_id: {meta.get('packet_id') if isinstance(meta, dict) else 'unknown'}")
+        print(f"  stable_handoff: {decision.get('stable_handoff_eligible') if isinstance(decision, dict) else 'unknown'}")
+        print(f"  status: {'READY' if not errors else 'BLOCKED'}")
+        status_print_issue_summary(errors)
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(ROOT), help=argparse.SUPPRESS)
@@ -5498,6 +6232,13 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--require-stable", action="store_true")
     check.set_defaults(func=check_packet)
 
+    import_review_parser = subparsers.add_parser("import-review")
+    import_review_parser.add_argument("--packet", required=True)
+    import_review_parser.add_argument("--from", dest="source", required=True)
+    import_review_parser.add_argument("--output")
+    import_review_parser.add_argument("--overwrite", action="store_true")
+    import_review_parser.set_defaults(func=import_review)
+
     write_pointer_parser = subparsers.add_parser("write-pointer")
     write_pointer_parser.add_argument("--packet", required=True)
     write_pointer_parser.add_argument("--output")
@@ -5508,6 +6249,10 @@ def build_parser() -> argparse.ArgumentParser:
     check_pointer_parser.add_argument("--pointer", required=True)
     check_pointer_parser.add_argument("--replay-command-evidence", action="store_true")
     check_pointer_parser.set_defaults(func=check_pointer)
+
+    status_parser = subparsers.add_parser("status")
+    status_parser.add_argument("--base-ref")
+    status_parser.set_defaults(func=status_command)
     return parser
 
 

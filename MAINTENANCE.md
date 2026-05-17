@@ -68,9 +68,12 @@ Maintenance work must preserve these Meta-Harness anchors:
 Target commands:
 
 ```bash
-governance start --base-ref REF --intent "..." [--exception ...] [--output <packet>]
+governance start --base-ref REF --intent "..." [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
+governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
+governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
+governance status --base-ref REF
 ```
 
 Lifecycle rules:
@@ -83,6 +86,11 @@ Lifecycle rules:
 - `finalize` updates evidence and computes `result.decision.stable_handoff_eligible`;
   `--base-ref` also generates commit-pinned changed-path source refs.
 - `check` is read-only and does not mutate packet lifecycle state.
+- `status` is read-only inventory: it summarizes active pointers, publication
+  commits, stable-handoff readiness, and separates pending human decisions from
+  generated artifact refreshes without replaying command evidence.
+- `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
+  and records it in packet evidence when reviewer judgment is required.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.
 - `--worktree` is exploratory or in-progress unless explicitly marked
   non-stable.

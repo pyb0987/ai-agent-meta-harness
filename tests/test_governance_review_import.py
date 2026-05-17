@@ -18,13 +18,14 @@ FIXTURE_ROOT = ROOT / "backlog" / "fixtures" / "acceptance-packets"
 IMPORT_REF = "file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml"
 
 
-def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
+def run_cli(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["AI_META_HARNESS_TEST_FIXTURE_MATERIALIZATION"] = "1"
     return subprocess.run(
         ["python3", str(SCRIPT), *args],
         cwd=ROOT,
         env=env,
+        input=input_text,
         encoding="utf-8",
         text=True,
         stdout=subprocess.PIPE,
@@ -90,6 +91,9 @@ class GovernanceReviewImportTests(unittest.TestCase):
             encoding="utf-8",
         )
         self.rel_dir = self.tmp_path.relative_to(ROOT).as_posix()
+        self.archive_tmp = tempfile.TemporaryDirectory(dir=ROOT / "archive" / "v2" / "artifacts")
+        self.addCleanup(self.archive_tmp.cleanup)
+        self.archive_rel_dir = Path(self.archive_tmp.name).relative_to(ROOT).as_posix()
 
     def materialize_packet(
         self,
@@ -234,6 +238,107 @@ class GovernanceReviewImportTests(unittest.TestCase):
         result = run_cli("check", "--packet", str(packet_path), "--require-stable")
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_import_review_populates_packet_from_target_bound_artifact(self) -> None:
+        packet_path = self.materialize_packet()
+        original_doc = load_yaml(packet_path)
+        packet = original_doc["AcceptancePacket"]
+        import_ref = packet["result"]["evidence"]["review_imports"][0]["source_ref"]
+        packet["result"]["evidence"]["review_imports"] = []
+        packet["result"]["evidence"]["resolved_refs"] = [
+            record
+            for record in packet["result"]["evidence"]["resolved_refs"]
+            if record.get("relation") != "review-provenance"
+        ]
+        packet["result"]["judgment"]["reviews"] = []
+        packet["result"]["decision"]["accepted"] = False
+        packet["result"]["decision"]["stable_handoff_eligible"] = False
+        packet["result"]["decision"]["reason"] = "Review import has not been materialized."
+        packet["result"]["decision"]["next_action"] = "Run import-review."
+        packet_path.write_text(yaml.safe_dump({self.checker.PACKET_KEY: packet}, sort_keys=False), encoding="utf-8")
+        pre_import_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+        for transcript_path in self.tmp_path.glob("probe-*.yml"):
+            transcript = load_yaml(transcript_path)
+            transcript["ProbeTranscript"]["packet_sha256"] = pre_import_sha
+            transcript_path.write_text(yaml.safe_dump(transcript, sort_keys=False), encoding="utf-8")
+        output_ref = f"file:{self.archive_rel_dir}/imported-review.yml"
+
+        result = run_cli("import-review", "--packet", str(packet_path), "--from", import_ref, "--output", output_ref)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        updated = load_yaml(packet_path)["AcceptancePacket"]
+        self.assertEqual(updated["result"]["evidence"]["review_imports"][0]["source_ref"], output_ref)
+        self.assertEqual(
+            sorted(review["review_id"] for review in updated["result"]["judgment"]["reviews"]),
+            sorted(updated["result"]["evidence"]["review_imports"][0]["review_ids"]),
+        )
+        final_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+        transcript = load_yaml(next(self.tmp_path.glob("probe-*.yml")))["ProbeTranscript"]
+        self.assertEqual(transcript["packet_sha256"], final_sha)
+        self.assertEqual(transcript["result_ref"], output_ref)
+        output_wrapper = load_yaml(ROOT / output_ref.removeprefix("file:"))["AcceptancePacketReviewImport"]
+        self.assertEqual(output_wrapper["target_binding"], updated["result"]["evidence"]["review_imports"][0]["target_binding"])
+        self.assertTrue(updated["result"]["decision"]["accepted"])
+        self.assertTrue(updated["result"]["decision"]["stable_handoff_eligible"])
+        self.assertEqual(updated["result"]["evidence"]["skipped"][0]["source_ref"], output_ref)
+        marker = self.checker.provenance_record_digest(updated["result"]["evidence"]["skipped"][0])
+        wrapper_text = (ROOT / output_ref.removeprefix("file:")).read_text(encoding="utf-8")
+        self.assertIn(f"provenance_record_sha256:{marker}", wrapper_text)
+
+    def test_import_review_accepts_stdin_with_archive_output(self) -> None:
+        packet_path = self.materialize_packet()
+        packet = load_yaml(packet_path)["AcceptancePacket"]
+        packet["result"]["evidence"]["review_imports"] = []
+        packet["result"]["evidence"]["resolved_refs"] = [
+            record
+            for record in packet["result"]["evidence"]["resolved_refs"]
+            if record.get("relation") != "review-provenance"
+        ]
+        packet["result"]["judgment"]["reviews"] = []
+        packet_path.write_text(yaml.safe_dump({self.checker.PACKET_KEY: packet}, sort_keys=False), encoding="utf-8")
+        output_ref = f"file:{self.archive_rel_dir}/stdin-review-import.yml"
+        source_text = (self.tmp_path / "review-import.yml").read_text(encoding="utf-8")
+
+        result = run_cli(
+            "import-review",
+            "--packet",
+            str(packet_path),
+            "--from",
+            "-",
+            "--output",
+            output_ref,
+            input_text=source_text,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((ROOT / output_ref.removeprefix("file:")).is_file())
+        updated = load_yaml(packet_path)["AcceptancePacket"]
+        self.assertEqual(updated["result"]["evidence"]["review_imports"][0]["source_ref"], output_ref)
+
+    def test_import_review_rejects_wrong_target_without_relabeling(self) -> None:
+        packet_path = self.materialize_packet()
+        packet = load_yaml(packet_path)["AcceptancePacket"]
+        packet["result"]["evidence"]["review_imports"] = []
+        packet["result"]["evidence"]["resolved_refs"] = [
+            record
+            for record in packet["result"]["evidence"]["resolved_refs"]
+            if record.get("relation") != "review-provenance"
+        ]
+        packet["result"]["judgment"]["reviews"] = []
+        packet_path.write_text(yaml.safe_dump({self.checker.PACKET_KEY: packet}, sort_keys=False), encoding="utf-8")
+        wrapper_path = self.tmp_path / "review-import.yml"
+        wrapper_doc = load_yaml(wrapper_path)
+        wrapper_doc["AcceptancePacketReviewImport"]["target_binding"]["packet_id"] = "pkt-other"
+        wrapper_path.write_text(yaml.safe_dump(wrapper_doc, sort_keys=False), encoding="utf-8")
+        output_ref = f"file:{self.archive_rel_dir}/wrong-target-review.yml"
+
+        result = run_cli("import-review", "--packet", str(packet_path), "--from", str(wrapper_path), "--output", output_ref)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("wrapper target_binding does not match current packet review target", result.stderr)
+        self.assertFalse((ROOT / output_ref.removeprefix("file:")).exists())
+        unchanged = load_yaml(packet_path)["AcceptancePacket"]
+        self.assertEqual(unchanged["result"]["evidence"]["review_imports"], [])
 
     def test_rejects_noncanonical_trace_refs_in_review_lineage(self) -> None:
         def mutate_wrapper(wrapper: dict) -> None:

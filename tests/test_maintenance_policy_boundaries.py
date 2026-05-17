@@ -6,6 +6,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MAINTENANCE = ROOT / "MAINTENANCE.md"
+ROADMAP = ROOT / "backlog" / "v2-roadmap.md"
+PLAN10 = ROOT / "backlog" / "plans" / "10-stable-packet-materialization-and-operator-minimal-cli.md"
 
 
 def maintenance_text() -> str:
@@ -14,6 +16,10 @@ def maintenance_text() -> str:
 
 def normalized_text() -> str:
     return " ".join(maintenance_text().split())
+
+
+def normalized_file_text(path: Path) -> str:
+    return " ".join(path.read_text(encoding="utf-8").split())
 
 
 class MaintenancePolicyBoundaryTests(unittest.TestCase):
@@ -30,6 +36,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "Release/pre-commit now route active archive packet publication through the packet-pointer gate",
             "governance start --base-ref REF --intent",
             "governance finalize --packet <packet> --staged|--base-ref REF|--worktree",
+            "governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]",
+            "governance write-pointer --packet <packet>",
             "governance check --packet <packet> --require-stable",
             "python3 scripts/check-active-packet-gate.py --base-ref origin/main",
             "python3 scripts/check-active-packet-gate.py --staged",
@@ -101,6 +109,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "The synthetic commit object is not required to remain reachable in every clone",
             "routine base-ref finalization into `archive/v2/packets/` also materializes the durable command artifact",
             "archived review-import artifacts and linked probe transcripts are bound by",
+            "`status` is read-only inventory",
             "archived active source refs use commit-pinned `git:<full-commit-sha>:<path>`",
             "`write-pointer` materializes pointer-bound replay metadata and recorded exit/stdout/stderr hashes",
             "`--overwrite` regenerates existing pointer-bound replay metadata",
@@ -123,6 +132,35 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
+
+    def test_plan10_locks_operator_minimal_contract(self) -> None:
+        text = normalized_file_text(PLAN10)
+
+        for marker in (
+            "governance start --base-ref <comparison-ref> --intent",
+            "governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]",
+            "Generated claim-evidence prompts and placeholders cannot certify stable handoff by shape alone",
+            "Runtime, proof-like, or public claims still require a raw artifact",
+            "imported review judgment",
+            "before stable publication",
+            "Plan 08 replay policy is stream-specific",
+            "`verify-release.py --list` stdout must remain bound exactly",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+    def test_roadmap_commits_public_governance_wrapper_name(self) -> None:
+        text = normalized_file_text(ROADMAP)
+
+        for marker in (
+            "governance start --base-ref <comparison-ref> --intent",
+            "governance import-review --packet <packet> --from <review-artifact-or-stdin>",
+            "[--output <artifact>]",
+            "How the public `governance` wrapper should be installed or exposed",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+        self.assertNotIn("whether the public cli should be `governance`", text.lower())
 
 
 if __name__ == "__main__":

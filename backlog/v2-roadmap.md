@@ -21,13 +21,17 @@ AcceptancePacket:
 CLI surface:
 
 ```bash
-governance start --intent "..."
+governance start --base-ref <comparison-ref> --intent "..."
 governance finalize --packet <packet> --base-ref <comparison-ref>
+governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
+governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
+governance status --base-ref <comparison-ref>
 ```
 
 Stable handoff should use `--base-ref`. `--staged` is a preflight mode, and
-`--worktree` is exploratory unless explicitly marked non-stable.
+`--worktree` is exploratory unless explicitly marked non-stable. `import-review`
+is required only when inference or policy requires durable review judgment.
 
 Search-set verification:
 
@@ -112,8 +116,9 @@ v2 must preserve the Meta-Harness essentials:
 Create one checker command:
 
 ```bash
-python3 scripts/check-governance-acceptance.py start --intent "..." --output <packet>
+python3 scripts/check-governance-acceptance.py start --base-ref <comparison-ref> --intent "..."
 python3 scripts/check-governance-acceptance.py finalize --packet <packet> --base-ref <comparison-ref>
+python3 scripts/check-governance-acceptance.py write-pointer --packet <packet>
 python3 scripts/check-governance-acceptance.py check --packet <packet> --require-stable
 ```
 
@@ -123,7 +128,7 @@ Required behavior:
   version, inference rules version, and any available before evidence.
 - `finalize` updates packet evidence, infers class/impact from git diff and
   content rules, computes required evidence/review/traces, and computes
-  `result.decision.eligibility`.
+  `result.decision.stable_handoff_eligible`.
 - `check` is read-only and never changes packet lifecycle state.
 - Harness-affecting finalization fails closed without a start packet unless an
   exact skipped-before reason and maintainer/reviewer disposition are recorded.
@@ -220,14 +225,22 @@ Initial high-risk surfaces:
    checker covers v1 review/search/archive invariants.
 9. Documentation transition: update README and maintenance guidance from v1 gates
    to v2 packet lifecycle.
+10. Stable packet materialization and operator-minimal CLI: use
+   `backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md`
+   to make stable closure generation, multi-review import, active pointer
+   publication, and archive status reporting routine commands rather than
+   manual YAML/hash/provenance work.
 
 ## Validation Plan
 
 Validate v2 using the method it introduces:
 
 - Use the current packet lifecycle for active v2 implementation work:
-  `governance start --intent "..."`,
+  `governance start --base-ref <comparison-ref> --intent "..."`,
   `governance finalize --packet <packet> --base-ref <comparison-ref>`, and
+  `governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]`
+  when durable review judgment is required, then
+  `governance write-pointer --packet <packet>`, followed by
   `governance check --packet <packet> --require-stable`.
 - Treat older bootstrap transition notes as archived compatibility evidence,
   not as the current implementation path.
@@ -242,5 +255,7 @@ Validate v2 using the method it introduces:
 - Whether packet hash lives inside the packet or only in active pointers.
 - How `--worktree` packets are labeled so they cannot satisfy stable handoff.
 - How old packets are evaluated when checker or inference rule versions change.
-- Whether the public CLI name should be `governance` or a repository-local
-  script name first.
+- How the public `governance` wrapper should be installed or exposed while the
+  repository-local script remains the implementation/debug entry point.
+- Which stable-closure gaps are safe for materialization commands to repair
+  automatically, and which must remain explicit human judgment.
