@@ -5929,7 +5929,7 @@ def write_pointer(args: argparse.Namespace) -> int:
             packet_ref=packet_ref,
             packet_sha256=packet_sha256,
             replay_root=replay_root,
-            allow_existing_replay_metadata=args.overwrite,
+            allow_existing_replay_metadata=True,
         )
     if materialize_errors:
         for error in materialize_errors:
