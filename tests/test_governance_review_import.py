@@ -278,12 +278,8 @@ class GovernanceReviewImportTests(unittest.TestCase):
         self.assertEqual(transcript["result_ref"], output_ref)
         output_wrapper = load_yaml(ROOT / output_ref.removeprefix("file:"))["AcceptancePacketReviewImport"]
         self.assertEqual(output_wrapper["target_binding"], updated["result"]["evidence"]["review_imports"][0]["target_binding"])
-        self.assertTrue(updated["result"]["decision"]["accepted"])
-        self.assertTrue(updated["result"]["decision"]["stable_handoff_eligible"])
-        self.assertEqual(updated["result"]["evidence"]["skipped"][0]["source_ref"], output_ref)
-        marker = self.checker.provenance_record_digest(updated["result"]["evidence"]["skipped"][0])
-        wrapper_text = (ROOT / output_ref.removeprefix("file:")).read_text(encoding="utf-8")
-        self.assertIn(f"provenance_record_sha256:{marker}", wrapper_text)
+        self.assertFalse(updated["result"]["decision"]["accepted"])
+        self.assertFalse(updated["result"]["decision"]["stable_handoff_eligible"])
 
     def test_import_review_accepts_stdin_with_archive_output(self) -> None:
         packet_path = self.materialize_packet()

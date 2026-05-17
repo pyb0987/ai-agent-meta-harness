@@ -273,19 +273,19 @@ sweep to pass before Plan 10 is treated as complete.
 Search-set verification:
 
 - SKIPPED: Follow-up change to `scripts/check-governance-acceptance.py` only
-  allows idempotent regeneration of pointer-bound replay metadata after
-  `import-review`; no search-set delta was captured for this local publication
-  fix.
+  preserves the `write-pointer` replay-materialization boundary after
+  `import-review` stable promotion; no search-set delta was captured for this
+  local publication fix.
 
 Multi-review:
 
 - Follow-up materialization critic: score 9, PASS. Blocking findings: none after
-  `write-pointer` was changed to safely regenerate packet-bound replay metadata
-  that `import-review` already refreshed. Why not 10: this validates the local
-  idempotent materialization boundary, while remote publication remains covered
-  by the active pointer release gate. Follow-up/residual risk: accepted because
-  the command evidence section is still matched by packet/ref/command identity
-  and replayed before pointer creation.
+  `import-review` was kept to review/probe/decision materialization while
+  `write-pointer` remains the sole command replay-metadata writer. Why not 10:
+  this validates the local materialization boundary, while remote publication
+  remains covered by the active pointer release gate. Follow-up/residual risk:
+  accepted because pre-authored replay metadata is still rejected unless the
+  operator explicitly uses pointer overwrite regeneration.
 - Score handling: the required follow-up critic reached score 9 and records why
   not 10 plus residual-risk disposition.
 - Rerun status: the focused import-review materialization test passed after the

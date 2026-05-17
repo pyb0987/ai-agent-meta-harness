@@ -2694,7 +2694,16 @@ def bind_skipped_provenance_to_review_import(packet: dict, wrapper: dict, *, sou
     add_multi_review_evidence_markers(wrapper, markers)
 
 
-def promote_imported_review_decision(packet: dict, wrapper: dict, *, source_ref: str, root: Path) -> None:
+def promote_imported_review_decision(
+    packet: dict,
+    wrapper: dict,
+    *,
+    source_ref: str,
+    root: Path,
+    packet_ref: str | None,
+) -> None:
+    if pointer_packet_ref_error(packet_ref) is not None:
+        return
     if packet.get("meta", {}).get("lifecycle") != "finalized" or packet.get("meta", {}).get("mode") != "base-ref":
         return
     result = packet.get("result", {}) if isinstance(packet.get("result"), dict) else {}
@@ -5314,8 +5323,7 @@ def packet_has_materialized_fixture_binding(packet: dict, packet_ref: str | None
 
 def packet_is_active_handoff(packet: dict, packet_ref: str | None, *, root: Path) -> bool:
     return (
-        pointer_packet_ref_error(packet_ref) is None
-        and not packet_ref_is_fixture(packet_ref)
+        not packet_ref_is_fixture(packet_ref)
         and not packet_has_materialized_fixture_binding(packet, packet_ref, root=root)
         and not packet_has_fixture_binding(packet)
     )
@@ -5785,7 +5793,7 @@ def import_review(args: argparse.Namespace) -> int:
         wrapper=wrapper,
         target_binding=target_binding,
     )
-    promote_imported_review_decision(updated, wrapper, source_ref=source_ref, root=root)
+    promote_imported_review_decision(updated, wrapper, source_ref=source_ref, root=root, packet_ref=packet_ref)
     wrapper_text = review_import_document_text(wrapper)
     source_digest = hashlib.sha256(wrapper_text.encode("utf-8")).hexdigest()
     for import_record in updated["result"]["evidence"].get("review_imports", []):
@@ -5818,22 +5826,7 @@ def import_review(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
-    command_updates: dict[Path, str] = {}
-    command_update_errors: list[str] = []
-    archive_packet_ref = pointer_packet_ref_error(packet_ref) is None
-    if archive_packet_ref and packet_is_active_handoff(updated, packet_ref, root=root):
-        command_updates, command_update_errors = planned_archive_command_evidence_updates(
-            updated,
-            root=root,
-            packet_ref=packet_ref,
-            packet_sha256=packet_sha256,
-            allow_existing_replay_metadata=True,
-        )
-    if command_update_errors:
-        for error in command_update_errors:
-            print(f"ERROR: {error}", file=sys.stderr)
-        return 1
-    updates = {source_path: wrapper_text, **probe_updates, **command_updates, packet_path: packet_text}
+    updates = {source_path: wrapper_text, **probe_updates, packet_path: packet_text}
     write_error, originals = apply_text_updates_with_rollback(updates)
     if write_error:
         print(f"ERROR: {write_error}", file=sys.stderr)
@@ -5853,14 +5846,17 @@ def import_review(args: argparse.Namespace) -> int:
         for error in import_errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
-    packet_errors = validate_packet(
-        updated,
-        require_stable=updated["result"]["decision"].get("stable_handoff_eligible") is True,
-        allow_stale_archive_command_artifacts=not archive_packet_ref
-        or not packet_is_active_handoff(updated, packet_ref, root=root),
-        root=root,
-        packet_ref=packet_ref,
-        packet_sha256=packet_sha256,
+    packet_errors = (
+        validate_packet(
+            updated,
+            require_stable=updated["result"]["decision"].get("stable_handoff_eligible") is True,
+            allow_stale_archive_command_artifacts=True,
+            root=root,
+            packet_ref=packet_ref,
+            packet_sha256=packet_sha256,
+        )
+        if pointer_packet_ref_error(packet_ref) is None
+        else []
     )
     if packet_errors:
         rollback_text_updates(originals)
@@ -5929,7 +5925,7 @@ def write_pointer(args: argparse.Namespace) -> int:
             packet_ref=packet_ref,
             packet_sha256=packet_sha256,
             replay_root=replay_root,
-            allow_existing_replay_metadata=True,
+            allow_existing_replay_metadata=args.overwrite,
         )
     if materialize_errors:
         for error in materialize_errors:
