@@ -1,0 +1,47 @@
+AcceptancePacketPointer:
+  schema_version: acceptance-packet-pointer/v1
+  packet_id: pkt-20260517172838-44d58c13
+  packet_ref: archive/v2/packets/pkt-20260517172838-44d58c13.yml
+  packet_sha256: ee9351980ef70a2e602e2ce882ae01cb8ffd99f3c516d419984e49623d698846
+  checker_version: v2.0-draft
+  inference_rule_version: v2.0-draft
+  baseline_ref: 0d7f518aa2676083e135d366c467b847d996f455
+  comparison_ref: 0d7f518aa2676083e135d366c467b847d996f455
+  head_commit: 3ebabf903e3a7d20cab87e83247ea8c7bb5cbb2a
+  archive_commit: ffee510ff24611d0c70f1743859553e4dac44028
+  stable_target: base-ref:0d7f518aa2676083e135d366c467b847d996f455...0d7f518aa2676083e135d366c467b847d996f455@3ebabf903e3a7d20cab87e83247ea8c7bb5cbb2a
+  decision_status: accepted
+  command_artifacts:
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-git-diff-check.log
+    artifact_sha256: 2656a159907cf1a8d57bd8847122ea50456d8ca00d2b7eb00a1df336e39c1980
+    command: git diff --check 0d7f518aa2676083e135d366c467b847d996f455...3ebabf903e3a7d20cab87e83247ea8c7bb5cbb2a
+  review_import_artifacts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-import.yml
+    source_sha256: 5ffc67b85b0dca5f5247637777cfd391218f1eeb8edfb7c6353ddac07e6e0a04
+    review_target_digest: 38fb3b5df871cb7c005c8dae50a0bd6ca7c401875881fb5614bd6254c98f052e
+    review_ids:
+    - review-plan10-followup-checker-correctness
+    - review-plan10-followup-claim-evidence
+    - review-plan10-followup-evidence-auditability
+    - review-plan10-followup-methodology-fidelity
+    - review-plan10-followup-release-integration
+    - review-plan10-followup-scope-boundary
+  probe_transcripts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-boundary-preservation-probe.yml
+    transcript_sha256: cfc3104f9d63eb48b4a493f94b85fc134a4bcf4fdeb74f4dc860b26024794e40
+    result_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-import.yml
+    result_digest: 5ffc67b85b0dca5f5247637777cfd391218f1eeb8edfb7c6353ddac07e6e0a04
+    packet_ref: archive/v2/packets/pkt-20260517172838-44d58c13.yml
+    packet_sha256: ee9351980ef70a2e602e2ce882ae01cb8ffd99f3c516d419984e49623d698846
+  - source_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-quality-probe.yml
+    transcript_sha256: 35a6f1106222a11070dd50c0f03e8f438e5d6856896d4061ff8378f7963050ff
+    result_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-import.yml
+    result_digest: 5ffc67b85b0dca5f5247637777cfd391218f1eeb8edfb7c6353ddac07e6e0a04
+    packet_ref: archive/v2/packets/pkt-20260517172838-44d58c13.yml
+    packet_sha256: ee9351980ef70a2e602e2ce882ae01cb8ffd99f3c516d419984e49623d698846
+  - source_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-validation-probe.yml
+    transcript_sha256: 0466402d9e9092de03c7dc1f08a7088de43fc69a0a7c1656215af87c687af4eb
+    result_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-import.yml
+    result_digest: 5ffc67b85b0dca5f5247637777cfd391218f1eeb8edfb7c6353ddac07e6e0a04
+    packet_ref: archive/v2/packets/pkt-20260517172838-44d58c13.yml
+    packet_sha256: ee9351980ef70a2e602e2ce882ae01cb8ffd99f3c516d419984e49623d698846

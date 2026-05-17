@@ -1,0 +1,20 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('plan10 followup review quality probe')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260517172838-44d58c13-review-import.yml
+  result_digest: 5ffc67b85b0dca5f5247637777cfd391218f1eeb8edfb7c6353ddac07e6e0a04
+  packet_ref: archive/v2/packets/pkt-20260517172838-44d58c13.yml
+  packet_sha256: ee9351980ef70a2e602e2ce882ae01cb8ffd99f3c516d419984e49623d698846
+  source_refs:
+  - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+  - tests/test_governance_review_import.py
+  cwd: .
+  generated_by: codex
+  date: '2026-05-17'
+  stdout: 'plan10 followup review quality probe
+
+    '
+  stderr: ''
+  stdout_sha256: 9de8d3064f35e3d4b14fe6adea7e8b9bdfe53f65be89a7c619e9c928254a00cb
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
