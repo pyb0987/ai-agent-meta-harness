@@ -1,0 +1,25 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-search-set-evidence.py scripts/check-governance-acceptance.py
+    tests/test_governance_acceptance_cli.py backlog/plans/11-v2-residual-hardening-and-operations.md
+    --require-active-run
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+  result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+  packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  source_refs:
+  - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  - .harness/traces/search-set.md
+  cwd: .
+  generated_by: governance review-template completed by codex
+  date: '2026-05-18'
+  stdout: 'Search-set evidence compliance is recorded or not required.
+
+    '
+  stderr: ''
+  stdout_sha256: 5b5f89a81cb3c4b14c09bc8264e46d0b0ce3330dd5b0d303c6436d848685fdbb
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

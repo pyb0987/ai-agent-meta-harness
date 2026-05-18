@@ -1,0 +1,25 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/run-search-set.py --list
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+  result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+  packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  source_refs:
+  - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  - .harness/traces/search-set.md
+  cwd: .
+  generated_by: governance review-template completed by codex
+  date: '2026-05-18'
+  stdout: "SS-001\tpython3 scripts/check-maintenance-review.py\tBacklog review records\
+    \ keep enforceable gates\nSS-002\tpython3 scripts/check-compat-mirrors.py\tCompatibility\
+    \ mirrors stay synchronized\nSS-003\tsh .githooks/pre-commit\tPre-commit release\
+    \ gate remains wired\nSS-004\tpython3 -m unittest tests/test_claude_autoresearch_reject_evidence.py\t\
+    Claude autoresearch preserves REJECT evidence\nSS-005\tpython3 -m unittest tests/test_pre_commit_hook.py\t\
+    Codex activation evidence stays aligned\nSS-006\tpython3 -m unittest tests/test_repository_search_set.py\t\
+    Repository trace root keeps minimum self-application surface\n"
+  stderr: ''
+  stdout_sha256: 03e69f049f58506625df0bcf8cbf3faf19f3d0e3695b60113f74994ce24d1a66
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

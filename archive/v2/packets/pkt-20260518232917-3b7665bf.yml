@@ -1,0 +1,311 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260518232917-3b7665bf
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-18
+    finalized_at: 2026-05-18
+  input:
+    intent: Harden v2 search-set capture trace validation after multi-review.
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      intended_scope: Harden v2 search-set capture trace validation after multi-review.
+      actual_scope: backlog/plans/11-v2-residual-hardening-and-operations.md, scripts/check-governance-acceptance.py,
+        tests/test_governance_acceptance_cli.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - git diff --check 869bcdd4aaa46d7883700d13e01e3cc175ed3494...33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+      required_review:
+      - checker correctness
+      - claim evidence
+      - evidence auditability
+      - methodology fidelity
+      - scope boundary
+    evidence:
+      baseline_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+      comparison_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+      accepted_head_commit: 33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: git diff --check 869bcdd4aaa46d7883700d13e01e3cc175ed3494...33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-git-diff-check.log
+      source_refs:
+      - git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:scripts/check-governance-acceptance.py
+      - git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:tests/test_governance_acceptance_cli.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:backlog/plans/11-v2-residual-hardening-and-operations.md
+        status: resolved
+        target: 33823d19f5f70246ed12b0b3aaaadd211ddbdb34:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - origin: generated
+        relation: source
+        ref: git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:scripts/check-governance-acceptance.py
+        status: resolved
+        target: 33823d19f5f70246ed12b0b3aaaadd211ddbdb34:scripts/check-governance-acceptance.py
+      - origin: generated
+        relation: source
+        ref: git:33823d19f5f70246ed12b0b3aaaadd211ddbdb34:tests/test_governance_acceptance_cli.py
+        status: resolved
+        target: 33823d19f5f70246ed12b0b3aaaadd211ddbdb34:tests/test_governance_acceptance_cli.py
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518232917-3b7665bf-git-diff-check.log
+      - origin: generated
+        relation: claim-evidence
+        ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-claim-evidence-probe.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518232917-3b7665bf-claim-evidence-probe.yml
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Search-set before/after trace refs are captured when supplied;
+          missing refs remain explicit targeted skips.
+      skipped:
+      - evidence: search_set_before
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_before; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_after; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+      claims:
+      - claim: Capture-shaped search-set refs are structurally validated for required
+          capture record fields before stable handoff.
+        raw_evidence_refs:
+        - file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-claim-evidence-probe.yml
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+        status: imported
+        review_ids:
+        - review-pkt-20260518232917-3b7665bf-checker-correctness
+        - review-pkt-20260518232917-3b7665bf-claim-evidence
+        - review-pkt-20260518232917-3b7665bf-evidence-auditability
+        - review-pkt-20260518232917-3b7665bf-methodology-fidelity
+        - review-pkt-20260518232917-3b7665bf-scope-boundary
+        target_binding:
+          packet_id: pkt-20260518232917-3b7665bf
+          packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+          review_target_digest: 507c8d718aad40085683dba78c5944ed312044c9e2364165e7fdee22abacb063
+          baseline_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+          comparison_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+          source_refs: []
+          changed_paths:
+          - backlog/plans/11-v2-residual-hardening-and-operations.md
+          - scripts/check-governance-acceptance.py
+          - tests/test_governance_acceptance_cli.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - evidence auditability
+          - methodology fidelity
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-pkt-20260518232917-3b7665bf-checker-correctness
+        critic: checker correctness
+        scope: Confirm capture-shaped search-set refs are validated for complete fields
+          and correct before/after phase.
+        anti_scope: Does not re-review chained release publication or reviewer-wizard
+          ergonomics.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        false_green_risk: A packet could claim trace reuse while only proving an anchor
+          exists in the markdown file.
+        invariant_checked: Capture-shaped refs must carry phase, PASS status, zero
+          exit, command, stream hashes, head ref, and capture date.
+        evidence:
+        - Focused finalize tests cover complete capture refs, missing required fields,
+          wrong phase, and duplicate refs.
+        - Plan 11 Iteration 8 records the local multi-review disposition for this
+          hardening pass.
+        source_refs:
+        - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_acceptance_cli.py
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local structural trace fidelity,
+          not semantic agent-in-loop evaluation or publish-wrapper ergonomics.
+        disposition: Accepted for v2-residual-09 hardening; v2-residual-11 and v2-residual-12
+          remain separately labeled follow-up work.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518232917-3b7665bf-claim-evidence
+        critic: claim evidence
+        scope: Check that the residual-09 claim is narrowed to structural capture-record
+          validation.
+        anti_scope: Does not certify original paper benchmark reproduction or semantic
+          evidence relevance.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        false_green_risk: A PASS label could blur the difference between capture-record
+          shape validation and semantic review scoring.
+        invariant_checked: Plan 11 names this as residual-09 hardening and keeps residual-11
+          and residual-12 pending.
+        evidence:
+        - Plan 11 Iteration 8 records BEFORE as skipped and AFTER as search-set PASS
+          for this hardening pass.
+        - The multi-review section explicitly keeps publish-wrapper and semantic-evaluation
+          work out of scope.
+        source_refs:
+        - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local structural trace fidelity,
+          not semantic agent-in-loop evaluation or publish-wrapper ergonomics.
+        disposition: Accepted for v2-residual-09 hardening; v2-residual-11 and v2-residual-12
+          remain separately labeled follow-up work.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518232917-3b7665bf-evidence-auditability
+        critic: evidence auditability
+        scope: Validate that the protected checker and plan changes have active search-set
+          evidence coverage.
+        anti_scope: Does not require stable packet check to replay MultiReviewResult
+          probes.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        false_green_risk: A protected trace-fidelity hardening could be accepted without
+          active-run search-set evidence.
+        invariant_checked: Search-set evidence checker accepts the changed script,
+          test, and plan paths with active-run requirement.
+        evidence:
+        - Search-set evidence was checked for the changed checker, tests, and Plan
+          11 residual record.
+        source_refs:
+        - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_acceptance_cli.py
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        - .harness/traces/search-set.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local structural trace fidelity,
+          not semantic agent-in-loop evaluation or publish-wrapper ergonomics.
+        disposition: Accepted for v2-residual-09 hardening; v2-residual-11 and v2-residual-12
+          remain separately labeled follow-up work.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518232917-3b7665bf-methodology-fidelity
+        critic: methodology fidelity
+        scope: Assess whether capture-record validation strengthens trace reuse without
+          overclaiming semantic scoring.
+        anti_scope: Does not treat deterministic artifact validation as independent
+          agent-in-loop benchmark evidence.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        false_green_risk: Structural PASS could be misread as paper-level methodology
+          fidelity.
+        invariant_checked: The active search-set corpus remains explicit and separate
+          from residual-12 semantic evaluation.
+        evidence:
+        - Plan 11 still labels semantic agent-in-loop multi-review evaluation as v2-residual-12.
+        source_refs:
+        - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        - .harness/traces/search-set.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local structural trace fidelity,
+          not semantic agent-in-loop evaluation or publish-wrapper ergonomics.
+        disposition: Accepted for v2-residual-09 hardening; v2-residual-11 and v2-residual-12
+          remain separately labeled follow-up work.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518232917-3b7665bf-scope-boundary
+        critic: scope boundary
+        scope: Confirm the content commit is limited to capture validation code, tests,
+          and Plan 11 review record.
+        anti_scope: Does not review generated archive packet bytes that will be published
+          separately.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+        false_green_risk: A packet could certify broader work than the residual-09
+          capture validation hardening.
+        invariant_checked: The content diff contains only the checker, focused tests,
+          and Plan 11 record.
+        evidence:
+        - Changed-path probe output matches scripts/check-governance-acceptance.py,
+          tests/test_governance_acceptance_cli.py, and Plan 11.
+        source_refs:
+        - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_acceptance_cli.py
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local structural trace fidelity,
+          not semantic agent-in-loop evaluation or publish-wrapper ergonomics.
+        disposition: Accepted for v2-residual-09 hardening; v2-residual-11 and v2-residual-12
+          remain separately labeled follow-up work.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.

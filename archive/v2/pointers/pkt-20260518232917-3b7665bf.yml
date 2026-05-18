@@ -1,0 +1,58 @@
+AcceptancePacketPointer:
+  schema_version: acceptance-packet-pointer/v1
+  packet_id: pkt-20260518232917-3b7665bf
+  packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  checker_version: v2.0-draft
+  inference_rule_version: v2.0-draft
+  baseline_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+  comparison_ref: 869bcdd4aaa46d7883700d13e01e3cc175ed3494
+  head_commit: 33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+  archive_commit: a43e9d31ea4737ea695d123ba4d30595e05cfcec
+  stable_target: base-ref:869bcdd4aaa46d7883700d13e01e3cc175ed3494...869bcdd4aaa46d7883700d13e01e3cc175ed3494@33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+  decision_status: accepted
+  command_artifacts:
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-git-diff-check.log
+    artifact_sha256: 0c8a1b1534e299c3b2c5905a48af2912e393b959dce23478faa79afab0d408ed
+    command: git diff --check 869bcdd4aaa46d7883700d13e01e3cc175ed3494...33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+  review_import_artifacts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    source_sha256: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    review_target_digest: 507c8d718aad40085683dba78c5944ed312044c9e2364165e7fdee22abacb063
+    review_ids:
+    - review-pkt-20260518232917-3b7665bf-checker-correctness
+    - review-pkt-20260518232917-3b7665bf-claim-evidence
+    - review-pkt-20260518232917-3b7665bf-evidence-auditability
+    - review-pkt-20260518232917-3b7665bf-methodology-fidelity
+    - review-pkt-20260518232917-3b7665bf-scope-boundary
+  probe_transcripts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-checker-correctness-probe.yml
+    transcript_sha256: 3878ced59c80054411a1e6fea8e979e61c77d5f1f8f9f5a2b7fd6075520f539e
+    result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+    packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-claim-evidence-probe.yml
+    transcript_sha256: 86f77bc62900e4411c58bee0304f7588ee7d8696700b1dff156b380e85db5bfb
+    result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+    packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-evidence-auditability-probe.yml
+    transcript_sha256: 5b828da8f95b3df86ae434a38e6cbe48ca793e1c450fb6bf9f533241eba6399a
+    result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+    packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-methodology-fidelity-probe.yml
+    transcript_sha256: dda7a1624c4dabe921eeb1622b396732c744af0263ab34086d41a3f240256b6f
+    result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+    packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  - source_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-scope-boundary-probe.yml
+    transcript_sha256: a9c6f64615d5c8a3f590976a6ca65f0ee5b7d929eae57ad398c1586d2a30a055
+    result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+    result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+    packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+    packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383

@@ -1,0 +1,26 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: git diff --name-only 869bcdd4aaa46d7883700d13e01e3cc175ed3494...33823d19f5f70246ed12b0b3aaaadd211ddbdb34
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518232917-3b7665bf-review-import.yml
+  result_digest: 0c7fd23127c478c39666d6e5f7da9107d8c7e7b80544ffa0c434e7231a9ccd57
+  packet_ref: archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  packet_sha256: 16d2900db4881e7c390267016e549a0b3a3b9500cb6a04e60614d15500d0a383
+  source_refs:
+  - archive/v2/packets/pkt-20260518232917-3b7665bf.yml
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  cwd: .
+  generated_by: governance review-template completed by codex
+  date: '2026-05-18'
+  stdout: 'backlog/plans/11-v2-residual-hardening-and-operations.md
+
+    scripts/check-governance-acceptance.py
+
+    tests/test_governance_acceptance_cli.py
+
+    '
+  stderr: ''
+  stdout_sha256: 44e425a8af58a193160bfda685be9c0ae8f66d0b128feb487c515e02960b8fd3
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
