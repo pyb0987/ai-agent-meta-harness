@@ -494,6 +494,58 @@ Multi-review:
 - Final acceptance: accepted as v2-residual-09 closure for repository-local
   v2.
 
+## Implementation Iteration 8
+
+Closed in this iteration:
+
+- `v2-residual-09 search-set-trace-fidelity` hardening: capture-shaped
+  `.harness/traces/search-set.md#search-set-before-*` and
+  `#search-set-after-*` refs now require a capture record with phase, PASS
+  status, zero exit code, command, stdout/stderr SHA-256 values, head ref, and
+  capture date. `governance finalize` rejects incomplete or phase-mismatched
+  capture refs instead of accepting a hand-authored heading that only looks like
+  a reusable trace.
+
+Still pending:
+
+- `v2-residual-11 publish-wrapper-ergonomics`
+- `v2-residual-12 agent-in-loop-multi-review-eval`
+
+Search-set verification:
+
+- BEFORE: SKIPPED no pre-change `capture-search-set --phase before` trace was
+  recorded before this validator hardening began; the gap was discovered during
+  the local multi-review pass after Iteration 7.
+- AFTER: PASS `python3 scripts/run-search-set.py` after the capture-record
+  validator and negative tests were added.
+
+Multi-review:
+
+- Verdict: PASS for capture-ref hardening.
+- Trace fidelity critic: score 9 PASS; Blocking findings: none after
+  capture-shaped refs must carry the generated record fields and phase must
+  match the `search_set_before`/`search_set_after` slot. Follow-up/residual
+  risk: accepted; this still validates structured capture records, not semantic
+  agent-in-loop issue discovery.
+- Evidence honesty critic: score 9 PASS; Blocking findings: none after
+  incomplete hand-authored capture headings and phase-swapped refs became
+  explicit validator failures. Follow-up/residual risk: accepted; future
+  semantic scoring remains `v2-residual-12`.
+- Anti-bloat critic: score 9 PASS; Blocking findings: none; the validator
+  generalizes the existing capture record shape and adds two negative tests
+  without adding new packet fields. Follow-up/residual risk: accepted; one
+  helper parses markdown sections for capture validation.
+- Follow-up/residual risk: one-command publication remains
+  `v2-residual-11`, and semantic multi-review scoring remains
+  `v2-residual-12`.
+- Score handling: score 9; not 10 because this is a structural fidelity lock,
+  not a semantic review scorer or publisher wrapper.
+- Rerun status: py_compile, focused capture/finalize unittest, governance CLI
+  evidence-ref and maintenance-policy tests, Active search-set, and whitespace
+  checks rerun after the validator change.
+- Final acceptance: accepted as v2-residual-09 hardening for repository-local
+  v2.
+
 ## Multi-Review Seed
 
 Required critic lenses:

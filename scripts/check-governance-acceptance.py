@@ -204,6 +204,17 @@ SEARCH_SET_CAPTURE_ANCHOR_RE = re.compile(r"^search-set-(before|after)-[0-9a-z-]
 SEARCH_SET_CAPTURE_COMMAND = "python3 scripts/run-search-set.py"
 SEARCH_SET_CAPTURE_SYNTAX_RE = re.compile(r"[|&;<>()[\]{}$`\\*?\n]")
 SEARCH_SET_CAPTURE_ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+SEARCH_SET_CAPTURE_FIELD_RE = re.compile(r"^- \*\*([A-Za-z0-9_]+)\*\*: ?(.*)$")
+SEARCH_SET_CAPTURE_REQUIRED_FIELDS = (
+    "phase",
+    "status",
+    "command",
+    "exit_code",
+    "stdout_sha256",
+    "stderr_sha256",
+    "head_ref",
+    "captured_at",
+)
 RAW_CLAIM_EVIDENCE_PATH_PARTS = {
     ".harness",
     "artifact",
@@ -432,7 +443,91 @@ def resolve_ref(root: Path, ref: str) -> str | None:
     return resolve_repo_path(root, ref)
 
 
-def search_set_trace_ref_error(root: Path, ref: object, *, field: str) -> str | None:
+def markdown_section_lines(path: Path, anchor: str) -> list[str] | None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    in_section = False
+    section: list[str] = []
+    for line in lines:
+        if line.startswith("#"):
+            line_anchor = markdown_anchor(line.lstrip("#").strip())
+            if in_section:
+                break
+            if line_anchor == anchor:
+                in_section = True
+                continue
+        if in_section:
+            section.append(line)
+    return section if in_section else None
+
+
+def unbacktick(value: str) -> str:
+    stripped = value.strip()
+    if len(stripped) >= 2 and stripped.startswith("`") and stripped.endswith("`"):
+        return stripped[1:-1].strip()
+    return stripped
+
+
+def search_set_capture_fields(root: Path, ref: str) -> tuple[dict[str, str], str | None]:
+    path_ref = trace_ref_path(ref)
+    anchor = trace_ref_anchor(ref)
+    if not path_ref or not anchor:
+        return {}, f"search-set capture ref is not canonical: {ref}"
+    path = root / path_ref
+    section = markdown_section_lines(path, anchor)
+    if section is None:
+        return {}, f"search-set capture section does not resolve: {ref}"
+    fields: dict[str, str] = {}
+    for line in section:
+        match = SEARCH_SET_CAPTURE_FIELD_RE.fullmatch(line.strip())
+        if match:
+            fields[match.group(1)] = match.group(2).strip()
+    return fields, None
+
+
+def search_set_capture_record_error(root: Path, ref: str, *, expected_phase: str | None = None) -> str | None:
+    anchor = trace_ref_anchor(ref)
+    if not isinstance(anchor, str) or not SEARCH_SET_CAPTURE_ANCHOR_RE.fullmatch(anchor):
+        return None
+    fields, section_error = search_set_capture_fields(root, ref)
+    if section_error:
+        return section_error
+    missing = [name for name in SEARCH_SET_CAPTURE_REQUIRED_FIELDS if not fields.get(name)]
+    if missing:
+        return f"search-set capture record is missing required fields {missing}: {ref}"
+    phase = fields["phase"]
+    if phase not in {"before", "after"}:
+        return f"search-set capture record phase must be before or after: {ref}"
+    if expected_phase and phase != expected_phase:
+        return f"search-set capture record phase must be {expected_phase}: {ref}"
+    anchor_phase = SEARCH_SET_CAPTURE_ANCHOR_RE.fullmatch(anchor).group(1)
+    if phase != anchor_phase:
+        return f"search-set capture record phase must match anchor phase {anchor_phase}: {ref}"
+    if fields["status"] != "PASS":
+        return f"search-set capture record status must be PASS: {ref}"
+    if fields["exit_code"] != "0":
+        return f"search-set capture record exit_code must be 0: {ref}"
+    for stream_field in ("stdout_sha256", "stderr_sha256"):
+        if not re.fullmatch(r"[0-9a-f]{64}", fields[stream_field]):
+            return f"search-set capture record {stream_field} must be a sha256 hex digest: {ref}"
+    if not unbacktick(fields["command"]):
+        return f"search-set capture record command must be non-empty: {ref}"
+    if not unbacktick(fields["head_ref"]):
+        return f"search-set capture record head_ref must be non-empty: {ref}"
+    if not date_like(fields["captured_at"]):
+        return f"search-set capture record captured_at must be an ISO date not in the future: {ref}"
+    return None
+
+
+def search_set_trace_ref_error(
+    root: Path,
+    ref: object,
+    *,
+    field: str,
+    expected_phase: str | None = None,
+) -> str | None:
     if not isinstance(ref, str) or not ref:
         return f"{field} must be a non-empty trace ref"
     if not ref.startswith("trace:"):
@@ -443,6 +538,8 @@ def search_set_trace_ref_error(root: Path, ref: object, *, field: str) -> str | 
         return f"{field} must point to .harness/traces/search-set.md with an allowed search-set anchor: {ref}"
     if resolve_ref(root, ref) is None:
         return f"{field} does not resolve: {ref}"
+    if error := search_set_capture_record_error(root, ref, expected_phase=expected_phase):
+        return f"{field}: {error}"
     return None
 
 
@@ -4096,12 +4193,15 @@ def validate_packet(
             trace_ref = trace_refs.get(trace_name)
             if trace_ref is None:
                 continue
+            expected_phase = "before" if trace_name == "search_set_before" else "after"
             if not isinstance(trace_ref, str) or not trace_ref.startswith("trace:"):
                 errors.append(f"stable trace_refs.{trace_name} must use trace: scheme: {trace_ref}")
             elif not trace_ref_has_anchor(trace_ref):
                 errors.append(f"stable trace_refs.{trace_name} must include an anchor: {trace_ref}")
             elif not is_search_set_trace_ref(trace_ref):
                 errors.append(f"stable trace_refs.{trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
+            elif error := search_set_capture_record_error(root, trace_ref, expected_phase=expected_phase):
+                errors.append(f"stable trace_refs.{trace_name}: {error}")
             elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                 errors.append(f"stable trace_refs.{trace_name} lacks resolved generated trace relation: {trace_ref}")
         if isinstance(trace_refs, dict):
@@ -4149,6 +4249,12 @@ def validate_packet(
                     errors.append(f"stable protected packet missing {trace_name}")
                 elif not is_search_set_trace_ref(trace_ref):
                     errors.append(f"stable protected packet {trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
+                elif error := search_set_capture_record_error(
+                    root,
+                    trace_ref,
+                    expected_phase="before" if trace_name == "search_set_before" else "after",
+                ):
+                    errors.append(f"stable protected packet {trace_name}: {error}")
                 elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                     errors.append(f"stable protected packet {trace_name} lacks resolved generated trace relation: {trace_ref}")
 
@@ -5988,18 +6094,24 @@ def finalize_packet(args: argparse.Namespace) -> int:
         "search_set_before": args.search_set_before,
         "search_set_after": args.search_set_after,
     }
-    for field, ref in search_set_refs.items():
-        if not ref:
-            continue
-        error = search_set_trace_ref_error(root, ref, field=f"finalize --{field.replace('_', '-')}")
-        if error:
-            raise PacketError(error)
     if (
         args.search_set_before
         and args.search_set_after
         and canonical_trace_ref(args.search_set_before) == canonical_trace_ref(args.search_set_after)
     ):
         raise PacketError("finalize search-set before and after refs must be distinct")
+    for field, ref in search_set_refs.items():
+        if not ref:
+            continue
+        expected_phase = "before" if field == "search_set_before" else "after"
+        error = search_set_trace_ref_error(
+            root,
+            ref,
+            field=f"finalize --{field.replace('_', '-')}",
+            expected_phase=expected_phase,
+        )
+        if error:
+            raise PacketError(error)
     packet = infer_packet_result(
         root,
         packet,

@@ -16,6 +16,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "check-governance-acceptance.py"
 FIXTURE_ROOT = ROOT / "backlog" / "fixtures" / "acceptance-packets"
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 
 
 def run_cli(*args: str, cwd: Path = ROOT, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -4355,7 +4356,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             search_set = root / ".harness/traces/search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
-                """# Harness Search Set
+                f"""# Harness Search Set
 
 ## Active
 
@@ -4369,10 +4370,22 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 ### Search-set before fixture
 - **phase**: before
 - **status**: PASS
+- **command**: `true`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `HEAD`
+- **captured_at**: 2026-05-18
 
 ### Search-set after fixture
 - **phase**: after
 - **status**: PASS
+- **command**: `true`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `HEAD`
+- **captured_at**: 2026-05-18
 """,
                 encoding="utf-8",
             )
@@ -4432,7 +4445,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("trace:.harness/traces/search-set.md#search-set-before-fixture", trace_refs)
         self.assertIn("trace:.harness/traces/search-set.md#search-set-after-fixture", trace_refs)
 
-    def test_finalize_rejects_same_captured_search_set_trace_ref(self) -> None:
+    def test_finalize_rejects_incomplete_captured_search_set_trace_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
@@ -4453,6 +4466,134 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 ### Search-set before fixture
 - **phase**: before
 - **status**: PASS
+""",
+                encoding="utf-8",
+            )
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            packet = root / "archive/v2/packets/pkt-search-set-incomplete.yml"
+            run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                str(packet),
+                "--intent",
+                "Update script.",
+                "--base-ref",
+                base_ref,
+            )
+
+            finalize = run_cli(
+                "--root",
+                str(root),
+                "finalize",
+                "--packet",
+                str(packet),
+                "--base-ref",
+                base_ref,
+                "--search-set-before",
+                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+            )
+
+        self.assertNotEqual(finalize.returncode, 0)
+        self.assertIn("search-set capture record is missing required fields", finalize.stderr)
+
+    def test_finalize_rejects_wrong_phase_captured_search_set_trace_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                f"""# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set after fixture
+- **phase**: after
+- **status**: PASS
+- **command**: `true`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `HEAD`
+- **captured_at**: 2026-05-18
+""",
+                encoding="utf-8",
+            )
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            packet = root / "archive/v2/packets/pkt-search-set-wrong-phase.yml"
+            run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                str(packet),
+                "--intent",
+                "Update script.",
+                "--base-ref",
+                base_ref,
+            )
+
+            finalize = run_cli(
+                "--root",
+                str(root),
+                "finalize",
+                "--packet",
+                str(packet),
+                "--base-ref",
+                base_ref,
+                "--search-set-before",
+                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+            )
+
+        self.assertNotEqual(finalize.returncode, 0)
+        self.assertIn("search-set capture record phase must be before", finalize.stderr)
+
+    def test_finalize_rejects_same_captured_search_set_trace_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                f"""# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set before fixture
+- **phase**: before
+- **status**: PASS
+- **command**: `true`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `HEAD`
+- **captured_at**: 2026-05-18
 """,
                 encoding="utf-8",
             )
