@@ -1,0 +1,35 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_out_of_repo_scratch_output'"'"',
+    '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_repo_local_non_archive_scratch_output'"'"'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' + '"'"','"'"'.join(names));
+    print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+    print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+    sys.exit(0 if result.wasSuccessful() else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+  result_digest: 53919bc431419de8597c4fa634d2dd6216759b7df1e6b99855589dc8196810b8
+  packet_ref: archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+  packet_sha256: 92348667c64fa25f6821dd334e81036baca4d22b488589e02b3f75c871916bfe
+  source_refs:
+  - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_review_import.py
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-18'
+  stdout: 'tests=tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_out_of_repo_scratch_output,tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_repo_local_non_archive_scratch_output
+
+    tests_run=2
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: 856be0e95580b900b02b6f22e57894eba6890fb7fe161861c18df868dee236eb
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

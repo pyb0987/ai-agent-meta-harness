@@ -1,0 +1,525 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260518152254-5e3576f6
+    packet_ref: archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+    review_target_digest: aab6fbaf864d34aced5cbcae78cb0ae1304a5e4d3fb9b2d82de6feaa07371a85
+    baseline_ref: 94cabd511a16f92a9b35140370b97585602ce1e2
+    comparison_ref: 94cabd511a16f92a9b35140370b97585602ce1e2
+    source_refs: []
+    changed_paths:
+    - MAINTENANCE.md
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - backlog/v2-roadmap.md
+    - scripts/check-active-packet-gate.py
+    - scripts/check-governance-acceptance.py
+    - tests/test_active_packet_gate.py
+    - tests/test_governance_review_import.py
+    - tests/test_maintenance_policy_boundaries.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - evidence auditability
+    - methodology fidelity
+    - release integration
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260518152254-5e3576f6-active-gate-review-template-hardening
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Review import for active-gate command replay hardening and review-template
+        scratch-output ergonomics.
+      source_refs: &id001
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - backlog/v2-roadmap.md
+      - scripts/check-active-packet-gate.py
+      - scripts/check-governance-acceptance.py
+      - tests/test_active_packet_gate.py
+      - tests/test_governance_review_import.py
+      - tests/test_maintenance_policy_boundaries.py
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - evidence-auditability
+    - methodology-fidelity
+    - release-integration
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Release-gate engineer focused on false-green closure in active pointer
+        validation.
+      scope: Validate that base-ref active gate checks replay pointer-bound archived
+        command evidence.
+      anti_scope: Does not certify future publish-wrapper ergonomics or semantic agent-in-loop
+        review quality.
+      attack_surface: A hand-authored passing command artifact could be accepted by
+        release verification without replay.
+      primary_failure_mode: Active gate passes a stable pointer whose archived command
+        now fails under replay.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Release verification could otherwise report PASS while command
+        evidence is stale or forged.
+      invariant_checked: Base-ref active packet gate calls pointer validation with
+        replay_command_evidence enabled.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_active_packet_gate.ActivePacketGateTests.test_base_ref_gate_replays_archived_command_evidence'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Focused active-gate regression rejects forged passing command
+        evidence when release validation replays it.
+      probe_interpretation: The deterministic unittest output shows the release gate
+        now exercises replay semantics for pointer-bound command artifacts.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Regression test covers a stable pointer with forged pass metadata whose underlying
+        diff-check command fails.
+      - provenance_record_sha256:5eea092bfc33e3a0481d7b71eeb4d525ed3cd11da7bc1d969ef304b0b1a4d471
+      - provenance_record_sha256:431ed86dd6850f239b8284308ed5f5e5024a37cabcd93f6ccbf1c406591f565d
+      - review_lineage_sha256:6454a246186b56c363817f1605a4ca45ac5e1a95aefb0c61d98321581bd21628
+      source_refs: &id002
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - scripts/check-active-packet-gate.py
+      - tests/test_active_packet_gate.py
+      why_not_10: The gate is covered for the identified false-green, while broader
+        historical trace fidelity remains a labeled residual.
+      residual_risk_disposition: Residual trace fidelity is tracked as v2-residual-09
+        and does not weaken this replay-gate invariant.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: review_quality
+      persona: Evidence-honesty reviewer checking that residual labels do not become
+        claims of completed functionality.
+      scope: Confirm post-v2 residuals are explicitly labeled and not cited as completed
+        active behavior.
+      anti_scope: Does not judge unreleased agent-in-loop semantic scoring as already
+        implemented.
+      attack_surface: Documentation could overclaim that trace reuse or semantic multi-review
+        independence is complete.
+      primary_failure_mode: Residual work is described as done and then reused as
+        acceptance evidence.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A stable packet could hide unfinished simplicity or semantic-review
+        work behind vague PASS wording.
+      invariant_checked: Residual labels distinguish closed active-model invariants
+        from post-v2 design choices.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_post_v2_residuals_accept_replay_and_simplicity_hardening'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Maintenance boundary test confirms replay hardening is closed
+        while search-set fidelity, publish wrapper, and agent-in-loop scoring remain
+        residual labels.
+      probe_interpretation: The output binds the documentation claim to a deterministic
+        policy-boundary test rather than prose-only acceptance.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Plan11 and roadmap keep v2-residual-09 through v2-residual-12 as explicit
+        follow-up labels.
+      source_refs: &id003
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - MAINTENANCE.md
+      - backlog/v2-roadmap.md
+      - tests/test_maintenance_policy_boundaries.py
+      why_not_10: The review confirms honesty of labels, not completion of those optional
+        future improvements.
+      residual_risk_disposition: Open residuals remain intentionally non-blocking
+        and labeled for future work.
+    - critic_id: evidence-auditability
+      name: Evidence Auditability Critic
+      critic_type: domain
+      persona: Archive evidence reviewer checking review-template materialization
+        and import artifacts.
+      scope: Validate durable review imports and scratch templates keep separate archive
+        and draft boundaries.
+      anti_scope: Does not replace human completion of review judgment fields.
+      attack_surface: Out-of-repo draft templates or .claude drafts could be mistaken
+        for durable archive evidence.
+      primary_failure_mode: Scratch review artifacts are imported as stable evidence
+        without archive materialization.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Draft review wrappers could otherwise be confused with archive-bound
+        imported evidence.
+      invariant_checked: Scratch output is draft-only; durable import still requires
+        archive materialization.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_out_of_repo_scratch_output'"'"',
+        '"'"'tests.test_governance_review_import.GovernanceReviewImportTests.test_review_template_allows_repo_local_non_archive_scratch_output'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Review-template tests allow scratch drafts outside archive while
+        keeping durable import evidence under archive/v2/artifacts.
+      probe_interpretation: The transcript demonstrates the operator convenience path
+        without weakening durable archive import constraints.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-evidence-auditability-probe.yml
+      reason_no_probe: null
+      evidence:
+      - review-template supports --scratch-output while import-review continues to
+        bind durable archive artifacts.
+      source_refs: &id004
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_review_import.py
+      why_not_10: A fuller reviewer wizard could still reduce YAML editing friction
+        in future work.
+      residual_risk_disposition: Review-template completion ergonomics remain tracked
+        without blocking v2 deployment.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: domain
+      persona: Methodology maintainer checking v2 residual registry discipline.
+      scope: Confirm Plan11 and maintenance docs preserve the active v2 boundary without
+        overclaiming v1 parity.
+      anti_scope: Does not certify future packaging or one-command publish wrappers.
+      attack_surface: The roadmap could present deterministic fixture validation as
+        full agent-in-loop multi-review semantics.
+      primary_failure_mode: Meta-harness v2 claims complete independent semantic critic
+        discovery when only deterministic validators exist.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A governance PASS could imply broader v1-style semantic benchmark
+        behavior than the v2 harness currently implements.
+      invariant_checked: Post-v2 residual labels make the semantic and ergonomics
+        boundaries explicit.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_residual_registry_labels_follow_up_scope'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Residual registry test confirms active labels and follow-up scope
+        are present and named.
+      probe_interpretation: The test keeps the roadmap honest about deterministic
+        artifact validation versus future semantic evaluation.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The roadmap keeps agent-in-loop multi-review evaluation as a post-v2 design
+        choice.
+      source_refs: &id005
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - tests/test_maintenance_policy_boundaries.py
+      why_not_10: Semantic agent-in-loop scoring is intentionally deferred.
+      residual_risk_disposition: Deferred semantic scoring remains visible as v2-residual-12.
+    - critic_id: release-integration
+      name: Release Integration Critic
+      critic_type: validation_layer
+      persona: Release operator checking the command surface used by verify-release
+        and active pointer publication.
+      scope: Confirm release verification lists active gate command evidence and release
+        pointer validation replays it.
+      anti_scope: Does not prove a remote origin/main pointer can reuse an older local
+        publication pointer.
+      attack_surface: Release checks could skip active packet replay and still show
+        green from structural pointer bytes.
+      primary_failure_mode: verify-release accepts unreplayed active pointer command
+        evidence.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A release command could continue to list the active gate but
+        fail to exercise replay semantics.
+      invariant_checked: verify-release includes active gate wiring and the active
+        gate replays archived command evidence in base-ref mode.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_active_packet_gate.ActivePacketGateTests.test_base_ref_gate_replays_archived_command_evidence'"'"',
+        '"'"'tests.test_verify_release.VerifyReleaseTests.test_list_mode_prints_base_ref_search_set_evidence_command'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Focused release tests cover active gate listing and replay rejection
+        for forged command evidence.
+      probe_interpretation: The deterministic test output binds release integration
+        to active packet gate behavior rather than docs alone.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-release-integration-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The old origin/main pointer mismatch is not reused; this packet binds the
+        current content commit to base 94cabd5.
+      source_refs: &id006
+      - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+      - scripts/verify-release.py
+      - scripts/check-active-packet-gate.py
+      - tests/test_verify_release.py
+      - tests/test_active_packet_gate.py
+      why_not_10: Final full release verification still happens after archive-only
+        publication.
+      residual_risk_disposition: The archive publication step will run verify-release
+        against the fresh pointer.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: domain
+      persona: Scope reviewer ensuring the packet covers only replay hardening, scratch-template
+        ergonomics, and residual labeling.
+      scope: Check the packet changed paths match the requested meta-harness follow-up
+        work.
+      anti_scope: Does not approve unrelated implementation or archived historical
+        rewrites.
+      attack_surface: A content commit could mix unrelated feature work into the v2
+        deployment hardening packet.
+      primary_failure_mode: Acceptance packet source refs omit one of the eight modified
+        files or include unrelated scope.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: The packet could certify broader v2 completion while leaving
+        the identified residuals unlabeled.
+      invariant_checked: The changed paths and lifecycle docs remain aligned with
+        the requested v2 hardening scope.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_v2_packet_lifecycle_is_active_policy'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Maintenance lifecycle test confirms the operator path includes
+        review-template scratch/durable forms and active packet gates.
+      probe_interpretation: The transcript anchors scope to the files and docs changed
+        in this packet.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Packet target_binding lists the eight changed files and no archive/v2 publication
+        files.
+      source_refs: *id001
+      why_not_10: A future one-command publish wrapper could further simplify the
+        operator path.
+      residual_risk_disposition: One-command publish remains a labeled post-v2 design
+        choice.
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260518152254-5e3576f6-checker-correctness
+    critic: checker correctness
+    scope: Validate that base-ref active gate checks replay pointer-bound archived
+      command evidence.
+    anti_scope: Does not certify future publish-wrapper ergonomics or semantic agent-in-loop
+      review quality.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: Release verification could otherwise report PASS while command
+      evidence is stale or forged.
+    invariant_checked: Base-ref active packet gate calls pointer validation with replay_command_evidence
+      enabled.
+    evidence:
+    - Regression test covers a stable pointer with forged pass metadata whose underlying
+      diff-check command fails.
+    source_refs: *id002
+    blocking_findings: []
+    why_not_10: The gate is covered for the identified false-green, while broader
+      historical trace fidelity remains a labeled residual.
+    disposition: Residual trace fidelity is tracked as v2-residual-09 and does not
+      weaken this replay-gate invariant.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518152254-5e3576f6-claim-evidence
+    critic: claim evidence
+    scope: Confirm post-v2 residuals are explicitly labeled and not cited as completed
+      active behavior.
+    anti_scope: Does not judge unreleased agent-in-loop semantic scoring as already
+      implemented.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: A stable packet could hide unfinished simplicity or semantic-review
+      work behind vague PASS wording.
+    invariant_checked: Residual labels distinguish closed active-model invariants
+      from post-v2 design choices.
+    evidence:
+    - Plan11 and roadmap keep v2-residual-09 through v2-residual-12 as explicit follow-up
+      labels.
+    source_refs: *id003
+    blocking_findings: []
+    why_not_10: The review confirms honesty of labels, not completion of those optional
+      future improvements.
+    disposition: Open residuals remain intentionally non-blocking and labeled for
+      future work.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518152254-5e3576f6-evidence-auditability
+    critic: evidence auditability
+    scope: Validate durable review imports and scratch templates keep separate archive
+      and draft boundaries.
+    anti_scope: Does not replace human completion of review judgment fields.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: Draft review wrappers could otherwise be confused with archive-bound
+      imported evidence.
+    invariant_checked: Scratch output is draft-only; durable import still requires
+      archive materialization.
+    evidence:
+    - review-template supports --scratch-output while import-review continues to bind
+      durable archive artifacts.
+    source_refs: *id004
+    blocking_findings: []
+    why_not_10: A fuller reviewer wizard could still reduce YAML editing friction
+      in future work.
+    disposition: Review-template completion ergonomics remain tracked without blocking
+      v2 deployment.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518152254-5e3576f6-methodology-fidelity
+    critic: methodology fidelity
+    scope: Confirm Plan11 and maintenance docs preserve the active v2 boundary without
+      overclaiming v1 parity.
+    anti_scope: Does not certify future packaging or one-command publish wrappers.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: A governance PASS could imply broader v1-style semantic benchmark
+      behavior than the v2 harness currently implements.
+    invariant_checked: Post-v2 residual labels make the semantic and ergonomics boundaries
+      explicit.
+    evidence:
+    - The roadmap keeps agent-in-loop multi-review evaluation as a post-v2 design
+      choice.
+    source_refs: *id005
+    blocking_findings: []
+    why_not_10: Semantic agent-in-loop scoring is intentionally deferred.
+    disposition: Deferred semantic scoring remains visible as v2-residual-12.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518152254-5e3576f6-release-integration
+    critic: release integration
+    scope: Confirm release verification lists active gate command evidence and release
+      pointer validation replays it.
+    anti_scope: Does not prove a remote origin/main pointer can reuse an older local
+      publication pointer.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: A release command could continue to list the active gate but
+      fail to exercise replay semantics.
+    invariant_checked: verify-release includes active gate wiring and the active gate
+      replays archived command evidence in base-ref mode.
+    evidence:
+    - The old origin/main pointer mismatch is not reused; this packet binds the current
+      content commit to base 94cabd5.
+    source_refs: *id006
+    blocking_findings: []
+    why_not_10: Final full release verification still happens after archive-only publication.
+    disposition: The archive publication step will run verify-release against the
+      fresh pointer.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518152254-5e3576f6-scope-boundary
+    critic: scope boundary
+    scope: Check the packet changed paths match the requested meta-harness follow-up
+      work.
+    anti_scope: Does not approve unrelated implementation or archived historical rewrites.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+    false_green_risk: The packet could certify broader v2 completion while leaving
+      the identified residuals unlabeled.
+    invariant_checked: The changed paths and lifecycle docs remain aligned with the
+      requested v2 hardening scope.
+    evidence:
+    - Packet target_binding lists the eight changed files and no archive/v2 publication
+      files.
+    source_refs: *id001
+    blocking_findings: []
+    why_not_10: A future one-command publish wrapper could further simplify the operator
+      path.
+    disposition: One-command publish remains a labeled post-v2 design choice.
+    rerun_of: null
+    fixed_finding_ids: []

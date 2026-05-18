@@ -1,0 +1,40 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_v2_packet_lifecycle_is_active_policy'"'"'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' + '"'"','"'"'.join(names));
+    print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+    print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+    sys.exit(0 if result.wasSuccessful() else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518152254-5e3576f6-review-import.yml
+  result_digest: 53919bc431419de8597c4fa634d2dd6216759b7df1e6b99855589dc8196810b8
+  packet_ref: archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+  packet_sha256: 92348667c64fa25f6821dd334e81036baca4d22b488589e02b3f75c871916bfe
+  source_refs:
+  - archive/v2/packets/pkt-20260518152254-5e3576f6.yml
+  - MAINTENANCE.md
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  - backlog/v2-roadmap.md
+  - scripts/check-active-packet-gate.py
+  - scripts/check-governance-acceptance.py
+  - tests/test_active_packet_gate.py
+  - tests/test_governance_review_import.py
+  - tests/test_maintenance_policy_boundaries.py
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-18'
+  stdout: 'tests=tests.test_maintenance_policy_boundaries.MaintenancePolicyBoundaryTests.test_v2_packet_lifecycle_is_active_policy
+
+    tests_run=1
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: c7e3c5125d56a172a6b3cf62fa5078557828697bda432eaeb4b77c19b233e334
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
