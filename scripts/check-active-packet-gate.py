@@ -239,7 +239,13 @@ def regular_file_error(path: Path, *, label: str, ref: str) -> str | None:
     return None
 
 
-def validate_pointer_gate(root: Path, pointer_ref: str, *, base_ref: str | None = None) -> list[str]:
+def validate_pointer_gate(
+    root: Path,
+    pointer_ref: str,
+    *,
+    base_ref: str | None = None,
+    replay_command_evidence: bool = False,
+) -> list[str]:
     checker = load_checker(root)
     pointer_path = root / pointer_ref
     pointer_file_error = regular_file_error(pointer_path, label="active packet pointer", ref=pointer_ref)
@@ -251,7 +257,12 @@ def validate_pointer_gate(root: Path, pointer_ref: str, *, base_ref: str | None 
         return [f"active packet pointer could not be read: {exc}"]
     errors = [
         f"active packet pointer: {error}"
-        for error in checker.validate_pointer(pointer, root=root, pointer_ref=pointer_ref)
+        for error in checker.validate_pointer(
+            pointer,
+            root=root,
+            pointer_ref=pointer_ref,
+            replay_archive_command_evidence=replay_command_evidence,
+        )
     ]
     packet_ref = pointer.get("packet_ref") if isinstance(pointer, dict) else None
     if not isinstance(packet_ref, str):
@@ -413,7 +424,7 @@ def validate_release_pointer_gate(root: Path, pointer_ref: str, *, base_ref: str
         checkout_errors = checkout_snapshot_commit(snapshot, publication_commit)
         if checkout_errors:
             return checkout_errors
-        return validate_pointer_gate(snapshot, pointer_ref)
+        return validate_pointer_gate(snapshot, pointer_ref, replay_command_evidence=True)
 
 
 def release_scope_errors_for_base(

@@ -2541,6 +2541,21 @@ def review_import_output_ref_from_arg(
     return output_ref, output_path
 
 
+def review_template_scratch_output_ref_from_arg(root: Path, output: str) -> tuple[str, Path]:
+    output_value = output.removeprefix("file:")
+    output_path = Path(output_value)
+    output_path = root / output_path if not output_path.is_absolute() else output_path
+    if output_path.suffix not in {".yml", ".yaml"}:
+        raise PacketError("review-template scratch output must be a .yml or .yaml file")
+    if repo_path_has_symlink(root, output_path):
+        raise PacketError(f"review-template scratch output must be a regular file, not a symlink: {output_path}")
+    try:
+        output_ref = f"file:{repo_relative_path(root, output_path)}"
+    except PacketError:
+        output_ref = f"file:{output_path.resolve().as_posix()}"
+    return output_ref, output_path
+
+
 def review_template_probe_transcript(
     *,
     command: str,
@@ -2875,6 +2890,13 @@ def review_import_document_text(wrapper: dict) -> str:
 
 def probe_transcript_document_text(transcript: dict) -> str:
     return yaml.safe_dump({PROBE_TRANSCRIPT_KEY: transcript}, sort_keys=False, allow_unicode=False)
+
+
+def local_file_ref_for_path(root: Path, path: Path) -> str:
+    try:
+        return f"file:{repo_relative_path(root, path)}"
+    except PacketError:
+        return f"file:{path.resolve().as_posix()}"
 
 
 def review_import_probe_transcript_updates(
@@ -6019,6 +6041,9 @@ def import_review(args: argparse.Namespace) -> int:
 
 def review_template(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
+    if args.output and args.scratch_output:
+        print("ERROR: review-template accepts only one of --output or --scratch-output", file=sys.stderr)
+        return 1
     packet_arg = Path(args.packet)
     packet_path = root / packet_arg if not packet_arg.is_absolute() else packet_arg
     if repo_path_has_symlink(root, packet_path):
@@ -6027,14 +6052,17 @@ def review_template(args: argparse.Namespace) -> int:
     packet = load_packet(packet_path)
     try:
         packet_ref = repo_relative_path(root, packet_path)
-        source_ref, source_path = review_import_output_ref_from_arg(
-            root,
-            packet,
-            source_ref=None,
-            source_path=None,
-            output=args.output,
-            overwrite=args.overwrite,
-        )
+        if args.scratch_output:
+            source_ref, source_path = review_template_scratch_output_ref_from_arg(root, args.scratch_output)
+        else:
+            source_ref, source_path = review_import_output_ref_from_arg(
+                root,
+                packet,
+                source_ref=None,
+                source_path=None,
+                output=args.output,
+                overwrite=args.overwrite,
+            )
     except PacketError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -6060,9 +6088,17 @@ def review_template(args: argparse.Namespace) -> int:
     if write_error:
         print(f"ERROR: {write_error}", file=sys.stderr)
         return 1
-    print(f"wrote review template: {source_ref}")
+    if args.scratch_output:
+        print(f"wrote scratch review template: {source_ref}")
+        print("scratch review templates are draft workspace files; use --output under archive/v2/artifacts/ for durable import evidence")
+    else:
+        print(f"wrote review template: {source_ref}")
     for probe_path in sorted(probe_updates, key=lambda item: item.as_posix()):
-        print(f"wrote probe template: file:{repo_relative_path(root, probe_path)}")
+        probe_ref = local_file_ref_for_path(root, probe_path)
+        if args.scratch_output:
+            print(f"wrote scratch probe template: {probe_ref}")
+        else:
+            print(f"wrote probe template: {probe_ref}")
     return 0
 
 
@@ -6437,6 +6473,7 @@ def build_parser() -> argparse.ArgumentParser:
     review_template_parser = subparsers.add_parser("review-template")
     review_template_parser.add_argument("--packet", required=True)
     review_template_parser.add_argument("--output")
+    review_template_parser.add_argument("--scratch-output")
     review_template_parser.add_argument("--overwrite", action="store_true")
     review_template_parser.set_defaults(func=review_template)
 

@@ -262,6 +262,89 @@ class ActivePacketGateTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(f"active packet gate: PASS {pointer_rel}", result.stdout)
 
+    def test_base_ref_gate_replays_archived_command_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "docs" / "note.md").write_text("bad whitespace   \n", encoding="utf-8")
+            git(root, "add", "docs/note.md")
+            git(root, "commit", "-m", "content with diff-check failure")
+            accepted_head = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet_rel, artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+            packet_path = root / packet_rel
+            artifact_path = root / artifact_rel
+            packet_doc = yaml.safe_load(packet_path.read_text(encoding="utf-8"))
+            packet = packet_doc["AcceptancePacket"]
+            command = f"git diff --check {base_ref}...{accepted_head}"
+            packet["result"]["inference"]["required_evidence"] = [command]
+            packet["result"]["inference"]["changed_paths"] = ["docs/note.md"]
+            packet["result"]["inference"]["actual_scope"] = "docs/note.md"
+            packet["result"]["evidence"]["baseline_ref"] = base_ref
+            packet["result"]["evidence"]["comparison_ref"] = base_ref
+            packet["result"]["evidence"]["evaluator_boundary"]["commands"] = [command]
+            packet["result"]["evidence"]["command_results"][0]["command"] = command
+            source_ref = f"git:{accepted_head}:docs/note.md"
+            packet["result"]["evidence"]["source_refs"] = [source_ref]
+            packet["result"]["evidence"]["resolved_refs"].append(
+                {
+                    "origin": "generated",
+                    "relation": "source",
+                    "ref": source_ref,
+                    "status": "resolved",
+                    "target": f"{accepted_head}:docs/note.md",
+                }
+            )
+            packet_path.write_text(yaml.safe_dump(packet_doc, sort_keys=False), encoding="utf-8")
+            packet_sha = hashlib.sha256(packet_path.read_bytes()).hexdigest()
+            artifact_path.write_text(
+                "\n".join(
+                    [
+                        "# Command Evidence",
+                        f"packet_id: {packet['meta']['packet_id']}",
+                        f"packet_ref: {packet_rel}",
+                        f"packet_sha256: {packet_sha}",
+                        f"command: {command}",
+                        "status: pass",
+                        "summary: forged pass command evidence",
+                        "replay_metadata: pointer-bound",
+                        "replay_recorded_by: scripts/check-governance-acceptance.py",
+                        "replay_recorded_at: 2026-05-06",
+                        "replay_checker_ref: scripts/check-governance-acceptance.py",
+                        "exit_code: 0",
+                        "stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            checker = load_checker()
+            archive_commit, archive_error = checker.create_archive_commit(root, packet, packet_ref=packet_rel)
+            self.assertIsNone(archive_error)
+            pointer = checker.pointer_for_packet(
+                packet,
+                root=root,
+                packet_ref=packet_rel,
+                packet_sha256=packet_sha,
+                archive_commit=archive_commit,
+            )
+            pointer_rel = "archive/v2/pointers/pkt-archived-pointer-test.yml"
+            pointer_path = root / pointer_rel
+            pointer_path.parent.mkdir(parents=True, exist_ok=True)
+            pointer_path.write_text(
+                yaml.safe_dump({"AcceptancePacketPointer": pointer}, sort_keys=False),
+                encoding="utf-8",
+            )
+            git(root, "add", "archive/v2")
+            git(root, "commit", "-m", "publish forged active pointer")
+
+            result = run_gate("--root", str(root), "--base-ref", base_ref, "--pointer", pointer_rel)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable command artifact does not record command evidence", result.stderr)
+        self.assertIn("command replay exit mismatch", result.stderr)
+
     def test_base_ref_gate_allows_noop_before_archive_publication(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

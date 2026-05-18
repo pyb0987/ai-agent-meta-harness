@@ -130,6 +130,80 @@ Acceptance criteria:
 - If packet-internal hashes are introduced, canonical serialization excludes the
   hash field or otherwise avoids self-reference.
 
+### v2-residual-08 release-command-replay-gate
+
+Boundary: the release/base-ref active packet gate is the final publication
+acceptance gate, so it must replay pointer-bound command evidence. Staged
+preflight and stable packet `check` remain non-executing structural gates.
+
+Acceptance criteria:
+
+- Release/base-ref active packet validation calls pointer replay for archived
+  command evidence.
+- A forged passing command artifact whose command now fails is rejected by the
+  release gate, not only by manual `check-pointer --replay-command-evidence`.
+- Staged preflight keeps validating staged archive bytes without executing
+  artifact-supplied commands.
+
+### v2-residual-09 search-set-trace-fidelity
+
+Boundary: targeted skips for `search_set_before` and `search_set_after` are
+valid human-disposition records, but they are lower-fidelity than reusable trace
+refs for high-risk packets.
+
+Acceptance criteria:
+
+- High-risk packet tooling can capture or prompt for distinct before/after
+  `.harness/traces/search-set.md` refs.
+- Targeted skips remain explicit human/operator decisions with provenance.
+- Review scoring treats targeted skips as acceptable but not equivalent to full
+  trace reuse.
+
+### v2-residual-10 review-template-completion-ergonomics
+
+Boundary: `review-template` owns the target-bound wrapper/probe skeleton, but
+reviewers still have to complete substantive probe, lineage, and critic fields.
+Future helpers may reduce YAML editing without auto-certifying PASS.
+
+Acceptance criteria:
+
+- Any helper keeps reviewer judgment explicit and refuses to generate a PASS
+  from placeholders alone.
+- Generated drafts distinguish prompts from certifying evidence.
+- Review-import validation continues to reject incomplete templates.
+
+### v2-residual-11 publish-wrapper-ergonomics
+
+Boundary: v2 uses safe primitives today. A future one-command wrapper can
+compose those primitives, but must preserve content commits first and one
+archive-only publication commit last.
+
+Acceptance criteria:
+
+- The wrapper does not merge content and archive publication bytes into the same
+  commit.
+- It fails closed when review import, command replay, pointer audit, or active
+  gate validation fails.
+- It remains a composition layer over the existing checker semantics rather
+  than a second policy implementation.
+
+### v2-residual-12 agent-in-loop-multi-review-eval
+
+Boundary: current multi-review v2 validation is deterministic artifact
+validation. It structurally blocks governance PASS false greens in typed
+fixtures, but it does not yet measure whether independent agents discover
+issues from `public_input`, whether critic frames are semantically diverse, or
+whether evidence relevance passes a semantic scorer.
+
+Acceptance criteria:
+
+- A future runner hides sealed oracles and asks an agent to produce
+  `MultiReviewResult` artifacts from public inputs.
+- Semantic scoring evaluates critic diversity, issue discovery, and evidence
+  relevance separately from structural schema validity.
+- Deterministic fixture checks remain the stable regression layer and are not
+  overclaimed as agent-in-the-loop benchmark evidence.
+
 ## Processing Order
 
 1. Close `v2-residual-01` and `v2-residual-02` together because they both guard
@@ -140,6 +214,13 @@ Acceptance criteria:
    one or more release cycles.
 4. Handle `v2-residual-05`, `v2-residual-06`, and `v2-residual-07` as policy
    hardening unless a critic promotes one to release-blocking.
+5. Close `v2-residual-08` before relying on release verification as the only
+   command-evidence replay surface.
+6. Handle `v2-residual-09`, `v2-residual-10`, and `v2-residual-11` as
+   post-v2 simplicity/fidelity improvements unless a critic promotes one to
+   release-blocking.
+7. Handle `v2-residual-12` as evaluation-methodology work after the structural
+   validator fixture layer remains stable.
 
 ## Implementation Iteration 1
 
@@ -273,6 +354,50 @@ Future work after v2 completion:
   listed in Implementation Iteration 2.
 - Optional packet-internal hash design, only if canonical serialization avoids
   self-reference and migration ambiguity.
+- Optional search-set trace capture helper for high-risk packets.
+- Optional review completion helper that reduces manual YAML editing without
+  certifying placeholders.
+- Optional `governance publish` wrapper that composes safe primitives without
+  weakening content-first, archive-last publication.
+- Optional agent-in-the-loop multi-review runner plus semantic scorer for
+  critic diversity, issue discovery, and evidence relevance.
+
+## Implementation Iteration 4
+
+Closed in this iteration:
+
+- `v2-residual-08 release-command-replay-gate`: release/base-ref active packet
+  validation now calls pointer command replay, so forged PASS metadata cannot
+  satisfy the release gate when the underlying archived command fails.
+
+Still pending:
+
+- `v2-residual-09 search-set-trace-fidelity`: targeted skips remain valid but
+  lower-fidelity than distinct before/after search-set trace refs.
+- `v2-residual-10 review-template-completion-ergonomics`: review-template
+  skeletons reduce shape burden, but future helpers can further reduce manual
+  probe/lineage field editing without auto-certifying PASS.
+- `v2-residual-11 publish-wrapper-ergonomics`: a future wrapper can compose the
+  current primitives while preserving the two-commit content/archive boundary.
+- `v2-residual-12 agent-in-loop-multi-review-eval`: deterministic fixtures
+  remain structural validator checks; agent discovery and semantic relevance
+  scoring are explicitly later evaluation work.
+
+## Implementation Iteration 5
+
+Closed in this iteration:
+
+- `v2-residual-10 review-template-completion-ergonomics`: `review-template`
+  now supports `--scratch-output` for draft-only wrapper/probe templates outside
+  `archive/v2/artifacts/`, including `/private/tmp/...` or repo-local
+  `.claude/...` workspace paths. Durable import evidence remains archive-bound
+  through `--output` or `import-review --from -`.
+
+Still pending:
+
+- `v2-residual-09 search-set-trace-fidelity`
+- `v2-residual-11 publish-wrapper-ergonomics`
+- `v2-residual-12 agent-in-loop-multi-review-eval`
 
 ## Multi-Review Seed
 

@@ -45,14 +45,23 @@ it. Label follow-up work with the residual IDs in
 - `v2-residual-05 checker-versioned-history`
 - `v2-residual-06 worktree-mode-boundary`
 - `v2-residual-07 packet-hash-placement`
+- `v2-residual-08 release-command-replay-gate`
+- `v2-residual-09 search-set-trace-fidelity`
+- `v2-residual-10 review-template-completion-ergonomics`
+- `v2-residual-11 publish-wrapper-ergonomics`
+- `v2-residual-12 agent-in-loop-multi-review-eval`
 
 Use those labels for hardening and operations work that follows the core v2
 handoff path. Do not cite a residual label as completed active functionality
 until a later packet closes that label with its own evidence and review.
 
-Plan 11 closes those residual labels for the v2 active model. The closure does
-not claim optional future features: package-manager installation, chained active
-publication releases, or packet-internal hashes remain post-v2 design choices.
+Plan 11 closes the original residual labels for the v2 active model and keeps
+new post-v2 hardening labels separate from v2 deployment readiness. The closure
+does not claim optional future features: package-manager installation, chained
+active publication releases, packet-internal hashes, richer trace capture,
+reviewer-wizard completion, one-command publish wrappers, or agent-in-the-loop
+semantic multi-review scoring remain post-v2 design choices until their own
+packets close them.
 For this repository, `governance` is the supported public command surface and
 delegates to the repository-local checker; old packets with non-current checker
 or inference versions remain historical compatibility evidence; `--worktree`
@@ -95,7 +104,7 @@ Target commands:
 ```bash
 governance start --base-ref REF --intent "..." [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
-governance review-template --packet <packet> [--output <artifact>]
+governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
@@ -119,6 +128,11 @@ Lifecycle rules:
   skeleton plus probe transcript templates; it is deliberately incomplete until
   reviewers replace the TODO fields, clear blocking findings, and record real
   probe evidence.
+- `review-template --scratch-output` may write draft-only wrapper/probe
+  templates outside `archive/v2/artifacts/` for reviewer workspace use. Scratch
+  outputs are not durable import evidence; use `--output` under
+  `archive/v2/artifacts/` or `import-review --from -` to materialize the
+  completed review.
 - `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
   and records it in packet evidence when reviewer judgment is required.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.
@@ -185,11 +199,13 @@ publication path is:
 
 ```bash
 python3 scripts/check-governance-acceptance.py write-pointer --packet archive/v2/packets/<packet_id>.yml
-python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml
+python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml --replay-command-evidence
 ```
 
-Optional audit/debug replay is explicit and not part of routine release,
-pre-commit, `finalize`, or stable `check` flows:
+Release verification must replay archived command evidence through the active
+base-ref pointer gate. Staged pre-commit, `finalize`, and stable `check` keep
+command/probe execution out of their routine validation path; direct pointer
+audit replay remains available for debugging:
 
 ```bash
 python3 scripts/check-governance-acceptance.py check-pointer --pointer archive/v2/pointers/<packet_id>.yml --replay-command-evidence
@@ -233,8 +249,9 @@ The active pointer validates:
   roll artifact bytes back so retries are not poisoned
 - archived command artifacts are bound by SHA-256 and include pointer-bound
   replay metadata for the matched `# Command Evidence` section
-- explicit pointer replay can rerun archived command evidence and compare
-  recorded exit/stdout/stderr hashes without making stable `check` execute
+- release active pointer validation and explicit pointer replay rerun archived
+  command evidence and compare recorded exit/stdout/stderr hashes without
+  making stable `check`, `finalize`, or staged pre-commit execute
   artifact-supplied commands
 
 ## Active Governance Boundaries
@@ -244,9 +261,11 @@ During the v2 transition, keep the active operator model to these boundaries:
 - `check` is read-only. Stable handoff validation may read packets, source
   refs, transcripts, and command artifacts, but it must not execute
   artifact-supplied probe commands.
-- `replay` is explicit. Probe commands may run only through an explicit replay
-  path such as `python3 scripts/check-multi-review-result.py --result <path>
-  --replay-probe-commands`; replay is not part of stable packet `check`.
+- `replay` is scoped. Release active pointer validation replays archived
+  command evidence because it is the final publication gate. Probe commands may
+  run only through an explicit replay path such as
+  `python3 scripts/check-multi-review-result.py --result <path>
+  --replay-probe-commands`; probe replay is not part of stable packet `check`.
 - `stable` validates durable structural evidence. A stable packet proves
   closure through recomputed required evidence/review, structured imports,
   source refs, transcripts, and reopenable packet-bound command artifacts, not

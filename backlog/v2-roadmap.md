@@ -23,7 +23,7 @@ CLI surface:
 ```bash
 governance start --base-ref <comparison-ref> --intent "..."
 governance finalize --packet <packet> --base-ref <comparison-ref>
-governance review-template --packet <packet> [--output <artifact>]
+governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
@@ -272,6 +272,24 @@ Residual labels:
 - `v2-residual-07 packet-hash-placement`: closed for v2. Active pointers and
   review-import target bindings are the current packet digest roots; adding a
   packet-internal hash is optional post-v2 design work.
+- `v2-residual-08 release-command-replay-gate`: accepted as post-v2 hardening.
+  The release/base-ref active packet gate must replay pointer-bound command
+  evidence; staged preflight and stable packet `check` remain non-executing.
+- `v2-residual-09 search-set-trace-fidelity`: accepted as post-v2 hardening.
+  Targeted skips for `search_set_before`/`search_set_after` are valid but score
+  below full trace reuse; future work should capture before/after trace refs
+  when high-risk packets are prepared.
+- `v2-residual-10 review-template-completion-ergonomics`: accepted as post-v2
+  simplification. `review-template` owns the target-bound skeleton, but a
+  future helper can reduce reviewer field-editing without auto-certifying PASS.
+- `v2-residual-11 publish-wrapper-ergonomics`: accepted as post-v2
+  simplification. A future `governance publish` wrapper can compose the safe
+  primitives while preserving content commits first and one archive publication
+  commit last.
+- `v2-residual-12 agent-in-loop-multi-review-eval`: accepted as post-v2
+  evaluation work. Current multi-review v2 structurally blocks governance PASS
+  false greens; future runners can measure independent critic discovery,
+  semantic diversity, and evidence relevance from public inputs.
 
 ## Validation Plan
 
@@ -280,7 +298,7 @@ Validate v2 using the method it introduces:
 - Use the current packet lifecycle for active v2 implementation work:
   `governance start --base-ref <comparison-ref> --intent "..."`,
   `governance finalize --packet <packet> --base-ref <comparison-ref>`, and
-  `governance review-template --packet <packet> [--output <artifact>]` when
+  `governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]` when
   durable review judgment is required, then
   `governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]`
   after reviewers complete the draft artifact, then `governance write-pointer
@@ -304,3 +322,13 @@ Validate v2 using the method it introduces:
   packet digests in active pointers and review-import target bindings.
 - Which future stable-closure gaps are safe for materialization commands to
   repair automatically, and which must remain explicit human judgment.
+- Whether to add a high-risk trace capture helper for `search_set_before` and
+  `search_set_after`.
+- Whether to add a review completion helper that keeps human judgment explicit
+  while reducing manual probe/lineage YAML edits.
+- Whether to add a `governance publish` wrapper that composes existing
+  primitives without weakening the two-step content-then-archive publication
+  boundary.
+- Whether to add agent-in-the-loop multi-review evaluation and semantic scoring
+  for critic diversity and evidence relevance; current deterministic fixtures
+  remain structural validator checks.

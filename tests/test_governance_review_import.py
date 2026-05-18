@@ -385,6 +385,42 @@ class GovernanceReviewImportTests(unittest.TestCase):
         self.assertNotEqual(import_result.returncode, 0)
         self.assertIn("imported MultiReviewResult must freshly derive governance PASS: VETO", import_result.stderr)
 
+    def test_review_template_allows_out_of_repo_scratch_output(self) -> None:
+        packet_path = self.materialize_packet()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scratch_path = Path(tmpdir) / "review-template.yml"
+
+            result = run_cli("review-template", "--packet", str(packet_path), "--scratch-output", str(scratch_path))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("wrote scratch review template: file:", result.stdout)
+            self.assertIn("scratch review templates are draft workspace files", result.stdout)
+            wrapper = load_yaml(scratch_path)["AcceptancePacketReviewImport"]
+            self.assertEqual(wrapper["MultiReviewResult"]["lifecycle"], "draft")
+            for critic in wrapper["MultiReviewResult"]["critics"]:
+                probe_ref = critic["probe_evidence_refs"][0]
+                probe_path = Path(probe_ref.removeprefix("file:"))
+                self.assertEqual(probe_path.parent.resolve(), scratch_path.parent.resolve())
+                self.assertTrue(probe_path.is_file(), probe_ref)
+
+    def test_review_template_allows_repo_local_non_archive_scratch_output(self) -> None:
+        packet_path = self.materialize_packet()
+        scratch_path = self.tmp_path / ".claude" / "review-template.yml"
+
+        result = run_cli("review-template", "--packet", str(packet_path), "--scratch-output", str(scratch_path))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        wrapper = load_yaml(scratch_path)["AcceptancePacketReviewImport"]
+        self.assertEqual(wrapper["MultiReviewResult"]["lifecycle"], "draft")
+        self.assertTrue(
+            all(
+                critic["probe_evidence_refs"][0].startswith(
+                    f"file:{scratch_path.parent.relative_to(ROOT).as_posix()}/"
+                )
+                for critic in wrapper["MultiReviewResult"]["critics"]
+            )
+        )
+
     def test_import_review_rejects_wrong_target_without_relabeling(self) -> None:
         packet_path = self.materialize_packet()
         packet = load_yaml(packet_path)["AcceptancePacket"]

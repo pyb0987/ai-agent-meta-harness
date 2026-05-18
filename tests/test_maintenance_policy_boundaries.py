@@ -40,7 +40,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "Release/pre-commit now route active archive packet publication through the packet-pointer gate",
             "governance start --base-ref REF --intent",
             "governance finalize --packet <packet> --staged|--base-ref REF|--worktree",
-            "governance review-template --packet <packet> [--output <artifact>]",
+            "governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]",
             "governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]",
             "governance write-pointer --packet <packet>",
             "governance check --packet <packet> --require-stable",
@@ -119,7 +119,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "`write-pointer` materializes pointer-bound replay metadata and recorded exit/stdout/stderr hashes",
             "`--overwrite` regenerates existing pointer-bound replay metadata",
             "archived command artifacts are bound by SHA-256 and include pointer-bound replay metadata",
-            "explicit pointer replay can rerun archived command evidence and compare recorded exit/stdout/stderr hashes",
+            "release active pointer validation and explicit pointer replay rerun archived command evidence and compare recorded exit/stdout/stderr hashes",
             "historical `archive/v2/` bytes are committed repository bytes, not a future whitelist",
             "Routine `finalize`, stable `check`, release, and pre-commit flows do not execute or trust prior pointer command results",
         ):
@@ -159,7 +159,7 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
 
         for marker in (
             "governance start --base-ref <comparison-ref> --intent",
-            "governance review-template --packet <packet> [--output <artifact>]",
+            "governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]",
             "governance import-review --packet <packet> --from <review-artifact-or-stdin>",
             "[--output <artifact>]",
             "current repository-local executable is the v2 command surface",
@@ -181,6 +181,11 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "v2-residual-05 checker-versioned-history",
             "v2-residual-06 worktree-mode-boundary",
             "v2-residual-07 packet-hash-placement",
+            "v2-residual-08 release-command-replay-gate",
+            "v2-residual-09 search-set-trace-fidelity",
+            "v2-residual-10 review-template-completion-ergonomics",
+            "v2-residual-11 publish-wrapper-ergonomics",
+            "v2-residual-12 agent-in-loop-multi-review-eval",
         ):
             with self.subTest(label=label):
                 self.assertIn(label, maintenance)
@@ -295,14 +300,40 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, plan11)
 
-        self.assertIn("Plan 11 closes those residual labels for the v2 active model", maintenance)
-        self.assertIn("package-manager installation, chained active publication releases, or packet-internal hashes remain post-v2 design choices", maintenance)
+        self.assertIn("Plan 11 closes the original residual labels for the v2 active model", maintenance)
+        self.assertIn("reviewer-wizard completion, one-command publish wrappers, or agent-in-the-loop semantic multi-review scoring remain post-v2 design choices", maintenance)
         self.assertIn("old packets with non-current checker or inference versions remain historical compatibility evidence", maintenance)
         self.assertIn("Plan 11 closes the remaining residual labels for the v2 active model", roadmap)
         self.assertIn("Post-v2 Design Choices", roadmap)
         self.assertIn("current repository-local executable is the v2 command surface", roadmap)
         self.assertNotIn("## Open Decisions", roadmap)
         self.assertNotIn("remaining question is installation/exposure mechanics", roadmap)
+
+    def test_post_v2_residuals_accept_replay_and_simplicity_hardening(self) -> None:
+        maintenance = normalized_text()
+        roadmap = normalized_file_text(ROADMAP)
+        plan11 = normalized_file_text(PLAN11)
+
+        for marker in (
+            "it must replay pointer-bound command evidence",
+            "targeted skips for `search_set_before` and `search_set_after` are valid",
+            "Future helpers may reduce YAML editing without auto-certifying PASS",
+            "future one-command wrapper can compose those primitives",
+            "current multi-review v2 validation is deterministic artifact validation",
+            "Implementation Iteration 5",
+            "`review-template` now supports `--scratch-output`",
+            "Implementation Iteration 4",
+            "v2-residual-08 release-command-replay-gate",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan11)
+
+        self.assertIn("Release verification must replay archived command evidence", maintenance)
+        self.assertIn("release active pointer validation and explicit pointer replay rerun archived command evidence", maintenance)
+        self.assertIn("v2-residual-09 search-set-trace-fidelity", roadmap)
+        self.assertIn("v2-residual-10 review-template-completion-ergonomics", roadmap)
+        self.assertIn("v2-residual-11 publish-wrapper-ergonomics", roadmap)
+        self.assertIn("v2-residual-12 agent-in-loop-multi-review-eval", roadmap)
 
 
 if __name__ == "__main__":
