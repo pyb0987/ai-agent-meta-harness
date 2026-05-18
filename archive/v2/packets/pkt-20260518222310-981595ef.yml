@@ -1,0 +1,326 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260518222310-981595ef
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-18
+    finalized_at: 2026-05-18
+  input:
+    intent: Close v2-residual-09 by adding search-set trace capture and finalize bindings.
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - backlog/v2-roadmap.md
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      intended_scope: Close v2-residual-09 by adding search-set trace capture and
+        finalize bindings.
+      actual_scope: MAINTENANCE.md, backlog/plans/11-v2-residual-hardening-and-operations.md,
+        backlog/v2-roadmap.md, scripts/check-governance-acceptance.py, tests/test_governance_acceptance_cli.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - git diff --check 5d393989a284b05c8354a6145892442ea0cad98f...0235eae83e66504cce10bbc76dd6599bad738044
+      required_review:
+      - checker correctness
+      - claim evidence
+      - evidence auditability
+      - methodology fidelity
+      - scope boundary
+    evidence:
+      baseline_ref: 5d393989a284b05c8354a6145892442ea0cad98f
+      comparison_ref: 5d393989a284b05c8354a6145892442ea0cad98f
+      accepted_head_commit: 0235eae83e66504cce10bbc76dd6599bad738044
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: git diff --check 5d393989a284b05c8354a6145892442ea0cad98f...0235eae83e66504cce10bbc76dd6599bad738044
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-git-diff-check.log
+      source_refs:
+      - git:0235eae83e66504cce10bbc76dd6599bad738044:MAINTENANCE.md
+      - git:0235eae83e66504cce10bbc76dd6599bad738044:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - git:0235eae83e66504cce10bbc76dd6599bad738044:backlog/v2-roadmap.md
+      - git:0235eae83e66504cce10bbc76dd6599bad738044:scripts/check-governance-acceptance.py
+      - git:0235eae83e66504cce10bbc76dd6599bad738044:tests/test_governance_acceptance_cli.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:0235eae83e66504cce10bbc76dd6599bad738044:MAINTENANCE.md
+        status: resolved
+        target: 0235eae83e66504cce10bbc76dd6599bad738044:MAINTENANCE.md
+      - origin: generated
+        relation: source
+        ref: git:0235eae83e66504cce10bbc76dd6599bad738044:backlog/plans/11-v2-residual-hardening-and-operations.md
+        status: resolved
+        target: 0235eae83e66504cce10bbc76dd6599bad738044:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - origin: generated
+        relation: source
+        ref: git:0235eae83e66504cce10bbc76dd6599bad738044:backlog/v2-roadmap.md
+        status: resolved
+        target: 0235eae83e66504cce10bbc76dd6599bad738044:backlog/v2-roadmap.md
+      - origin: generated
+        relation: source
+        ref: git:0235eae83e66504cce10bbc76dd6599bad738044:scripts/check-governance-acceptance.py
+        status: resolved
+        target: 0235eae83e66504cce10bbc76dd6599bad738044:scripts/check-governance-acceptance.py
+      - origin: generated
+        relation: source
+        ref: git:0235eae83e66504cce10bbc76dd6599bad738044:tests/test_governance_acceptance_cli.py
+        status: resolved
+        target: 0235eae83e66504cce10bbc76dd6599bad738044:tests/test_governance_acceptance_cli.py
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518222310-981595ef-git-diff-check.log
+      - origin: generated
+        relation: claim-evidence
+        ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-claim-evidence-probe.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518222310-981595ef-claim-evidence-probe.yml
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Search-set before/after trace refs are captured when supplied;
+          missing refs remain explicit targeted skips.
+      skipped:
+      - evidence: search_set_before
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_before; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_after; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+      claims:
+      - claim: v2-residual-09 now has repository-local tooling to capture reusable
+          search-set before/after refs and bind them during finalize.
+        raw_evidence_refs:
+        - file:archive/v2/artifacts/pkt-20260518222310-981595ef-claim-evidence-probe.yml
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 8471ab0e744c2245ee2017b8d64df5674d4795cbed688b9c6e3f3493ace9cfa6
+        status: imported
+        review_ids:
+        - review-pkt-20260518222310-981595ef-checker-correctness
+        - review-pkt-20260518222310-981595ef-claim-evidence
+        - review-pkt-20260518222310-981595ef-evidence-auditability
+        - review-pkt-20260518222310-981595ef-methodology-fidelity
+        - review-pkt-20260518222310-981595ef-scope-boundary
+        target_binding:
+          packet_id: pkt-20260518222310-981595ef
+          packet_ref: archive/v2/packets/pkt-20260518222310-981595ef.yml
+          review_target_digest: 001fad8b88e6d63ac27520227646f091ca87a467695881ab7ed948c0608ee042
+          baseline_ref: 5d393989a284b05c8354a6145892442ea0cad98f
+          comparison_ref: 5d393989a284b05c8354a6145892442ea0cad98f
+          source_refs: []
+          changed_paths:
+          - MAINTENANCE.md
+          - backlog/plans/11-v2-residual-hardening-and-operations.md
+          - backlog/v2-roadmap.md
+          - scripts/check-governance-acceptance.py
+          - tests/test_governance_acceptance_cli.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - evidence auditability
+          - methodology fidelity
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-pkt-20260518222310-981595ef-checker-correctness
+        critic: checker correctness
+        scope: Confirm capture-search-set and finalize search-set ref binding are
+          implemented in the checker with focused regression coverage.
+        anti_scope: Does not re-review unrelated archive publication or multi-publication
+          release behavior.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        false_green_risk: A packet could appear to close v2-residual-09 while the
+          checker still only records skip provenance.
+        invariant_checked: Supplied search-set before/after refs must resolve, be
+          distinct, and replace targeted skips in packet evidence.
+        evidence:
+        - Focused CLI tests cover capture output, finalize trace binding, and duplicate-ref
+          rejection.
+        source_refs:
+        - archive/v2/packets/pkt-20260518222310-981595ef.yml
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_acceptance_cli.py
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local v2 residual closure, not
+          paper-level semantic agent-in-loop evaluation.
+        disposition: Accepted for v2-residual-09; remaining ergonomics and semantic-evaluation
+          residuals stay separately labeled.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518222310-981595ef-claim-evidence
+        critic: claim evidence
+        scope: Check that v2-residual-09 closure claims describe implemented tooling
+          and keep residual caveats explicit.
+        anti_scope: Does not certify original paper benchmark reproduction or semantic
+          agent-in-loop scoring.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        false_green_risk: A governance PASS could be based on overstated prose rather
+          than bounded implementation evidence.
+        invariant_checked: "Plan and maintenance text distinguish future capture capability\
+          \ from this packet\u2019s skipped before-capture provenance."
+        evidence:
+        - Plan iteration now records BEFORE as skipped for this implementation and
+          AFTER as Active search-set PASS.
+        source_refs:
+        - archive/v2/packets/pkt-20260518222310-981595ef.yml
+        - MAINTENANCE.md
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local v2 residual closure, not
+          paper-level semantic agent-in-loop evaluation.
+        disposition: Accepted for v2-residual-09; remaining ergonomics and semantic-evaluation
+          residuals stay separately labeled.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518222310-981595ef-evidence-auditability
+        critic: evidence auditability
+        scope: Validate that the changed protected surface has recorded search-set
+          evidence and auditable command/probe refs.
+        anti_scope: Does not require fresh probe execution inside stable packet check;
+          explicit replay remains separate.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        false_green_risk: A protected checker change could omit search-set evidence
+          while still reaching stable handoff.
+        invariant_checked: Search-set evidence checker accepts this changed surface
+          with require-active-run enabled.
+        evidence:
+        - The required active-run search-set evidence checker passed for the residual-09
+          changed paths.
+        source_refs:
+        - archive/v2/packets/pkt-20260518222310-981595ef.yml
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        - .harness/traces/search-set.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local v2 residual closure, not
+          paper-level semantic agent-in-loop evaluation.
+        disposition: Accepted for v2-residual-09; remaining ergonomics and semantic-evaluation
+          residuals stay separately labeled.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518222310-981595ef-methodology-fidelity
+        critic: methodology fidelity
+        scope: Assess whether the implementation improves trace reuse without claiming
+          semantic methodology completeness.
+        anti_scope: Does not treat deterministic fixture validation as agent-in-loop
+          semantic multi-review evaluation.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        false_green_risk: A PASS label could obscure that v2-residual-12 remains about
+          semantic agent-in-loop evaluation.
+        invariant_checked: Active search-set cases remain explicit, listable, and
+          separate from semantic scoring claims.
+        evidence:
+        - The roadmap keeps agent-in-loop semantic scoring as v2-residual-12 while
+          residual-09 is scoped to trace capture tooling.
+        source_refs:
+        - archive/v2/packets/pkt-20260518222310-981595ef.yml
+        - backlog/v2-roadmap.md
+        - .harness/traces/search-set.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local v2 residual closure, not
+          paper-level semantic agent-in-loop evaluation.
+        disposition: Accepted for v2-residual-09; remaining ergonomics and semantic-evaluation
+          residuals stay separately labeled.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518222310-981595ef-scope-boundary
+        critic: scope boundary
+        scope: Confirm the content commit contains only residual-09 implementation,
+          tests, and documentation updates.
+        anti_scope: Does not review generated archive packet bytes that will be published
+          separately after acceptance.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518222310-981595ef-review-import.yml
+        false_green_risk: A packet could certify a broader change than the stated
+          search-set trace fidelity closure.
+        invariant_checked: The fixed diff contains exactly the checker, focused tests,
+          maintenance docs, roadmap, and Plan11 updates.
+        evidence:
+        - Changed-path probe output matches the five residual-09 implementation and
+          documentation files.
+        source_refs:
+        - archive/v2/packets/pkt-20260518222310-981595ef.yml
+        - scripts/check-governance-acceptance.py
+        - tests/test_governance_acceptance_cli.py
+        - MAINTENANCE.md
+        - backlog/v2-roadmap.md
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        blocking_findings: []
+        why_not_10: Review is focused on repository-local v2 residual closure, not
+          paper-level semantic agent-in-loop evaluation.
+        disposition: Accepted for v2-residual-09; remaining ergonomics and semantic-evaluation
+          residuals stay separately labeled.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.
