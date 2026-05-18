@@ -275,10 +275,10 @@ Residual labels:
 - `v2-residual-08 release-command-replay-gate`: accepted as post-v2 hardening.
   The release/base-ref active packet gate must replay pointer-bound command
   evidence; staged preflight and stable packet `check` remain non-executing.
-- `v2-residual-09 search-set-trace-fidelity`: accepted as post-v2 hardening.
-  Targeted skips for `search_set_before`/`search_set_after` are valid but score
-  below full trace reuse; future work should capture before/after trace refs
-  when high-risk packets are prepared.
+- `v2-residual-09 search-set-trace-fidelity`: closed for repository-local v2.
+  `governance capture-search-set --phase before|after` records reusable
+  `.harness/traces/search-set.md` anchors, and `governance finalize
+  --search-set-before/after` binds those refs instead of targeted skips.
 - `v2-residual-10 review-template-completion-ergonomics`: accepted as post-v2
   simplification. `review-template` owns the target-bound skeleton, but a
   future helper can reduce reviewer field-editing without auto-certifying PASS.
@@ -322,8 +322,6 @@ Validate v2 using the method it introduces:
   packet digests in active pointers and review-import target bindings.
 - Which future stable-closure gaps are safe for materialization commands to
   repair automatically, and which must remain explicit human judgment.
-- Whether to add a high-risk trace capture helper for `search_set_before` and
-  `search_set_after`.
 - Whether to add a review completion helper that keeps human judgment explicit
   while reducing manual probe/lineage YAML edits.
 - Whether to add a `governance publish` wrapper that composes existing

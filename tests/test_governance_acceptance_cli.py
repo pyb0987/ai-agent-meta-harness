@@ -4308,6 +4308,190 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("Protected changes require imported review judgment", packet_data["result"]["decision"]["reason"])
         self.assertIn("governance review-template --packet <packet>", packet_data["result"]["decision"]["next_action"])
 
+    def test_capture_search_set_writes_resolvable_phase_trace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                """# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+""",
+                encoding="utf-8",
+            )
+
+            result = run_cli(
+                "--root",
+                str(root),
+                "capture-search-set",
+                "--phase",
+                "before",
+                "--packet",
+                "archive/v2/packets/pkt-search-set.yml",
+                "--command",
+                "true",
+            )
+            text = search_set.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("captured search-set before trace: trace:.harness/traces/search-set.md#", result.stdout)
+        self.assertIn("## Search-set Evidence Captures", text)
+        self.assertIn("### Search-set before ", text)
+        self.assertIn("- **status**: PASS", text)
+        self.assertIn("- **command**: `true`", text)
+        self.assertIn("- **packet_ref**: `archive/v2/packets/pkt-search-set.yml`", text)
+
+    def test_finalize_base_ref_accepts_captured_search_set_trace_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                """# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set before fixture
+- **phase**: before
+- **status**: PASS
+
+### Search-set after fixture
+- **phase**: after
+- **status**: PASS
+""",
+                encoding="utf-8",
+            )
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            packet = root / "archive/v2/packets/pkt-search-set-traces.yml"
+
+            start = run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                str(packet),
+                "--intent",
+                "Update protected script with captured search-set traces.",
+                "--base-ref",
+                base_ref,
+            )
+            finalize = run_cli(
+                "--root",
+                str(root),
+                "finalize",
+                "--packet",
+                str(packet),
+                "--base-ref",
+                base_ref,
+                "--search-set-before",
+                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "--search-set-after",
+                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+            )
+            packet_data = yaml.safe_load(packet.read_text(encoding="utf-8"))["AcceptancePacket"]
+
+        self.assertEqual(start.returncode, 0, start.stderr)
+        self.assertEqual(finalize.returncode, 0, finalize.stderr)
+        evidence = packet_data["result"]["evidence"]
+        self.assertEqual(
+            evidence["trace_refs"]["search_set_before"],
+            "trace:.harness/traces/search-set.md#search-set-before-fixture",
+        )
+        self.assertEqual(
+            evidence["trace_refs"]["search_set_after"],
+            "trace:.harness/traces/search-set.md#search-set-after-fixture",
+        )
+        skipped_targets = {item["evidence"] for item in evidence["skipped"]}
+        self.assertNotIn("search_set_before", skipped_targets)
+        self.assertNotIn("search_set_after", skipped_targets)
+        trace_refs = {
+            item["ref"]
+            for item in evidence["resolved_refs"]
+            if item.get("relation") == "trace" and item.get("origin") == "generated"
+        }
+        self.assertIn("trace:.harness/traces/search-set.md#search-set-before-fixture", trace_refs)
+        self.assertIn("trace:.harness/traces/search-set.md#search-set-after-fixture", trace_refs)
+
+    def test_finalize_rejects_same_captured_search_set_trace_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                """# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set before fixture
+- **phase**: before
+- **status**: PASS
+""",
+                encoding="utf-8",
+            )
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            packet = root / "archive/v2/packets/pkt-search-set-same.yml"
+            run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                str(packet),
+                "--intent",
+                "Update script.",
+                "--base-ref",
+                base_ref,
+            )
+
+            finalize = run_cli(
+                "--root",
+                str(root),
+                "finalize",
+                "--packet",
+                str(packet),
+                "--base-ref",
+                base_ref,
+                "--search-set-before",
+                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "--search-set-after",
+                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+            )
+
+        self.assertNotEqual(finalize.returncode, 0)
+        self.assertIn("finalize search-set before and after refs must be distinct", finalize.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

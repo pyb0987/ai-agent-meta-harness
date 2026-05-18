@@ -159,6 +159,12 @@ Acceptance criteria:
 - Review scoring treats targeted skips as acceptable but not equivalent to full
   trace reuse.
 
+Implementation note: `governance capture-search-set --phase before|after`
+records reusable `.harness/traces/search-set.md#search-set-before-*` and
+`#search-set-after-*` anchors, and `governance finalize` accepts
+`--search-set-before/after` to bind those refs instead of generating targeted
+skips.
+
 ### v2-residual-10 review-template-completion-ergonomics
 
 Boundary: `review-template` owns the target-bound wrapper/probe skeleton, but
@@ -354,7 +360,6 @@ Future work after v2 completion:
   listed in Implementation Iteration 2.
 - Optional packet-internal hash design, only if canonical serialization avoids
   self-reference and migration ambiguity.
-- Optional search-set trace capture helper for high-risk packets.
 - Optional review completion helper that reduces manual YAML editing without
   certifying placeholders.
 - Optional `governance publish` wrapper that composes safe primitives without
@@ -372,8 +377,6 @@ Closed in this iteration:
 
 Still pending:
 
-- `v2-residual-09 search-set-trace-fidelity`: targeted skips remain valid but
-  lower-fidelity than distinct before/after search-set trace refs.
 - `v2-residual-10 review-template-completion-ergonomics`: review-template
   skeletons reduce shape burden, but future helpers can further reduce manual
   probe/lineage field editing without auto-certifying PASS.
@@ -445,6 +448,51 @@ Multi-review:
   and whitespace checks rerun after the wording and validator changes.
 - Final acceptance: accepted as v2 polish that reduces false PASS appearance
   without weakening durable archive import rules.
+
+## Implementation Iteration 7
+
+Closed in this iteration:
+
+- `v2-residual-09 search-set-trace-fidelity`: `governance
+  capture-search-set --phase before|after` now appends reusable
+  `.harness/traces/search-set.md#search-set-before-*` and
+  `#search-set-after-*` anchors, and `governance finalize` can bind those refs
+  through `--search-set-before/after` instead of emitting targeted skips.
+
+Still pending:
+
+- `v2-residual-11 publish-wrapper-ergonomics`
+- `v2-residual-12 agent-in-loop-multi-review-eval`
+
+Search-set verification:
+
+- BEFORE: SKIPPED no pre-change `capture-search-set --phase before` trace was
+  recorded before this implementation began; this iteration closes the tooling
+  gap for future high-risk packets.
+- AFTER: PASS `python3 scripts/run-search-set.py` after the capture/finalize
+  binding change.
+
+Multi-review:
+
+- Verdict: PASS for search-set trace fidelity closure.
+- Trace fidelity critic: score 9 PASS; Blocking findings: none after capture
+  anchors became first-class packet refs and targeted skips remained explicit
+  fallback records. Follow-up/residual risk: accepted; semantic scoring stays
+  tracked separately under `v2-residual-12`.
+- Evidence honesty critic: score 9 PASS; Blocking findings: none; capture refs
+  bind command, status, exit code, stream hashes, head ref, and packet ref
+  without treating targeted skips as equivalent to full trace reuse.
+  Follow-up/residual risk: accepted; publication wrapping stays tracked under
+  `v2-residual-11`.
+- Follow-up/residual risk: semantic agent-in-loop review scoring remains
+  `v2-residual-12`, and one-command publication remains `v2-residual-11`.
+- Score handling: score 9; not 10 because this closes trace reuse ergonomics
+  while keeping broader semantic scoring and publish wrapping out of scope.
+- Rerun status: focused unittest, Active search-set, maintenance review,
+  py_compile, search-set evidence, and whitespace checks rerun after the
+  capture/finalize binding changes.
+- Final acceptance: accepted as v2-residual-09 closure for repository-local
+  v2.
 
 ## Multi-Review Seed
 

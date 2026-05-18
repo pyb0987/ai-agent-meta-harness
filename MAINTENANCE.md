@@ -58,10 +58,10 @@ until a later packet closes that label with its own evidence and review.
 Plan 11 closes the original residual labels for the v2 active model and keeps
 new post-v2 hardening labels separate from v2 deployment readiness. The closure
 does not claim optional future features: package-manager installation, chained
-active publication releases, packet-internal hashes, richer trace capture,
-reviewer-wizard completion, one-command publish wrappers, or agent-in-the-loop
-semantic multi-review scoring remain post-v2 design choices until their own
-packets close them.
+active publication releases, packet-internal hashes, reviewer-wizard
+completion, one-command publish wrappers, or agent-in-the-loop semantic
+multi-review scoring remain post-v2 design choices until their own packets
+close them.
 For this repository, `governance` is the supported public command surface and
 delegates to the repository-local checker; old packets with non-current checker
 or inference versions remain historical compatibility evidence; `--worktree`
@@ -104,6 +104,12 @@ Target commands:
 ```bash
 governance start --base-ref REF --intent "..." [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
+# For high-risk search-set trace reuse:
+governance capture-search-set --phase before --packet <packet>
+governance capture-search-set --phase after --packet <packet>
+governance finalize --packet <packet> --base-ref REF \
+  --search-set-before trace:.harness/traces/search-set.md#search-set-before-... \
+  --search-set-after trace:.harness/traces/search-set.md#search-set-after-...
 governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
@@ -118,6 +124,10 @@ Lifecycle rules:
   `archive/v2/packets/<packet_id>.yml` path.
 - `start` and `finalize` resolve `--base-ref` to a full commit SHA before
   writing packet boundary fields or evidence commands.
+- `capture-search-set` appends a reusable before/after record under
+  `.harness/traces/search-set.md#search-set-before-*` or
+  `#search-set-after-*`; pass those refs to `finalize --search-set-before` and
+  `--search-set-after` for full trace reuse.
 - `finalize` updates evidence and computes `result.decision.stable_handoff_eligible`;
   `--base-ref` also generates commit-pinned changed-path source refs.
 - `check` is read-only and does not mutate packet lifecycle state.
@@ -451,6 +461,11 @@ For this repository's own harness-maintenance loop, use the
 `.harness/traces/` tree as the active repository self-application trace root,
 including `.harness/traces/search-set.md`. Active verify commands should cite
 that trace root when repository maintenance changes need search-set evidence.
+High-risk packet flows can run `governance capture-search-set --phase before`
+and `--phase after` to append reusable `Search-set Evidence Captures` anchors,
+then pass those refs to `governance finalize --search-set-before/after`.
+Targeted skips remain valid human dispositions, but captured before/after refs
+are the higher-fidelity reuse path.
 Historical `.claude/traces/` files are legacy
 Claude-local context; do not write new repository maintenance traces there.
 

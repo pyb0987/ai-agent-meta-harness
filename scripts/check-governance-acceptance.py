@@ -200,6 +200,10 @@ PROOF_LIKE_RE = re.compile(
     re.IGNORECASE,
 )
 SEARCH_SET_TRACE_ANCHORS = {"active"}
+SEARCH_SET_CAPTURE_ANCHOR_RE = re.compile(r"^search-set-(before|after)-[0-9a-z-]+$")
+SEARCH_SET_CAPTURE_COMMAND = "python3 scripts/run-search-set.py"
+SEARCH_SET_CAPTURE_SYNTAX_RE = re.compile(r"[|&;<>()[\]{}$`\\*?\n]")
+SEARCH_SET_CAPTURE_ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 RAW_CLAIM_EVIDENCE_PATH_PARTS = {
     ".harness",
     "artifact",
@@ -428,6 +432,98 @@ def resolve_ref(root: Path, ref: str) -> str | None:
     return resolve_repo_path(root, ref)
 
 
+def search_set_trace_ref_error(root: Path, ref: object, *, field: str) -> str | None:
+    if not isinstance(ref, str) or not ref:
+        return f"{field} must be a non-empty trace ref"
+    if not ref.startswith("trace:"):
+        return f"{field} must use trace: scheme: {ref}"
+    if not trace_ref_has_anchor(ref):
+        return f"{field} must include an anchor: {ref}"
+    if not is_search_set_trace_ref(ref):
+        return f"{field} must point to .harness/traces/search-set.md with an allowed search-set anchor: {ref}"
+    if resolve_ref(root, ref) is None:
+        return f"{field} does not resolve: {ref}"
+    return None
+
+
+def search_set_capture_argv(command: str) -> tuple[list[str] | None, str | None]:
+    if SEARCH_SET_CAPTURE_SYNTAX_RE.search(command):
+        return None, (
+            "search-set capture command contains shell syntax; use a plain argv "
+            "command without pipes, redirects, chaining, command substitution, or globs"
+        )
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        return None, f"search-set capture command cannot be parsed as argv: {exc}"
+    if not argv:
+        return None, "search-set capture command is empty"
+    if SEARCH_SET_CAPTURE_ENV_ASSIGNMENT_RE.match(argv[0]):
+        return None, "search-set capture command uses an environment assignment prefix"
+    return argv, None
+
+
+def search_set_capture_heading(phase: str, *, packet_ref: str | None = None) -> str:
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
+    suffix_source = packet_ref or uuid.uuid4().hex
+    suffix = safe_artifact_stem(suffix_source)[-12:] or uuid.uuid4().hex[:12]
+    return f"Search-set {phase} {stamp} {suffix} {uuid.uuid4().hex[:8]}"
+
+
+def search_set_capture_stream_text(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
+def search_set_capture_record(
+    *,
+    heading: str,
+    phase: str,
+    command: str,
+    completed: subprocess.CompletedProcess[str],
+    head_ref: str,
+    packet_ref: str | None,
+    note: str | None,
+) -> str:
+    status = "PASS" if completed.returncode == 0 else "FAIL"
+    stdout_text = search_set_capture_stream_text(completed.stdout)
+    stderr_text = search_set_capture_stream_text(completed.stderr)
+    stdout_sha = hashlib.sha256(stdout_text.encode("utf-8")).hexdigest()
+    stderr_sha = hashlib.sha256(stderr_text.encode("utf-8")).hexdigest()
+    lines = [
+        f"### {heading}",
+        f"- **phase**: {phase}",
+        f"- **status**: {status}",
+        f"- **command**: `{command}`",
+        f"- **exit_code**: {completed.returncode}",
+        f"- **stdout_sha256**: {stdout_sha}",
+        f"- **stderr_sha256**: {stderr_sha}",
+        f"- **head_ref**: `{head_ref}`",
+        f"- **captured_at**: {today().isoformat()}",
+    ]
+    if packet_ref:
+        lines.append(f"- **packet_ref**: `{packet_ref}`")
+    if note:
+        lines.append(f"- **note**: {note}")
+    return "\n".join(lines) + "\n"
+
+
+def append_search_set_capture(root: Path, record: str) -> None:
+    path = root / ".harness/traces/search-set.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise PacketError(f"cannot read {path.relative_to(root).as_posix()}: {exc}") from exc
+    if "\n## Search-set Evidence Captures\n" not in text:
+        text = text.rstrip() + "\n\n## Search-set Evidence Captures\n\n"
+    else:
+        text = text.rstrip() + "\n\n"
+    write_text_atomic(path, text + record)
+
+
 def trace_ref_has_anchor(ref: str) -> bool:
     if not isinstance(ref, str) or not ref.startswith("trace:"):
         return False
@@ -466,10 +562,14 @@ def canonical_trace_ref(ref: str) -> str | None:
 
 def is_search_set_trace_ref(ref: str) -> bool:
     canonical = canonical_trace_ref(ref)
+    anchor = trace_ref_anchor(ref)
     return (
         canonical == ref
         and trace_ref_path(ref) == ".harness/traces/search-set.md"
-        and trace_ref_anchor(ref) in SEARCH_SET_TRACE_ANCHORS
+        and (
+            anchor in SEARCH_SET_TRACE_ANCHORS
+            or (isinstance(anchor, str) and SEARCH_SET_CAPTURE_ANCHOR_RE.fullmatch(anchor))
+        )
     )
 
 
@@ -5584,7 +5684,15 @@ def finalize_required_evidence_commands(
     packet["result"]["evidence"]["command_results"] = command_results
 
 
-def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | None) -> dict:
+def infer_packet_result(
+    root: Path,
+    packet: dict,
+    *,
+    mode: str,
+    base_ref: str | None,
+    search_set_before: str | None = None,
+    search_set_after: str | None = None,
+) -> dict:
     paths = changed_paths(root, mode=mode, base_ref=base_ref)
     baseline_ref = base_ref if mode == "base-ref" else packet["result"].get("evidence", {}).get("baseline_ref")
     comparison_ref = base_ref if mode == "base-ref" else baseline_ref
@@ -5650,19 +5758,41 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
                 }
             )
     cached_statuses = {evidence_command: diff_status}
+    search_set_trace_refs = {
+        "search_set_before": search_set_before,
+        "search_set_after": search_set_after,
+    }
+    for trace_name, trace_ref in search_set_trace_refs.items():
+        if not trace_ref:
+            continue
+        resolved = resolve_ref(root, trace_ref)
+        if resolved:
+            resolved_refs.append(
+                {
+                    "origin": "generated",
+                    "relation": "trace",
+                    "ref": trace_ref,
+                    "status": "resolved",
+                    "target": resolved,
+                }
+            )
+
     skipped_evidence: list[dict] = []
     if protected:
         skip_source_ref = "file:backlog/plans/04-evidence-capture-and-source-refs.md"
-        resolved_refs.append(
-            {
-                "origin": "generated",
-                "relation": "waiver-provenance",
-                "ref": skip_source_ref,
-                "status": "resolved",
-                "target": "backlog/plans/04-evidence-capture-and-source-refs.md",
-            }
-        )
+        if not all(search_set_trace_refs.values()):
+            resolved_refs.append(
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": skip_source_ref,
+                    "status": "resolved",
+                    "target": "backlog/plans/04-evidence-capture-and-source-refs.md",
+                }
+            )
         for evidence_name in ("search_set_before", "search_set_after"):
+            if search_set_trace_refs.get(evidence_name):
+                continue
             skipped_evidence.append(
                 {
                     "evidence": evidence_name,
@@ -5701,11 +5831,14 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
             "source_refs": source_refs,
             "resolved_refs": resolved_refs,
             "trace_refs": {
-                "search_set_before": None,
-                "search_set_after": None,
+                "search_set_before": search_set_before,
+                "search_set_after": search_set_after,
                 "evolution": [],
                 "failures": [],
-                "disposition": "Trace capture is deferred to Plan 04.",
+                "disposition": (
+                    "Search-set before/after trace refs are captured when supplied; "
+                    "missing refs remain explicit targeted skips."
+                ),
             },
             "skipped": skipped_evidence,
         },
@@ -5851,7 +5984,30 @@ def finalize_packet(args: argparse.Namespace) -> int:
         packet_base_ref = packet["result"].get("evidence", {}).get("baseline_ref")
         if not same_git_boundary(root, packet_base_ref, base_ref):
             raise PacketError(f"{packet_path}: finalize base-ref must match start baseline_ref: {packet_base_ref}")
-    packet = infer_packet_result(root, packet, mode=mode, base_ref=base_ref)
+    search_set_refs = {
+        "search_set_before": args.search_set_before,
+        "search_set_after": args.search_set_after,
+    }
+    for field, ref in search_set_refs.items():
+        if not ref:
+            continue
+        error = search_set_trace_ref_error(root, ref, field=f"finalize --{field.replace('_', '-')}")
+        if error:
+            raise PacketError(error)
+    if (
+        args.search_set_before
+        and args.search_set_after
+        and canonical_trace_ref(args.search_set_before) == canonical_trace_ref(args.search_set_after)
+    ):
+        raise PacketError("finalize search-set before and after refs must be distinct")
+    packet = infer_packet_result(
+        root,
+        packet,
+        mode=mode,
+        base_ref=base_ref,
+        search_set_before=args.search_set_before,
+        search_set_after=args.search_set_after,
+    )
     packet_ref = repo_relative_path(root, packet_path)
     artifact_plan = promote_archive_command_artifacts(packet, packet_ref=packet_ref)
     if artifact_plan:
@@ -5892,6 +6048,51 @@ def finalize_packet(args: argparse.Namespace) -> int:
         write_packet(packet_path, packet, overwrite=True)
     print(f"finalized packet: {path}")
     return 0
+
+
+def capture_search_set(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    command = args.command or SEARCH_SET_CAPTURE_COMMAND
+    argv, argv_error = search_set_capture_argv(command)
+    if argv_error:
+        raise PacketError(argv_error)
+    assert argv is not None
+    try:
+        completed = subprocess.run(
+            argv,
+            cwd=root,
+            env=git_env(),
+            encoding="utf-8",
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=args.timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        completed = subprocess.CompletedProcess(
+            argv,
+            124,
+            stdout=exc.stdout or "",
+            stderr=(exc.stderr or "") + f"\nsearch-set capture timed out after {args.timeout}s",
+        )
+    heading = search_set_capture_heading(args.phase, packet_ref=args.packet)
+    head_ref = git_ref_commit(root, "HEAD") or "HEAD"
+    record = search_set_capture_record(
+        heading=heading,
+        phase=args.phase,
+        command=command,
+        completed=completed,
+        head_ref=head_ref,
+        packet_ref=args.packet,
+        note=args.note,
+    )
+    append_search_set_capture(root, record)
+    trace_ref = f"trace:.harness/traces/search-set.md#{markdown_anchor(heading)}"
+    print(f"captured search-set {args.phase} trace: {trace_ref}")
+    if completed.returncode != 0:
+        print(f"search-set capture command failed with exit code {completed.returncode}", file=sys.stderr)
+    return completed.returncode
 
 
 def check_packet(args: argparse.Namespace) -> int:
@@ -6460,7 +6661,17 @@ def build_parser() -> argparse.ArgumentParser:
     finalize.add_argument("--staged", action="store_true")
     finalize.add_argument("--worktree", action="store_true")
     finalize.add_argument("--base-ref")
+    finalize.add_argument("--search-set-before", help="trace:.harness/traces/search-set.md#... ref captured before the change")
+    finalize.add_argument("--search-set-after", help="trace:.harness/traces/search-set.md#... ref captured after the change")
     finalize.set_defaults(func=finalize_packet)
+
+    capture_search = subparsers.add_parser("capture-search-set")
+    capture_search.add_argument("--phase", choices=("before", "after"), required=True)
+    capture_search.add_argument("--packet", help="packet ref this capture is intended to support")
+    capture_search.add_argument("--command", default=SEARCH_SET_CAPTURE_COMMAND)
+    capture_search.add_argument("--timeout", type=int, default=300)
+    capture_search.add_argument("--note")
+    capture_search.set_defaults(func=capture_search_set)
 
     check = subparsers.add_parser("check")
     check.add_argument("--packet", required=True)
