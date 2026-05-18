@@ -371,6 +371,7 @@ class GovernanceReviewImportTests(unittest.TestCase):
             sorted(self.checker.markdown_anchor(review) for review in required_reviews),
         )
         self.assertEqual(wrapper["MultiReviewResult"]["lifecycle"], "draft")
+        self.assertEqual(wrapper["MultiReviewResult"]["reported_final_verdict"], "INCOMPLETE")
         self.assertTrue(all(critic["verdict"] == "veto" for critic in wrapper["MultiReviewResult"]["critics"]))
         self.assertTrue(all(critic["score"] == 1 for critic in wrapper["MultiReviewResult"]["critics"]))
         for critic in wrapper["MultiReviewResult"]["critics"]:
@@ -383,7 +384,7 @@ class GovernanceReviewImportTests(unittest.TestCase):
             self.assertEqual(transcript["packet_sha256"], "0" * 64)
         import_result = run_cli("import-review", "--packet", str(packet_path), "--from", output_ref)
         self.assertNotEqual(import_result.returncode, 0)
-        self.assertIn("imported MultiReviewResult must freshly derive governance PASS: VETO", import_result.stderr)
+        self.assertIn("imported MultiReviewResult must freshly derive governance PASS: INCOMPLETE", import_result.stderr)
 
     def test_review_template_allows_out_of_repo_scratch_output(self) -> None:
         packet_path = self.materialize_packet()
@@ -394,9 +395,11 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("wrote scratch review template: file:", result.stdout)
-            self.assertIn("scratch review templates are draft workspace files", result.stdout)
+            self.assertIn("scratch review templates are draft-only workspace files", result.stdout)
+            self.assertIn("not accepted directly by import-review", result.stdout)
             wrapper = load_yaml(scratch_path)["AcceptancePacketReviewImport"]
             self.assertEqual(wrapper["MultiReviewResult"]["lifecycle"], "draft")
+            self.assertEqual(wrapper["MultiReviewResult"]["reported_final_verdict"], "INCOMPLETE")
             for critic in wrapper["MultiReviewResult"]["critics"]:
                 probe_ref = critic["probe_evidence_refs"][0]
                 probe_path = Path(probe_ref.removeprefix("file:"))

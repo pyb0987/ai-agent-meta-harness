@@ -130,9 +130,10 @@ Lifecycle rules:
   probe evidence.
 - `review-template --scratch-output` may write draft-only wrapper/probe
   templates outside `archive/v2/artifacts/` for reviewer workspace use. Scratch
-  outputs are not durable import evidence; use `--output` under
-  `archive/v2/artifacts/` or `import-review --from -` to materialize the
-  completed review.
+  outputs are not durable import evidence and out-of-repo `file:` refs are not
+  imported directly; use `--output` under `archive/v2/artifacts/` or
+  `import-review --from - --output file:archive/v2/artifacts/<name>.yml` to
+  materialize the completed review.
 - `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
   and records it in packet evidence when reviewer judgment is required.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.

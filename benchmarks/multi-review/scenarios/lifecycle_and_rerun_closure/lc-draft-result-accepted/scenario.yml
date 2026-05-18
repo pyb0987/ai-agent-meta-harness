@@ -19,6 +19,7 @@ sealed_oracle:
   scoring_mode: validator-only
   expected_derived_verdict: INCOMPLETE
   expected_errors:
+    - "MultiReviewResult.reported_final_verdict: must be a draft verdict for draft lifecycle: ['DRAFT', 'INCOMPLETE']"
     - "MultiReviewResult.lifecycle: draft results are incomplete"
   false_green_target: Draft review output is accepted as final governance approval.
   primary_invariant: Only finalized review artifacts can derive final acceptance.

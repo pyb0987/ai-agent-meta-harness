@@ -124,6 +124,25 @@ class MultiReviewResultCliTests(unittest.TestCase):
 
         self.assert_rejected(result, "MultiReviewResult.reported_final_verdict: must be an acceptance verdict")
 
+    def test_draft_reported_verdict_must_be_incomplete_not_pass(self) -> None:
+        result = load_yaml_fixture("governance-pass.yml")
+        result["MultiReviewResult"]["lifecycle"] = "draft"
+        result["MultiReviewResult"]["reported_final_verdict"] = "INCOMPLETE"
+        accepted_path = self.write_result(result)
+
+        accepted = run_cli("--result", str(accepted_path))
+
+        self.assertNotEqual(accepted.returncode, 0)
+        self.assertIn("DERIVED: INCOMPLETE", accepted.stderr)
+        self.assertNotIn("reported_final_verdict", accepted.stderr)
+
+        result["MultiReviewResult"]["reported_final_verdict"] = "PASS"
+        rejected_path = self.write_result(result)
+        rejected = run_cli("--result", str(rejected_path))
+
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("reported_final_verdict: must be a draft verdict", rejected.stderr)
+
     def test_rejects_advisory_reported_verdict_for_governance_result(self) -> None:
         result = load_yaml_fixture("governance-pass.yml")
         result["MultiReviewResult"]["reported_final_verdict"] = "ADVISORY_PASS"

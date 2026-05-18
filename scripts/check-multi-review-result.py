@@ -83,6 +83,7 @@ VALIDATION_LAYERS = {
 PRIMARY_VALIDATION_LAYERS = {"structured-validator", "raw-artifact", "derived-verdict"}
 DERIVED_VERDICTS = {"PASS", "ADVISORY_PASS", "VETO", "INCOMPLETE", "FALLBACK_NONINDEPENDENT"}
 REPORTED_ACCEPTANCE_VERDICTS = {"PASS", "ADVISORY_PASS"}
+REPORTED_DRAFT_VERDICTS = {"DRAFT", "INCOMPLETE"}
 TARGET_FIELDS = {"summary", "source_refs"}
 PROBE_TRANSCRIPT_FIELDS = {
     "schema_version",
@@ -253,17 +254,26 @@ def validate_top_level(result: dict[str, Any], errors: list[str]) -> None:
         if isinstance(reported_final_verdict, str)
         else None
     )
+    lifecycle = result.get("lifecycle")
+    review_mode = result.get("review_mode")
     if not isinstance(reported_final_verdict, str) or not reported_final_verdict.strip():
         error(errors, "MultiReviewResult.reported_final_verdict", "must be a non-empty string")
+    elif lifecycle == "draft":
+        if reported_verdict not in REPORTED_DRAFT_VERDICTS:
+            error(
+                errors,
+                "MultiReviewResult.reported_final_verdict",
+                f"must be a draft verdict for draft lifecycle: {sorted(REPORTED_DRAFT_VERDICTS)}",
+            )
     elif reported_verdict not in REPORTED_ACCEPTANCE_VERDICTS:
         error(
             errors,
             "MultiReviewResult.reported_final_verdict",
             f"must be an acceptance verdict: {sorted(REPORTED_ACCEPTANCE_VERDICTS)}",
         )
-    elif result.get("review_mode") == "governance" and reported_verdict != "PASS":
+    elif review_mode == "governance" and reported_verdict != "PASS":
         error(errors, "MultiReviewResult.reported_final_verdict", "must be PASS for governance review_mode")
-    elif result.get("review_mode") == "advisory" and reported_verdict != "ADVISORY_PASS":
+    elif review_mode == "advisory" and reported_verdict != "ADVISORY_PASS":
         error(errors, "MultiReviewResult.reported_final_verdict", "must be ADVISORY_PASS for advisory review_mode")
     if not isinstance(result.get("lifecycle"), str) or result.get("lifecycle") not in LIFECYCLES:
         error(errors, "MultiReviewResult.lifecycle", "must be draft or finalized")

@@ -2691,7 +2691,7 @@ def review_template_wrapper(
             },
             "required_critics": [critic["critic_id"] for critic in critics],
             "critics": critics,
-            "reported_final_verdict": "PASS",
+            "reported_final_verdict": "INCOMPLETE",
             "derived_verdict": None,
             "derivation_errors": [],
         },
@@ -6090,7 +6090,11 @@ def review_template(args: argparse.Namespace) -> int:
         return 1
     if args.scratch_output:
         print(f"wrote scratch review template: {source_ref}")
-        print("scratch review templates are draft workspace files; use --output under archive/v2/artifacts/ for durable import evidence")
+        print(
+            "scratch review templates are draft-only workspace files and are not accepted directly by import-review; "
+            "complete the review, then materialize durable evidence with --output under archive/v2/artifacts/ "
+            "or import-review --from - --output file:archive/v2/artifacts/<name>.yml"
+        )
     else:
         print(f"wrote review template: {source_ref}")
     for probe_path in sorted(probe_updates, key=lambda item: item.as_posix()):

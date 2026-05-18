@@ -399,6 +399,53 @@ Still pending:
 - `v2-residual-11 publish-wrapper-ergonomics`
 - `v2-residual-12 agent-in-loop-multi-review-eval`
 
+## Implementation Iteration 6
+
+Closed in this iteration:
+
+- Draft `MultiReviewResult` templates now use `reported_final_verdict:
+  INCOMPLETE`, so generated review skeletons no longer look like human-facing
+  PASS records before reviewers complete the fields and probes.
+- The multi-review validator treats draft lifecycle results as draft verdicts,
+  and the lifecycle fixture now locks draft plus reported PASS as an explicit
+  validator error.
+- `review-template --scratch-output` messaging now states that scratch wrapper
+  and probe refs are draft-only workspace files and must be materialized through
+  archive-bound output before import.
+
+Still pending:
+
+- `v2-residual-09 search-set-trace-fidelity`
+- `v2-residual-11 publish-wrapper-ergonomics`
+- `v2-residual-12 agent-in-loop-multi-review-eval`
+
+Search-set verification:
+
+- SKIPPED: This iteration is validator/template wording polish; focused
+  unittest, fixture replay, maintenance review, py_compile, and whitespace
+  checks cover the changed boundary while `v2-residual-09` keeps full
+  before/after trace capture as follow-up work.
+
+Multi-review:
+
+- Verdict: PASS for draft-template semantics and scratch-output guidance
+  polish.
+- Template semantics critic: score 9 PASS; Blocking findings: none after draft
+  templates stopped reporting PASS and validator coverage locked the draft
+  verdict boundary; residual risk accepted for future reviewer-wizard polish.
+- Scratch workflow critic: score 9 PASS; Blocking findings: none after
+  operator-facing output and maintenance guidance identified scratch files as
+  draft-only, non-import evidence; residual risk accepted for future
+  import-remapping helpers.
+- Follow-up/residual risk: the future reviewer-wizard and publish-wrapper
+  ergonomics remain labeled residuals rather than active v2 requirements.
+- Score handling: score 9; not 10 because this iteration improves draft
+  clarity without implementing a one-command reviewer or publisher workflow.
+- Rerun status: focused unittest, fixture replay, maintenance review, py_compile,
+  and whitespace checks rerun after the wording and validator changes.
+- Final acceptance: accepted as v2 polish that reduces false PASS appearance
+  without weakening durable archive import rules.
+
 ## Multi-Review Seed
 
 Required critic lenses:
