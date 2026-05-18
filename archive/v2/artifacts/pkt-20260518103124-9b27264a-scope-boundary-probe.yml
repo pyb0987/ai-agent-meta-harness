@@ -1,0 +1,21 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "print('main v2 deployment scope-boundary probe')"
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+  result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+  packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+  packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  source_refs:
+  - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+  - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+  - file:.harness/traces/evolution/001-repository-self-application-root.md
+  cwd: .
+  generated_by: governance review-template completion
+  date: '2026-05-18'
+  stdout: 'main v2 deployment scope-boundary probe
+
+    '
+  stderr: ''
+  stdout_sha256: 27d74df835f99032c5a10d51cbb7f6b9b25acc169e6ca96b010e9724e1420c1b
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

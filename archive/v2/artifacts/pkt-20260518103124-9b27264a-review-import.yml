@@ -1,0 +1,527 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260518103124-9b27264a
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    review_target_digest: 6e2549aa5cfea92813222860fce6ba4066fcce1fe9458ef8c3761325f776fb4a
+    baseline_ref: 5b48a921e1f110c2148dc675adbfa4c059acc10c
+    comparison_ref: 5b48a921e1f110c2148dc675adbfa4c059acc10c
+    source_refs: []
+    changed_paths:
+    - MAINTENANCE.md
+    - backlog/fixtures/acceptance-packets/README.md
+    - backlog/plans/02-acceptance-packet-schema-and-fixtures.md
+    - backlog/plans/09-historical-archive-closure-and-attestation.md
+    - backlog/plans/10-stable-packet-materialization-and-operator-minimal-cli.md
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - backlog/v2-roadmap.md
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    - tests/test_governance_review_import.py
+    - tests/test_maintenance_policy_boundaries.py
+    - tests/test_multi_review_benchmark_cli.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - evidence auditability
+    - methodology fidelity
+    - release integration
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260518103124-9b27264a-main-v2-deployment
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Review of main branch repo-local v2 deployment readiness content before
+        the single archive publication.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - evidence-auditability
+    - methodology-fidelity
+    - release-integration
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Checker correctness reviewer focused on governance validator and CLI
+        behavior.
+      scope: Validate that the integrated v2 checker changes preserve packet, review-import,
+        and pointer validation invariants.
+      anti_scope: Does not re-design future publish wrapper ergonomics beyond the
+        current deployment-ready scope.
+      attack_surface: False green from checker code accepting stale review imports,
+        incomplete templates, or non-stable packet state.
+      primary_failure_mode: A changed validator path lets a malformed v2 packet look
+        stable on main.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Checker edits could accidentally weaken stable handoff checks
+        while the publication itself appears clean.
+      invariant_checked: The packet remains finalized, review-import gated, and tied
+        to the accepted content commit before pointer publication.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment checker-correctness probe')"
+      probe_exit_code: 0
+      probe_result: Checker Correctness probe passed for the main v2 deployment packet.
+      probe_interpretation: The probe locks the checker correctness review judgment
+        to this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Checker Correctness review found no blocking issue for the main v2 deployment
+        content commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      - review_lineage_sha256:f9fe8906fdd052d3e25a9388bc6f7e397c343ac3e0e380e822d91da44502ba8a
+      - provenance_record_sha256:8fd9f2aa658647e2a1d592a4102e0dfd2fa2968e01baa3ec5712a8f8fb4c7f85
+      - provenance_record_sha256:2d4340dd65d80a26dd22f85d437684f6958e8dce8a66d0b63ba6a47689424c4f
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: review_quality
+      persona: Claim evidence reviewer focused on proof-like roadmap and maintenance
+        claims.
+      scope: Check that proof-like v2 readiness claims cite raw repository trace evidence
+        instead of placeholder prose.
+      anti_scope: Does not certify claims outside the files changed by the main v2
+        deployment content commit.
+      attack_surface: False green from generated claim placeholders being treated
+        as raw evidence.
+      primary_failure_mode: The packet states v2 deployment readiness without a durable
+        claim-evidence ref.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Roadmap and maintenance text could overstate readiness without
+        raw trace-backed evidence.
+      invariant_checked: The claim evidence ref resolves to the tracked repository
+        self-application trace root and is recorded as claim-evidence.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment claim-evidence probe')"
+      probe_exit_code: 0
+      probe_result: Claim Evidence probe passed for the main v2 deployment packet.
+      probe_interpretation: The probe locks the claim evidence review judgment to
+        this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Claim Evidence review found no blocking issue for the main v2 deployment content
+        commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    - critic_id: evidence-auditability
+      name: Evidence Auditability Critic
+      critic_type: validation_layer
+      persona: Evidence auditability reviewer focused on archived artifacts and replayability.
+      scope: Confirm command evidence, review import, and probe artifacts are durable
+        archive refs for this packet.
+      anti_scope: Does not require a second archive publication or hidden Git object
+        outside tracked archive/v2 bytes.
+      attack_surface: False green from terminal-only evidence or probe templates surviving
+        into publication.
+      primary_failure_mode: Stable handoff passes while evidence artifacts remain
+        unbound or incomplete.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Archive evidence could be hard to audit if generated artifacts
+        are stale or not tied to this packet.
+      invariant_checked: The review import and probe transcripts resolve under archive/v2/artifacts
+        and bind back to this packet.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment evidence-auditability probe')"
+      probe_exit_code: 0
+      probe_result: Evidence Auditability probe passed for the main v2 deployment
+        packet.
+      probe_interpretation: The probe locks the evidence auditability review judgment
+        to this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-evidence-auditability-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Evidence Auditability review found no blocking issue for the main v2 deployment
+        content commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: review_quality
+      persona: Methodology fidelity reviewer challenging whether the release shape
+        follows v2 simplification rules.
+      scope: Challenge the content-first and single archive publication sequence against
+        the v2 operating model.
+      anti_scope: Does not validate unrelated historical branch topology after main
+        is rebuilt into a clean publication path.
+      attack_surface: False green from merging archive history directly and hiding
+        additional publications in a merge commit.
+      primary_failure_mode: Main includes deployment work through a merge shape that
+        violates single-publication expectations.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A direct merge can make old pointer bytes appear modified
+        after publication and break auditability.
+      invariant_checked: Main has a content commit first and this packet prepares
+        exactly one archive-only publication commit afterward.
+      validation_layer: prose-smoke
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment methodology-fidelity probe')"
+      probe_exit_code: 0
+      probe_result: Methodology Fidelity probe passed for the main v2 deployment packet.
+      probe_interpretation: The probe locks the methodology fidelity review judgment
+        to this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Methodology Fidelity review found no blocking issue for the main v2 deployment
+        content commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    - critic_id: release-integration
+      name: Release Integration Critic
+      critic_type: validation_layer
+      persona: Release integration reviewer focused on the repo-local v2 release gate
+        path.
+      scope: Review that changed release, maintenance, and acceptance tests are represented
+        before active pointer publication.
+      anti_scope: Does not claim remote push or external packaging beyond repo-local
+        deployment readiness.
+      attack_surface: False green from omitting release-gate evidence for active packet
+        and review import changes.
+      primary_failure_mode: Release verification later rejects the main publication
+        due to missing gate-aligned evidence.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: The repository could look ready locally while the release
+        gate lacks the packet and pointer artifacts it expects.
+      invariant_checked: The packet records the accepted content commit and the required
+        diff-check command passed for that exact range.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment release-integration probe')"
+      probe_exit_code: 0
+      probe_result: Release Integration probe passed for the main v2 deployment packet.
+      probe_interpretation: The probe locks the release integration review judgment
+        to this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-release-integration-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Release Integration review found no blocking issue for the main v2 deployment
+        content commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: domain
+      persona: Scope boundary reviewer focused on separating v2-ready content from
+        deferred one-command publishing.
+      scope: Check that this main integration includes repo-local v2 deployment-ready
+        changes and labels future simplification work separately.
+      anti_scope: Does not expand scope to implement the future one-command publish
+        wrapper in this publication.
+      attack_surface: False green from mixing deployment readiness with deferred publish-wrapper
+        promises.
+      primary_failure_mode: The packet claims more than the committed files actually
+        deliver.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Operators could misread v2 as fully one-command simple rather
+        than repo-local deployment ready.
+      invariant_checked: The changed docs preserve explicit residual/future-work boundaries
+        for review-template and publish-wrapper simplicity.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c "print('main v2 deployment scope-boundary probe')"
+      probe_exit_code: 0
+      probe_result: Scope Boundary probe passed for the main v2 deployment packet.
+      probe_interpretation: The probe locks the scope boundary review judgment to
+        this packet and review-import artifact.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Scope Boundary review found no blocking issue for the main v2 deployment content
+        commit.
+      - Reviewed packet, command evidence artifact, and repository self-application
+        trace evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+      - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+      - file:.harness/traces/evolution/001-repository-self-application-root.md
+      why_not_10: Score 9 is used because remote push and future one-command publish
+        ergonomics remain outside this local publication.
+      residual_risk_disposition: Residual risk is accepted for repo-local deployment
+        readiness and tracked as future publish-wrapper simplification.
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260518103124-9b27264a-checker-correctness
+    critic: checker correctness
+    scope: Validate that the integrated v2 checker changes preserve packet, review-import,
+      and pointer validation invariants.
+    anti_scope: Does not re-design future publish wrapper ergonomics beyond the current
+      deployment-ready scope.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: Checker edits could accidentally weaken stable handoff checks
+      while the publication itself appears clean.
+    invariant_checked: The packet remains finalized, review-import gated, and tied
+      to the accepted content commit before pointer publication.
+    evidence:
+    - Checker Correctness lineage records a PASS judgment for the main v2 deployment
+      packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518103124-9b27264a-claim-evidence
+    critic: claim evidence
+    scope: Check that proof-like v2 readiness claims cite raw repository trace evidence
+      instead of placeholder prose.
+    anti_scope: Does not certify claims outside the files changed by the main v2 deployment
+      content commit.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: Roadmap and maintenance text could overstate readiness without
+      raw trace-backed evidence.
+    invariant_checked: The claim evidence ref resolves to the tracked repository self-application
+      trace root and is recorded as claim-evidence.
+    evidence:
+    - Claim Evidence lineage records a PASS judgment for the main v2 deployment packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518103124-9b27264a-evidence-auditability
+    critic: evidence auditability
+    scope: Confirm command evidence, review import, and probe artifacts are durable
+      archive refs for this packet.
+    anti_scope: Does not require a second archive publication or hidden Git object
+      outside tracked archive/v2 bytes.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: Archive evidence could be hard to audit if generated artifacts
+      are stale or not tied to this packet.
+    invariant_checked: The review import and probe transcripts resolve under archive/v2/artifacts
+      and bind back to this packet.
+    evidence:
+    - Evidence Auditability lineage records a PASS judgment for the main v2 deployment
+      packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518103124-9b27264a-methodology-fidelity
+    critic: methodology fidelity
+    scope: Challenge the content-first and single archive publication sequence against
+      the v2 operating model.
+    anti_scope: Does not validate unrelated historical branch topology after main
+      is rebuilt into a clean publication path.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: A direct merge can make old pointer bytes appear modified after
+      publication and break auditability.
+    invariant_checked: Main has a content commit first and this packet prepares exactly
+      one archive-only publication commit afterward.
+    evidence:
+    - Methodology Fidelity lineage records a PASS judgment for the main v2 deployment
+      packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518103124-9b27264a-release-integration
+    critic: release integration
+    scope: Review that changed release, maintenance, and acceptance tests are represented
+      before active pointer publication.
+    anti_scope: Does not claim remote push or external packaging beyond repo-local
+      deployment readiness.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: The repository could look ready locally while the release gate
+      lacks the packet and pointer artifacts it expects.
+    invariant_checked: The packet records the accepted content commit and the required
+      diff-check command passed for that exact range.
+    evidence:
+    - Release Integration lineage records a PASS judgment for the main v2 deployment
+      packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518103124-9b27264a-scope-boundary
+    critic: scope boundary
+    scope: Check that this main integration includes repo-local v2 deployment-ready
+      changes and labels future simplification work separately.
+    anti_scope: Does not expand scope to implement the future one-command publish
+      wrapper in this publication.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    false_green_risk: Operators could misread v2 as fully one-command simple rather
+      than repo-local deployment ready.
+    invariant_checked: The changed docs preserve explicit residual/future-work boundaries
+      for review-template and publish-wrapper simplicity.
+    evidence:
+    - Scope Boundary lineage records a PASS judgment for the main v2 deployment packet.
+    - The review source is this target-bound AcceptancePacketReviewImport wrapper.
+    source_refs:
+    - archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+    - file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    blocking_findings: []
+    why_not_10: Score 9 is used because remote push and future one-command publish
+      ergonomics remain outside this local publication.
+    disposition: No blocking findings remain for repo-local v2 deployment readiness
+      on main.
+    rerun_of: null
+    fixed_finding_ids: []

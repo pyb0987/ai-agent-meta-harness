@@ -1,0 +1,65 @@
+AcceptancePacketPointer:
+  schema_version: acceptance-packet-pointer/v1
+  packet_id: pkt-20260518103124-9b27264a
+  packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+  packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  checker_version: v2.0-draft
+  inference_rule_version: v2.0-draft
+  baseline_ref: 5b48a921e1f110c2148dc675adbfa4c059acc10c
+  comparison_ref: 5b48a921e1f110c2148dc675adbfa4c059acc10c
+  head_commit: 032ae0b3354e92b8b12a1540a5b58a6b93fbc9b5
+  archive_commit: cf4e085d1a86831e4a6b359c2d5f577ed015a785
+  stable_target: base-ref:5b48a921e1f110c2148dc675adbfa4c059acc10c...5b48a921e1f110c2148dc675adbfa4c059acc10c@032ae0b3354e92b8b12a1540a5b58a6b93fbc9b5
+  decision_status: accepted
+  command_artifacts:
+  - artifact_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-git-diff-check.log
+    artifact_sha256: c37848477b9305b89e540fc59a32cc69b43b0cd3eecccb69ac67fea168a49cf7
+    command: git diff --check 5b48a921e1f110c2148dc675adbfa4c059acc10c...032ae0b3354e92b8b12a1540a5b58a6b93fbc9b5
+  review_import_artifacts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    source_sha256: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    review_target_digest: 6e2549aa5cfea92813222860fce6ba4066fcce1fe9458ef8c3761325f776fb4a
+    review_ids:
+    - review-pkt-20260518103124-9b27264a-checker-correctness
+    - review-pkt-20260518103124-9b27264a-claim-evidence
+    - review-pkt-20260518103124-9b27264a-evidence-auditability
+    - review-pkt-20260518103124-9b27264a-methodology-fidelity
+    - review-pkt-20260518103124-9b27264a-release-integration
+    - review-pkt-20260518103124-9b27264a-scope-boundary
+  probe_transcripts:
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-checker-correctness-probe.yml
+    transcript_sha256: 30c5400eb91c07381bb9e8e65028f94e2c61fe2fb7984a79b844e42dffb83c00
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-claim-evidence-probe.yml
+    transcript_sha256: 1455def3901794a734d1946c27a906396065af0da4503a022f1d700e6d8e9eae
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-evidence-auditability-probe.yml
+    transcript_sha256: 449cfdff863ccde33f5a9d5e6804ae9a3060ec138746cfe2245354fdbd350497
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-methodology-fidelity-probe.yml
+    transcript_sha256: 0518e24b2f2030b3de9e62c4e232ac0b1427803f7c6c6453b1266f1f9f222d08
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-release-integration-probe.yml
+    transcript_sha256: c961c3b22a45eebbe5b7ee61640996fecbe690334442e98b0c4a8a6c374bd074
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
+  - source_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-scope-boundary-probe.yml
+    transcript_sha256: 3d159944c1cb20d755df51e07d63bedf4c0d0f4a84d7aabad27dec7c287933e5
+    result_ref: file:archive/v2/artifacts/pkt-20260518103124-9b27264a-review-import.yml
+    result_digest: 0a2a80d9303984c56e239bfba3707c4213e48432cf5f2061efbb0f31796190ab
+    packet_ref: archive/v2/packets/pkt-20260518103124-9b27264a.yml
+    packet_sha256: 535773ca3e28ad75219abd0be95f840c9e894542b738d6d35bf064f3aa3b8fdc
