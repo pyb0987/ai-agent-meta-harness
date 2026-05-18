@@ -118,6 +118,28 @@ class MultiReviewBenchmarkCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("expected derived verdict VETO, got PASS", completed.stderr)
 
+    def test_residual_label_text_cannot_override_typed_veto(self) -> None:
+        source = (
+            SCENARIOS_ROOT
+            / "acceptance_authority_spoof"
+            / "aa-reported-pass-typed-veto"
+            / "scenario.yml"
+        )
+        scenario = yaml.safe_load(source.read_text(encoding="utf-8"))
+        scenario["public_input"]["summary"] = (
+            "A residual inventory label such as v2-residual-04 multi-publication-release "
+            "may describe follow-up status, but typed critic facts still decide acceptance."
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scenario.yml"
+            path.write_text(yaml.safe_dump(scenario, sort_keys=False), encoding="utf-8")
+            completed = run_cli("--scenario", str(path))
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("PASS aa-reported-pass-typed-veto derived=VETO", completed.stdout)
+        self.assertNotIn("derived=PASS", completed.stdout)
+
     def test_rejects_scenario_review_mode_drift(self) -> None:
         source = (
             SCENARIOS_ROOT

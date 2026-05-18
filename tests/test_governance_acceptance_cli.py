@@ -536,10 +536,33 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                     }
                 ],
             )
-            artifact_text = (root / artifact_rel).read_text(encoding="utf-8")
-            self.assertIn("replay_metadata: pointer-bound", artifact_text)
-            self.assertIn("stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", artifact_text)
-            self.assertIn("stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", artifact_text)
+
+    def test_check_pointer_rejects_checker_or_inference_version_drift(self) -> None:
+        for field in ("checker_version", "inference_rule_version"):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                init_repo(root)
+                packet_rel, _artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+                pointer_rel = "archive/v2/pointers/pkt-version-boundary.yml"
+                write_result = run_cli(
+                    "--root",
+                    str(root),
+                    "write-pointer",
+                    "--packet",
+                    packet_rel,
+                    "--output",
+                    pointer_rel,
+                )
+                pointer_path = root / pointer_rel
+                pointer_doc = yaml.safe_load(pointer_path.read_text(encoding="utf-8"))
+                pointer_doc["AcceptancePacketPointer"][field] = "v2.0-legacy"
+                pointer_path.write_text(yaml.safe_dump(pointer_doc, sort_keys=False), encoding="utf-8")
+
+                result = run_cli("--root", str(root), "check-pointer", "--pointer", pointer_rel)
+
+            self.assertEqual(write_result.returncode, 0, write_result.stderr)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(f"{field} must be v2.0-draft", result.stderr)
 
     def test_write_pointer_overwrite_regenerates_existing_replay_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -752,6 +775,46 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 self.assertNotEqual(start.returncode, 0)
                 self.assertIn("start --staged and start --worktree require --output", start.stderr)
                 self.assertIn("archive defaults are base-ref only", start.stderr)
+
+    def test_worktree_packet_cannot_satisfy_stable_handoff_or_pointer_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            (root / "docs" / "note.md").write_text("dirty local worktree update\n", encoding="utf-8")
+            packet_rel = "archive/v2/packets/pkt-worktree-nonstable.yml"
+            pointer_rel = "archive/v2/pointers/pkt-worktree-nonstable.yml"
+
+            start = run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                packet_rel,
+                "--intent",
+                "Inspect dirty worktree.",
+                "--worktree",
+            )
+            finalize = run_cli("--root", str(root), "finalize", "--packet", packet_rel, "--worktree")
+            valid = run_cli("--root", str(root), "check", "--packet", packet_rel)
+            stable = run_cli("--root", str(root), "check", "--packet", packet_rel, "--require-stable")
+            write_pointer = run_cli(
+                "--root",
+                str(root),
+                "write-pointer",
+                "--packet",
+                packet_rel,
+                "--output",
+                pointer_rel,
+            )
+
+        self.assertEqual(start.returncode, 0, start.stderr)
+        self.assertEqual(finalize.returncode, 0, finalize.stderr)
+        self.assertEqual(valid.returncode, 0, valid.stderr)
+        self.assertIn("VALID: not stable-handoff eligible", valid.stdout)
+        self.assertNotEqual(stable.returncode, 0)
+        self.assertIn("not stable-handoff eligible", stable.stderr)
+        self.assertNotEqual(write_pointer.returncode, 0)
+        self.assertIn("not stable-handoff eligible", write_pointer.stderr)
 
     def test_active_gate_changes_require_non_circular_release_evidence(self) -> None:
         checker = load_checker()
@@ -4242,7 +4305,8 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertNotEqual(stable.returncode, 0)
         self.assertEqual(packet_data["result"]["inference"]["required_review"], ["checker correctness"])
         self.assertFalse(packet_data["result"]["decision"]["stable_handoff_eligible"])
-        self.assertIn("Plan 03 cannot accept protected changes yet", packet_data["result"]["decision"]["reason"])
+        self.assertIn("Protected changes require imported review judgment", packet_data["result"]["decision"]["reason"])
+        self.assertIn("governance review-template --packet <packet>", packet_data["result"]["decision"]["next_action"])
 
 
 if __name__ == "__main__":

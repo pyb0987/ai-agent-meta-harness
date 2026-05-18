@@ -311,6 +311,80 @@ class GovernanceReviewImportTests(unittest.TestCase):
         updated = load_yaml(packet_path)["AcceptancePacket"]
         self.assertEqual(updated["result"]["evidence"]["review_imports"][0]["source_ref"], output_ref)
 
+    def test_import_review_accepts_stdin_with_default_archive_output(self) -> None:
+        packet_path = self.materialize_packet()
+        packet = load_yaml(packet_path)["AcceptancePacket"]
+        packet["result"]["evidence"]["review_imports"] = []
+        packet["result"]["evidence"]["resolved_refs"] = [
+            record
+            for record in packet["result"]["evidence"]["resolved_refs"]
+            if record.get("relation") != "review-provenance"
+        ]
+        packet["result"]["judgment"]["reviews"] = []
+        packet_path.write_text(yaml.safe_dump({self.checker.PACKET_KEY: packet}, sort_keys=False), encoding="utf-8")
+        source_text = (self.tmp_path / "review-import.yml").read_text(encoding="utf-8")
+        default_ref = (
+            f"file:archive/v2/artifacts/{packet['meta']['packet_id']}-review-import.yml"
+        )
+        default_path = ROOT / default_ref.removeprefix("file:")
+        if default_path.exists():
+            default_path.unlink()
+        self.addCleanup(lambda: default_path.exists() and default_path.unlink())
+
+        result = run_cli(
+            "import-review",
+            "--packet",
+            str(packet_path),
+            "--from",
+            "-",
+            input_text=source_text,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(default_path.is_file())
+        updated = load_yaml(packet_path)["AcceptancePacket"]
+        self.assertEqual(updated["result"]["evidence"]["review_imports"][0]["source_ref"], default_ref)
+
+    def test_review_template_writes_target_bound_draft_and_probe_templates(self) -> None:
+        packet_path = self.materialize_packet()
+        packet = load_yaml(packet_path)["AcceptancePacket"]
+        output_ref = f"file:{self.archive_rel_dir}/review-template.yml"
+
+        result = run_cli("review-template", "--packet", str(packet_path), "--output", output_ref)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f"wrote review template: {output_ref}", result.stdout)
+        wrapper = load_yaml(ROOT / output_ref.removeprefix("file:"))["AcceptancePacketReviewImport"]
+        packet_ref = packet_path.relative_to(ROOT).as_posix()
+        self.assertEqual(
+            wrapper["target_binding"],
+            self.checker.review_target_binding(packet, root=ROOT, packet_ref=packet_ref),
+        )
+        required_reviews = sorted(self.checker.checker_required_review(packet, root=ROOT))
+        self.assertEqual(
+            sorted(record["critic"] for record in wrapper["review_lineage"]),
+            required_reviews,
+        )
+        critic_ids = [critic["critic_id"] for critic in wrapper["MultiReviewResult"]["critics"]]
+        self.assertEqual(
+            sorted(critic_ids),
+            sorted(self.checker.markdown_anchor(review) for review in required_reviews),
+        )
+        self.assertEqual(wrapper["MultiReviewResult"]["lifecycle"], "draft")
+        self.assertTrue(all(critic["verdict"] == "veto" for critic in wrapper["MultiReviewResult"]["critics"]))
+        self.assertTrue(all(critic["score"] == 1 for critic in wrapper["MultiReviewResult"]["critics"]))
+        for critic in wrapper["MultiReviewResult"]["critics"]:
+            probe_ref = critic["probe_evidence_refs"][0]
+            probe_path = ROOT / probe_ref.removeprefix("file:")
+            self.assertTrue(probe_path.is_file(), probe_ref)
+            transcript = load_yaml(probe_path)["ProbeTranscript"]
+            self.assertEqual(transcript["result_ref"], output_ref)
+            self.assertEqual(transcript["packet_ref"], packet_ref)
+            self.assertEqual(transcript["packet_sha256"], "0" * 64)
+        import_result = run_cli("import-review", "--packet", str(packet_path), "--from", output_ref)
+        self.assertNotEqual(import_result.returncode, 0)
+        self.assertIn("imported MultiReviewResult must freshly derive governance PASS: VETO", import_result.stderr)
+
     def test_import_review_rejects_wrong_target_without_relabeling(self) -> None:
         packet_path = self.materialize_packet()
         packet = load_yaml(packet_path)["AcceptancePacket"]

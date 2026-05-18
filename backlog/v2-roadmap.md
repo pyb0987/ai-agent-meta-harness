@@ -23,6 +23,7 @@ CLI surface:
 ```bash
 governance start --base-ref <comparison-ref> --intent "..."
 governance finalize --packet <packet> --base-ref <comparison-ref>
+governance review-template --packet <packet> [--output <artifact>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
@@ -30,8 +31,9 @@ governance status --base-ref <comparison-ref>
 ```
 
 Stable handoff should use `--base-ref`. `--staged` is a preflight mode, and
-`--worktree` is exploratory unless explicitly marked non-stable. `import-review`
-is required only when inference or policy requires durable review judgment.
+`--worktree` is always non-stable exploratory/in-progress evidence.
+`import-review` is required only when inference or policy requires durable
+review judgment.
 
 Search-set verification:
 
@@ -97,9 +99,11 @@ v2 must preserve the Meta-Harness essentials:
    `meta`, `input`, and `result`.
 2. Define `result.inference`, `result.evidence`, `result.judgment`, and
    `result.decision` as stable machine-readable sub-sections.
-3. Define canonical packet hashing. The hash must avoid self-reference, either
-   by excluding the hash field from canonical serialization or by storing the
-   hash only in the active pointer.
+3. Define canonical packet hashing. The current active model keeps packet
+   digests in active pointers and review-import target bindings. Any future
+   packet-internal hash must avoid self-reference by excluding the hash field
+   from canonical serialization or by using an equivalent non-self-referential
+   rule.
 4. Define source reference validation. Active base-ref stable handoff requires
    changed-path refs to be commit-pinned to the accepted side
    (`git:<full-commit-sha>:<repo-path>` for additions/modifications, and the
@@ -230,6 +234,44 @@ Initial high-risk surfaces:
    to make stable closure generation, multi-review import, active pointer
    publication, and archive status reporting routine commands rather than
    manual YAML/hash/provenance work.
+11. Residual hardening and operations: use
+   `backlog/plans/11-v2-residual-hardening-and-operations.md` to label the
+   remaining work outside the Plan 10 v2 core without overstating completion.
+
+## v2 Completion Boundary
+
+Plan 10 completes the v2 core governance path: the `governance` wrapper,
+packet lifecycle, multi-review import, active pointer publication, status
+inventory, and release/pre-commit active packet gate can run through a
+single-publication release shape. Plan 11 closes the remaining residual labels
+for the v2 active model without claiming optional post-v2 features such as
+package-manager distribution, chained active publication releases, or
+packet-internal hashes.
+
+Residual labels:
+
+- `v2-residual-01 legacy-v1-boundary`: frozen `archive/v1` records remain
+  historical compatibility evidence, not active v2 handoff records.
+- `v2-residual-02 historical-fixture-boundary`: fixtures, benchmark
+  transcripts, and historical review artifacts are examples or archived traces
+  unless active `archive/v2` pointers publish them.
+- `v2-residual-03 governance-packaging`: closed for v2. `governance` is the
+  public repository command and delegates to the same checker logic; external
+  installation/exposure is post-v2 distribution work.
+- `v2-residual-04 multi-publication-release`: the routine accepted release
+  model is content commits first, then one active archive publication per
+  base-ref release range; chained publications need an explicit later model
+  that validates each publication boundary in order and rejects archive drift
+  hidden by later reverts.
+- `v2-residual-05 checker-versioned-history`: closed for v2. Active pointers
+  bind checker and inference rule versions; mismatches mark historical
+  compatibility evidence rather than current stable proof.
+- `v2-residual-06 worktree-mode-boundary`: closed for v2. `--worktree` is
+  always non-stable exploratory/in-progress evidence, `--staged` is preflight,
+  and stable handoff uses `--base-ref`.
+- `v2-residual-07 packet-hash-placement`: closed for v2. Active pointers and
+  review-import target bindings are the current packet digest roots; adding a
+  packet-internal hash is optional post-v2 design work.
 
 ## Validation Plan
 
@@ -238,10 +280,12 @@ Validate v2 using the method it introduces:
 - Use the current packet lifecycle for active v2 implementation work:
   `governance start --base-ref <comparison-ref> --intent "..."`,
   `governance finalize --packet <packet> --base-ref <comparison-ref>`, and
+  `governance review-template --packet <packet> [--output <artifact>]` when
+  durable review judgment is required, then
   `governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]`
-  when durable review judgment is required, then
-  `governance write-pointer --packet <packet>`, followed by
-  `governance check --packet <packet> --require-stable`.
+  after reviewers complete the draft artifact, then `governance write-pointer
+  --packet <packet>`, followed by `governance check --packet <packet>
+  --require-stable`.
 - Treat older bootstrap transition notes as archived compatibility evidence,
   not as the current implementation path.
 - Preserve before/after search-set evidence where relevant.
@@ -250,12 +294,13 @@ Validate v2 using the method it introduces:
 - Treat any critic score below 9 as blocking until fixed and rerun.
 - Preserve v2 packet examples as trace artifacts.
 
-## Open Decisions
+## Post-v2 Design Choices
 
-- Whether packet hash lives inside the packet or only in active pointers.
-- How `--worktree` packets are labeled so they cannot satisfy stable handoff.
-- How old packets are evaluated when checker or inference rule versions change.
-- How the public `governance` wrapper should be installed or exposed while the
-  repository-local script remains the implementation/debug entry point.
-- Which stable-closure gaps are safe for materialization commands to repair
-  automatically, and which must remain explicit human judgment.
+- Whether to add package-manager distribution for `governance`; the current
+  repository-local executable is the v2 command surface.
+- Whether to add chained active publication release support; current v2 accepts
+  one active archive publication per base-ref release range.
+- Whether to add a packet-internal hash later; current active validation stores
+  packet digests in active pointers and review-import target bindings.
+- Which future stable-closure gaps are safe for materialization commands to
+  repair automatically, and which must remain explicit human judgment.

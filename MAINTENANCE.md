@@ -34,6 +34,31 @@ inspect more top-level concepts than `meta`, `input`, and `result`, treat that
 as design debt unless the change removes a concrete failure mode that cannot be
 handled by packet generation or checker inference.
 
+Plan 10 completes the v2 core governance path, not every future operation around
+it. Label follow-up work with the residual IDs in
+`backlog/plans/11-v2-residual-hardening-and-operations.md`:
+
+- `v2-residual-01 legacy-v1-boundary`
+- `v2-residual-02 historical-fixture-boundary`
+- `v2-residual-03 governance-packaging`
+- `v2-residual-04 multi-publication-release`
+- `v2-residual-05 checker-versioned-history`
+- `v2-residual-06 worktree-mode-boundary`
+- `v2-residual-07 packet-hash-placement`
+
+Use those labels for hardening and operations work that follows the core v2
+handoff path. Do not cite a residual label as completed active functionality
+until a later packet closes that label with its own evidence and review.
+
+Plan 11 closes those residual labels for the v2 active model. The closure does
+not claim optional future features: package-manager installation, chained active
+publication releases, or packet-internal hashes remain post-v2 design choices.
+For this repository, `governance` is the supported public command surface and
+delegates to the repository-local checker; old packets with non-current checker
+or inference versions remain historical compatibility evidence; `--worktree`
+packets remain diagnostic/non-stable; and active integrity roots remain the
+pointer `packet_sha256` plus review-import target bindings.
+
 The public packet shape is:
 
 ```yaml
@@ -70,6 +95,7 @@ Target commands:
 ```bash
 governance start --base-ref REF --intent "..." [--output <packet>]
 governance finalize --packet <packet> --staged|--base-ref REF|--worktree
+governance review-template --packet <packet> [--output <artifact>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
 governance check --packet <packet> --require-stable
@@ -89,11 +115,14 @@ Lifecycle rules:
 - `status` is read-only inventory: it summarizes active pointers, publication
   commits, stable-handoff readiness, and separates pending human decisions from
   generated artifact refreshes without replaying command evidence.
+- `review-template` writes a target-bound draft `AcceptancePacketReviewImport`
+  skeleton plus probe transcript templates; it is deliberately incomplete until
+  reviewers replace the TODO fields, clear blocking findings, and record real
+  probe evidence.
 - `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
   and records it in packet evidence when reviewer judgment is required.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.
-- `--worktree` is exploratory or in-progress unless explicitly marked
-  non-stable.
+- `--worktree` is always non-stable exploratory/in-progress evidence.
 - Harness-affecting finalization fails closed without a start packet unless an
   exact skipped-before reason and maintainer/reviewer disposition are recorded.
 
@@ -279,6 +308,12 @@ stable-handoff eligible. The release diff should publish one active pointer.
 Use `--pointer <archive/v2/pointers/...>` only together with `--base-ref` when
 explicitly selecting that single publication; split multiple pointer
 publications instead of hiding them behind one release command.
+
+`v2-residual-04 multi-publication-release` keeps chained active publications out
+of the routine release model for now. A future chained-pointer release gate must
+validate each publication boundary in order, reject archive rewrites even when
+later reverted, allow no-ff merge commits only when they introduce no merge-side
+archive content, and avoid turning `governance status` into a trust ledger.
 
 During an in-progress maintenance diff, use:
 

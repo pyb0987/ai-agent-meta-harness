@@ -2541,6 +2541,150 @@ def review_import_output_ref_from_arg(
     return output_ref, output_path
 
 
+def review_template_probe_transcript(
+    *,
+    command: str,
+    source_ref: str,
+    packet_ref: str,
+    source_refs: list[str],
+) -> dict:
+    empty_sha = hashlib.sha256(b"").hexdigest()
+    return {
+        "schema_version": "probe-transcript/v1",
+        "probe_command": command,
+        "probe_exit_code": 1,
+        "result_ref": source_ref,
+        "result_digest": "0" * 64,
+        "packet_ref": packet_ref,
+        "packet_sha256": "0" * 64,
+        "source_refs": source_refs,
+        "cwd": ".",
+        "generated_by": "governance review-template",
+        "date": today().isoformat(),
+        "stdout": "",
+        "stderr": "",
+        "stdout_sha256": empty_sha,
+        "stderr_sha256": empty_sha,
+    }
+
+
+def review_template_wrapper(
+    packet: dict,
+    *,
+    root: Path,
+    packet_ref: str,
+    source_ref: str,
+) -> tuple[dict, dict[Path, str]]:
+    packet_id_value = safe_artifact_stem(packet.get("meta", {}).get("packet_id", "packet"))
+    binding = review_target_binding(packet, root=root, packet_ref=packet_ref)
+    required_reviews = list(binding.get("required_review", []))
+    target_source_refs = [packet_ref]
+    source_refs = [packet_ref]
+    critics: list[dict] = []
+    lineage: list[dict] = []
+    probe_updates: dict[Path, str] = {}
+    source_rel = source_ref.removeprefix("file:")
+    probe_dir = posixpath.dirname(source_rel) or ARCHIVE_ARTIFACT_PREFIX.rstrip("/")
+    for review_name in required_reviews:
+        critic_id = markdown_anchor(review_name) or "review"
+        probe_ref = f"file:{posixpath.join(probe_dir, f'{packet_id_value}-{critic_id}-probe.yml')}"
+        probe_path = root / probe_ref.removeprefix("file:")
+        probe_command = f"TODO replace with replayable probe command for {review_name}"
+        blocking_findings = [
+            {
+                "finding_id": "template-incomplete",
+                "summary": "Review template must be completed before import.",
+            }
+        ]
+        critics.append(
+            {
+                "critic_id": critic_id,
+                "name": f"{review_name.title()} Critic",
+                "critic_type": "other",
+                "persona": f"TODO reviewer persona for {review_name}.",
+                "scope": f"TODO review scope for {review_name}.",
+                "anti_scope": "TODO review anti-scope.",
+                "attack_surface": "TODO false-green surface this review checks.",
+                "primary_failure_mode": "TODO primary failure mode.",
+                "frame_challenge": False,
+                "required": True,
+                "actor": "TODO-reviewer",
+                "date": today().isoformat(),
+                "score": 1,
+                "verdict": "veto",
+                "veto": True,
+                "blocking_findings": copy.deepcopy(blocking_findings),
+                "false_green_risk": "TODO substantive false-green risk.",
+                "invariant_checked": "TODO substantive invariant checked.",
+                "validation_layer": "structured-validator",
+                "probe_run": False,
+                "probe_command": probe_command,
+                "probe_exit_code": 1,
+                "probe_result": "TODO probe result.",
+                "probe_interpretation": "TODO probe interpretation.",
+                "probe_evidence_refs": [probe_ref],
+                "reason_no_probe": "TODO run and record probe before import.",
+                "evidence": ["TODO replace with substantive review evidence."],
+                "source_refs": source_refs,
+                "why_not_10": "Template is incomplete and must not be imported as acceptance evidence.",
+                "residual_risk_disposition": "Complete the review, rerun probes, and clear blocking findings before import.",
+            }
+        )
+        lineage.append(
+            {
+                "review_id": f"review-{packet_id_value}-{critic_id}",
+                "critic": review_name,
+                "scope": f"TODO review scope for {review_name}.",
+                "anti_scope": "TODO review anti-scope.",
+                "score": 1,
+                "veto": True,
+                "actor": "TODO-reviewer",
+                "role": "reviewer",
+                "date": today().isoformat(),
+                "source_ref": source_ref,
+                "false_green_risk": "TODO substantive false-green risk.",
+                "invariant_checked": "TODO substantive invariant checked.",
+                "evidence": ["TODO replace with substantive review evidence."],
+                "source_refs": source_refs,
+                "blocking_findings": copy.deepcopy(blocking_findings),
+                "why_not_10": "Template is incomplete and must not be imported as acceptance evidence.",
+                "disposition": "Complete the review, rerun probes, and clear blocking findings before import.",
+                "rerun_of": None,
+                "fixed_finding_ids": [],
+            }
+        )
+        probe_updates[probe_path] = probe_transcript_document_text(
+            review_template_probe_transcript(
+                command=probe_command,
+                source_ref=source_ref,
+                packet_ref=packet_ref,
+                source_refs=source_refs,
+            )
+        )
+    wrapper = {
+        "schema_version": REVIEW_IMPORT_SCHEMA_VERSION,
+        "target_binding": binding,
+        "MultiReviewResult": {
+            "schema_version": "multi-review-result/v1",
+            "review_id": f"mr-{packet_id_value}-template",
+            "lifecycle": "draft",
+            "review_mode": "governance",
+            "independence": "independent",
+            "target": {
+                "summary": f"TODO review summary for {packet_id_value}.",
+                "source_refs": target_source_refs,
+            },
+            "required_critics": [critic["critic_id"] for critic in critics],
+            "critics": critics,
+            "reported_final_verdict": "PASS",
+            "derived_verdict": None,
+            "derivation_errors": [],
+        },
+        "review_lineage": lineage,
+    }
+    return wrapper, probe_updates
+
+
 def refresh_review_lineage_marker(wrapper: dict) -> None:
     lineage = wrapper.get("review_lineage")
     multi_review = wrapper.get("MultiReviewResult")
@@ -5570,14 +5714,20 @@ def infer_packet_result(root: Path, packet: dict, *, mode: str, base_ref: str | 
     packet["result"]["decision"]["accepted"] = required_evidence_passed and not high_risk
     if protected:
         packet["result"]["decision"]["reason"] = (
-            "Plan 03 cannot accept protected changes yet; review import and protected-change stable promotion are out of scope."
+            "Protected changes require imported review judgment before stable handoff."
         )
-        packet["result"]["decision"]["next_action"] = "Use a later review-import plan before protected stable handoff."
+        packet["result"]["decision"]["next_action"] = (
+            "Run governance review-template --packet <packet>, complete the review artifact, "
+            "then run governance import-review --packet <packet> --from <artifact>."
+        )
     elif proof_like:
         packet["result"]["decision"]["reason"] = (
-            "Plan 04 cannot accept proof-like/public claim changes without durable claim evidence and review."
+            "Proof-like or public claims require durable claim evidence and imported review judgment before stable handoff."
         )
-        packet["result"]["decision"]["next_action"] = "Add raw claim evidence and claim-evidence review before stable handoff."
+        packet["result"]["decision"]["next_action"] = (
+            "Add raw claim evidence, run governance review-template --packet <packet>, "
+            "complete the claim-evidence review, then run governance import-review --packet <packet> --from <artifact>."
+        )
     packet["result"]["inference"]["required_review"] = sorted(checker_required_review(packet, root=root))
     if mode == "worktree":
         packet["result"]["decision"]["stable_handoff_eligible"] = False
@@ -5864,6 +6014,55 @@ def import_review(args: argparse.Namespace) -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
     print(f"imported review artifact: {source_ref}")
+    return 0
+
+
+def review_template(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    packet_arg = Path(args.packet)
+    packet_path = root / packet_arg if not packet_arg.is_absolute() else packet_arg
+    if repo_path_has_symlink(root, packet_path):
+        print(f"ERROR: archived packet must be a regular file, not a symlink: {args.packet}", file=sys.stderr)
+        return 1
+    packet = load_packet(packet_path)
+    try:
+        packet_ref = repo_relative_path(root, packet_path)
+        source_ref, source_path = review_import_output_ref_from_arg(
+            root,
+            packet,
+            source_ref=None,
+            source_path=None,
+            output=args.output,
+            overwrite=args.overwrite,
+        )
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    required_reviews = sorted(checker_required_review(packet, root=root))
+    if not required_reviews:
+        print("ERROR: packet does not require imported review judgment", file=sys.stderr)
+        return 1
+    wrapper, probe_updates = review_template_wrapper(
+        packet,
+        root=root,
+        packet_ref=packet_ref,
+        source_ref=source_ref,
+    )
+    updates = {source_path: review_import_document_text(wrapper), **probe_updates}
+    for path in updates:
+        if repo_path_has_symlink(root, path):
+            print(f"ERROR: review template output must be a regular file, not a symlink: {path}", file=sys.stderr)
+            return 1
+        if path.exists() and not args.overwrite:
+            print(f"ERROR: {path}: already exists; use --overwrite to replace", file=sys.stderr)
+            return 1
+    write_error, _originals = apply_text_updates_with_rollback(updates)
+    if write_error:
+        print(f"ERROR: {write_error}", file=sys.stderr)
+        return 1
+    print(f"wrote review template: {source_ref}")
+    for probe_path in sorted(probe_updates, key=lambda item: item.as_posix()):
+        print(f"wrote probe template: file:{repo_relative_path(root, probe_path)}")
     return 0
 
 
@@ -6234,6 +6433,12 @@ def build_parser() -> argparse.ArgumentParser:
     import_review_parser.add_argument("--output")
     import_review_parser.add_argument("--overwrite", action="store_true")
     import_review_parser.set_defaults(func=import_review)
+
+    review_template_parser = subparsers.add_parser("review-template")
+    review_template_parser.add_argument("--packet", required=True)
+    review_template_parser.add_argument("--output")
+    review_template_parser.add_argument("--overwrite", action="store_true")
+    review_template_parser.set_defaults(func=review_template)
 
     write_pointer_parser = subparsers.add_parser("write-pointer")
     write_pointer_parser.add_argument("--packet", required=True)

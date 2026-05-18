@@ -127,7 +127,9 @@ Fixtures live under `backlog/fixtures/acceptance-packets/`:
 - `worktree-nonstable.yml`
 
 These fixtures are not active packets and do not satisfy stable handoff. They are
-schema examples for Plan 03 checker implementation.
+schema examples for Plan 03 checker implementation. Track this as
+`v2-residual-02 historical-fixture-boundary`: fixture PASS/FAIL outcomes are
+validator controls, not active project governance evidence.
 
 ## Design Rules
 

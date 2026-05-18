@@ -15,6 +15,10 @@ The fixtures are examples for validating `governance start`, `governance
 finalize`, and `governance check` behavior, not active project governance
 packets.
 
+Residual label: `v2-residual-02 historical-fixture-boundary`. A fixture can be a
+positive or negative validator control, but it is not an active handoff record,
+future archive whitelist, or routine trusted command-evidence source.
+
 Active stable handoff is base-ref canonical. Staged stable-looking fixtures are
 kept only as compatibility examples for packet-shape and validator regression
 coverage; they are not active handoff records.

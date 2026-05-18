@@ -93,6 +93,11 @@ Plan 09 keeps the historical trust model deliberately small:
 - External runner identity, signatures, and durable archive refs remain out of
   scope until a later plan can justify their operator cost.
 
+Residual label: `v2-residual-02 historical-fixture-boundary`. Historical
+fixtures, review imports, probe transcripts, and archive bytes can preserve
+regression evidence, but they do not become active closure inputs for future
+packets unless a later plan explicitly adds and validates that trust model.
+
 This means Plan 09 does not add a new user-authored ledger. The safety rule is
 negative and simple: historical archive bytes can remain in history, but they do
 not grant permission for new archive bytes to appear in the accepted work commit
