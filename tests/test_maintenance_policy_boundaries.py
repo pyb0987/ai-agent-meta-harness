@@ -301,7 +301,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, plan11)
 
         self.assertIn("Plan 11 closes the original residual labels for the v2 active model", maintenance)
-        self.assertIn("reviewer-wizard completion, one-command publish wrappers, or agent-in-the-loop semantic multi-review scoring remain post-v2 design choices", maintenance)
+        self.assertIn("The repository-local `governance publish` wrapper and perspective-eval scorer are now available", maintenance)
+        self.assertIn("they do not replace reviewer judgment or a future AI judge", maintenance)
         self.assertIn("old packets with non-current checker or inference versions remain historical compatibility evidence", maintenance)
         self.assertIn("Plan 11 closes the remaining residual labels for the v2 active model", roadmap)
         self.assertIn("Post-v2 Design Choices", roadmap)
@@ -318,11 +319,13 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "it must replay pointer-bound command evidence",
             "targeted skips for `search_set_before` and `search_set_after` are valid",
             "Future helpers may reduce YAML editing without auto-certifying PASS",
-            "future one-command wrapper can compose those primitives",
+            "v2-residual-11 publish-wrapper-ergonomics",
             "current multi-review v2 validation is deterministic artifact validation",
             "Implementation Iteration 5",
             "`review-template` now supports `--scratch-output`",
             "Implementation Iteration 4",
+            "Implementation Iteration 9",
+            "`governance publish --packet",
             "v2-residual-08 release-command-replay-gate",
         ):
             with self.subTest(marker=marker):
@@ -332,8 +335,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertIn("release active pointer validation and explicit pointer replay rerun archived command evidence", maintenance)
         self.assertIn("v2-residual-09 search-set-trace-fidelity", roadmap)
         self.assertIn("v2-residual-10 review-template-completion-ergonomics", roadmap)
-        self.assertIn("v2-residual-11 publish-wrapper-ergonomics", roadmap)
-        self.assertIn("v2-residual-12 agent-in-loop-multi-review-eval", roadmap)
+        self.assertIn("v2-residual-11 publish-wrapper-ergonomics`: closed for repository-local v2", roadmap)
+        self.assertIn("v2-residual-12 agent-in-loop-multi-review-eval`: closed as an evaluation", roadmap)
 
 
 if __name__ == "__main__":

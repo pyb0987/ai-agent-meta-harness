@@ -29,6 +29,7 @@ refs, or synthesis contradictions.
 
 ## Current Scope
 
-These fixtures are calibration material for a future semantic judge. They are
-not currently scored by an automated AI judge, and they are not governance
-acceptance evidence.
+These fixtures are calibration material for semantic review quality. They are
+scored by `../score-perspective-candidates.py` as deterministic calibration
+checks, not by an automated AI judge, and they are not governance acceptance
+evidence.

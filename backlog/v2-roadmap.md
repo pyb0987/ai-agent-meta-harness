@@ -282,14 +282,16 @@ Residual labels:
 - `v2-residual-10 review-template-completion-ergonomics`: accepted as post-v2
   simplification. `review-template` owns the target-bound skeleton, but a
   future helper can reduce reviewer field-editing without auto-certifying PASS.
-- `v2-residual-11 publish-wrapper-ergonomics`: accepted as post-v2
-  simplification. A future `governance publish` wrapper can compose the safe
-  primitives while preserving content commits first and one archive publication
-  commit last.
-- `v2-residual-12 agent-in-loop-multi-review-eval`: accepted as post-v2
-  evaluation work. Current multi-review v2 structurally blocks governance PASS
-  false greens; future runners can measure independent critic discovery,
-  semantic diversity, and evidence relevance from public inputs.
+- `v2-residual-11 publish-wrapper-ergonomics`: closed for repository-local v2.
+  `governance publish` composes the safe primitives for already-stable packets
+  while preserving content commits first and one archive-only publication commit
+  last.
+- `v2-residual-12 agent-in-loop-multi-review-eval`: closed as an evaluation
+  contract for repository-local v2. The perspective scorer emits public-only
+  agent prompts and scores candidate outputs against sealed rubric criteria for
+  critic diversity, issue/disagreement preservation, and evidence relevance;
+  it remains calibration infrastructure, not a replacement for reviewer
+  judgment or a future AI judge.
 
 ## Validation Plan
 
@@ -301,7 +303,7 @@ Validate v2 using the method it introduces:
   `governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]` when
   durable review judgment is required, then
   `governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]`
-  after reviewers complete the draft artifact, then `governance write-pointer
+  after reviewers complete the draft artifact, then `governance publish
   --packet <packet>`, followed by `governance check --packet <packet>
   --require-stable`.
 - Treat older bootstrap transition notes as archived compatibility evidence,
@@ -324,9 +326,8 @@ Validate v2 using the method it introduces:
   repair automatically, and which must remain explicit human judgment.
 - Whether to add a review completion helper that keeps human judgment explicit
   while reducing manual probe/lineage YAML edits.
-- Whether to add a `governance publish` wrapper that composes existing
-  primitives without weakening the two-step content-then-archive publication
-  boundary.
-- Whether to add agent-in-the-loop multi-review evaluation and semantic scoring
-  for critic diversity and evidence relevance; current deterministic fixtures
-  remain structural validator checks.
+- Whether to package `governance publish` outside the repository-local command
+  surface; current semantics stay in the repo-local wrapper.
+- Whether to replace or augment the perspective-eval calibration scorer with an
+  AI judge; current scoring remains deterministic calibration, not a claim of
+  full semantic adjudication.

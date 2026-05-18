@@ -70,11 +70,32 @@ Perspective Quality Tests. It contains public scenario prompts, sealed rubric
 anchors, and strong/weak candidate review outputs.
 
 Those files are calibration material for a human or AI judge. They are not
-currently scored by `check-fixtures.py`, and they should not be treated as
-governance acceptance evidence.
+scored by `check-fixtures.py`, and they should not be treated as governance
+acceptance evidence.
+
+`score-perspective-candidates.py` provides the repository-local v2 residual-12
+evaluation contract. It emits public-only prompts for an external agent run and
+scores candidate outputs against sealed rubric criteria for critic diversity,
+issue/disagreement preservation, and evidence relevance. The scorer is
+deterministic calibration infrastructure; it is not an AI judge and does not
+replace multi-review acceptance artifacts.
 
 Validate the corpus shape:
 
 ```bash
 python3 benchmarks/multi-review/check-perspective-corpus.py
+```
+
+Score the calibration candidates:
+
+```bash
+python3 benchmarks/multi-review/score-perspective-candidates.py
+```
+
+Emit a model-visible prompt without sealed rubric fields:
+
+```bash
+python3 benchmarks/multi-review/score-perspective-candidates.py \
+  --emit-agent-prompt benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames \
+  --output /tmp/multi-review-agent-prompt.md
 ```

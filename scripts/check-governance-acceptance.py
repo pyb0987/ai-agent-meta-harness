@@ -6521,6 +6521,163 @@ def write_pointer(args: argparse.Namespace) -> int:
     return 0
 
 
+def git_name_only(root: Path, args: list[str]) -> list[str] | None:
+    result = git(root, args)
+    if result.returncode != 0:
+        return None
+    return sorted(line.strip() for line in result.stdout.splitlines() if line.strip())
+
+
+def dirty_worktree_paths(root: Path) -> list[str]:
+    result = git(root, ["status", "--porcelain=v1", "--untracked-files=all"])
+    return porcelain_status_paths(result.stdout) if result.returncode == 0 else []
+
+
+def run_active_packet_gate(root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "check-active-packet-gate.py"),
+            "--root",
+            str(root),
+            *args,
+        ],
+        cwd=root,
+        env=git_env(keep_index=True),
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def publish_packet(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    packet_arg = Path(args.packet)
+    packet_path = root / packet_arg if not packet_arg.is_absolute() else packet_arg
+    if repo_path_has_symlink(root, packet_path):
+        print(f"ERROR: archived packet must be a regular file, not a symlink: {args.packet}", file=sys.stderr)
+        return 1
+    packet = load_packet(packet_path)
+    try:
+        packet_ref = repo_relative_path(root, packet_path)
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    packet_ref_error = pointer_packet_ref_error(packet_ref)
+    if packet_ref_error:
+        print(f"ERROR: {packet_ref_error}", file=sys.stderr)
+        return 1
+    evidence = packet.get("result", {}).get("evidence", {})
+    accepted_head = evidence.get("accepted_head_commit") if isinstance(evidence, dict) else None
+    comparison_ref = evidence.get("comparison_ref") if isinstance(evidence, dict) else None
+    current_head = git_ref_commit(root, "HEAD")
+    if not isinstance(accepted_head, str) or not FULL_COMMIT_RE.fullmatch(accepted_head):
+        print("ERROR: publish requires packet evidence.accepted_head_commit to be a full commit SHA", file=sys.stderr)
+        return 1
+    if current_head != accepted_head:
+        print(
+            "ERROR: publish requires content commits first: current HEAD must equal packet accepted_head_commit",
+            file=sys.stderr,
+        )
+        return 1
+    staged_before = git_name_only(root, ["diff", "--cached", "--name-only"])
+    if staged_before is None:
+        print("ERROR: publish could not inspect staged changes", file=sys.stderr)
+        return 1
+    if staged_before:
+        print(
+            "ERROR: publish requires an empty index before generating the archive publication; "
+            f"staged paths: {staged_before}",
+            file=sys.stderr,
+        )
+        return 1
+    preflight_errors = validate_packet(
+        packet,
+        require_stable=True,
+        require_archive_command_replay_metadata=False,
+        allow_stale_archive_command_artifacts=True,
+        root=root,
+        packet_ref=packet_ref,
+        packet_sha256=file_sha256(packet_path),
+    )
+    if preflight_errors:
+        for error in preflight_errors:
+            print(f"ERROR: archived packet: {error}", file=sys.stderr)
+        return 1
+    allowed_pre_dirty = packet_bound_archive_paths(packet, root=root, packet_ref=packet_ref)
+    unexpected_pre_dirty = sorted(path for path in dirty_worktree_paths(root) if path not in allowed_pre_dirty)
+    if unexpected_pre_dirty:
+        print(
+            "ERROR: publish requires content commits first and only pointer-bound archive files dirty; "
+            f"unexpected dirty paths: {unexpected_pre_dirty}",
+            file=sys.stderr,
+        )
+        return 1
+    pointer_arg = args.pointer
+    pointer_output = pointer_arg or str(Path(DEFAULT_POINTER_PREFIX) / f"{packet['meta']['packet_id']}.yml")
+    write_args = argparse.Namespace(
+        root=str(root),
+        packet=packet_ref,
+        output=pointer_output,
+        overwrite=args.overwrite,
+    )
+    write_result = write_pointer(write_args)
+    if write_result != 0:
+        return write_result
+    pointer_path = root / pointer_output if not Path(pointer_output).is_absolute() else Path(pointer_output)
+    try:
+        pointer_ref = repo_relative_path(root, pointer_path)
+    except PacketError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    pointer = load_pointer(pointer_path)
+    publication_paths = pointer_publication_paths(pointer, pointer_ref=pointer_ref)
+    unexpected_dirty = sorted(path for path in dirty_worktree_paths(root) if path not in publication_paths)
+    if unexpected_dirty:
+        print(
+            "ERROR: publish generated pointer-bound archive files but found unexpected dirty paths; "
+            f"refusing archive commit: {unexpected_dirty}",
+            file=sys.stderr,
+        )
+        return 1
+    add_result = git(root, ["add", "--", *sorted(publication_paths)])
+    if add_result.returncode != 0:
+        print(f"ERROR: publish could not stage archive publication: {add_result.stderr.strip()}", file=sys.stderr)
+        return 1
+    staged_after = git_name_only(root, ["diff", "--cached", "--name-only"])
+    if staged_after is None:
+        print("ERROR: publish could not inspect staged archive publication", file=sys.stderr)
+        return 1
+    unexpected_staged = sorted(path for path in staged_after if path not in publication_paths)
+    if unexpected_staged:
+        print(f"ERROR: publish staged unexpected paths: {unexpected_staged}", file=sys.stderr)
+        return 1
+    staged_gate = run_active_packet_gate(root, ["--staged", "--pointer", pointer_ref])
+    if staged_gate.returncode != 0:
+        print(staged_gate.stdout, end="")
+        print(staged_gate.stderr, end="", file=sys.stderr)
+        return staged_gate.returncode
+    commit_result = git(root, ["commit", "-m", args.message])
+    if commit_result.returncode != 0:
+        print(commit_result.stdout, end="")
+        print(commit_result.stderr, end="", file=sys.stderr)
+        return commit_result.returncode
+    if not isinstance(comparison_ref, str) or not comparison_ref:
+        print("ERROR: publish cannot run release gate because packet comparison_ref is missing", file=sys.stderr)
+        return 1
+    release_gate = run_active_packet_gate(root, ["--base-ref", comparison_ref, "--pointer", pointer_ref])
+    if release_gate.returncode != 0:
+        print(release_gate.stdout, end="")
+        print(release_gate.stderr, end="", file=sys.stderr)
+        return release_gate.returncode
+    print(commit_result.stdout, end="")
+    print(staged_gate.stdout, end="")
+    print(release_gate.stdout, end="")
+    print(f"published active pointer: {pointer_ref}")
+    return 0
+
+
 def check_pointer(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     path = Path(args.pointer)
@@ -6809,6 +6966,13 @@ def build_parser() -> argparse.ArgumentParser:
     write_pointer_parser.add_argument("--output")
     write_pointer_parser.add_argument("--overwrite", action="store_true")
     write_pointer_parser.set_defaults(func=write_pointer)
+
+    publish_parser = subparsers.add_parser("publish")
+    publish_parser.add_argument("--packet", required=True)
+    publish_parser.add_argument("--pointer")
+    publish_parser.add_argument("--message", default="Publish active packet pointer")
+    publish_parser.add_argument("--overwrite", action="store_true")
+    publish_parser.set_defaults(func=publish_packet)
 
     check_pointer_parser = subparsers.add_parser("check-pointer")
     check_pointer_parser.add_argument("--pointer", required=True)

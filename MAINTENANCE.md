@@ -58,10 +58,11 @@ until a later packet closes that label with its own evidence and review.
 Plan 11 closes the original residual labels for the v2 active model and keeps
 new post-v2 hardening labels separate from v2 deployment readiness. The closure
 does not claim optional future features: package-manager installation, chained
-active publication releases, packet-internal hashes, reviewer-wizard
-completion, one-command publish wrappers, or agent-in-the-loop semantic
-multi-review scoring remain post-v2 design choices until their own packets
-close them.
+active publication releases, packet-internal hashes, or reviewer-wizard
+completion remain post-v2 design choices until their own packets close them.
+The repository-local `governance publish` wrapper and perspective-eval scorer
+are now available as composition/evaluation aids, but they do not replace
+reviewer judgment or a future AI judge.
 For this repository, `governance` is the supported public command surface and
 delegates to the repository-local checker; old packets with non-current checker
 or inference versions remain historical compatibility evidence; `--worktree`
@@ -113,6 +114,7 @@ governance finalize --packet <packet> --base-ref REF \
 governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
+governance publish --packet <packet> [--pointer <pointer>] [--message <commit message>]
 governance check --packet <packet> --require-stable
 governance status --base-ref REF
 ```
@@ -146,6 +148,12 @@ Lifecycle rules:
   materialize the completed review.
 - `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
   and records it in packet evidence when reviewer judgment is required.
+- `publish` is a composition wrapper for already-stable archive packets. It
+  refuses staged or non-archive dirty content, requires current `HEAD` to equal
+  packet `accepted_head_commit`, runs `write-pointer`, stages only pointer-bound
+  `archive/v2` files, validates the staged active gate, creates the archive-only
+  publication commit, and reruns the base-ref active gate for the published
+  pointer.
 - Stable handoff uses `--base-ref`; `--staged` is preflight-only.
 - `--worktree` is always non-stable exploratory/in-progress evidence.
 - Harness-affecting finalization fails closed without a start packet unless an

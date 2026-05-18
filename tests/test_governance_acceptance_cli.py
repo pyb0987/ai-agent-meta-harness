@@ -426,6 +426,64 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("command evidence artifact could not be read", result.stderr)
         self.assertEqual(target_after, target_before)
 
+    def test_publish_commits_pointer_bound_archive_bytes_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            packet_rel, artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+            pointer_rel = "archive/v2/pointers/pkt-archived-pointer-test.yml"
+
+            publish = run_cli(
+                "--root",
+                str(root),
+                "publish",
+                "--packet",
+                packet_rel,
+                "--pointer",
+                pointer_rel,
+                "--message",
+                "publish via wrapper",
+            )
+            committed = git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").stdout.splitlines()
+            check_pointer = run_cli(
+                "--root",
+                str(root),
+                "check-pointer",
+                "--pointer",
+                pointer_rel,
+                "--replay-command-evidence",
+            )
+            status = git(root, "status", "--short").stdout
+
+        self.assertEqual(publish.returncode, 0, publish.stderr)
+        self.assertIn(f"published active pointer: {pointer_rel}", publish.stdout)
+        self.assertEqual(sorted(committed), sorted([packet_rel, artifact_rel, pointer_rel]))
+        self.assertEqual(check_pointer.returncode, 0, check_pointer.stderr)
+        self.assertEqual(status, "")
+
+    def test_publish_rejects_uncommitted_content_dirt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            packet_rel, _artifact_rel, _packet_sha = write_archived_base_ref_packet(root)
+            (root / "docs" / "note.md").write_text("initial\nuncommitted\n", encoding="utf-8")
+
+            publish = run_cli(
+                "--root",
+                str(root),
+                "publish",
+                "--packet",
+                packet_rel,
+                "--pointer",
+                "archive/v2/pointers/pkt-archived-pointer-test.yml",
+                "--message",
+                "publish via wrapper",
+            )
+
+        self.assertNotEqual(publish.returncode, 0)
+        self.assertIn("content commits first", publish.stderr)
+        self.assertIn("docs/note.md", publish.stderr)
+
     def test_write_pointer_rejects_symlinked_packet_input(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

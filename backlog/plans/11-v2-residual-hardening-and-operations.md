@@ -546,6 +546,67 @@ Multi-review:
 - Final acceptance: accepted as v2-residual-09 hardening for repository-local
   v2.
 
+## Implementation Iteration 9
+
+Closed in this iteration:
+
+- `v2-residual-11 publish-wrapper-ergonomics`: `governance publish --packet
+  <packet>` now composes the existing safe primitives for already-stable
+  packets. It requires current `HEAD` to equal packet `accepted_head_commit`,
+  refuses preexisting staged changes or non-archive dirty content, runs
+  `write-pointer`, stages only pointer-bound `archive/v2` files, validates the
+  staged active packet gate, creates the archive-only publication commit, and
+  reruns the base-ref active gate for the published pointer.
+- `v2-residual-12 agent-in-loop-multi-review-eval`: the perspective-eval
+  contract now has a deterministic scorer that emits public-only agent prompts
+  and scores candidate outputs against sealed rubric criteria for critic
+  diversity, issue/disagreement preservation, and evidence relevance.
+
+Still pending:
+
+- Package-manager installation for the public `governance` command remains a
+  distribution choice.
+- A future AI judge may replace or augment the deterministic perspective scorer,
+  but the current scorer is the repository-local calibration layer.
+
+Search-set verification:
+
+- BEFORE: SKIPPED this iteration started from the completed residual-09
+  publication; no new before-capture was recorded for this follow-up wrapper and
+  benchmark-scorer implementation.
+- AFTER: PASS `python3 scripts/run-search-set.py` after the publish wrapper and
+  perspective scorer changes.
+
+Multi-review:
+
+- Verdict: PASS for residual-11/12 closure.
+- Publish-wrapper critic: score 9 PASS; Blocking findings: none after the
+  wrapper remained a composition layer over `write-pointer`, staged active gate,
+  git commit, and base-ref active gate rather than a second policy
+  implementation. Follow-up/residual risk: accepted; package installation stays
+  out of scope.
+- Content/archive boundary critic: score 9 PASS; Blocking findings: none after
+  tests locked that `publish` creates an archive-only commit and rejects
+  uncommitted content dirt. Follow-up/residual risk: accepted; chained
+  multi-publication releases remain governed by residual-04 boundaries.
+- Perspective-eval critic: score 9 PASS; Blocking findings: none after the
+  scorer separated public prompt emission from sealed rubric scoring and
+  calibration tests reject sealed-rubric source refs. Follow-up/residual risk:
+  accepted; this is deterministic calibration, not an AI judge.
+- Evidence honesty critic: score 9 PASS; Blocking findings: none after roadmap
+  and benchmark docs state that the scorer is calibration infrastructure and not
+  governance acceptance evidence. Follow-up/residual risk: accepted; formal
+  stable handoff still requires packet and active pointer publication.
+- Anti-bloat critic: score 9 PASS; Blocking findings: none; `publish` delegates
+  to existing validators and the perspective scorer uses the existing corpus
+  format instead of adding packet fields. Follow-up/residual risk: accepted.
+- Score handling: score 9; not 10 because package distribution and AI-judge
+  semantics remain intentionally outside this repository-local closure.
+- Rerun status: publish focused unittest, perspective scorer unittest,
+  perspective corpus/scorer CLIs, maintenance policy checks, Active search-set,
+  py_compile, and whitespace checks rerun after the implementation.
+- Final acceptance: accepted as residual-11/12 repository-local closure.
+
 ## Multi-Review Seed
 
 Required critic lenses:
