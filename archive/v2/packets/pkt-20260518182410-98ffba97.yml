@@ -1,0 +1,333 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260518182410-98ffba97
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-18
+    finalized_at: 2026-05-18
+  input:
+    intent: Polish multi-review draft template semantics and scratch guidance
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+      - scripts/check-governance-acceptance.py
+      - scripts/check-multi-review-result.py
+      - tests/test_governance_review_import.py
+      - tests/test_multi_review_result_cli.py
+      intended_scope: Polish multi-review draft template semantics and scratch guidance
+      actual_scope: MAINTENANCE.md, backlog/plans/11-v2-residual-hardening-and-operations.md,
+        benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml,
+        scripts/check-governance-acceptance.py, scripts/check-multi-review-result.py,
+        tests/test_governance_review_import.py, tests/test_multi_review_result_cli.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - git diff --check ba29663d492287c73bfc746a0e7a060852a840d3...b6ec1066e3f9e28176ddfaf863e002a99af703ed
+      required_review:
+      - checker correctness
+      - claim evidence
+      - evidence auditability
+      - methodology fidelity
+      - scope boundary
+    evidence:
+      baseline_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+      comparison_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+      accepted_head_commit: b6ec1066e3f9e28176ddfaf863e002a99af703ed
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: git diff --check ba29663d492287c73bfc746a0e7a060852a840d3...b6ec1066e3f9e28176ddfaf863e002a99af703ed
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-git-diff-check.log
+      source_refs:
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:MAINTENANCE.md
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-governance-acceptance.py
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-multi-review-result.py
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_governance_review_import.py
+      - git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_multi_review_result_cli.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:MAINTENANCE.md
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:MAINTENANCE.md
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:backlog/plans/11-v2-residual-hardening-and-operations.md
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:backlog/plans/11-v2-residual-hardening-and-operations.md
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-governance-acceptance.py
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-governance-acceptance.py
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-multi-review-result.py
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:scripts/check-multi-review-result.py
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_governance_review_import.py
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_governance_review_import.py
+      - origin: generated
+        relation: source
+        ref: git:b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_multi_review_result_cli.py
+        status: resolved
+        target: b6ec1066e3f9e28176ddfaf863e002a99af703ed:tests/test_multi_review_result_cli.py
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518182410-98ffba97-git-diff-check.log
+      - origin: generated
+        relation: claim-evidence
+        ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-claim-evidence-probe.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518182410-98ffba97-claim-evidence-probe.yml
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Trace capture is deferred to Plan 04.
+      skipped:
+      - evidence: search_set_before
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_before; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-05-18
+        reason: Finalize did not capture search_set_after; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+      claims:
+      - claim: Draft multi-review templates report INCOMPLETE until completed, and
+          scratch-output guidance describes draft-only files requiring archive materialization
+          before import.
+        raw_evidence_refs:
+        - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-claim-evidence-probe.yml
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 34048c0ce99078abfb57917af207a842c65bb593ebd32603fbf6b1533f28f9e8
+        status: imported
+        review_ids:
+        - review-pkt-20260518182410-98ffba97-checker-correctness
+        - review-pkt-20260518182410-98ffba97-claim-evidence
+        - review-pkt-20260518182410-98ffba97-evidence-auditability
+        - review-pkt-20260518182410-98ffba97-methodology-fidelity
+        - review-pkt-20260518182410-98ffba97-scope-boundary
+        target_binding:
+          packet_id: pkt-20260518182410-98ffba97
+          packet_ref: archive/v2/packets/pkt-20260518182410-98ffba97.yml
+          review_target_digest: e517c0505116550ba903b8887a3efd24845d55093f7ffb5a3a5b070836de9a39
+          baseline_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+          comparison_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+          source_refs: []
+          changed_paths:
+          - MAINTENANCE.md
+          - backlog/plans/11-v2-residual-hardening-and-operations.md
+          - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+          - scripts/check-governance-acceptance.py
+          - scripts/check-multi-review-result.py
+          - tests/test_governance_review_import.py
+          - tests/test_multi_review_result_cli.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - evidence auditability
+          - methodology fidelity
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-pkt-20260518182410-98ffba97-checker-correctness
+        critic: checker correctness
+        scope: Confirm draft MultiReviewResult artifacts no longer present as reported
+          PASS and the validator enforces draft verdicts.
+        anti_scope: Does not certify future semantic agent-in-loop scoring.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        false_green_risk: Draft review skeletons could otherwise visually imply PASS
+          before completion.
+        invariant_checked: Draft lifecycle artifacts must use a draft verdict rather
+          than PASS.
+        evidence:
+        - The validator has an explicit draft verdict set and the template emits INCOMPLETE.
+        source_refs:
+        - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+        - scripts/check-multi-review-result.py
+        - tests/test_multi_review_result_cli.py
+        blocking_findings: []
+        why_not_10: This closes the draft PASS appearance, while reviewer-wizard ergonomics
+          remain future work.
+        disposition: Future reviewer-wizard polish remains non-blocking residual work.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518182410-98ffba97-claim-evidence
+        critic: claim evidence
+        scope: Confirm docs describe scratch outputs as draft-only and do not overclaim
+          direct import round-trip.
+        anti_scope: Does not implement out-of-repo import remapping.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        false_green_risk: Documentation could imply completed durable evidence when
+          the file is only scratch workspace state.
+        invariant_checked: Scratch-output docs say draft-only and require archive
+          materialization before import.
+        evidence:
+        - Plan11 iteration 6 records the accepted residual risk and follow-up boundaries.
+        source_refs:
+        - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+        - MAINTENANCE.md
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        blocking_findings: []
+        why_not_10: The docs clarify the workflow but do not add import remapping
+          for absolute scratch refs.
+        disposition: Out-of-repo scratch import remapping remains intentionally out
+          of scope.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518182410-98ffba97-evidence-auditability
+        critic: evidence auditability
+        scope: Confirm deterministic fixtures encode draft plus reported PASS as an
+          explicit error.
+        anti_scope: Does not evaluate live AI critic discovery.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        false_green_risk: Benchmarks could certify old draft PASS behavior after the
+          validator changed.
+        invariant_checked: Lifecycle fixture expects INCOMPLETE plus the draft verdict
+          error.
+        evidence:
+        - The updated lifecycle scenario includes the exact draft reported-verdict
+          validator error.
+        source_refs:
+        - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+        - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+        - scripts/check-multi-review-result.py
+        blocking_findings: []
+        why_not_10: The fixture runner remains deterministic structural validation,
+          not semantic agent-in-loop evaluation.
+        disposition: Agent-in-loop scoring remains v2-residual-12.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518182410-98ffba97-methodology-fidelity
+        critic: methodology fidelity
+        scope: Confirm the polish iteration records search-set skip rationale and
+          residual follow-up boundaries.
+        anti_scope: Does not complete search-set before/after trace fidelity.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        false_green_risk: Trace evidence could appear complete when before/after trace
+          capture is still residual.
+        invariant_checked: Search-set skip provenance exists for the high-impact polish
+          iteration.
+        evidence:
+        - Plan11 iteration 6 records SKIPPED search-set verification with a residual
+          follow-up reason.
+        source_refs:
+        - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        - scripts/check-search-set-evidence.py
+        blocking_findings: []
+        why_not_10: Full before/after trace capture remains v2-residual-09.
+        disposition: The targeted skip is accepted for this small validator/template
+          polish.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260518182410-98ffba97-scope-boundary
+        critic: scope boundary
+        scope: Confirm the packet covers only draft semantics, scratch guidance, fixture
+          oracle, and focused tests.
+        anti_scope: Does not approve unrelated release or archive rewrites.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-18'
+        source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+        false_green_risk: The packet could certify unrelated changes under a narrow
+          polish label.
+        invariant_checked: Changed paths match the requested multi-review polish and
+          tests.
+        evidence:
+        - The packet target_binding lists seven content paths and no archive publication
+          files.
+        source_refs:
+        - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+        - MAINTENANCE.md
+        - backlog/plans/11-v2-residual-hardening-and-operations.md
+        - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+        - scripts/check-governance-acceptance.py
+        - scripts/check-multi-review-result.py
+        - tests/test_governance_review_import.py
+        - tests/test_multi_review_result_cli.py
+        blocking_findings: []
+        why_not_10: A future publish wrapper may further simplify this handoff.
+        disposition: Publish-wrapper ergonomics remain v2-residual-11.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.

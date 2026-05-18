@@ -1,0 +1,399 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260518182410-98ffba97
+    packet_ref: archive/v2/packets/pkt-20260518182410-98ffba97.yml
+    review_target_digest: e517c0505116550ba903b8887a3efd24845d55093f7ffb5a3a5b070836de9a39
+    baseline_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+    comparison_ref: ba29663d492287c73bfc746a0e7a060852a840d3
+    source_refs: []
+    changed_paths:
+    - MAINTENANCE.md
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+    - scripts/check-governance-acceptance.py
+    - scripts/check-multi-review-result.py
+    - tests/test_governance_review_import.py
+    - tests/test_multi_review_result_cli.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - evidence auditability
+    - methodology fidelity
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260518182410-98ffba97-draft-semantics-scratch-guidance
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Review import for multi-review draft verdict semantics and scratch-output
+        guidance polish.
+      source_refs: &id001
+      - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+      - scripts/check-governance-acceptance.py
+      - scripts/check-multi-review-result.py
+      - tests/test_governance_review_import.py
+      - tests/test_multi_review_result_cli.py
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - evidence-auditability
+    - methodology-fidelity
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Validator maintainer checking draft verdict semantics.
+      scope: Confirm draft MultiReviewResult artifacts no longer present as reported
+        PASS and the validator enforces draft verdicts.
+      anti_scope: Does not certify future semantic agent-in-loop scoring.
+      attack_surface: Draft templates could look like final PASS evidence to a human
+        reviewer.
+      primary_failure_mode: A draft lifecycle artifact reports PASS and is mistaken
+        for final governance approval.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Draft review skeletons could otherwise visually imply PASS
+        before completion.
+      invariant_checked: Draft lifecycle artifacts must use a draft verdict rather
+        than PASS.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_draft_reported_verdict_must_be_incomplete_not_pass'"'"'];
+        suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+        result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' +
+        '"'"','"'"'.join(names)); print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+        print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+        sys.exit(0 if result.wasSuccessful() else 1)'
+      probe_exit_code: 0
+      probe_result: Focused validator test accepts draft INCOMPLETE reporting and
+        rejects draft PASS reporting.
+      probe_interpretation: The deterministic test output binds the new human-facing
+        draft rule to validator behavior.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The validator has an explicit draft verdict set and the template emits INCOMPLETE.
+      - review_lineage_sha256:fbb42fac9a3cfbb099917b78a1e857bf5c0803b79df1b5335535c4ac5d50e744
+      - provenance_record_sha256:6fe7ab66676b06b0614dfee34aa500cf23a0f7d66355f6b0bc1e3be34a83d4c2
+      - provenance_record_sha256:f4f720433454bfb8f5acdb32cf1324e2852e081e6c1a3d36a8413b849b0f72e1
+      source_refs: &id002
+      - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+      - scripts/check-multi-review-result.py
+      - tests/test_multi_review_result_cli.py
+      why_not_10: This closes the draft PASS appearance, while reviewer-wizard ergonomics
+        remain future work.
+      residual_risk_disposition: Future reviewer-wizard polish remains non-blocking
+        residual work.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: review_quality
+      persona: Evidence-honesty reviewer checking documentation and residual labels.
+      scope: Confirm docs describe scratch outputs as draft-only and do not overclaim
+        direct import round-trip.
+      anti_scope: Does not implement out-of-repo import remapping.
+      attack_surface: Scratch templates from /private/tmp could be mistaken for durable
+        archive evidence.
+      primary_failure_mode: Operator guidance advertises scratch files as importable
+        evidence without archive materialization.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Documentation could imply completed durable evidence when
+        the file is only scratch workspace state.
+      invariant_checked: Scratch-output docs say draft-only and require archive materialization
+        before import.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 scripts/check-maintenance-review.py
+      probe_exit_code: 0
+      probe_result: Maintenance review records validate after the scratch-output and
+        draft verdict documentation update.
+      probe_interpretation: The maintenance checker locks the review record and residual-risk
+        disposition for this polish iteration.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Plan11 iteration 6 records the accepted residual risk and follow-up boundaries.
+      source_refs: &id003
+      - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+      - MAINTENANCE.md
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      why_not_10: The docs clarify the workflow but do not add import remapping for
+        absolute scratch refs.
+      residual_risk_disposition: Out-of-repo scratch import remapping remains intentionally
+        out of scope.
+    - critic_id: evidence-auditability
+      name: Evidence Auditability Critic
+      critic_type: domain
+      persona: Benchmark reviewer checking multi-review fixture expectations.
+      scope: Confirm deterministic fixtures encode draft plus reported PASS as an
+        explicit error.
+      anti_scope: Does not evaluate live AI critic discovery.
+      attack_surface: Fixture runner could keep accepting stale draft PASS semantics
+        after template changes.
+      primary_failure_mode: The lifecycle fixture misses the new draft verdict validation
+        error.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Benchmarks could certify old draft PASS behavior after the
+        validator changed.
+      invariant_checked: Lifecycle fixture expects INCOMPLETE plus the draft verdict
+        error.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 benchmarks/multi-review/check-fixtures.py --replay-probe-commands
+        --allow-pending
+      probe_exit_code: 0
+      probe_result: All 12 multi-review benchmark fixture scenarios pass with replay
+        enabled, including the updated draft lifecycle oracle.
+      probe_interpretation: The fixture runner proves the structural multi-review
+        corpus remains synchronized with validator semantics.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-evidence-auditability-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The updated lifecycle scenario includes the exact draft reported-verdict validator
+        error.
+      source_refs: &id004
+      - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+      - benchmarks/multi-review/scenarios/lifecycle_and_rerun_closure/lc-draft-result-accepted/scenario.yml
+      - scripts/check-multi-review-result.py
+      why_not_10: The fixture runner remains deterministic structural validation,
+        not semantic agent-in-loop evaluation.
+      residual_risk_disposition: Agent-in-loop scoring remains v2-residual-12.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: domain
+      persona: Methodology maintainer checking residual boundaries and search-set
+        skip provenance.
+      scope: Confirm the polish iteration records search-set skip rationale and residual
+        follow-up boundaries.
+      anti_scope: Does not complete search-set before/after trace fidelity.
+      attack_surface: A polish change could silently bypass trace-evidence expectations
+        for harness-affecting files.
+      primary_failure_mode: Harness-affecting validator edits land without search-set
+        evidence or a targeted skip record.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Trace evidence could appear complete when before/after trace
+        capture is still residual.
+      invariant_checked: Search-set skip provenance exists for the high-impact polish
+        iteration.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 scripts/check-search-set-evidence.py
+      probe_exit_code: 0
+      probe_result: Search-set evidence checker accepts the targeted skip record for
+        this harness-affecting polish change.
+      probe_interpretation: The output confirms trace fidelity is explicitly deferred
+        rather than silently omitted.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Plan11 iteration 6 records SKIPPED search-set verification with a residual
+        follow-up reason.
+      source_refs: &id005
+      - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - scripts/check-search-set-evidence.py
+      why_not_10: Full before/after trace capture remains v2-residual-09.
+      residual_risk_disposition: The targeted skip is accepted for this small validator/template
+        polish.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: domain
+      persona: Scope reviewer checking the changed-path set.
+      scope: Confirm the packet covers only draft semantics, scratch guidance, fixture
+        oracle, and focused tests.
+      anti_scope: Does not approve unrelated release or archive rewrites.
+      attack_surface: A small polish packet could accidentally include unrelated harness
+        behavior changes.
+      primary_failure_mode: Acceptance packet changed paths exceed the requested multi-review
+        polish scope.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-18'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: The packet could certify unrelated changes under a narrow
+        polish label.
+      invariant_checked: Changed paths match the requested multi-review polish and
+        tests.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: git diff --check ba29663d492287c73bfc746a0e7a060852a840d3...b6ec1066e3f9e28176ddfaf863e002a99af703ed
+      probe_exit_code: 0
+      probe_result: The exact content diff is whitespace-clean for the scoped polish
+        commit.
+      probe_interpretation: The probe anchors the review to the content commit being
+        published by this packet.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260518182410-98ffba97-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The packet target_binding lists seven content paths and no archive publication
+        files.
+      source_refs: *id001
+      why_not_10: A future publish wrapper may further simplify this handoff.
+      residual_risk_disposition: Publish-wrapper ergonomics remain v2-residual-11.
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260518182410-98ffba97-checker-correctness
+    critic: checker correctness
+    scope: Confirm draft MultiReviewResult artifacts no longer present as reported
+      PASS and the validator enforces draft verdicts.
+    anti_scope: Does not certify future semantic agent-in-loop scoring.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+    false_green_risk: Draft review skeletons could otherwise visually imply PASS before
+      completion.
+    invariant_checked: Draft lifecycle artifacts must use a draft verdict rather than
+      PASS.
+    evidence:
+    - The validator has an explicit draft verdict set and the template emits INCOMPLETE.
+    source_refs: *id002
+    blocking_findings: []
+    why_not_10: This closes the draft PASS appearance, while reviewer-wizard ergonomics
+      remain future work.
+    disposition: Future reviewer-wizard polish remains non-blocking residual work.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518182410-98ffba97-claim-evidence
+    critic: claim evidence
+    scope: Confirm docs describe scratch outputs as draft-only and do not overclaim
+      direct import round-trip.
+    anti_scope: Does not implement out-of-repo import remapping.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+    false_green_risk: Documentation could imply completed durable evidence when the
+      file is only scratch workspace state.
+    invariant_checked: Scratch-output docs say draft-only and require archive materialization
+      before import.
+    evidence:
+    - Plan11 iteration 6 records the accepted residual risk and follow-up boundaries.
+    source_refs: *id003
+    blocking_findings: []
+    why_not_10: The docs clarify the workflow but do not add import remapping for
+      absolute scratch refs.
+    disposition: Out-of-repo scratch import remapping remains intentionally out of
+      scope.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518182410-98ffba97-evidence-auditability
+    critic: evidence auditability
+    scope: Confirm deterministic fixtures encode draft plus reported PASS as an explicit
+      error.
+    anti_scope: Does not evaluate live AI critic discovery.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+    false_green_risk: Benchmarks could certify old draft PASS behavior after the validator
+      changed.
+    invariant_checked: Lifecycle fixture expects INCOMPLETE plus the draft verdict
+      error.
+    evidence:
+    - The updated lifecycle scenario includes the exact draft reported-verdict validator
+      error.
+    source_refs: *id004
+    blocking_findings: []
+    why_not_10: The fixture runner remains deterministic structural validation, not
+      semantic agent-in-loop evaluation.
+    disposition: Agent-in-loop scoring remains v2-residual-12.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518182410-98ffba97-methodology-fidelity
+    critic: methodology fidelity
+    scope: Confirm the polish iteration records search-set skip rationale and residual
+      follow-up boundaries.
+    anti_scope: Does not complete search-set before/after trace fidelity.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+    false_green_risk: Trace evidence could appear complete when before/after trace
+      capture is still residual.
+    invariant_checked: Search-set skip provenance exists for the high-impact polish
+      iteration.
+    evidence:
+    - Plan11 iteration 6 records SKIPPED search-set verification with a residual follow-up
+      reason.
+    source_refs: *id005
+    blocking_findings: []
+    why_not_10: Full before/after trace capture remains v2-residual-09.
+    disposition: The targeted skip is accepted for this small validator/template polish.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260518182410-98ffba97-scope-boundary
+    critic: scope boundary
+    scope: Confirm the packet covers only draft semantics, scratch guidance, fixture
+      oracle, and focused tests.
+    anti_scope: Does not approve unrelated release or archive rewrites.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-18'
+    source_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+    false_green_risk: The packet could certify unrelated changes under a narrow polish
+      label.
+    invariant_checked: Changed paths match the requested multi-review polish and tests.
+    evidence:
+    - The packet target_binding lists seven content paths and no archive publication
+      files.
+    source_refs: *id001
+    blocking_findings: []
+    why_not_10: A future publish wrapper may further simplify this handoff.
+    disposition: Publish-wrapper ergonomics remain v2-residual-11.
+    rerun_of: null
+    fixed_finding_ids: []

@@ -1,0 +1,34 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import sys, unittest; names=['"'"'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_draft_reported_verdict_must_be_incomplete_not_pass'"'"'];
+    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromNames(names));
+    result=unittest.TestResult(); suite.run(result); print('"'"'tests='"'"' + '"'"','"'"'.join(names));
+    print(f'"'"'tests_run={result.testsRun}'"'"'); print(f'"'"'failures={len(result.failures)}'"'"');
+    print(f'"'"'errors={len(result.errors)}'"'"'); print(f'"'"'skipped={len(result.skipped)}'"'"');
+    sys.exit(0 if result.wasSuccessful() else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260518182410-98ffba97-review-import.yml
+  result_digest: 34048c0ce99078abfb57917af207a842c65bb593ebd32603fbf6b1533f28f9e8
+  packet_ref: archive/v2/packets/pkt-20260518182410-98ffba97.yml
+  packet_sha256: 8d8139aa168f68e008c06ade1263eefdf1a7cd7a2532dd3153552b0d7fc8143b
+  source_refs:
+  - archive/v2/packets/pkt-20260518182410-98ffba97.yml
+  - scripts/check-multi-review-result.py
+  - tests/test_multi_review_result_cli.py
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-18'
+  stdout: 'tests=tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_draft_reported_verdict_must_be_incomplete_not_pass
+
+    tests_run=1
+
+    failures=0
+
+    errors=0
+
+    skipped=0
+
+    '
+  stderr: ''
+  stdout_sha256: 9564fb58dae4e068becf1dbc0ae7e2f69da04f60fe2f4aa6b28cd532bbdd02c5
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
