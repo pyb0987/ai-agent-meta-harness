@@ -1,0 +1,23 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-maintenance-review.py
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+  result_digest: 5e768b92255a7a8a1548de550084a7769e0a6dbe4ccb94a1946eba54634de18b
+  packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  packet_sha256: 0701abaf084cc57aedec792c56b10fc0f0f4205241c76c8d89954f9c0abef077
+  source_refs:
+  - MAINTENANCE.md
+  - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  - backlog/v2-roadmap.md
+  - scripts/check-maintenance-review.py
+  cwd: .
+  generated_by: codex residual-11/12 multi-review iteration
+  date: '2026-05-19'
+  stdout: 'Maintenance review summaries are valid.
+
+    '
+  stderr: ''
+  stdout_sha256: 12817f72fbd1054f93e62180921fa7c7557f703aaf0a537dc3e18dfc3e941b2a
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

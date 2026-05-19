@@ -1,0 +1,43 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: git diff --name-only 1d39b91fe0c6598d323f03060deb8c37bad5451b...e02230f36606bf66225123de8d4e2176c6e98adb
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+  result_digest: 5e768b92255a7a8a1548de550084a7769e0a6dbe4ccb94a1946eba54634de18b
+  packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  packet_sha256: 0701abaf084cc57aedec792c56b10fc0f0f4205241c76c8d89954f9c0abef077
+  source_refs:
+  - MAINTENANCE.md
+  - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  - backlog/v2-roadmap.md
+  - benchmarks/multi-review/score-perspective-candidates.py
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  - tests/test_multi_review_perspective_scorer.py
+  cwd: .
+  generated_by: codex residual-11/12 multi-review iteration
+  date: '2026-05-19'
+  stdout: 'MAINTENANCE.md
+
+    backlog/plans/11-v2-residual-hardening-and-operations.md
+
+    backlog/v2-roadmap.md
+
+    benchmarks/multi-review/README.md
+
+    benchmarks/multi-review/perspective-eval/README.md
+
+    benchmarks/multi-review/score-perspective-candidates.py
+
+    scripts/check-governance-acceptance.py
+
+    tests/test_governance_acceptance_cli.py
+
+    tests/test_maintenance_policy_boundaries.py
+
+    tests/test_multi_review_perspective_scorer.py
+
+    '
+  stderr: ''
+  stdout_sha256: 166ffa6ce18bf7f4cc6f5be18ef9d5cd101c28c9fae2c446f86637bf29d3e4c6
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

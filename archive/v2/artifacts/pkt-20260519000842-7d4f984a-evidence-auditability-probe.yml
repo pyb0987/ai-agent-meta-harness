@@ -1,0 +1,41 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 benchmarks/multi-review/score-perspective-candidates.py
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+  result_digest: 5e768b92255a7a8a1548de550084a7769e0a6dbe4ccb94a1946eba54634de18b
+  packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  packet_sha256: 0701abaf084cc57aedec792c56b10fc0f0f4205241c76c8d89954f9c0abef077
+  source_refs:
+  - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-strong.yml
+  - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-weak.yml
+  - benchmarks/multi-review/score-perspective-candidates.py
+  - tests/test_multi_review_perspective_scorer.py
+  cwd: .
+  generated_by: codex residual-11/12 multi-review iteration
+  date: '2026-05-19'
+  stdout: 'evidence-monoculture/candidate-strong.yml: score 13 (evidence_binding=5,
+    evidence_diversity=5, final_synthesis_fidelity=3)
+
+    evidence-monoculture/candidate-weak.yml: score 0 (evidence_binding=0, evidence_diversity=0,
+    final_synthesis_fidelity=0)
+
+    semantic-duplicate-frames/candidate-strong.yml: score 20 (anti_scope_clarity=5,
+    failure_mode_diversity=5, frame_diversity=5, presupposition_challenge=5)
+
+    semantic-duplicate-frames/candidate-weak.yml: score 0 (anti_scope_clarity=0, failure_mode_diversity=0,
+    frame_diversity=0, presupposition_challenge=0)
+
+    synthesis-drops-veto/candidate-strong.yml: score 15 (disagreement_preservation=5,
+    final_synthesis_fidelity=5, presupposition_challenge=5)
+
+    synthesis-drops-veto/candidate-weak.yml: score 3 (disagreement_preservation=0,
+    final_synthesis_fidelity=0, presupposition_challenge=3)
+
+    Perspective candidate scoring: PASS
+
+    '
+  stderr: ''
+  stdout_sha256: 1ff8d74382b90be05210b7f85dc3b39cbe264b92ba6221d359cc94e9f72d3d9f
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

@@ -1,0 +1,23 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 scripts/check-governance-acceptance.py --help
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+  result_digest: 5e768b92255a7a8a1548de550084a7769e0a6dbe4ccb94a1946eba54634de18b
+  packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  packet_sha256: 0701abaf084cc57aedec792c56b10fc0f0f4205241c76c8d89954f9c0abef077
+  source_refs:
+  - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  - scripts/check-governance-acceptance.py
+  - tests/test_governance_acceptance_cli.py
+  cwd: .
+  generated_by: codex residual-11/12 multi-review iteration
+  date: '2026-05-19'
+  stdout: "usage: check-governance-acceptance.py [-h]\n                          \
+    \            {start,finalize,capture-search-set,check,import-review,review-template,write-pointer,publish,check-pointer,status}\n\
+    \                                      ...\n\nCreate and validate v2 AcceptancePacket\
+    \ skeletons.\n\npositional arguments:\n  {start,finalize,capture-search-set,check,import-review,review-template,write-pointer,publish,check-pointer,status}\n\
+    \noptional arguments:\n  -h, --help            show this help message and exit\n"
+  stderr: ''
+  stdout_sha256: 4b98bad287ab4c5fbf331b5e21a82f50737ed7fd07ca5757ea15b41e139bba5a
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

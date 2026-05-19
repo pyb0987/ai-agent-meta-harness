@@ -1,0 +1,48 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 benchmarks/multi-review/check-fixtures.py --replay-probe-commands
+    --allow-pending
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+  result_digest: 5e768b92255a7a8a1548de550084a7769e0a6dbe4ccb94a1946eba54634de18b
+  packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  packet_sha256: 0701abaf084cc57aedec792c56b10fc0f0f4205241c76c8d89954f9c0abef077
+  source_refs:
+  - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+  - backlog/plans/11-v2-residual-hardening-and-operations.md
+  - benchmarks/multi-review/README.md
+  - benchmarks/multi-review/check-fixtures.py
+  - benchmarks/multi-review/perspective-eval/README.md
+  cwd: .
+  generated_by: codex residual-11/12 multi-review iteration
+  date: '2026-05-19'
+  stdout: 'PASS aa-reported-pass-typed-veto derived=VETO
+
+    PASS aa-valid-governance-pass derived=PASS
+
+    PASS ci-duplicate-scope derived=VETO
+
+    PASS er-existing-unrelated-file derived=VETO
+
+    PASS fc-missing-frame-challenge derived=VETO
+
+    PASS im-fallback-nonindependent-governance-pass derived=FALLBACK_NONINDEPENDENT
+
+    PASS im-score-9-no-why derived=VETO
+
+    PASS lc-draft-result-accepted derived=INCOMPLETE
+
+    PASS pf-exit-1-hidden derived=VETO
+
+    PASS pp-fabricated-transcript derived=VETO
+
+    PASS ta-list-wrapped-frame derived=VETO
+
+    PASS vl-prose-smoke-only derived=VETO
+
+    Fixture scenarios checked: 12 passed, 0 pending explicit checks
+
+    '
+  stderr: ''
+  stdout_sha256: 23e53e338fe42230a0f2464c800b940caff29a8222371eae95b5086dda1c024e
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

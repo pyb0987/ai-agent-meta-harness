@@ -1,0 +1,465 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260519000842-7d4f984a
+    packet_ref: archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    review_target_digest: 427b213f9eea8741014a4059993b4ca3cf618a9cf2ed78e3e8374e739f679b66
+    baseline_ref: 1d39b91fe0c6598d323f03060deb8c37bad5451b
+    comparison_ref: 1d39b91fe0c6598d323f03060deb8c37bad5451b
+    source_refs: []
+    changed_paths:
+    - MAINTENANCE.md
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - backlog/v2-roadmap.md
+    - benchmarks/multi-review/README.md
+    - benchmarks/multi-review/perspective-eval/README.md
+    - benchmarks/multi-review/score-perspective-candidates.py
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    - tests/test_maintenance_policy_boundaries.py
+    - tests/test_multi_review_perspective_scorer.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - evidence auditability
+    - methodology fidelity
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260519000842-7d4f984a-residual-11-12
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Residual-11/12 closure review for repository-local publish wrapper
+        and perspective evaluation scorer.
+      source_refs:
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - evidence-auditability
+    - methodology-fidelity
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Checker implementation reviewer validating that the repository-local
+        governance command loads before publication.
+      scope: Review publish wrapper integration in the governance CLI for executable
+        checker correctness.
+      anti_scope: Does not decide distribution packaging or future AI judge semantics.
+      attack_surface: A broken governance CLI could be imported as stable governance
+        evidence.
+      primary_failure_mode: Repository-local governance command fails to load or expose
+        its parser.
+      frame_challenge: false
+      required: true
+      actor: codex-multi-review
+      date: '2026-05-19'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Stable handoff could claim residual closure while the new
+        governance command cannot start.
+      invariant_checked: The governance checker CLI must load successfully before
+        active pointer publication.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 scripts/check-governance-acceptance.py --help
+      probe_exit_code: 0
+      probe_result: PASS; command exited 0 and transcript stdout/stderr hashes match
+        captured bytes.
+      probe_interpretation: The probe supports this critic lens for residual-11/12
+        closure without broadening the claim beyond repository-local v2.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - python3 scripts/check-governance-acceptance.py --help exited 0.
+      - Focused publish wrapper tests passed before packet creation.
+      - provenance_record_sha256:822f3e87c74ce089e887f6894f81654be9c5a3eaa409d8abfe76b8510de00c4f
+      - provenance_record_sha256:4ed77572d68b3cfcf5d50f8d1af6c584128d009c00a08a74558b6fb7cb22fdf1
+      - review_lineage_sha256:3734dd72f545d1ebdcb9b19e8e527c7e3de97eeb03f31109c251a3662fde8dea
+      source_refs:
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      why_not_10: Score 9 because package distribution and live AI-judge semantics
+        remain explicit post-v2 choices.
+      residual_risk_disposition: Accepted for repository-local v2 residual closure;
+        future work remains separately labeled.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: domain
+      persona: Evidence-honesty reviewer checking that closure claims stay bounded
+        to repository-local v2.
+      scope: Review documentation and Plan 11 claims for honest residual-11/12 closure
+        boundaries.
+      anti_scope: Does not certify package-manager installation, chained publications,
+        or AI judge replacement.
+      attack_surface: Docs could overstate publish wrapper or perspective scorer as
+        complete methodology automation.
+      primary_failure_mode: Residual closure claim exceeds the implemented repository-local
+        evidence.
+      frame_challenge: false
+      required: true
+      actor: codex-multi-review
+      date: '2026-05-19'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Operators could read residual closure as package distribution
+        or semantic AI judging readiness.
+      invariant_checked: Maintenance and roadmap docs must preserve explicit post-v2
+        boundaries while accepting residual closure.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 scripts/check-maintenance-review.py
+      probe_exit_code: 0
+      probe_result: PASS; command exited 0 and transcript stdout/stderr hashes match
+        captured bytes.
+      probe_interpretation: The probe supports this critic lens for residual-11/12
+        closure without broadening the claim beyond repository-local v2.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - check-maintenance-review.py passed with Plan 11 residual-11/12 closure records
+        present.
+      - MAINTENANCE.md states governance publish and the scorer are aids, not replacements
+        for reviewer judgment or future AI judge work.
+      source_refs:
+      - MAINTENANCE.md
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - backlog/v2-roadmap.md
+      - scripts/check-maintenance-review.py
+      why_not_10: Score 9 because package distribution and live AI-judge semantics
+        remain explicit post-v2 choices.
+      residual_risk_disposition: Accepted for repository-local v2 residual closure;
+        future work remains separately labeled.
+    - critic_id: evidence-auditability
+      name: Evidence Auditability Critic
+      critic_type: other
+      persona: Auditability reviewer checking that the perspective scorer produces
+        replayable calibration output.
+      scope: Review deterministic scoring of strong and weak perspective-eval candidates.
+      anti_scope: Does not score live AI agents or semantic evidence relevance beyond
+        sealed calibration criteria.
+      attack_surface: Calibration candidates could pass without replayable scorer
+        evidence or public-only prompt boundaries.
+      primary_failure_mode: Perspective calibration score is not reproducible from
+        repository files.
+      frame_challenge: false
+      required: true
+      actor: codex-multi-review
+      date: '2026-05-19'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Residual-12 could be marked closed while weak duplicate-frame
+        reviews still score as acceptable.
+      invariant_checked: The deterministic scorer must separate strong candidates
+        from weak candidates using sealed rubric criteria.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 benchmarks/multi-review/score-perspective-candidates.py
+      probe_exit_code: 0
+      probe_result: PASS; command exited 0 and transcript stdout/stderr hashes match
+        captured bytes.
+      probe_interpretation: The probe supports this critic lens for residual-11/12
+        closure without broadening the claim beyond repository-local v2.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-evidence-auditability-probe.yml
+      reason_no_probe: null
+      evidence:
+      - score-perspective-candidates.py passed across the calibration corpus.
+      - The weak semantic-duplicate-frames candidate scores zero after generic PASS
+        phrasing is excluded from diversity scoring.
+      source_refs:
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+      - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-strong.yml
+      - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-weak.yml
+      - benchmarks/multi-review/score-perspective-candidates.py
+      - tests/test_multi_review_perspective_scorer.py
+      why_not_10: Score 9 because package distribution and live AI-judge semantics
+        remain explicit post-v2 choices.
+      residual_risk_disposition: Accepted for repository-local v2 residual closure;
+        future work remains separately labeled.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: review_quality
+      persona: Review-quality meta-critic challenging whether residual closure preserves
+        multi-review false-green protections.
+      scope: Review that existing multi-review fixture replay and new perspective
+        calibration remain separate evidence layers.
+      anti_scope: Does not claim independent agent-in-the-loop methodology reproduction
+        or paper-result replication.
+      attack_surface: A deterministic scorer might be mistaken for formal governance
+        acceptance or independent critic discovery.
+      primary_failure_mode: Structural fixture validation and perspective calibration
+        are conflated with semantic agent judgment.
+      frame_challenge: true
+      required: true
+      actor: codex-multi-review
+      date: '2026-05-19'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: The packet could imply full methodology-fidelity proof instead
+        of packet-scoped residual closure.
+      invariant_checked: Fixture replay remains the structural false-green guard while
+        perspective scoring remains calibration only.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 benchmarks/multi-review/check-fixtures.py --replay-probe-commands
+        --allow-pending
+      probe_exit_code: 0
+      probe_result: PASS; command exited 0 and transcript stdout/stderr hashes match
+        captured bytes.
+      probe_interpretation: The probe supports this critic lens for residual-11/12
+        closure without broadening the claim beyond repository-local v2.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - check-fixtures.py with probe replay passed all 12 multi-review scenarios.
+      - Benchmark docs state the perspective scorer is deterministic calibration infrastructure,
+        not governance acceptance evidence.
+      source_refs:
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+      - backlog/plans/11-v2-residual-hardening-and-operations.md
+      - benchmarks/multi-review/README.md
+      - benchmarks/multi-review/check-fixtures.py
+      - benchmarks/multi-review/perspective-eval/README.md
+      why_not_10: Score 9 because package distribution and live AI-judge semantics
+        remain explicit post-v2 choices.
+      residual_risk_disposition: Accepted for repository-local v2 residual closure;
+        future work remains separately labeled.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: other
+      persona: Scope boundary reviewer checking changed-path containment against the
+        residual-11/12 intent.
+      scope: Review that changed paths match publish wrapper, perspective scorer,
+        docs, and tests for residual-11/12.
+      anti_scope: Does not include archive publication bytes or unrelated backlog
+        cleanup in the content commit review.
+      attack_surface: Unrelated content changes could be hidden inside the residual
+        closure packet.
+      primary_failure_mode: Changed paths exceed residual-11/12 implementation and
+        documentation scope.
+      frame_challenge: false
+      required: true
+      actor: codex-multi-review
+      date: '2026-05-19'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A broad content commit could receive active pointer publication
+        under a narrow residual closure intent.
+      invariant_checked: The base-to-head diff must be limited to publish wrapper,
+        perspective scorer, docs, and tests.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: git diff --name-only 1d39b91fe0c6598d323f03060deb8c37bad5451b...e02230f36606bf66225123de8d4e2176c6e98adb
+      probe_exit_code: 0
+      probe_result: PASS; command exited 0 and transcript stdout/stderr hashes match
+        captured bytes.
+      probe_interpretation: The probe supports this critic lens for residual-11/12
+        closure without broadening the claim beyond repository-local v2.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - git diff --name-only from the prior publication to the content commit lists
+        only residual-11/12 implementation, docs, and tests.
+      - The active archive publication will be created separately after this content
+        commit.
+      source_refs:
+      - MAINTENANCE.md
+      - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+      - backlog/v2-roadmap.md
+      - benchmarks/multi-review/score-perspective-candidates.py
+      - scripts/check-governance-acceptance.py
+      - tests/test_governance_acceptance_cli.py
+      - tests/test_multi_review_perspective_scorer.py
+      why_not_10: Score 9 because package distribution and live AI-judge semantics
+        remain explicit post-v2 choices.
+      residual_risk_disposition: Accepted for repository-local v2 residual closure;
+        future work remains separately labeled.
+    reported_final_verdict: PASS
+    derived_verdict: PASS
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260519000842-7d4f984a-checker-correctness
+    critic: checker correctness
+    scope: Review publish wrapper integration in the governance CLI for executable
+      checker correctness.
+    anti_scope: Does not decide distribution packaging or future AI judge semantics.
+    score: 9
+    veto: false
+    actor: codex-multi-review
+    role: reviewer
+    date: '2026-05-19'
+    source_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+    false_green_risk: Stable handoff could claim residual closure while the new governance
+      command cannot start.
+    invariant_checked: The governance checker CLI must load successfully before active
+      pointer publication.
+    evidence:
+    - python3 scripts/check-governance-acceptance.py --help exited 0.
+    - Focused publish wrapper tests passed before packet creation.
+    source_refs:
+    - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    blocking_findings: []
+    why_not_10: Score 9 because package distribution and live AI-judge semantics remain
+      explicit post-v2 choices.
+    disposition: Accepted for repository-local v2 residual closure; future work remains
+      separately labeled.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260519000842-7d4f984a-claim-evidence
+    critic: claim evidence
+    scope: Review documentation and Plan 11 claims for honest residual-11/12 closure
+      boundaries.
+    anti_scope: Does not certify package-manager installation, chained publications,
+      or AI judge replacement.
+    score: 9
+    veto: false
+    actor: codex-multi-review
+    role: reviewer
+    date: '2026-05-19'
+    source_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+    false_green_risk: Operators could read residual closure as package distribution
+      or semantic AI judging readiness.
+    invariant_checked: Maintenance and roadmap docs must preserve explicit post-v2
+      boundaries while accepting residual closure.
+    evidence:
+    - check-maintenance-review.py passed with Plan 11 residual-11/12 closure records
+      present.
+    - MAINTENANCE.md states governance publish and the scorer are aids, not replacements
+      for reviewer judgment or future AI judge work.
+    source_refs:
+    - MAINTENANCE.md
+    - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - backlog/v2-roadmap.md
+    - scripts/check-maintenance-review.py
+    blocking_findings: []
+    why_not_10: Score 9 because package distribution and live AI-judge semantics remain
+      explicit post-v2 choices.
+    disposition: Accepted for repository-local v2 residual closure; future work remains
+      separately labeled.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260519000842-7d4f984a-evidence-auditability
+    critic: evidence auditability
+    scope: Review deterministic scoring of strong and weak perspective-eval candidates.
+    anti_scope: Does not score live AI agents or semantic evidence relevance beyond
+      sealed calibration criteria.
+    score: 9
+    veto: false
+    actor: codex-multi-review
+    role: reviewer
+    date: '2026-05-19'
+    source_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+    false_green_risk: Residual-12 could be marked closed while weak duplicate-frame
+      reviews still score as acceptable.
+    invariant_checked: The deterministic scorer must separate strong candidates from
+      weak candidates using sealed rubric criteria.
+    evidence:
+    - score-perspective-candidates.py passed across the calibration corpus.
+    - The weak semantic-duplicate-frames candidate scores zero after generic PASS
+      phrasing is excluded from diversity scoring.
+    source_refs:
+    - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-strong.yml
+    - benchmarks/multi-review/perspective-eval/scenarios/semantic-duplicate-frames/candidate-weak.yml
+    - benchmarks/multi-review/score-perspective-candidates.py
+    - tests/test_multi_review_perspective_scorer.py
+    blocking_findings: []
+    why_not_10: Score 9 because package distribution and live AI-judge semantics remain
+      explicit post-v2 choices.
+    disposition: Accepted for repository-local v2 residual closure; future work remains
+      separately labeled.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260519000842-7d4f984a-methodology-fidelity
+    critic: methodology fidelity
+    scope: Review that existing multi-review fixture replay and new perspective calibration
+      remain separate evidence layers.
+    anti_scope: Does not claim independent agent-in-the-loop methodology reproduction
+      or paper-result replication.
+    score: 9
+    veto: false
+    actor: codex-multi-review
+    role: reviewer
+    date: '2026-05-19'
+    source_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+    false_green_risk: The packet could imply full methodology-fidelity proof instead
+      of packet-scoped residual closure.
+    invariant_checked: Fixture replay remains the structural false-green guard while
+      perspective scoring remains calibration only.
+    evidence:
+    - check-fixtures.py with probe replay passed all 12 multi-review scenarios.
+    - Benchmark docs state the perspective scorer is deterministic calibration infrastructure,
+      not governance acceptance evidence.
+    source_refs:
+    - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    - backlog/plans/11-v2-residual-hardening-and-operations.md
+    - benchmarks/multi-review/README.md
+    - benchmarks/multi-review/check-fixtures.py
+    - benchmarks/multi-review/perspective-eval/README.md
+    blocking_findings: []
+    why_not_10: Score 9 because package distribution and live AI-judge semantics remain
+      explicit post-v2 choices.
+    disposition: Accepted for repository-local v2 residual closure; future work remains
+      separately labeled.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260519000842-7d4f984a-scope-boundary
+    critic: scope boundary
+    scope: Review that changed paths match publish wrapper, perspective scorer, docs,
+      and tests for residual-11/12.
+    anti_scope: Does not include archive publication bytes or unrelated backlog cleanup
+      in the content commit review.
+    score: 9
+    veto: false
+    actor: codex-multi-review
+    role: reviewer
+    date: '2026-05-19'
+    source_ref: file:archive/v2/artifacts/pkt-20260519000842-7d4f984a-review-import.yml
+    false_green_risk: A broad content commit could receive active pointer publication
+      under a narrow residual closure intent.
+    invariant_checked: The base-to-head diff must be limited to publish wrapper, perspective
+      scorer, docs, and tests.
+    evidence:
+    - git diff --name-only from the prior publication to the content commit lists
+      only residual-11/12 implementation, docs, and tests.
+    - The active archive publication will be created separately after this content
+      commit.
+    source_refs:
+    - MAINTENANCE.md
+    - archive/v2/packets/pkt-20260519000842-7d4f984a.yml
+    - backlog/v2-roadmap.md
+    - benchmarks/multi-review/score-perspective-candidates.py
+    - scripts/check-governance-acceptance.py
+    - tests/test_governance_acceptance_cli.py
+    - tests/test_multi_review_perspective_scorer.py
+    blocking_findings: []
+    why_not_10: Score 9 because package distribution and live AI-judge semantics remain
+      explicit post-v2 choices.
+    disposition: Accepted for repository-local v2 residual closure; future work remains
+      separately labeled.
+    rerun_of: null
+    fixed_finding_ids: []
