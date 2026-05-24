@@ -1,0 +1,31 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -m unittest tests.test_strategy_search.StrategySearchCliTests.test_validate_direction_rejects_inline_command_closure_bypass
+    tests.test_strategy_search.StrategySearchCliTests.test_validate_direction_rejects_awk_inline_evaluator
+    tests.test_strategy_search.StrategySearchCliTests.test_propose_context_uses_sanitized_prior_trace_summary
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+  result_digest: f7f73ea526e50de393136921fb73c0013236a9f50222fd99b6ec8b5354e2010c
+  packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+  packet_sha256: 37bcbcf7f28a7e9a64a6ffdb0d5000faea41cf40d0f6d9baaaecd4337a8d416c
+  source_refs:
+  - scripts/strategy-search.py
+  - tests/test_strategy_search.py
+  - backlog/plans/12-strategy-search-loop-mvp.md
+  - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-25'
+  stdout: ''
+  stderr: '...
+
+    ----------------------------------------------------------------------
+
+    Ran 3 tests in 2.240s
+
+
+    OK
+
+    '
+  stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  stderr_sha256: f2a7169261d7f978d7e87ed7f30dcef7d07febfcaf23a1ca2b8606584f4bd255

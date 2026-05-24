@@ -1,0 +1,30 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -m unittest tests.test_strategy_search.StrategySearchCliTests.test_select_refuses_archive_output_prefix
+    tests.test_strategy_search.StrategySearchCliTests.test_select_requires_canonical_search_run_directory
+    tests.test_strategy_search.StrategySearchCliTests.test_public_sanitizer_allows_declared_candidates_source_surface
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+  result_digest: f7f73ea526e50de393136921fb73c0013236a9f50222fd99b6ec8b5354e2010c
+  packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+  packet_sha256: 37bcbcf7f28a7e9a64a6ffdb0d5000faea41cf40d0f6d9baaaecd4337a8d416c
+  source_refs:
+  - tests/test_strategy_search.py
+  - scripts/strategy-search.py
+  - MAINTENANCE.md
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-25'
+  stdout: ''
+  stderr: '...
+
+    ----------------------------------------------------------------------
+
+    Ran 3 tests in 3.008s
+
+
+    OK
+
+    '
+  stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  stderr_sha256: 29fc1fb9788c776697b5bacda4bad7c801928f2a6c67c04f6936feb03de9b08a

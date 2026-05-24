@@ -1,0 +1,463 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260525051410-4c0ab75d
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-05-25
+    finalized_at: 2026-05-25
+  input:
+    intent: Add diagnostic strategy-search MVP and harden v2 evidence boundaries
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - .harness/traces/search-set.md
+      - MAINTENANCE.md
+      - backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+      - backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+      - backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+      - backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+      - backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+      - backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+      - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+      - backlog/plans/12-strategy-search-loop-mvp.md
+      - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+      - backlog/plans/README.md
+      - backlog/v2-roadmap.md
+      - scripts/check-governance-acceptance.py
+      - scripts/strategy-search.py
+      - tests/test_governance_acceptance_cli.py
+      - tests/test_governance_evidence_refs.py
+      - tests/test_strategy_search.py
+      intended_scope: Add diagnostic strategy-search MVP and harden v2 evidence boundaries
+      actual_scope: .harness/traces/search-set.md, MAINTENANCE.md, backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt,
+        backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt,
+        backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt,
+        backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log,
+        backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log,
+        backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log,
+        backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml, backlog/plans/12-strategy-search-loop-mvp.md,
+        backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md,
+        backlog/plans/README.md, backlog/v2-roadmap.md, scripts/check-governance-acceptance.py,
+        scripts/strategy-search.py, tests/test_governance_acceptance_cli.py, tests/test_governance_evidence_refs.py,
+        tests/test_strategy_search.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - git diff --check dc0545f5f9403b52b81221fc0cd27a0a7ecd1165...d602a1523376ea4062a8eb50c96e0079dc2ce22d
+      required_review:
+      - checker correctness
+      - claim evidence
+      - evidence auditability
+      - methodology fidelity
+      - release integration
+      - scope boundary
+    evidence:
+      baseline_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+      comparison_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+      accepted_head_commit: d602a1523376ea4062a8eb50c96e0079dc2ce22d
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: git diff --check dc0545f5f9403b52b81221fc0cd27a0a7ecd1165...d602a1523376ea4062a8eb50c96e0079dc2ce22d
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-git-diff-check.log
+      source_refs:
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:.harness/traces/search-set.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:MAINTENANCE.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/12-strategy-search-loop-mvp.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/README.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/v2-roadmap.md
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/check-governance-acceptance.py
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/strategy-search.py
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_acceptance_cli.py
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_evidence_refs.py
+      - git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_strategy_search.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:.harness/traces/search-set.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:.harness/traces/search-set.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:MAINTENANCE.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:MAINTENANCE.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/12-strategy-search-loop-mvp.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/12-strategy-search-loop-mvp.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/README.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/plans/README.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/v2-roadmap.md
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:backlog/v2-roadmap.md
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/check-governance-acceptance.py
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/check-governance-acceptance.py
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/strategy-search.py
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:scripts/strategy-search.py
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_acceptance_cli.py
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_acceptance_cli.py
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_evidence_refs.py
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_governance_evidence_refs.py
+      - origin: generated
+        relation: source
+        ref: git:d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_strategy_search.py
+        status: resolved
+        target: d602a1523376ea4062a8eb50c96e0079dc2ce22d:tests/test_strategy_search.py
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260525051410-4c0ab75d-git-diff-check.log
+      - origin: generated
+        relation: claim-evidence
+        ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-claim-evidence-probe.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260525051410-4c0ab75d-claim-evidence-probe.yml
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+      trace_refs:
+        search_set_before: null
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Search-set before/after trace refs are captured when supplied;
+          missing refs remain explicit targeted skips.
+      skipped:
+      - evidence: search_set_before
+        actor: codex
+        role: operator
+        date: 2026-05-25
+        reason: Finalize did not capture search_set_before; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-05-25
+        reason: Finalize did not capture search_set_after; stable handoff must add
+          trace evidence or keep this targeted skip.
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+      claims:
+      - claim: Plan 12 strategy-search outputs are diagnostic-only, while stable adoption
+          remains routed through normal AcceptancePacket review and pointer publication
+          evidence.
+        raw_evidence_refs:
+        - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-claim-evidence-probe.yml
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: f7f73ea526e50de393136921fb73c0013236a9f50222fd99b6ec8b5354e2010c
+        status: imported
+        review_ids:
+        - review-pkt-20260525051410-4c0ab75d-checker-correctness
+        - review-pkt-20260525051410-4c0ab75d-claim-evidence
+        - review-pkt-20260525051410-4c0ab75d-evidence-auditability
+        - review-pkt-20260525051410-4c0ab75d-methodology-fidelity
+        - review-pkt-20260525051410-4c0ab75d-release-integration
+        - review-pkt-20260525051410-4c0ab75d-scope-boundary
+        target_binding:
+          packet_id: pkt-20260525051410-4c0ab75d
+          packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+          review_target_digest: c5744723c6874b2be354a0ebbd8d4b71238443a168c194152d05269924b4eb17
+          baseline_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+          comparison_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+          source_refs: []
+          changed_paths:
+          - .harness/traces/search-set.md
+          - MAINTENANCE.md
+          - backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+          - backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+          - backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+          - backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+          - backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+          - backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+          - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+          - backlog/plans/12-strategy-search-loop-mvp.md
+          - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+          - backlog/plans/README.md
+          - backlog/v2-roadmap.md
+          - scripts/check-governance-acceptance.py
+          - scripts/strategy-search.py
+          - tests/test_governance_acceptance_cli.py
+          - tests/test_governance_evidence_refs.py
+          - tests/test_strategy_search.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - evidence auditability
+          - methodology fidelity
+          - release integration
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-pkt-20260525051410-4c0ab75d-checker-correctness
+        critic: checker correctness
+        scope: Validate that pointer-bound archive bytes and raw-claim classifier
+          behavior are covered by focused tests.
+        anti_scope: Does not claim detached strategy-search runner isolation is fully
+          solved; that is Plan 13.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: Pointer publication might trust packet prose while omitting
+          raw claim evidence from the hash surface.
+        invariant_checked: Publication and pointer claim-artifact tests enforce pointer-bound
+          archive bytes only.
+        evidence:
+        - Focused tests cover publish wrapper archive scoping and pointer claim-artifact
+          classifier reuse.
+        source_refs:
+        - tests/test_governance_acceptance_cli.py
+        - scripts/check-governance-acceptance.py
+        blocking_findings: []
+        why_not_10: Full release verification still occurs after publication commit
+          creation.
+        disposition: Accepted for packet handoff because publish reruns active gate
+          after pointer publication.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260525051410-4c0ab75d-claim-evidence
+        critic: claim evidence
+        scope: Confirm strategy-search diagnostic YAML, logs, and JSONL sidecars are
+          rejected as stable raw claim evidence.
+        anti_scope: Does not certify semantic relevance of every future claim reference.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: A diagnostic selection summary could be cited as stable
+          proof without a normal AcceptancePacket review path.
+        invariant_checked: Raw claim refs reject diagnostic strategy-search YAML,
+          logs, and JSONL sidecars.
+        evidence:
+        - Diagnostic strategy-search outputs remain non-stable unless adopted through
+          normal packet evidence.
+        source_refs:
+        - tests/test_governance_evidence_refs.py
+        - scripts/check-governance-acceptance.py
+        blocking_findings: []
+        why_not_10: Semantic evidence relevance remains outside structural raw-ref
+          validation.
+        disposition: Semantic scoring remains a future methodology layer, not a v2
+          publication blocker.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260525051410-4c0ab75d-evidence-auditability
+        critic: evidence auditability
+        scope: Validate search-set capture trace generation and rejection of custom
+          stable capture commands.
+        anti_scope: Does not assert that old uncaptured before/after traces can be
+          reconstructed after the fact.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: Search-set refs could satisfy stable review without command/head/packet
+          binding.
+        invariant_checked: Stable capture uses the canonical search-set command and
+          rejects custom stable commands.
+        evidence:
+        - Search-set capture validation now binds phase, packet ref, head ref, and
+          canonical command.
+        source_refs:
+        - tests/test_governance_acceptance_cli.py
+        - .harness/traces/search-set.md
+        blocking_findings: []
+        why_not_10: This packet retains explicit targeted skips for before/after search-set
+          refs generated before packet start.
+        disposition: Accepted because skips are explicit and Plan 13 covers stronger
+          runner isolation, not this packet closure.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260525051410-4c0ab75d-methodology-fidelity
+        critic: methodology fidelity
+        scope: Validate command-closure and public-context sanitizer tests around
+          strategy-search proposal/eval boundaries.
+        anti_scope: Does not claim agent-in-the-loop semantic strategy discovery is
+          complete.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: A candidate PASS could come from inline or leaked sealed
+          material rather than fixed evaluator closure.
+        invariant_checked: Strategy-search MVP keeps evaluator closure fixed and proposer
+          context sanitized.
+        evidence:
+        - Plan 12 documents diagnostic-only strategy-search output and Plan 13 carries
+          stronger isolation/ledger residuals.
+        source_refs:
+        - scripts/strategy-search.py
+        - tests/test_strategy_search.py
+        - backlog/plans/12-strategy-search-loop-mvp.md
+        - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+        blocking_findings: []
+        why_not_10: Full detached-descendant prevention and non-self-attesting ledger
+          anchoring are deferred to Plan 13.
+        disposition: Accepted because selected strategy-search records remain diagnostic
+          and cannot publish as stable evidence by themselves.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260525051410-4c0ab75d-release-integration
+        critic: release integration
+        scope: Validate publish wrapper behavior for archive-only publication and
+          rejection of uncommitted content dirt.
+        anti_scope: Does not replace the final live publish invocation for this packet.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: Operators could publish a pointer while unrelated dirty
+          content rides along.
+        invariant_checked: Publish wrapper refuses uncommitted content dirt and stages
+          only pointer-bound archive bytes.
+        evidence:
+        - This publication is being created after the content commit with current
+          HEAD equal to accepted_head_commit.
+        source_refs:
+        - tests/test_governance_acceptance_cli.py
+        - scripts/check-governance-acceptance.py
+        blocking_findings: []
+        why_not_10: The live publication command still needs to run after review import
+          is recorded.
+        disposition: Accepted because publish performs the live active-gate check
+          before and after creating the archive commit.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260525051410-4c0ab75d-scope-boundary
+        critic: scope boundary
+        scope: Validate selection output stays diagnostic and archive output prefixes
+          or noncanonical run directories are rejected.
+        anti_scope: Does not audit every historical unpushed publication already on
+          main.
+        score: 9
+        veto: false
+        actor: codex
+        role: reviewer
+        date: '2026-05-25'
+        source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+        false_green_risk: Strategy-search selected artifacts could be confused with
+          stable AcceptancePacket evidence.
+        invariant_checked: Selection refuses archive output prefixes and requires
+          canonical diagnostic run directories.
+        evidence:
+        - Selection emits diagnostic summaries under .harness/search-runs and normal
+          packet flow handles adoption.
+        source_refs:
+        - tests/test_strategy_search.py
+        - scripts/strategy-search.py
+        - MAINTENANCE.md
+        blocking_findings: []
+        why_not_10: Plan 13 still owns stronger run-store provenance anchoring.
+        disposition: Accepted because publication flow does not treat selection outputs
+          as stable evidence.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.

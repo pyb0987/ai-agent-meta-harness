@@ -1,0 +1,13 @@
+# Command Evidence
+packet_id: pkt-20260525051410-4c0ab75d
+packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+packet_sha256: 37bcbcf7f28a7e9a64a6ffdb0d5000faea41cf40d0f6d9baaaecd4337a8d416c
+command: git diff --check dc0545f5f9403b52b81221fc0cd27a0a7ecd1165...d602a1523376ea4062a8eb50c96e0079dc2ce22d
+status: pass
+replay_metadata: pointer-bound
+replay_recorded_by: scripts/check-governance-acceptance.py
+replay_recorded_at: 2026-05-25
+replay_checker_ref: scripts/check-governance-acceptance.py
+exit_code: 0
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

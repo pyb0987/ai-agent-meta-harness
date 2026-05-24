@@ -1,0 +1,518 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260525051410-4c0ab75d
+    packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+    review_target_digest: c5744723c6874b2be354a0ebbd8d4b71238443a168c194152d05269924b4eb17
+    baseline_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+    comparison_ref: dc0545f5f9403b52b81221fc0cd27a0a7ecd1165
+    source_refs: []
+    changed_paths:
+    - .harness/traces/search-set.md
+    - MAINTENANCE.md
+    - backlog/fixtures/acceptance-packets/artifacts/review-import-review-quality-probe.txt
+    - backlog/fixtures/acceptance-packets/artifacts/review-import-scope-contract-probe.txt
+    - backlog/fixtures/acceptance-packets/artifacts/review-import-validation-layer-probe.txt
+    - backlog/fixtures/acceptance-packets/artifacts/v1-archive-boundary-base-ref.log
+    - backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
+    - backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log
+    - backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
+    - backlog/plans/12-strategy-search-loop-mvp.md
+    - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+    - backlog/plans/README.md
+    - backlog/v2-roadmap.md
+    - scripts/check-governance-acceptance.py
+    - scripts/strategy-search.py
+    - tests/test_governance_acceptance_cli.py
+    - tests/test_governance_evidence_refs.py
+    - tests/test_strategy_search.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - evidence auditability
+    - methodology fidelity
+    - release integration
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260525051410-4c0ab75d
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Governance review for the diagnostic strategy-search MVP and v2 evidence-boundary
+        hardening packet.
+      source_refs:
+      - archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+      - scripts/strategy-search.py
+      - scripts/check-governance-acceptance.py
+      - tests/test_strategy_search.py
+      - tests/test_governance_evidence_refs.py
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - evidence-auditability
+    - methodology-fidelity
+    - release-integration
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Release-gate engineer focused on false-green prevention in packet and
+        pointer validators.
+      scope: Validate that pointer-bound archive bytes and raw-claim classifier behavior
+        are covered by focused tests.
+      anti_scope: Does not claim detached strategy-search runner isolation is fully
+        solved; that is Plan 13.
+      attack_surface: A pointer could omit claim artifacts or publish unexpected archive
+        bytes while still looking stable.
+      primary_failure_mode: Stable handoff accepts unmirrored or non-publication evidence
+        bytes.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Pointer publication might trust packet prose while omitting
+        raw claim evidence from the hash surface.
+      invariant_checked: Publication and pointer claim-artifact tests enforce pointer-bound
+        archive bytes only.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_publish_commits_pointer_bound_archive_bytes_only
+        tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_pointer_claim_artifacts_use_raw_claim_classifier
+      probe_exit_code: 0
+      probe_result: Focused governance CLI tests passed for pointer-bound publication
+        and raw claim classifier use.
+      probe_interpretation: The replayable probe exercises the checker path most likely
+        to create archive publication false greens.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Focused tests cover publish wrapper archive scoping and pointer claim-artifact
+        classifier reuse.
+      - review_lineage_sha256:95f1b814b835642bd6d4abbcb1be23044f4fedac7faf7ac44559a7c18562dca4
+      - provenance_record_sha256:8bb5f9aa25b827651f74372c8b0bf45503dadce93d96bc004be807df20adc7d5
+      - provenance_record_sha256:e079f1d85fffd06e35121832afd4f01970d32391535bc44bc4405165726c13b7
+      source_refs:
+      - tests/test_governance_acceptance_cli.py
+      - scripts/check-governance-acceptance.py
+      why_not_10: Full release verification still occurs after publication commit
+        creation.
+      residual_risk_disposition: Accepted for packet handoff because publish reruns
+        active gate after pointer publication.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: domain
+      persona: Evidence-honesty reviewer looking for diagnostic artifacts misclassified
+        as stable proof.
+      scope: Confirm strategy-search diagnostic YAML, logs, and JSONL sidecars are
+        rejected as stable raw claim evidence.
+      anti_scope: Does not certify semantic relevance of every future claim reference.
+      attack_surface: Diagnostic strategy-search output could be renamed under archive/v2/artifacts
+        and treated as stable evidence.
+      primary_failure_mode: Stable claim evidence accepts diagnostic-only search output
+        as raw proof.
+      frame_challenge: true
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A diagnostic selection summary could be cited as stable proof
+        without a normal AcceptancePacket review path.
+      invariant_checked: Raw claim refs reject diagnostic strategy-search YAML, logs,
+        and JSONL sidecars.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_governance_evidence_refs.GovernanceEvidenceRefsTests.test_raw_claim_file_refs_reject_diagnostic_strategy_search_yaml
+        tests.test_governance_evidence_refs.GovernanceEvidenceRefsTests.test_raw_claim_file_refs_reject_strategy_search_diagnostic_logs
+        tests.test_governance_evidence_refs.GovernanceEvidenceRefsTests.test_raw_claim_file_refs_reject_strategy_search_jsonl_sidecars
+      probe_exit_code: 0
+      probe_result: Focused evidence-ref tests passed for diagnostic strategy-search
+        raw-claim rejection.
+      probe_interpretation: The probe verifies the narrowed evidence boundary that
+        preserves simplicity and evidence honesty.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Diagnostic strategy-search outputs remain non-stable unless adopted through
+        normal packet evidence.
+      source_refs:
+      - tests/test_governance_evidence_refs.py
+      - scripts/check-governance-acceptance.py
+      why_not_10: Semantic evidence relevance remains outside structural raw-ref validation.
+      residual_risk_disposition: Semantic scoring remains a future methodology layer,
+        not a v2 publication blocker.
+    - critic_id: evidence-auditability
+      name: Evidence Auditability Critic
+      critic_type: review_quality
+      persona: Auditability reviewer checking that trace captures are canonical and
+        non-diagnostic overrides fail closed.
+      scope: Validate search-set capture trace generation and rejection of custom
+        stable capture commands.
+      anti_scope: Does not assert that old uncaptured before/after traces can be reconstructed
+        after the fact.
+      attack_surface: A no-op or custom capture command could masquerade as stable
+        search-set evidence.
+      primary_failure_mode: Search-set evidence points to diagnostic command output
+        rather than canonical capture metadata.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Search-set refs could satisfy stable review without command/head/packet
+        binding.
+      invariant_checked: Stable capture uses the canonical search-set command and
+        rejects custom stable commands.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_capture_search_set_writes_resolvable_phase_trace
+        tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_capture_search_set_rejects_custom_stable_command
+      probe_exit_code: 0
+      probe_result: Focused capture-search-set tests passed for resolvable canonical
+        traces and custom-command rejection.
+      probe_interpretation: The probe covers the search-set evidence binding added
+        before this publication.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-evidence-auditability-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Search-set capture validation now binds phase, packet ref, head ref, and canonical
+        command.
+      source_refs:
+      - tests/test_governance_acceptance_cli.py
+      - .harness/traces/search-set.md
+      why_not_10: This packet retains explicit targeted skips for before/after search-set
+        refs generated before packet start.
+      residual_risk_disposition: Accepted because skips are explicit and Plan 13 covers
+        stronger runner isolation, not this packet closure.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: domain
+      persona: Meta-harness reviewer checking that strategy search remains diagnostic
+        and does not overclaim stable proof.
+      scope: Validate command-closure and public-context sanitizer tests around strategy-search
+        proposal/eval boundaries.
+      anti_scope: Does not claim agent-in-the-loop semantic strategy discovery is
+        complete.
+      attack_surface: Inline evaluators or raw run-store references could make strategy
+        search appear stronger than it is.
+      primary_failure_mode: Diagnostic search output is treated as stable methodology
+        evidence without normal packet adoption.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A candidate PASS could come from inline or leaked sealed material
+        rather than fixed evaluator closure.
+      invariant_checked: Strategy-search MVP keeps evaluator closure fixed and proposer
+        context sanitized.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_strategy_search.StrategySearchCliTests.test_validate_direction_rejects_inline_command_closure_bypass
+        tests.test_strategy_search.StrategySearchCliTests.test_validate_direction_rejects_awk_inline_evaluator
+        tests.test_strategy_search.StrategySearchCliTests.test_propose_context_uses_sanitized_prior_trace_summary
+      probe_exit_code: 0
+      probe_result: Focused strategy-search tests passed for inline-command rejection
+        and sanitized prior trace summaries.
+      probe_interpretation: 'The probe verifies the MVP boundary: useful diagnostic
+        search without stable-evidence overclaim.'
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Plan 12 documents diagnostic-only strategy-search output and Plan 13 carries
+        stronger isolation/ledger residuals.
+      source_refs:
+      - scripts/strategy-search.py
+      - tests/test_strategy_search.py
+      - backlog/plans/12-strategy-search-loop-mvp.md
+      - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+      why_not_10: Full detached-descendant prevention and non-self-attesting ledger
+        anchoring are deferred to Plan 13.
+      residual_risk_disposition: Accepted because selected strategy-search records
+        remain diagnostic and cannot publish as stable evidence by themselves.
+    - critic_id: release-integration
+      name: Release Integration Critic
+      critic_type: other
+      persona: Release integrator checking that content and archive publication remain
+        separate and enforceable.
+      scope: Validate publish wrapper behavior for archive-only publication and rejection
+        of uncommitted content dirt.
+      anti_scope: Does not replace the final live publish invocation for this packet.
+      attack_surface: Publication wrapper could mix content changes with archive pointer
+        files or skip active gate validation.
+      primary_failure_mode: A release-looking archive commit includes non-archive
+        content or omits active pointer validation.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Operators could publish a pointer while unrelated dirty content
+        rides along.
+      invariant_checked: Publish wrapper refuses uncommitted content dirt and stages
+        only pointer-bound archive bytes.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_publish_commits_pointer_bound_archive_bytes_only
+        tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_publish_rejects_uncommitted_content_dirt
+      probe_exit_code: 0
+      probe_result: Focused publish wrapper tests passed for archive-only commit behavior
+        and dirty-content rejection.
+      probe_interpretation: 'The probe supports the two-step invariant: content commit
+        first, archive/v2 publication once at the end.'
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-release-integration-probe.yml
+      reason_no_probe: null
+      evidence:
+      - This publication is being created after the content commit with current HEAD
+        equal to accepted_head_commit.
+      source_refs:
+      - tests/test_governance_acceptance_cli.py
+      - scripts/check-governance-acceptance.py
+      why_not_10: The live publication command still needs to run after review import
+        is recorded.
+      residual_risk_disposition: Accepted because publish performs the live active-gate
+        check before and after creating the archive commit.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: other
+      persona: Scope reviewer checking that diagnostic search outputs stay in the
+        run store and archive/v2 remains stable-only.
+      scope: Validate selection output stays diagnostic and archive output prefixes
+        or noncanonical run directories are rejected.
+      anti_scope: Does not audit every historical unpushed publication already on
+        main.
+      attack_surface: Selection artifacts could be written directly under archive/v2
+        and then mistaken for stable evidence.
+      primary_failure_mode: Diagnostic selection outputs cross into durable archive
+        publication space.
+      frame_challenge: false
+      required: true
+      actor: codex
+      date: '2026-05-25'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Strategy-search selected artifacts could be confused with
+        stable AcceptancePacket evidence.
+      invariant_checked: Selection refuses archive output prefixes and requires canonical
+        diagnostic run directories.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -m unittest tests.test_strategy_search.StrategySearchCliTests.test_select_refuses_archive_output_prefix
+        tests.test_strategy_search.StrategySearchCliTests.test_select_requires_canonical_search_run_directory
+        tests.test_strategy_search.StrategySearchCliTests.test_public_sanitizer_allows_declared_candidates_source_surface
+      probe_exit_code: 0
+      probe_result: Focused strategy-search selection boundary tests passed.
+      probe_interpretation: The probe covers the boundary chosen to keep operator
+        workflow simple and stable evidence explicit.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Selection emits diagnostic summaries under .harness/search-runs and normal
+        packet flow handles adoption.
+      source_refs:
+      - tests/test_strategy_search.py
+      - scripts/strategy-search.py
+      - MAINTENANCE.md
+      why_not_10: Plan 13 still owns stronger run-store provenance anchoring.
+      residual_risk_disposition: Accepted because publication flow does not treat
+        selection outputs as stable evidence.
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260525051410-4c0ab75d-checker-correctness
+    critic: checker correctness
+    scope: Validate that pointer-bound archive bytes and raw-claim classifier behavior
+      are covered by focused tests.
+    anti_scope: Does not claim detached strategy-search runner isolation is fully
+      solved; that is Plan 13.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: Pointer publication might trust packet prose while omitting
+      raw claim evidence from the hash surface.
+    invariant_checked: Publication and pointer claim-artifact tests enforce pointer-bound
+      archive bytes only.
+    evidence:
+    - Focused tests cover publish wrapper archive scoping and pointer claim-artifact
+      classifier reuse.
+    source_refs:
+    - tests/test_governance_acceptance_cli.py
+    - scripts/check-governance-acceptance.py
+    blocking_findings: []
+    why_not_10: Full release verification still occurs after publication commit creation.
+    disposition: Accepted for packet handoff because publish reruns active gate after
+      pointer publication.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260525051410-4c0ab75d-claim-evidence
+    critic: claim evidence
+    scope: Confirm strategy-search diagnostic YAML, logs, and JSONL sidecars are rejected
+      as stable raw claim evidence.
+    anti_scope: Does not certify semantic relevance of every future claim reference.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: A diagnostic selection summary could be cited as stable proof
+      without a normal AcceptancePacket review path.
+    invariant_checked: Raw claim refs reject diagnostic strategy-search YAML, logs,
+      and JSONL sidecars.
+    evidence:
+    - Diagnostic strategy-search outputs remain non-stable unless adopted through
+      normal packet evidence.
+    source_refs:
+    - tests/test_governance_evidence_refs.py
+    - scripts/check-governance-acceptance.py
+    blocking_findings: []
+    why_not_10: Semantic evidence relevance remains outside structural raw-ref validation.
+    disposition: Semantic scoring remains a future methodology layer, not a v2 publication
+      blocker.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260525051410-4c0ab75d-evidence-auditability
+    critic: evidence auditability
+    scope: Validate search-set capture trace generation and rejection of custom stable
+      capture commands.
+    anti_scope: Does not assert that old uncaptured before/after traces can be reconstructed
+      after the fact.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: Search-set refs could satisfy stable review without command/head/packet
+      binding.
+    invariant_checked: Stable capture uses the canonical search-set command and rejects
+      custom stable commands.
+    evidence:
+    - Search-set capture validation now binds phase, packet ref, head ref, and canonical
+      command.
+    source_refs:
+    - tests/test_governance_acceptance_cli.py
+    - .harness/traces/search-set.md
+    blocking_findings: []
+    why_not_10: This packet retains explicit targeted skips for before/after search-set
+      refs generated before packet start.
+    disposition: Accepted because skips are explicit and Plan 13 covers stronger runner
+      isolation, not this packet closure.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260525051410-4c0ab75d-methodology-fidelity
+    critic: methodology fidelity
+    scope: Validate command-closure and public-context sanitizer tests around strategy-search
+      proposal/eval boundaries.
+    anti_scope: Does not claim agent-in-the-loop semantic strategy discovery is complete.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: A candidate PASS could come from inline or leaked sealed material
+      rather than fixed evaluator closure.
+    invariant_checked: Strategy-search MVP keeps evaluator closure fixed and proposer
+      context sanitized.
+    evidence:
+    - Plan 12 documents diagnostic-only strategy-search output and Plan 13 carries
+      stronger isolation/ledger residuals.
+    source_refs:
+    - scripts/strategy-search.py
+    - tests/test_strategy_search.py
+    - backlog/plans/12-strategy-search-loop-mvp.md
+    - backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md
+    blocking_findings: []
+    why_not_10: Full detached-descendant prevention and non-self-attesting ledger
+      anchoring are deferred to Plan 13.
+    disposition: Accepted because selected strategy-search records remain diagnostic
+      and cannot publish as stable evidence by themselves.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260525051410-4c0ab75d-release-integration
+    critic: release integration
+    scope: Validate publish wrapper behavior for archive-only publication and rejection
+      of uncommitted content dirt.
+    anti_scope: Does not replace the final live publish invocation for this packet.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: Operators could publish a pointer while unrelated dirty content
+      rides along.
+    invariant_checked: Publish wrapper refuses uncommitted content dirt and stages
+      only pointer-bound archive bytes.
+    evidence:
+    - This publication is being created after the content commit with current HEAD
+      equal to accepted_head_commit.
+    source_refs:
+    - tests/test_governance_acceptance_cli.py
+    - scripts/check-governance-acceptance.py
+    blocking_findings: []
+    why_not_10: The live publication command still needs to run after review import
+      is recorded.
+    disposition: Accepted because publish performs the live active-gate check before
+      and after creating the archive commit.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260525051410-4c0ab75d-scope-boundary
+    critic: scope boundary
+    scope: Validate selection output stays diagnostic and archive output prefixes
+      or noncanonical run directories are rejected.
+    anti_scope: Does not audit every historical unpushed publication already on main.
+    score: 9
+    veto: false
+    actor: codex
+    role: reviewer
+    date: '2026-05-25'
+    source_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+    false_green_risk: Strategy-search selected artifacts could be confused with stable
+      AcceptancePacket evidence.
+    invariant_checked: Selection refuses archive output prefixes and requires canonical
+      diagnostic run directories.
+    evidence:
+    - Selection emits diagnostic summaries under .harness/search-runs and normal packet
+      flow handles adoption.
+    source_refs:
+    - tests/test_strategy_search.py
+    - scripts/strategy-search.py
+    - MAINTENANCE.md
+    blocking_findings: []
+    why_not_10: Plan 13 still owns stronger run-store provenance anchoring.
+    disposition: Accepted because publication flow does not treat selection outputs
+      as stable evidence.
+    rerun_of: null
+    fixed_finding_ids: []

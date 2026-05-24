@@ -1,0 +1,28 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -m unittest tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_publish_commits_pointer_bound_archive_bytes_only
+    tests.test_governance_acceptance_cli.GovernanceAcceptanceCliTests.test_publish_rejects_uncommitted_content_dirt
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260525051410-4c0ab75d-review-import.yml
+  result_digest: f7f73ea526e50de393136921fb73c0013236a9f50222fd99b6ec8b5354e2010c
+  packet_ref: archive/v2/packets/pkt-20260525051410-4c0ab75d.yml
+  packet_sha256: 37bcbcf7f28a7e9a64a6ffdb0d5000faea41cf40d0f6d9baaaecd4337a8d416c
+  source_refs:
+  - tests/test_governance_acceptance_cli.py
+  - scripts/check-governance-acceptance.py
+  cwd: .
+  generated_by: codex review import materialization
+  date: '2026-05-25'
+  stdout: ''
+  stderr: '..
+
+    ----------------------------------------------------------------------
+
+    Ran 2 tests in 4.309s
+
+
+    OK
+
+    '
+  stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  stderr_sha256: 05874559aea290934246997d7a40625375658c2c0817cb562695fb87b52bc155
