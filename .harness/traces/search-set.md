@@ -41,3 +41,16 @@ repository changes when practical.
 - **verify**: `python3 -m unittest tests/test_repository_search_set.py`
 
 ## Archived
+
+## Search-set Evidence Captures
+
+### Search-set after v2 fixture
+- **phase**: after
+- **status**: PASS
+- **command**: `python3 scripts/run-search-set.py`
+- **exit_code**: 0
+- **stdout_sha256**: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- **stderr_sha256**: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- **head_ref**: `dc0545f5f9403b52b81221fc0cd27a0a7ecd1165`
+- **captured_at**: 2026-05-18
+- **packet_ref**: `backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml`

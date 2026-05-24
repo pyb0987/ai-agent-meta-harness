@@ -76,10 +76,13 @@ POINTER_FIELDS = {
     "stable_target",
     "decision_status",
     "command_artifacts",
+    "claim_artifacts",
     "review_import_artifacts",
     "probe_transcripts",
 }
+LEGACY_POINTER_FIELDS = POINTER_FIELDS - {"claim_artifacts"}
 POINTER_COMMAND_ARTIFACT_FIELDS = {"artifact_ref", "artifact_sha256", "command"}
+POINTER_CLAIM_ARTIFACT_FIELDS = {"source_ref", "source_sha256"}
 POINTER_REVIEW_IMPORT_ARTIFACT_FIELDS = {"source_ref", "source_sha256", "review_target_digest", "review_ids"}
 POINTER_PROBE_TRANSCRIPT_FIELDS = {
     "source_ref",
@@ -242,6 +245,18 @@ RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES = {
     ".webp",
 }
 RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES = {".json", ".txt", ".xml", ".yaml", ".yml"}
+STRATEGY_SEARCH_DIAGNOSTIC_BASENAMES = {
+    "patch.diff",
+    "proposals.jsonl",
+    "run.yml",
+    "score.yml",
+    "scores.jsonl",
+    "stderr.log",
+    "stdout.log",
+    "trace.md",
+    "trace.yaml",
+    "trace.yml",
+}
 POINTER_SUFFIXES = (".yml", ".yaml")
 GIT_ENV_PREFIX = "GIT_"
 
@@ -487,9 +502,18 @@ def search_set_capture_fields(root: Path, ref: str) -> tuple[dict[str, str], str
     return fields, None
 
 
-def search_set_capture_record_error(root: Path, ref: str, *, expected_phase: str | None = None) -> str | None:
+def search_set_capture_record_error(
+    root: Path,
+    ref: str,
+    *,
+    expected_phase: str | None = None,
+    expected_packet_ref: str | None = None,
+    expected_head_ref: str | None = None,
+) -> str | None:
     anchor = trace_ref_anchor(ref)
     if not isinstance(anchor, str) or not SEARCH_SET_CAPTURE_ANCHOR_RE.fullmatch(anchor):
+        if expected_phase:
+            return f"search-set capture ref must use search-set-{expected_phase}-* anchor: {ref}"
         return None
     fields, section_error = search_set_capture_fields(root, ref)
     if section_error:
@@ -512,10 +536,18 @@ def search_set_capture_record_error(root: Path, ref: str, *, expected_phase: str
     for stream_field in ("stdout_sha256", "stderr_sha256"):
         if not re.fullmatch(r"[0-9a-f]{64}", fields[stream_field]):
             return f"search-set capture record {stream_field} must be a sha256 hex digest: {ref}"
-    if not unbacktick(fields["command"]):
-        return f"search-set capture record command must be non-empty: {ref}"
-    if not unbacktick(fields["head_ref"]):
-        return f"search-set capture record head_ref must be non-empty: {ref}"
+    command = unbacktick(fields["command"])
+    if command != SEARCH_SET_CAPTURE_COMMAND:
+        return f"search-set capture record command must be {SEARCH_SET_CAPTURE_COMMAND!r}: {ref}"
+    head_ref = unbacktick(fields["head_ref"])
+    if not FULL_COMMIT_RE.fullmatch(head_ref):
+        return f"search-set capture record head_ref must be a full commit SHA: {ref}"
+    if git_ref_commit(root, head_ref) != head_ref:
+        return f"search-set capture record head_ref must resolve to a commit: {ref}"
+    if expected_head_ref is not None and head_ref != expected_head_ref:
+        return f"search-set capture record head_ref must match packet boundary {expected_head_ref}: {ref}"
+    if expected_packet_ref is not None and fields.get("packet_ref") != f"`{expected_packet_ref}`":
+        return f"search-set capture record packet_ref must match packet ref {expected_packet_ref}: {ref}"
     if not date_like(fields["captured_at"]):
         return f"search-set capture record captured_at must be an ISO date not in the future: {ref}"
     return None
@@ -694,13 +726,71 @@ def is_bucket_trace_ref(ref: str, bucket_name: str) -> bool:
     )
 
 
+def is_strategy_search_diagnostic_claim_artifact(root: Path, path: str) -> bool:
+    local_path = root / path
+    name = Path(path).name.casefold()
+    if name in STRATEGY_SEARCH_DIAGNOSTIC_BASENAMES:
+        return True
+    if "strategy-search" in path.casefold():
+        return True
+    if local_path.exists() and local_path.is_file():
+        try:
+            if local_path.stat().st_nlink > 1:
+                return True
+        except OSError:
+            return True
+        suffix = Path(path).suffix.casefold()
+        if suffix in RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES | RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES:
+            try:
+                sample = local_path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                return True
+            if "schema_version" in sample and "strategy-search-" in sample:
+                return True
+            if "evidence_status" in sample and "diagnostic_only" in sample:
+                return True
+            if "strategy-search invalid candidate:" in sample:
+                return True
+            nonempty_lines = [line.strip() for line in sample.splitlines() if line.strip()]
+            if re.search(r"(?im)^\s*score\s*[:=]\s*\d+(?:\.\d+)?\s*$", sample) and re.search(
+                r"(?im)^\s*case\s*[:=]\s*[A-Za-z0-9._-]+\s*[:= ]\s*(pass|fail|skip|xfail)\s*$",
+                sample,
+            ):
+                return True
+            if nonempty_lines and all(
+                re.match(r"(?i)^(?:score|case)\s*[:=]\s+", line)
+                or re.match(r"(?i)^(?:candidate_id|verdict|score_path)\s*[:=]\s+", line)
+                for line in nonempty_lines
+            ):
+                return True
+    return False
+
+
 def is_raw_claim_file_ref(root: Path, ref: str) -> bool:
-    resolved = resolve_ref(root, ref)
-    if resolved is None:
+    if not isinstance(ref, str) or not ref.startswith("file:"):
         return False
-    path = resolved.split("#", 1)[0]
+    path = ref.removeprefix("file:").split("#", 1)[0]
+    if not path.startswith(ARCHIVE_ARTIFACT_PREFIX):
+        return False
+    resolved = resolve_archive_file_ref_path(root, path)
+    if resolved is None or resolved != path:
+        return False
+    if is_strategy_search_diagnostic_claim_artifact(root, path):
+        return False
     parts = {part.casefold() for part in Path(path).parts}
     suffix = Path(path).suffix.casefold()
+    local_path = root / path
+    if suffix in {".yml", ".yaml"} and local_path.is_file():
+        try:
+            loaded = yaml.safe_load(local_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            loaded = None
+        if isinstance(loaded, dict):
+            schema = loaded.get("schema_version")
+            if loaded.get("evidence_status") == "diagnostic_only":
+                return False
+            if isinstance(schema, str) and schema.startswith("strategy-search-"):
+                return False
     if suffix in RAW_CLAIM_EVIDENCE_DIRECT_SUFFIXES:
         return True
     if parts & RAW_CLAIM_EVIDENCE_PATH_PARTS and suffix in RAW_CLAIM_EVIDENCE_CONTEXTUAL_SUFFIXES:
@@ -1211,9 +1301,9 @@ def validate_resolved_ref_record(record: dict, *, root: Path, source: str) -> li
     if (
         record["origin"] == "generated"
         and record["relation"] == "claim-evidence"
-        and not str(record["ref"]).startswith(("file:", "trace:"))
+        and not str(record["ref"]).startswith("file:")
     ):
-        errors.append(f"{source}: generated claim-evidence refs must use file: or trace: scheme")
+        errors.append(f"{source}: generated claim-evidence refs must use file: scheme")
     if (
         record["origin"] == "generated"
         and record["relation"] in {"review-provenance", "waiver-provenance"}
@@ -4189,6 +4279,15 @@ def validate_packet(
         if not isinstance(trace_refs, dict):
             errors.append("stable packet evidence.trace_refs must be a mapping")
             trace_refs = {}
+        expected_search_set_packet_ref = (
+            None if packet_has_materialized_fixture_binding(packet, packet_ref, root=root) else packet_ref
+        )
+        accepted_head_ref = evidence.get("accepted_head_commit")
+        comparison_head_ref = evidence.get("comparison_ref") or evidence.get("baseline_ref")
+        expected_search_set_heads = {
+            "search_set_before": comparison_head_ref if isinstance(comparison_head_ref, str) and FULL_COMMIT_RE.fullmatch(comparison_head_ref) else None,
+            "search_set_after": accepted_head_ref if isinstance(accepted_head_ref, str) and FULL_COMMIT_RE.fullmatch(accepted_head_ref) else None,
+        }
         for trace_name in ("search_set_before", "search_set_after"):
             trace_ref = trace_refs.get(trace_name)
             if trace_ref is None:
@@ -4200,7 +4299,13 @@ def validate_packet(
                 errors.append(f"stable trace_refs.{trace_name} must include an anchor: {trace_ref}")
             elif not is_search_set_trace_ref(trace_ref):
                 errors.append(f"stable trace_refs.{trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
-            elif error := search_set_capture_record_error(root, trace_ref, expected_phase=expected_phase):
+            elif error := search_set_capture_record_error(
+                root,
+                trace_ref,
+                expected_phase=expected_phase,
+                expected_packet_ref=expected_search_set_packet_ref,
+                expected_head_ref=expected_search_set_heads[trace_name],
+            ):
                 errors.append(f"stable trace_refs.{trace_name}: {error}")
             elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
                 errors.append(f"stable trace_refs.{trace_name} lacks resolved generated trace relation: {trace_ref}")
@@ -4253,6 +4358,8 @@ def validate_packet(
                     root,
                     trace_ref,
                     expected_phase="before" if trace_name == "search_set_before" else "after",
+                    expected_packet_ref=expected_search_set_packet_ref,
+                    expected_head_ref=expected_search_set_heads[trace_name],
                 ):
                     errors.append(f"stable protected packet {trace_name}: {error}")
                 elif not has_resolved_relation(ref_index, relation="trace", ref=trace_ref, origin="generated"):
@@ -4293,15 +4400,11 @@ def validate_packet(
                 errors.append("result.evidence.claims: raw_evidence_refs is required")
                 continue
             for raw_ref in raw_refs:
-                if not isinstance(raw_ref, str) or not raw_ref.startswith(("file:", "trace:")):
-                    errors.append(f"claim evidence ref must use file: or trace: scheme: {raw_ref}")
-                elif raw_ref.startswith("trace:") and not trace_ref_has_anchor(raw_ref):
-                    errors.append(f"claim evidence trace ref must include an anchor: {raw_ref}")
-                elif raw_ref.startswith("trace:") and not is_claim_evidence_trace_ref(raw_ref):
-                    errors.append(f"claim evidence trace ref must point to .harness/traces/ evidence and not search-set index: {raw_ref}")
+                if not isinstance(raw_ref, str) or not raw_ref.startswith("file:"):
+                    errors.append(f"claim evidence ref must use file: scheme: {raw_ref}")
                 elif not has_resolved_relation(ref_index, relation="claim-evidence", ref=raw_ref, origin="generated"):
                     errors.append(f"claim evidence ref lacks resolved generated claim-evidence relation: {raw_ref}")
-                elif raw_ref.startswith("file:") and not is_raw_claim_file_ref(root, raw_ref):
+                elif not is_raw_claim_file_ref(root, raw_ref):
                     errors.append(
                         "claim evidence file ref must point to raw artifact/log/screenshot/report evidence: "
                         f"{raw_ref}"
@@ -4609,6 +4712,18 @@ def archive_artifact_paths(packet: dict, *, root: Path) -> list[str]:
                     probe_path = file_ref_repo_path(root, probe_ref)
                     if probe_path is not None:
                         paths.append(probe_path)
+    claims = evidence.get("claims", []) if isinstance(evidence, dict) else []
+    if isinstance(claims, list):
+        for claim in claims:
+            if not isinstance(claim, dict):
+                continue
+            raw_refs = claim.get("raw_evidence_refs", [])
+            if not isinstance(raw_refs, list):
+                continue
+            for raw_ref in raw_refs:
+                claim_path = file_ref_repo_path(root, raw_ref)
+                if claim_path is not None and is_raw_claim_file_ref(root, raw_ref):
+                    paths.append(claim_path)
     return sorted(set(paths))
 
 
@@ -4729,6 +4844,33 @@ def pointer_command_artifacts(packet: dict, *, root: Path) -> list[dict]:
     return sorted(artifacts, key=lambda item: (item["artifact_ref"], item["command"]))
 
 
+def pointer_claim_artifacts(packet: dict, *, root: Path) -> list[dict]:
+    evidence = packet.get("result", {}).get("evidence", {})
+    claims = evidence.get("claims", []) if isinstance(evidence, dict) else []
+    artifacts: list[dict] = []
+    if not isinstance(claims, list):
+        return artifacts
+    for claim in claims:
+        if not isinstance(claim, dict):
+            continue
+        raw_refs = claim.get("raw_evidence_refs", [])
+        if not isinstance(raw_refs, list):
+            continue
+        for raw_ref in raw_refs:
+            if not isinstance(raw_ref, str) or not raw_ref.startswith("file:"):
+                continue
+            if not is_raw_claim_file_ref(root, raw_ref):
+                continue
+            path = local_ref_path(root, raw_ref)
+            artifacts.append(
+                {
+                    "source_ref": raw_ref,
+                    "source_sha256": file_sha256(path) if path else "",
+                }
+            )
+    return sorted(artifacts, key=lambda item: item["source_ref"])
+
+
 def pointer_review_import_artifacts(packet: dict, *, root: Path) -> list[dict]:
     evidence = packet.get("result", {}).get("evidence", {})
     review_imports = evidence.get("review_imports", []) if isinstance(evidence, dict) else []
@@ -4834,6 +4976,22 @@ def archive_tree_errors(
         elif artifact_sha != item.get("artifact_sha256"):
             errors.append(f"{label} command_artifacts[{index}] bytes do not match artifact_sha256")
 
+    claim_artifacts = pointer.get("claim_artifacts", [])
+    if not isinstance(claim_artifacts, list):
+        claim_artifacts = []
+    for index, item in enumerate(claim_artifacts):
+        if not isinstance(item, dict):
+            continue
+        source_ref = item.get("source_ref")
+        source_path = file_ref_repo_path(root, source_ref)
+        if source_path is None:
+            continue
+        source_sha = git_file_sha256(root, commit_ref, source_path)
+        if source_sha is None:
+            errors.append(f"{label} does not contain claim_artifacts[{index}].source_ref: {source_ref}")
+        elif source_sha != item.get("source_sha256"):
+            errors.append(f"{label} claim_artifacts[{index}] bytes do not match source_sha256")
+
     review_import_artifacts = pointer.get("review_import_artifacts", [])
     if not isinstance(review_import_artifacts, list):
         review_import_artifacts = []
@@ -4901,6 +5059,9 @@ def pointer_bound_archive_paths(pointer: dict) -> set[str]:
     for item in pointer.get("command_artifacts", []) if isinstance(pointer.get("command_artifacts"), list) else []:
         if isinstance(item, dict):
             add_path(archive_file_ref_path(item.get("artifact_ref")))
+    for item in pointer.get("claim_artifacts", []) if isinstance(pointer.get("claim_artifacts"), list) else []:
+        if isinstance(item, dict):
+            add_path(archive_file_ref_path(item.get("source_ref")))
     for item in (
         pointer.get("review_import_artifacts", [])
         if isinstance(pointer.get("review_import_artifacts"), list)
@@ -5326,9 +5487,44 @@ def pointer_for_packet(
         "stable_target": stable_target_for_packet(packet),
         "decision_status": decision_status_for_packet(packet),
         "command_artifacts": pointer_command_artifacts(packet, root=root),
+        "claim_artifacts": pointer_claim_artifacts(packet, root=root),
         "review_import_artifacts": pointer_review_import_artifacts(packet, root=root),
         "probe_transcripts": pointer_probe_transcripts(packet, root=root),
     }
+
+
+def validate_pointer_claim_artifacts(
+    pointer: dict,
+    packet: dict,
+    *,
+    root: Path,
+    errors: list[str],
+) -> None:
+    claim_artifacts = pointer.get("claim_artifacts", [])
+    expected = pointer_claim_artifacts(packet, root=root)
+    if "claim_artifacts" not in pointer:
+        if expected:
+            errors.append("claim_artifacts must mirror archived packet claim evidence artifact bytes")
+        return
+    if not isinstance(claim_artifacts, list):
+        errors.append("claim_artifacts must be a list")
+        return
+    for index, item in enumerate(claim_artifacts):
+        source = f"claim_artifacts[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{source} must be a mapping")
+            continue
+        errors.extend(schema_field_errors(item, POINTER_CLAIM_ARTIFACT_FIELDS, source=source, label="claim artifact"))
+        source_ref = item.get("source_ref")
+        if not isinstance(source_ref, str) or not source_ref.startswith("file:"):
+            errors.append(f"{source}.source_ref must use file: scheme")
+        elif file_ref_repo_path(root, source_ref) is None:
+            errors.append(f"{source}.source_ref does not resolve to an archive path: {source_ref}")
+        source_sha256 = item.get("source_sha256")
+        if not isinstance(source_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+            errors.append(f"{source}.source_sha256 must be a SHA-256 hex digest")
+    if normalize_for_mirror(claim_artifacts) != normalize_for_mirror(expected):
+        errors.append("claim_artifacts do not match archived packet claim evidence artifact bytes")
 
 
 def validate_pointer_review_import_artifacts(
@@ -5432,7 +5628,8 @@ def validate_pointer(
     ignore_non_archive_dirty: bool = False,
 ) -> list[str]:
     errors: list[str] = []
-    if set(pointer) != POINTER_FIELDS:
+    pointer_fields = set(pointer)
+    if pointer_fields != POINTER_FIELDS and pointer_fields != LEGACY_POINTER_FIELDS:
         errors.append(f"{POINTER_KEY} fields must be exactly {sorted(POINTER_FIELDS)}")
         return errors
     pointer_path_error = archive_pointer_ref_error(pointer_ref)
@@ -5562,6 +5759,7 @@ def validate_pointer(
         expected_artifacts = pointer_command_artifacts(packet, root=root)
         if normalize_for_mirror(command_artifacts) != normalize_for_mirror(expected_artifacts):
             errors.append("command_artifacts do not match archived packet command artifact bytes")
+    validate_pointer_claim_artifacts(pointer, packet, root=root, errors=errors)
     validate_pointer_review_import_artifacts(pointer, packet, root=root, errors=errors)
     validate_pointer_probe_transcripts(pointer, packet, root=root, errors=errors)
 
@@ -6165,6 +6363,11 @@ def finalize_packet(args: argparse.Namespace) -> int:
 def capture_search_set(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     command = args.command or SEARCH_SET_CAPTURE_COMMAND
+    if command != SEARCH_SET_CAPTURE_COMMAND:
+        raise PacketError(
+            "stable search-set capture command must be "
+            f"{SEARCH_SET_CAPTURE_COMMAND!r}; custom commands are diagnostic-only and are not captured here"
+        )
     argv, argv_error = search_set_capture_argv(command)
     if argv_error:
         raise PacketError(argv_error)

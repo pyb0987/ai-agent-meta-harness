@@ -85,9 +85,9 @@ AcceptancePacket:
         target: backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
       - origin: generated
         relation: trace
-        ref: trace:.harness/traces/search-set.md#active
+        ref: trace:.harness/traces/search-set.md#search-set-after-v2-fixture
         status: resolved
-        target: .harness/traces/search-set.md#active
+        target: .harness/traces/search-set.md#search-set-after-v2-fixture
       - origin: generated
         relation: trace
         ref: trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
@@ -132,7 +132,7 @@ AcceptancePacket:
           - release integration
       trace_refs:
         search_set_before: null
-        search_set_after: trace:.harness/traces/search-set.md#active
+        search_set_after: trace:.harness/traces/search-set.md#search-set-after-v2-fixture
         evolution:
         - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
         failures: []

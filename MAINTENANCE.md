@@ -148,6 +148,14 @@ Lifecycle rules:
   materialize the completed review.
 - `import-review` materializes a durable `AcceptancePacketReviewImport` artifact
   and records it in packet evidence when reviewer judgment is required.
+- Strategy-search runs under `.harness/search-runs/` are diagnostic search
+  history, not stable evidence. To adopt a selected candidate, run
+  `python3 scripts/strategy-search.py select --run <run> --candidate <id>` to
+  write a diagnostic selection summary under that run directory, then apply the
+  patch in a content commit and use the normal AcceptancePacket, review import
+  if required, active pointer publication, and release verification flow.
+  Strategy-search selection files are not archive/v2 evidence and cannot make
+  stable handoff claims by themselves.
 - `publish` is a composition wrapper for already-stable archive packets. It
   refuses staged or non-archive dirty content, requires current `HEAD` to equal
   packet `accepted_head_commit`, runs `write-pointer`, stages only pointer-bound
@@ -356,6 +364,7 @@ archive content, and avoid turning `governance status` into a trust ledger.
 During an in-progress maintenance diff, use:
 
 ```bash
+# PRE-FLIGHT ONLY: not stable release evidence.
 python3 scripts/verify-release.py --skip-clean-worktree
 ```
 

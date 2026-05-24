@@ -73,7 +73,8 @@ Multi-review:
 - Validation: PASS `python3 benchmarks/multi-review/check-fixtures.py --allow-pending`.
 - Validation: PASS `python3 benchmarks/multi-review/check-fixtures.py --replay-probe-commands --allow-pending`.
 - Validation: PASS `python3 scripts/update-governance-fixtures.py --check`.
-- Validation: PASS `python3 scripts/verify-release.py --skip-clean-worktree`.
+- Validation: PRE-FLIGHT PASS `python3 scripts/verify-release.py --skip-clean-worktree`;
+  non-stable validation only, not release evidence.
 
 ## Methodology Plan
 
@@ -331,3 +332,9 @@ Validate v2 using the method it introduces:
 - Whether to replace or augment the perspective-eval calibration scorer with an
   AI judge; current scoring remains deterministic calibration, not a claim of
   full semantic adjudication.
+- Whether and how to build the paper-shaped strategy search loop above the v2
+  governance substrate. The initial design is `backlog/plans/12-strategy-search-loop-mvp.md`:
+  candidate search produces diffs, scores, and traces; v2 governance remains
+  the only stable adoption/publication path. Runner isolation, proposal-ledger
+  anchoring, and pointer-bound selected search evidence are tracked separately
+  in `backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md`.

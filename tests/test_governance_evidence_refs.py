@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -26,6 +28,14 @@ def run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 def load_fixture(name: str) -> dict:
     return yaml.safe_load((FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+
+
+def load_checker():
+    spec = importlib.util.spec_from_file_location("check_governance_acceptance", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 def git(*args: str) -> str:
@@ -341,6 +351,13 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
 
+    def test_stable_search_set_before_after_must_use_capture_anchor(self) -> None:
+        packet = load_fixture("finalized-harness-affecting.yml")
+        evidence = packet["AcceptancePacket"]["result"]["evidence"]
+        evidence["trace_refs"]["search_set_before"] = "trace:.harness/traces/search-set.md#active"
+
+        self.assert_rejected(packet, "search-set capture ref must use search-set-before-* anchor")
+
     def test_stable_protected_packet_search_set_refs_must_be_canonical(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
@@ -519,7 +536,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
 
         self.assert_rejected(packet, "proof-like changed docs require impact: high")
 
-    def test_stable_claim_evidence_requires_raw_artifact_or_trace_scheme(self) -> None:
+    def test_stable_claim_evidence_requires_raw_artifact_file_scheme(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
         evidence["claims"] = [{"raw_evidence_refs": ["README.md"]}]
@@ -533,7 +550,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "claim evidence ref must use file: or trace: scheme")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_trace_ref_requires_anchor(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -550,7 +567,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "claim evidence trace ref must include an anchor")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_trace_ref_must_use_harness_trace(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -567,7 +584,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_trace_ref_must_not_use_search_set_index(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -575,7 +592,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         raw_ref = "trace:.harness/traces/search-set.md#active"
         evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
 
-        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_rejects_any_search_set_file_anchor(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -592,7 +609,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_normalizes_search_set_trace_path(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -609,7 +626,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "claim evidence trace ref must point to .harness/traces/ evidence and not search-set index")
+        self.assert_rejected(packet, "claim evidence ref must use file: scheme")
 
     def test_stable_claim_evidence_rejects_source_file_as_raw_evidence(self) -> None:
         packet = load_fixture("finalized-routine.yml")
@@ -649,6 +666,148 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
         )
 
         self.assert_rejected(packet, "claim evidence file ref must point to raw artifact/log/screenshot/report evidence")
+
+    def test_stable_claim_evidence_file_ref_must_be_archive_local(self) -> None:
+        packet = load_fixture("finalized-routine.yml")
+        result = packet["AcceptancePacket"]["result"]
+        evidence = result["evidence"]
+        result["inference"]["changed_paths"] = ["docs/reference.md"]
+        result["inference"]["required_review"] = ["claim evidence"]
+        raw_ref = "file:backlog/fixtures/acceptance-packets/artifacts/verify-release-list-base-ref.log"
+        evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
+        evidence["resolved_refs"].extend(
+            [
+                {
+                    "origin": "generated",
+                    "relation": "claim-evidence",
+                    "ref": raw_ref,
+                    "status": "resolved",
+                    "target": raw_ref.removeprefix("file:"),
+                },
+                {
+                    "origin": "generated",
+                    "relation": "waiver-provenance",
+                    "ref": "file:backlog/plans/04-evidence-capture-and-source-refs.md",
+                    "status": "resolved",
+                    "target": "backlog/plans/04-evidence-capture-and-source-refs.md",
+                },
+            ]
+        )
+        result["judgment"]["waivers"].append(
+            {
+                "kind": "review",
+                "review": "claim evidence",
+                "actor": "maintainer",
+                "role": "maintainer",
+                "date": "2026-05-06",
+                "reason": "test isolates archive-local raw claim evidence",
+                "source_ref": "file:backlog/plans/04-evidence-capture-and-source-refs.md",
+            }
+        )
+
+        self.assert_rejected(packet, "claim evidence file ref must point to raw artifact/log/screenshot/report evidence")
+
+    def test_raw_claim_file_refs_must_be_under_archive_artifacts(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            raw_path = root / "archive" / "v2" / "raw.log"
+            artifact_path = root / "archive" / "v2" / "artifacts" / "raw.log"
+            raw_path.parent.mkdir(parents=True)
+            artifact_path.parent.mkdir(parents=True)
+            raw_path.write_text("raw\n", encoding="utf-8")
+            artifact_path.write_text("raw\n", encoding="utf-8")
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/raw.log"))
+            self.assertTrue(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/raw.log"))
+            alias = root / "evidence" / "raw.log"
+            alias.parent.mkdir()
+            alias.symlink_to("../archive/v2/artifacts/raw.log")
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:evidence/raw.log"))
+
+    def test_raw_claim_file_refs_reject_diagnostic_strategy_search_yaml(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            artifact_path = root / "archive" / "v2" / "artifacts" / "strategy-search-selection.yml"
+            artifact_path.parent.mkdir(parents=True)
+            artifact_path.write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "strategy-search-adoption-selection/v1",
+                        "evidence_status": "diagnostic_only",
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertFalse(
+                checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/strategy-search-selection.yml")
+            )
+
+    def test_raw_claim_file_refs_reject_strategy_search_diagnostic_logs(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            artifact_dir = root / "archive" / "v2" / "artifacts"
+            artifact_dir.mkdir(parents=True)
+            stdout_path = artifact_dir / "stdout.log"
+            named_path = artifact_dir / "strategy-search-stdout.log"
+            stdout_path.write_text("score: 0.97\ncase: fresh-empty-repo: pass\n", encoding="utf-8")
+            named_path.write_text("score: 0.97\ncase: fresh-empty-repo: pass\n", encoding="utf-8")
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/stdout.log"))
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/strategy-search-stdout.log"))
+
+    def test_raw_claim_file_refs_reject_hard_linked_strategy_search_logs(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "stdout.log"
+            artifact = root / "archive" / "v2" / "artifacts" / "raw.log"
+            source.parent.mkdir(parents=True)
+            artifact.parent.mkdir(parents=True)
+            source.write_text("score: 0.97\ncase: fresh-empty-repo: pass\n", encoding="utf-8")
+            os.link(source, artifact)
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/raw.log"))
+
+    def test_raw_claim_file_refs_reject_renamed_strategy_search_logs(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            artifact = root / "archive" / "v2" / "artifacts" / "raw.log"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text(
+                f"{'x' * 70000}\nSCORE = 0.97\ncase = fresh-empty-repo pass\n",
+                encoding="utf-8",
+            )
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/raw.log"))
+
+    def test_raw_claim_file_refs_reject_strategy_search_namespace_logs(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            artifact = root / "archive" / "v2" / "artifacts" / "strategy-search" / "raw.log"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text("opaque diagnostic output\n", encoding="utf-8")
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/strategy-search/raw.log"))
+
+    def test_raw_claim_file_refs_reject_strategy_search_jsonl_sidecars(self) -> None:
+        checker = load_checker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            scores = root / "archive" / "v2" / "artifacts" / "scores.jsonl"
+            proposals = root / "archive" / "v2" / "artifacts" / "proposals.jsonl"
+            scores.parent.mkdir(parents=True)
+            scores.write_text('{"schema_version":"strategy-search-candidate/v1"}\n', encoding="utf-8")
+            proposals.write_text('{"schema_version":"strategy-search-proposal-ledger/v1"}\n', encoding="utf-8")
+
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/scores.jsonl"))
+            self.assertFalse(checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/proposals.jsonl"))
 
     def test_stable_generated_provenance_refs_require_file_scheme(self) -> None:
         packet = load_fixture("finalized-routine.yml")

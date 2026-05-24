@@ -241,6 +241,107 @@ def synthetic_archive_commit_with_extra_path(root: Path, packet_rel: str, extra_
 
 
 class GovernanceAcceptanceCliTests(unittest.TestCase):
+    def test_archive_artifact_paths_include_archive_claim_evidence_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            archive_claim = root / "archive" / "v2" / "artifacts" / "raw-claim.log"
+            archive_claim.parent.mkdir(parents=True)
+            archive_claim.write_text("selection\n", encoding="utf-8")
+            non_archive_claim = root / "evidence" / "raw.log"
+            non_archive_claim.parent.mkdir()
+            non_archive_claim.write_text("raw\n", encoding="utf-8")
+            checker = load_checker()
+            packet = {
+                "result": {
+                    "evidence": {
+                        "claims": [
+                            {
+                                "raw_evidence_refs": [
+                                    "file:archive/v2/artifacts/raw-claim.log",
+                                    "file:evidence/raw.log",
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+
+            self.assertEqual(
+                checker.archive_artifact_paths(packet, root=root),
+                ["archive/v2/artifacts/raw-claim.log"],
+            )
+
+    def test_pointer_claim_artifacts_mirror_archive_claim_evidence_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            archive_claim = root / "archive" / "v2" / "artifacts" / "raw-claim.log"
+            archive_claim.parent.mkdir(parents=True)
+            archive_claim.write_text("selection\n", encoding="utf-8")
+            checker = load_checker()
+            packet = {
+                "result": {
+                    "evidence": {
+                        "claims": [
+                            {
+                                "raw_evidence_refs": [
+                                    "file:archive/v2/artifacts/raw-claim.log",
+                                    "trace:.harness/traces/evidence.md#claim-capture",
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+
+            self.assertEqual(
+                checker.pointer_claim_artifacts(packet, root=root),
+                [
+                    {
+                        "source_ref": "file:archive/v2/artifacts/raw-claim.log",
+                        "source_sha256": hashlib.sha256(archive_claim.read_bytes()).hexdigest(),
+                    }
+                ],
+            )
+
+    def test_pointer_claim_artifacts_use_raw_claim_classifier(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            archive_claim = root / "archive" / "v2" / "artifacts" / "strategy-search-selection.yml"
+            archive_claim.parent.mkdir(parents=True)
+            archive_claim.write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "strategy-search-adoption-selection/v1",
+                        "evidence_status": "diagnostic_only",
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            checker = load_checker()
+            packet = {
+                "result": {
+                    "evidence": {
+                        "claims": [
+                            {
+                                "raw_evidence_refs": [
+                                    "file:archive/v2/artifacts/strategy-search-selection.yml",
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+
+            self.assertFalse(
+                checker.is_raw_claim_file_ref(root, "file:archive/v2/artifacts/strategy-search-selection.yml")
+            )
+            self.assertEqual(checker.archive_artifact_paths(packet, root=root), [])
+            self.assertEqual(checker.pointer_claim_artifacts(packet, root=root), [])
+
     def test_git_blob_bytes_preserves_raw_blob_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -583,6 +684,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             self.assertRegex(pointer["archive_commit"], r"^[0-9a-f]{40}$")
             self.assertEqual(pointer["stable_target"], f"base-ref:{boundary_ref}...{boundary_ref}@{boundary_ref}")
             self.assertEqual(pointer["decision_status"], "accepted")
+            self.assertEqual(pointer["claim_artifacts"], [])
             self.assertEqual(pointer["review_import_artifacts"], [])
             self.assertEqual(pointer["probe_transcripts"], [])
             self.assertEqual(
@@ -4385,6 +4487,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 """,
                 encoding="utf-8",
             )
+            (root / "scripts" / "run-search-set.py").write_text("", encoding="utf-8")
 
             result = run_cli(
                 "--root",
@@ -4394,8 +4497,6 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "before",
                 "--packet",
                 "archive/v2/packets/pkt-search-set.yml",
-                "--command",
-                "true",
             )
             text = search_set.read_text(encoding="utf-8")
 
@@ -4404,8 +4505,25 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         self.assertIn("## Search-set Evidence Captures", text)
         self.assertIn("### Search-set before ", text)
         self.assertIn("- **status**: PASS", text)
-        self.assertIn("- **command**: `true`", text)
+        self.assertIn("- **command**: `python3 scripts/run-search-set.py`", text)
         self.assertIn("- **packet_ref**: `archive/v2/packets/pkt-search-set.yml`", text)
+
+    def test_capture_search_set_rejects_custom_stable_command(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            result = run_cli(
+                "--root",
+                str(root),
+                "capture-search-set",
+                "--phase",
+                "before",
+                "--command",
+                "true",
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stable search-set capture command must be", result.stderr)
 
     def test_finalize_base_ref_accepts_captured_search_set_trace_refs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -4413,6 +4531,26 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             init_repo(root)
             search_set = root / ".harness/traces/search-set.md"
             search_set.parent.mkdir(parents=True)
+            search_set.write_text(
+                """# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+""",
+                encoding="utf-8",
+            )
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            accepted_head = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet = root / "archive/v2/packets/pkt-search-set-traces.yml"
             search_set.write_text(
                 f"""# Harness Search Set
 
@@ -4428,32 +4566,27 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 ### Search-set before fixture
 - **phase**: before
 - **status**: PASS
-- **command**: `true`
+- **command**: `python3 scripts/run-search-set.py`
 - **exit_code**: 0
 - **stdout_sha256**: {EMPTY_SHA256}
 - **stderr_sha256**: {EMPTY_SHA256}
-- **head_ref**: `HEAD`
+- **head_ref**: `{base_ref}`
 - **captured_at**: 2026-05-18
+- **packet_ref**: `archive/v2/packets/pkt-search-set-traces.yml`
 
 ### Search-set after fixture
 - **phase**: after
 - **status**: PASS
-- **command**: `true`
+- **command**: `python3 scripts/run-search-set.py`
 - **exit_code**: 0
 - **stdout_sha256**: {EMPTY_SHA256}
 - **stderr_sha256**: {EMPTY_SHA256}
-- **head_ref**: `HEAD`
+- **head_ref**: `{accepted_head}`
 - **captured_at**: 2026-05-18
+- **packet_ref**: `archive/v2/packets/pkt-search-set-traces.yml`
 """,
                 encoding="utf-8",
             )
-            git(root, "add", "-A")
-            git(root, "commit", "-m", "add search set")
-            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
-            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
-            git(root, "add", "scripts/tool.py")
-            git(root, "commit", "-m", "update script")
-            packet = root / "archive/v2/packets/pkt-search-set-traces.yml"
 
             start = run_cli(
                 "--root",
@@ -4560,6 +4693,115 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
 
         self.assertNotEqual(finalize.returncode, 0)
         self.assertIn("search-set capture record is missing required fields", finalize.stderr)
+
+    def test_finalize_rejects_noop_captured_search_set_trace_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            git(root, "commit", "--allow-empty", "-m", "base")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            packet = root / "archive/v2/packets/pkt-search-set-noop.yml"
+            search_set.write_text(
+                f"""# Harness Search Set
+
+## Active
+
+### SS-001: fixture
+- **verify**: `true`
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set after fixture
+- **phase**: after
+- **status**: PASS
+- **command**: `true`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `{base_ref}`
+- **captured_at**: 2026-05-18
+- **packet_ref**: `archive/v2/packets/pkt-search-set-noop.yml`
+""",
+                encoding="utf-8",
+            )
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            run_cli(
+                "--root",
+                str(root),
+                "start",
+                "--output",
+                str(packet),
+                "--intent",
+                "Update script.",
+                "--base-ref",
+                base_ref,
+            )
+
+            finalize = run_cli(
+                "--root",
+                str(root),
+                "finalize",
+                "--packet",
+                str(packet),
+                "--base-ref",
+                base_ref,
+                "--search-set-after",
+                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+            )
+
+        self.assertNotEqual(finalize.returncode, 0)
+        self.assertIn("search-set capture record command must be", finalize.stderr)
+
+    def test_finalize_rejects_search_set_head_ref_boundary_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            init_repo(root)
+            search_set = root / ".harness/traces/search-set.md"
+            search_set.parent.mkdir(parents=True)
+            search_set.write_text("# Harness Search Set\n\n## Active\n\n## Archived\n", encoding="utf-8")
+            git(root, "add", "-A")
+            git(root, "commit", "-m", "add search set")
+            base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
+            (root / "scripts" / "tool.py").write_text("print('new')\n", encoding="utf-8")
+            git(root, "add", "scripts/tool.py")
+            git(root, "commit", "-m", "update script")
+            accepted_head = git(root, "rev-parse", "HEAD").stdout.strip()
+            search_set.write_text(
+                f"""# Harness Search Set
+
+## Active
+
+## Archived
+
+## Search-set Evidence Captures
+
+### Search-set after fixture
+- **phase**: after
+- **status**: PASS
+- **command**: `python3 scripts/run-search-set.py`
+- **exit_code**: 0
+- **stdout_sha256**: {EMPTY_SHA256}
+- **stderr_sha256**: {EMPTY_SHA256}
+- **head_ref**: `{base_ref}`
+- **captured_at**: 2026-05-18
+- **packet_ref**: `archive/v2/packets/pkt-search-set-boundary.yml`
+""",
+                encoding="utf-8",
+            )
+            error = load_checker().search_set_capture_record_error(
+                root,
+                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+                expected_phase="after",
+                expected_head_ref=accepted_head,
+            )
+
+        self.assertIn("search-set capture record head_ref must match packet boundary", error)
 
     def test_finalize_rejects_wrong_phase_captured_search_set_trace_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

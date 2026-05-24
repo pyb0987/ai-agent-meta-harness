@@ -10,7 +10,7 @@ ProbeTranscript:
   result_ref: file:backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
   result_digest: b8b103e2018a2326c46e3453b7ecb6605b721983d90d78d2810ce44ed4ad3f44
   packet_ref: backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml
-  packet_sha256: db53f0ce9df1227ae2597ac945bb845e5ee9971b624342909381bb4f64bc3a42
+  packet_sha256: f09cd59070e96a5e325a1be97ebdeae3199339f2c0200cac8e17571b23d1ba9b
   source_refs:
   - backlog/fixtures/acceptance-packets/artifacts/harness-affecting-review-import.yml
   - tests/test_governance_review_import.py
