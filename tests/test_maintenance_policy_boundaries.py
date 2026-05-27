@@ -5,12 +5,17 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+README = ROOT / "README.md"
 MAINTENANCE = ROOT / "MAINTENANCE.md"
 ROADMAP = ROOT / "backlog" / "v2-roadmap.md"
 PLAN10 = ROOT / "backlog" / "plans" / "10-stable-packet-materialization-and-operator-minimal-cli.md"
 PLAN11 = ROOT / "backlog" / "plans" / "11-v2-residual-hardening-and-operations.md"
+PLAN12 = ROOT / "backlog" / "plans" / "12-strategy-search-loop-mvp.md"
+PLAN13 = ROOT / "backlog" / "plans" / "13-strategy-search-runner-isolation-and-ledger-anchoring.md"
+PLAN14 = ROOT / "backlog" / "plans" / "14-sandbox-and-concurrency-boundary.md"
 PLAN02 = ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md"
 PLAN09 = ROOT / "backlog" / "plans" / "09-historical-archive-closure-and-attestation.md"
+PLANS_README = ROOT / "backlog" / "plans" / "README.md"
 FIXTURE_README = ROOT / "backlog" / "fixtures" / "acceptance-packets" / "README.md"
 
 
@@ -27,6 +32,48 @@ def normalized_file_text(path: Path) -> str:
 
 
 class MaintenancePolicyBoundaryTests(unittest.TestCase):
+    def test_readme_user_guide_is_v2_only(self) -> None:
+        readme = normalized_file_text(README)
+
+        for marker in (
+            "The repository-local **AI Agent Meta-Harness v2** flow is the practical default",
+            "## Install For Your Agent",
+            "### Codex",
+            "Executable install path: copy the Codex skills into the active Codex home",
+            'mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"',
+            'cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"',
+            "python3 scripts/sync-codex-plugin.py --write",
+            "python3 adapters/codex/scripts/smoke-local-plugin-activation.py",
+            "The activation smoke uses an isolated temporary `CODEX_HOME`",
+            "Apply codex-harness to this project.",
+            "### Claude Code",
+            "cp core/methodology.md ~/.claude/rules/common/harness-methodology.md",
+            "cp adapters/claude/commands/init-harness.md ~/.claude/commands/",
+            "> /init-harness",
+            "It does not install the repository-local v2 `governance` CLI into that target project",
+            "## Using The Repository-Local Meta-Harness",
+            "./governance start --base-ref <comparison-ref> --intent",
+            "./governance finalize --packet <packet> --base-ref <comparison-ref>",
+            "./governance publish --packet <packet>",
+            "### What Users Usually Provide",
+            "### Strategy Search",
+            "Selection files under `.harness/search-runs/` are not stable evidence by themselves",
+            "### Daily governance flow",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, readme)
+
+        for forbidden in (
+            "v1",
+            "archive/v1",
+            "Migration Notes",
+            "legacy verification",
+            "check-v1-archive-boundary",
+            "frozen v1 archive boundary",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, readme)
+
     def test_v2_packet_lifecycle_is_active_policy(self) -> None:
         text = normalized_text()
 
@@ -337,6 +384,83 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertIn("v2-residual-10 review-template-completion-ergonomics", roadmap)
         self.assertIn("v2-residual-11 publish-wrapper-ergonomics`: closed for repository-local v2", roadmap)
         self.assertIn("v2-residual-12 agent-in-loop-multi-review-eval`: closed as an evaluation", roadmap)
+
+    def test_plan13_locks_strategy_search_closing_contract(self) -> None:
+        maintenance = normalized_text()
+        plan12 = normalized_file_text(PLAN12)
+        plan13 = normalized_file_text(PLAN13)
+        plans_readme = normalized_file_text(PLANS_README)
+
+        for marker in (
+            "Plan 13 is the closing slice for the practical repository-local Meta-Harness methodology",
+            "late absolute host-write case is documented as an OS-sandbox residual",
+            "fixed evaluator in an isolated workspace",
+            "anchored proposal/eval records",
+            "normal v2 content commit and active pointer publication",
+            "must still not claim paper-benchmark reproduction, hostile-operator tamper resistance, or that strategy-search records are stable governance evidence by themselves",
+            "Copy file bytes into the evaluation root",
+            "Do not symlink, hardlink, bind, or otherwise mount source-repository or run-store paths",
+            "caller `HOME`",
+            "caller temp-dir",
+            "refs/meta-harness/strategy-search/<run-id>",
+            "compare-and-swap ref updates",
+            "The Git commit parent should be the same value as `previous_anchor`",
+            "`candidate_digest` is computed before the `candidate_evaluated` event is written",
+            "it must not depend on the future eval anchor commit",
+            "Existing Plan 12 commands remain the operator-facing workflow",
+            "no new manual digest, anchor, or ref input is required",
+            "No defense, in the default path, against a hostile same-user fixed evaluator",
+            "Review Triage Boundary",
+            "hostile same-user runtime replacement through symlink directories or writable ancestors",
+            "concurrent proposal sealing races that require transactional multi-writer coordination",
+            "Future work: an explicit Plan 14-style sandbox/concurrency layer",
+            "future external high-water mark",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan13)
+
+        for marker in (
+            "Plan 13 is the closing practical Meta-Harness strategy-search hardening layer",
+            "evaluator runs move to disposable byte-copied workspaces",
+            "proposal and eval records are anchored by a repository-local Git event chain",
+            "`select` requires anchored eval provenance",
+            "operators do not supply manual digests, anchor refs, or stable-evidence refs",
+            "not hostile local-operator tamper resistance, hostile fixed-evaluator absolute host writes after runner exit, or stable governance evidence",
+            "Plan 13 review triage boundary",
+            "future sandbox/concurrency work",
+            "not reasons to add more operator prompts",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, maintenance)
+
+        self.assertIn("No strategy-search selection output is v2 stable evidence by itself", plan12)
+        self.assertIn("diagnostic-only adoption boundary", plans_readme)
+        self.assertIn("uses the v2 packet/pointer publication path", plans_readme)
+        self.assertNotIn("future pointer-bound route for selected search artifacts", plans_readme)
+
+    def test_plan14_stays_optional_sandbox_boundary(self) -> None:
+        plan14 = normalized_file_text(PLAN14)
+        plans_readme = normalized_file_text(PLANS_README)
+
+        for marker in (
+            "Boundary definition only. Not scheduled for implementation",
+            "requires a later explicit decision slice",
+            "Preserve the Plan 13 operator workflow by default",
+            "Do not add per-run manual digests, anchor refs, runtime paths, or sandbox knobs to the routine path",
+            "prefer repository configuration or a single explicit mode over repeated per-command prompts",
+            "Strategy-search records remain diagnostic until a selected patch is applied as a content commit",
+            "Plan 14 stays documentation-only unless a future deployment needs one of these stronger claims",
+            "Without one of those triggers, Plan 13 remains the completed repository-local methodology",
+            "Documentation-only: maintain the residual registry and do not add runtime tests beyond Plan 13 boundary checks",
+            "No slice below implies implementation until Slice 4 chooses a concrete mode",
+            "Verdict: PASS as a boundary document; no implementation slice selected",
+            "Follow-up: keep Plan 14 as documentation until a concrete deployment need triggers the Decision Gate",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan14)
+
+        self.assertIn("Plan 14 is a boundary definition for optional sandbox and concurrency hardening", plans_readme)
+        self.assertIn("keeps the Plan 13 default workflow unchanged", plans_readme)
 
 
 if __name__ == "__main__":

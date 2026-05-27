@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import contextlib
+import io
 import json
 import os
 from collections.abc import Callable
@@ -9,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 
 import yaml
@@ -142,6 +145,7 @@ class StrategySearchCliTests(unittest.TestCase):
         direction: dict | None = None,
         patch_text: str | None = None,
         mutate: Callable[[dict], None] | None = None,
+        anchor: bool = True,
     ) -> Path:
         direction = direction or self.direction()
         candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
@@ -165,8 +169,12 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         stdout = candidate_dir / "stdout.log"
         stderr = candidate_dir / "stderr.log"
+        stdout_raw = candidate_dir / "stdout.raw"
+        stderr_raw = candidate_dir / "stderr.raw"
         stdout.write_text("score: 0.97\ncase: fresh-empty-repo: pass\n", encoding="utf-8")
         stderr.write_text("", encoding="utf-8")
+        stdout_raw.write_bytes(stdout.read_bytes())
+        stderr_raw.write_bytes(stderr.read_bytes())
         trace = self.strategy.candidate_trace_record(
             direction=direction,
             run_id="run-001",
@@ -175,6 +183,8 @@ class StrategySearchCliTests(unittest.TestCase):
             patch_path=patch,
             stdout_path=stdout,
             stderr_path=stderr,
+            stdout_raw_path=stdout_raw,
+            stderr_raw_path=stderr_raw,
             verdict="pass",
             score=0.97,
             exit_code=0,
@@ -186,6 +196,30 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         trace_path = self.strategy.write_candidate_trace(candidate_dir, trace)
         closure = self.strategy.closure_digest_record(self.root, direction)
+        evaluator_runtime = self.strategy.empty_evaluator_runtime()
+        command = direction["evaluator"]["command"]
+        argv = self.strategy.shlex.split(command)
+        if self.strategy.evaluator_command_runtime_name(argv) == "python3":
+            target = self.strategy.stable_python3_runtime()
+            if target is not None:
+                target = Path(os.path.abspath(os.path.normpath(target)))
+                path_entry = target.parent
+                shim_text = self.strategy.runtime_path_binding_text(path_entry, target)
+                shim_sha = self.strategy.sha256_bytes(shim_text.encode("utf-8"))
+                target_sha = file_sha256(target)
+                evaluator_runtime["path_shims"].append(
+                    {
+                        "runtime": "python3",
+                        "path_entry": str(path_entry),
+                        "shim_path": str(target),
+                        "shim_text": shim_text,
+                        "shim_sha256": shim_sha,
+                        "shim_sha256_after": shim_sha,
+                        "target_path": str(target),
+                        "target_sha256": target_sha,
+                        "target_sha256_after": target_sha,
+                    }
+                )
         candidate = {
             "schema_version": "strategy-search-candidate/v1",
             "candidate_id": "cand-001",
@@ -195,6 +229,7 @@ class StrategySearchCliTests(unittest.TestCase):
             "search_surface_digest_before": self.strategy.digest_paths(self.root, direction["search_surface"]),
             "patch_sha256": file_sha256(patch),
             "evaluator_command": direction["evaluator"]["command"],
+            "evaluator_runtime": evaluator_runtime,
             "evaluator_digest": self.strategy.evaluator_digest(self.root, direction),
             "evaluator_closure": closure,
             "started_at": "2026-05-19T00:00:00Z",
@@ -204,19 +239,47 @@ class StrategySearchCliTests(unittest.TestCase):
             "case_results": [{"case_id": "fresh-empty-repo", "status": "pass"}],
             "stdout_sha256": file_sha256(stdout),
             "stderr_sha256": file_sha256(stderr),
+            "stdout_raw_sha256": file_sha256(stdout_raw),
+            "stderr_raw_sha256": file_sha256(stderr_raw),
             "trace_sha256": file_sha256(trace_path),
+            "candidate_digest": None,
+            "eval_anchor_ref": self.strategy.anchor_ref("run-001"),
+            "eval_anchor_commit": None,
             "verdict": "pass",
         }
         if mutate is not None:
             mutate(candidate)
         score = candidate_dir / "score.yml"
-        score.write_text(yaml.safe_dump(candidate, sort_keys=False), encoding="utf-8")
+        if anchor:
+            candidate = self.strategy.finalize_candidate_record_with_anchor(
+                self.root,
+                run_id=str(candidate.get("run_id", "run-001")),
+                direction=direction,
+                candidate_id=str(candidate.get("candidate_id", "cand-001")),
+                candidate_path=score,
+                record=candidate,
+            )
+        else:
+            score.write_text(yaml.safe_dump(candidate, sort_keys=False), encoding="utf-8")
         return score
+
+    def write_anchor_event_commit(self, event: dict, *, parent: str | None = None) -> str:
+        event_yaml = yaml.safe_dump(event, sort_keys=False).encode("utf-8")
+        blob = self.strategy.git_run_bytes(
+            self.root,
+            ["hash-object", "-w", "--stdin"],
+            input_data=event_yaml,
+        ).decode("utf-8").strip()
+        tree = self.strategy.git_run_text(self.root, ["mktree"], input_text=f"100644 blob {blob}\tevent.yml\n")
+        commit_args = ["commit-tree", tree, "-m", "test strategy-search anchor"]
+        if parent is not None:
+            commit_args[2:2] = ["-p", parent]
+        return self.strategy.git_run_text(self.root, commit_args)
 
     def test_validate_direction_accepts_complete_schema(self) -> None:
         direction_path = self.write_direction()
         completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
-        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         self.assertIn("VALID direction", completed.stdout)
         self.assertIn("direction_digest:", completed.stdout)
 
@@ -820,16 +883,37 @@ class StrategySearchCliTests(unittest.TestCase):
             os.environ["NODE_PATH"] = "src"
             os.environ["BASH_ENV"] = "src/hook.sh"
             os.environ["GIT_DIR"] = ".git"
-            os.environ["PATH"] = os.pathsep.join(["src", str(self.root / "src"), "/usr/bin", "/bin"])
+            os.environ["TMPDIR"] = str(self.root)
+            os.environ["TMP"] = str(self.root / ".harness" / "search-runs")
+            os.environ["TEMP"] = str(self.root / "archive" / "v2")
+            os.environ["HOME"] = str(self.root)
+            caller_home_bin = self.root / "home-bin"
+            caller_tmp_bin = self.root / "tmp-bin"
+            caller_home_bin.mkdir()
+            caller_tmp_bin.mkdir()
+            os.environ["HOME"] = str(caller_home_bin.parent)
+            os.environ["TMPDIR"] = str(caller_tmp_bin.parent)
+            os.environ["PATH"] = os.pathsep.join(
+                ["src", str(self.root / "src"), str(caller_home_bin), str(caller_tmp_bin), "/usr/bin", "/bin"]
+            )
             env = self.strategy.evaluator_env(self.root)
         finally:
             os.environ.clear()
             os.environ.update(original)
         for key in ("PYTHONPATH", "NODE_OPTIONS", "NODE_PATH", "BASH_ENV", "GIT_DIR"):
             self.assertNotIn(key, env)
+        for key in ("TMPDIR", "TMP", "TEMP"):
+            self.assertIn(key, env)
+            self.assertNotEqual(env[key], str(self.root))
+            self.assertNotIn(".harness/search-runs", env[key])
+            self.assertNotIn("archive/v2", env[key])
+        self.assertIn("HOME", env)
+        self.assertNotEqual(env["HOME"], str(self.root))
         path_entries = env["PATH"].split(os.pathsep)
         self.assertNotIn("src", path_entries)
         self.assertNotIn(str(self.root / "src"), path_entries)
+        self.assertNotIn(str(caller_home_bin), path_entries)
+        self.assertNotIn(str(caller_tmp_bin), path_entries)
         self.assertIn("/usr/bin", path_entries)
         self.assertEqual(env["STRATEGY_SEARCH_WORKSPACE"], str(self.root))
 
@@ -855,6 +939,595 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertNotIn(str(workspace / "bin"), path_entries)
         self.assertNotIn(str(workspace / "workspace-bin"), path_entries)
         self.assertIn("/usr/bin", path_entries)
+
+    def test_evaluator_env_scrubs_caller_home_and_temp_path_entries(self) -> None:
+        original = os.environ.copy()
+        with tempfile.TemporaryDirectory() as caller_tmp:
+            caller_root = Path(caller_tmp)
+            caller_home_bin = caller_root / "home" / "bin"
+            caller_temp_bin = caller_root / "tmp" / "bin"
+            caller_home_bin.mkdir(parents=True)
+            caller_temp_bin.mkdir(parents=True)
+            try:
+                workspace = self.root / "workspace"
+                workspace.mkdir()
+                os.environ["HOME"] = str(caller_home_bin.parent)
+                os.environ["TMPDIR"] = str(caller_temp_bin.parent)
+                os.environ["PATH"] = os.pathsep.join([str(caller_home_bin), str(caller_temp_bin), "/usr/bin"])
+                env = self.strategy.evaluator_env(workspace, source_root=self.root)
+            finally:
+                os.environ.clear()
+                os.environ.update(original)
+        path_entries = env["PATH"].split(os.pathsep)
+        self.assertNotIn(str(caller_home_bin), path_entries)
+        self.assertNotIn(str(caller_temp_bin), path_entries)
+        self.assertIn("/usr/bin", path_entries)
+
+    def test_evaluator_env_scrubs_default_temp_path_entries_and_prefixes(self) -> None:
+        original = os.environ.copy()
+        temp_bin = Path(tempfile.gettempdir()) / "strategy-search-path-bin"
+        temp_bin.mkdir(exist_ok=True)
+        try:
+            workspace = self.root / "workspace"
+            workspace.mkdir()
+            for key in ("TMPDIR", "TMP", "TEMP"):
+                os.environ.pop(key, None)
+            os.environ["PATH"] = os.pathsep.join([str(temp_bin), "/usr/bin"])
+            env = self.strategy.evaluator_env(
+                workspace,
+                source_root=self.root,
+                path_prefixes=[temp_bin, Path("/usr/bin")],
+            )
+        finally:
+            os.environ.clear()
+            os.environ.update(original)
+            shutil.rmtree(temp_bin, ignore_errors=True)
+        path_entries = env["PATH"].split(os.pathsep)
+        self.assertNotIn(str(temp_bin), path_entries)
+        self.assertIn("/usr/bin", path_entries)
+        if "/bin" in os.defpath.split(os.pathsep):
+            self.assertIn("/bin", path_entries)
+
+    def test_evaluator_env_uses_runner_owned_temp_dir(self) -> None:
+        original = os.environ.copy()
+        try:
+            workspace = Path(self.tmp.name) / "workspace"
+            workspace.mkdir(exist_ok=True)
+            unsafe_run_tmp = self.root / ".harness" / "search-runs" / "run-001" / "tmp"
+            unsafe_run_tmp.mkdir(parents=True, exist_ok=True)
+            os.environ["TMPDIR"] = str(self.root)
+            os.environ["TMP"] = str(unsafe_run_tmp)
+            os.environ["TEMP"] = str(self.root / "archive" / "v2")
+            os.environ["HOME"] = str(self.root)
+            safe_tmp = Path(self.tmp.name) / "safe-eval-tmp"
+            env = self.strategy.evaluator_env(workspace, source_root=self.root, tmp_dir=safe_tmp)
+        finally:
+            os.environ.clear()
+            os.environ.update(original)
+        self.assertEqual(env["TMPDIR"], str(safe_tmp) + os.sep)
+        self.assertEqual(env["TMP"], str(safe_tmp) + os.sep)
+        self.assertEqual(env["TEMP"], str(safe_tmp) + os.sep)
+        self.assertEqual(env["HOME"], str(safe_tmp / "home"))
+        self.assertTrue(safe_tmp.is_dir())
+        self.assertTrue((safe_tmp / "home").is_dir())
+
+    def test_eval_uses_per_evaluation_home_with_external_temp_parent(self) -> None:
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "import os",
+                    "from pathlib import Path",
+                    "home = Path(os.environ['HOME'])",
+                    "tmp = Path(os.environ['TMPDIR'])",
+                    "(home / 'marker').write_text('candidate-local')",
+                    "shared_home = home == tmp or home == tmp / 'home'",
+                    "ok = home.name == 'home' and tmp.name == 'tmp' and home.parent == tmp.parent",
+                    "ok = ok and home.parent.name.startswith('strategy-search-eval-env-') and not shared_home",
+                    "print('score: 0.97' if ok else 'score: 0.10')",
+                    "print('case: per-eval-home: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "per eval home probe evaluator")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        debug_output = completed.stdout + completed.stderr
+        if completed.returncode != 0 and score_path.exists():
+            debug_output += "\n" + score_path.read_text(encoding="utf-8")
+            stderr_log = score_path.with_name("stderr.log")
+            if stderr_log.exists():
+                debug_output += "\nstderr.log:\n" + stderr_log.read_text(encoding="utf-8")
+        self.assertEqual(completed.returncode, 0, debug_output)
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        self.assertEqual(score["score"], 0.97)
+
+    def test_eval_uses_per_evaluation_tmpdir_without_cross_candidate_leakage(self) -> None:
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "import os",
+                    "from pathlib import Path",
+                    "marker = Path(os.environ['TMPDIR']) / 'strategy-search-leak-marker'",
+                    "already_present = marker.exists()",
+                    "marker.write_text('seen')",
+                    "print('score: 0.10' if already_present else 'score: 0.97')",
+                    "print('case: per-eval-tmpdir: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "per eval tmp probe evaluator")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        for candidate_id in ("cand-001", "cand-002"):
+            with self.subTest(candidate_id=candidate_id):
+                completed = run_cli(
+                    self.root,
+                    "eval",
+                    "--run",
+                    ".harness/search-runs/run-001",
+                    "--patch",
+                    str(self.write_patch()),
+                    "--candidate-id",
+                    candidate_id,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                score_path = (
+                    self.root
+                    / ".harness"
+                    / "search-runs"
+                    / "run-001"
+                    / "candidates"
+                    / candidate_id
+                    / "score.yml"
+                )
+                score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+                self.assertEqual(score["score"], 0.97)
+
+    def test_eval_binds_python_runtime_shim_in_candidate_record(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        debug_output = completed.stdout + completed.stderr
+        if completed.returncode != 0 and score_path.exists():
+            debug_output += "\n" + score_path.read_text(encoding="utf-8")
+            stderr_log = score_path.with_name("stderr.log")
+            if stderr_log.exists():
+                debug_output += "\nstderr.log:\n" + stderr_log.read_text(encoding="utf-8")
+        self.assertEqual(completed.returncode, 0, debug_output)
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        runtime = score["evaluator_runtime"]
+        self.assertEqual(runtime["schema_version"], "strategy-search-evaluator-runtime/v1")
+        self.assertEqual(len(runtime["path_shims"]), 1)
+        shim = runtime["path_shims"][0]
+        self.assertEqual(shim["runtime"], "python3")
+        self.assertEqual(shim["shim_path"], shim["target_path"])
+        self.assertIn("resolves python3", shim["shim_text"])
+        self.assertEqual(shim["shim_sha256"], self.strategy.sha256_bytes(shim["shim_text"].encode("utf-8")))
+        self.assertEqual(shim["shim_sha256_after"], shim["shim_sha256"])
+        self.assertTrue(self.strategy.is_sha256(shim["target_sha256"]))
+        self.assertEqual(shim["target_sha256_after"], shim["target_sha256"])
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(score_path),
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_eval_uses_direct_python_runtime_path_entry_without_writable_shim(self) -> None:
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "import os",
+                    "from pathlib import Path",
+                    "old_shim = Path(os.environ['TMPDIR']).parent / 'bin' / 'python3'",
+                    "old_shim.parent.mkdir(parents=True, exist_ok=True)",
+                    "old_shim.write_text('#!/bin/sh\\nexit 0\\n')",
+                    "old_shim.chmod(0o755)",
+                    "print('score: 0.97')",
+                    "print('case: no-writable-shim: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "shim mutation evaluator")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
+        score = yaml.safe_load((candidate_dir / "score.yml").read_text(encoding="utf-8"))
+        shim = score["evaluator_runtime"]["path_shims"][0]
+        self.assertEqual(shim["shim_path"], shim["target_path"])
+        self.assertFalse(shim["path_entry"].startswith(str(candidate_dir.parents[1])))
+        self.assertEqual(shim["shim_sha256_after"], shim["shim_sha256"])
+
+    def test_finalize_evaluator_runtime_detects_target_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            root = Path(runtime_tmp)
+            target = root / "python3-target"
+            target.write_text("#!/bin/sh\nprintf before\n", encoding="utf-8")
+            target.chmod(0o555)
+            path_entry = target.parent
+            shim_text = self.strategy.runtime_path_binding_text(path_entry, target)
+            runtime = self.strategy.empty_evaluator_runtime()
+            runtime["path_shims"].append(
+                {
+                    "runtime": "python3",
+                    "path_entry": str(path_entry),
+                    "shim_path": str(target),
+                    "shim_text": shim_text,
+                    "shim_sha256": self.strategy.sha256_bytes(shim_text.encode("utf-8")),
+                    "shim_sha256_after": None,
+                    "target_path": str(target),
+                    "target_sha256": file_sha256(target),
+                    "target_sha256_after": None,
+                }
+            )
+            target.chmod(0o755)
+            target.write_text("#!/bin/sh\nprintf after\n", encoding="utf-8")
+            target.chmod(0o755)
+            errors = self.strategy.finalize_evaluator_runtime(runtime)
+            self.assertTrue(any("runtime target changed" in error for error in errors), errors)
+            shim = runtime["path_shims"][0]
+            self.assertNotEqual(shim["target_sha256_after"], shim["target_sha256"])
+
+    def test_prepare_evaluator_runtime_shims_rejects_writable_python_target(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            root = Path(runtime_tmp)
+            target = root / "python3-target"
+            target.write_text("#!/bin/sh\nprintf writable\n", encoding="utf-8")
+            target.chmod(0o755)
+            original = self.strategy.stable_python3_runtime
+            original_gettempdir = self.strategy.tempfile.gettempdir
+            original_env = os.environ.copy()
+            try:
+                for key in ("TMPDIR", "TMP", "TEMP"):
+                    os.environ.pop(key, None)
+                self.strategy.stable_python3_runtime = lambda: target
+                self.strategy.tempfile.gettempdir = lambda: str(root / "not-default-temp")
+                _prefixes, runtime, errors = self.strategy.prepare_evaluator_runtime_shims(
+                    root / "shim-root",
+                    ["python3", "benchmarks/init-codex-harness/run_cases.py"],
+                    blocked_roots=[self.root, self.root / ".harness" / "search-runs", self.root / "archive" / "v2"],
+                )
+            finally:
+                self.strategy.stable_python3_runtime = original
+                self.strategy.tempfile.gettempdir = original_gettempdir
+                os.environ.clear()
+                os.environ.update(original_env)
+            self.assertEqual(runtime, self.strategy.empty_evaluator_runtime())
+            self.assertTrue(any("must not be writable" in error for error in errors), errors)
+
+    def test_prepare_evaluator_runtime_shims_rejects_writable_python_target_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            root = Path(runtime_tmp)
+            target = root / "python3-target"
+            target.write_text("#!/bin/sh\nprintf parent-owned\n", encoding="utf-8")
+            target.chmod(0o555)
+            original = self.strategy.stable_python3_runtime
+            original_gettempdir = self.strategy.tempfile.gettempdir
+            original_env = os.environ.copy()
+            try:
+                for key in ("TMPDIR", "TMP", "TEMP"):
+                    os.environ.pop(key, None)
+                self.strategy.stable_python3_runtime = lambda: target
+                self.strategy.tempfile.gettempdir = lambda: str(root / "not-default-temp")
+                _prefixes, runtime, errors = self.strategy.prepare_evaluator_runtime_shims(
+                    root / "shim-root",
+                    ["python3", "benchmarks/init-codex-harness/run_cases.py"],
+                    blocked_roots=[self.root, self.root / ".harness" / "search-runs", self.root / "archive" / "v2"],
+                )
+            finally:
+                self.strategy.stable_python3_runtime = original
+                self.strategy.tempfile.gettempdir = original_gettempdir
+                os.environ.clear()
+                os.environ.update(original_env)
+                target.chmod(0o755)
+            self.assertEqual(runtime, self.strategy.empty_evaluator_runtime())
+            self.assertTrue(any("target parent must not be writable" in error for error in errors), errors)
+
+    def test_prepare_evaluator_runtime_shims_rejects_path_filtered_runtime_target(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            root = Path(runtime_tmp)
+            target = root / "python3-target"
+            target.write_text("#!/bin/sh\nprintf filtered\n", encoding="utf-8")
+            target.chmod(0o755)
+            original = self.strategy.stable_python3_runtime
+            try:
+                self.strategy.stable_python3_runtime = lambda: target
+                _prefixes, runtime, errors = self.strategy.prepare_evaluator_runtime_shims(
+                    root / "shim-root",
+                    ["python3", "benchmarks/init-codex-harness/run_cases.py"],
+                    blocked_roots=[root],
+                )
+            finally:
+                self.strategy.stable_python3_runtime = original
+            self.assertEqual(runtime, self.strategy.empty_evaluator_runtime())
+            self.assertTrue(any("resolved inside a blocked path" in error for error in errors), errors)
+
+    def test_finalize_evaluator_runtime_reports_hash_read_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            root = Path(runtime_tmp)
+            target = root / "python3-target"
+            target.write_text("#!/bin/sh\nprintf before\n", encoding="utf-8")
+            target.chmod(0o555)
+            path_entry = target.parent
+            shim_text = self.strategy.runtime_path_binding_text(path_entry, target)
+            runtime = self.strategy.empty_evaluator_runtime()
+            runtime["path_shims"].append(
+                {
+                    "runtime": "python3",
+                    "path_entry": str(path_entry),
+                    "shim_path": str(target),
+                    "shim_text": shim_text,
+                    "shim_sha256": self.strategy.sha256_bytes(shim_text.encode("utf-8")),
+                    "shim_sha256_after": None,
+                    "target_path": str(target),
+                    "target_sha256": file_sha256(target),
+                    "target_sha256_after": None,
+                }
+            )
+            original_file_sha256 = self.strategy.file_sha256
+            try:
+                self.strategy.file_sha256 = lambda path: (
+                    (_ for _ in ()).throw(PermissionError("permission denied"))
+                    if Path(path) == target
+                    else original_file_sha256(path)
+                )
+                errors = self.strategy.finalize_evaluator_runtime(runtime)
+            finally:
+                self.strategy.file_sha256 = original_file_sha256
+            self.assertTrue(any("runtime target could not be hashed" in error for error in errors), errors)
+            self.assertIsNone(runtime["path_shims"][0]["target_sha256_after"])
+
+    def test_eval_preserves_runtime_setup_case_result(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        with tempfile.TemporaryDirectory() as runtime_tmp:
+            target = Path(runtime_tmp) / "python3-target"
+            target.write_text("#!/bin/sh\nprintf writable\n", encoding="utf-8")
+            target.chmod(0o755)
+            parser = self.strategy.build_parser()
+            args = parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "eval",
+                    "--run",
+                    ".harness/search-runs/run-001",
+                    "--patch",
+                    str(self.write_patch()),
+                    "--candidate-id",
+                    "cand-001",
+                ]
+            )
+            original = self.strategy.stable_python3_runtime
+            try:
+                self.strategy.stable_python3_runtime = lambda: target
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    rc = args.func(args)
+            finally:
+                self.strategy.stable_python3_runtime = original
+        self.assertNotEqual(rc, 0)
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        self.assertEqual(score["case_results"], [{"case_id": "evaluator-runtime", "status": "fail"}])
+        stderr_log = score_path.with_name("stderr.log").read_text(encoding="utf-8")
+        self.assertIn("evaluator runtime setup failed", stderr_log)
+        self.assertNotIn("evaluator output must include", stderr_log)
+
+    def test_validate_candidate_rejects_missing_python_runtime_evidence(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        score_path = self.write_candidate(
+            direction=direction,
+            mutate=lambda candidate: candidate["evaluator_runtime"]["path_shims"].clear(),
+        )
+        completed = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(score_path),
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("must include exactly one python3 path shim", completed.stderr)
+
+    def test_finalize_candidate_record_rejects_concurrent_anchor_advance(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        first_anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        second_anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_ready",
+            candidate_id="cand-001",
+        )
+        score_path = self.write_candidate(direction=direction, anchor=False)
+        record = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        original_current_anchor_commit = self.strategy.current_anchor_commit
+        try:
+            self.strategy.current_anchor_commit = lambda root, run_id: first_anchor
+            with self.assertRaisesRegex(self.strategy.StrategySearchError, "anchor advanced concurrently"):
+                self.strategy.finalize_candidate_record_with_anchor(
+                    self.root,
+                    run_id="run-001",
+                    direction=direction,
+                    candidate_id="cand-001",
+                    candidate_path=score_path,
+                    record=record,
+                )
+        finally:
+            self.strategy.current_anchor_commit = original_current_anchor_commit
+        self.assertEqual(git(self.root, "rev-parse", self.strategy.anchor_ref("run-001")), second_anchor)
+
+    def test_cleanup_temporary_directory_suppresses_racy_oserror(self) -> None:
+        with tempfile.TemporaryDirectory() as parent:
+            temp_path = Path(parent) / "racy"
+            temp_path.mkdir()
+
+            class RacyTemporaryDirectory:
+                name = str(temp_path)
+
+                def cleanup(self) -> None:
+                    raise OSError("directory not empty")
+
+            cleanup_errors = self.strategy.cleanup_temporary_directory(RacyTemporaryDirectory())
+            self.assertEqual(cleanup_errors, [])
+            self.assertFalse(temp_path.exists())
+
+    def test_cleanup_temporary_directory_ignores_disappearing_retry_path(self) -> None:
+        with tempfile.TemporaryDirectory() as parent:
+            temp_path = Path(parent) / "racy"
+            temp_path.mkdir()
+
+            class RacyTemporaryDirectory:
+                name = str(temp_path)
+
+                def cleanup(self) -> None:
+                    raise OSError("directory not empty")
+
+            original_rmtree = self.strategy.shutil.rmtree
+            try:
+                self.strategy.shutil.rmtree = lambda path: (_ for _ in ()).throw(FileNotFoundError(path))
+                cleanup_errors = self.strategy.cleanup_temporary_directory(RacyTemporaryDirectory())
+            finally:
+                self.strategy.shutil.rmtree = original_rmtree
+                shutil.rmtree(temp_path, ignore_errors=True)
+            self.assertEqual(cleanup_errors, [])
+
+    def test_cleanup_temporary_directory_reports_retry_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as parent:
+            temp_path = Path(parent) / "racy"
+            temp_path.mkdir()
+
+            class RacyTemporaryDirectory:
+                name = str(temp_path)
+
+                def cleanup(self) -> None:
+                    raise OSError("directory not empty")
+
+            original_rmtree = self.strategy.shutil.rmtree
+            try:
+                self.strategy.shutil.rmtree = lambda path: (_ for _ in ()).throw(OSError("still busy"))
+                cleanup_errors = self.strategy.cleanup_temporary_directory(RacyTemporaryDirectory())
+            finally:
+                self.strategy.shutil.rmtree = original_rmtree
+                shutil.rmtree(temp_path, ignore_errors=True)
+            self.assertEqual(len(cleanup_errors), 1)
+            self.assertIn("temporary directory cleanup failed", cleanup_errors[0])
+            self.assertIn("still busy", cleanup_errors[0])
+
+    def test_require_safe_external_temp_parent_fails_closed(self) -> None:
+        original = self.strategy.safe_external_temp_parent
+        try:
+            self.strategy.safe_external_temp_parent = lambda *blocked_roots: None
+            with self.assertRaisesRegex(self.strategy.StrategySearchError, "requires a temp directory outside"):
+                self.strategy.require_safe_external_temp_parent(self.root, self.root / ".harness" / "search-runs")
+        finally:
+            self.strategy.safe_external_temp_parent = original
+
+    def test_eval_does_not_forward_operator_temp_paths_to_evaluator(self) -> None:
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "import os",
+                    f"blocked = {str(self.root)!r}",
+                    "leaked = any(os.environ.get(key, '').startswith(blocked) for key in ('TMPDIR', 'TMP', 'TEMP'))",
+                    "print('score: 0.10' if leaked else 'score: 0.97')",
+                    "print('case: fresh-empty-repo: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "temp env probe evaluator")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        original = os.environ.copy()
+        try:
+            os.environ["TMPDIR"] = str(self.root)
+            os.environ["TMP"] = str(self.root / ".harness" / "search-runs")
+            os.environ["TEMP"] = str(self.root / "archive" / "v2")
+            completed = run_cli(
+                self.root,
+                "eval",
+                "--run",
+                ".harness/search-runs/run-001",
+                "--patch",
+                str(self.write_patch()),
+                "--candidate-id",
+                "cand-001",
+            )
+        finally:
+            os.environ.clear()
+            os.environ.update(original)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        self.assertEqual(score["score"], 0.97)
 
     def test_validate_direction_rejects_node_bare_preload_specifier(self) -> None:
         (self.root / "benchmarks" / "init-codex-harness" / "run_cases.js").write_text(
@@ -919,6 +1592,14 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("must execute a repository-local evaluator file via a supported runtime", completed.stderr)
 
+    def test_validate_direction_rejects_versioned_python_runtime(self) -> None:
+        direction = self.direction()
+        direction["evaluator"]["command"] = "python3.99 benchmarks/init-codex-harness/run_cases.py"
+        direction_path = self.write_direction(direction)
+        completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("must execute a repository-local evaluator file via a supported runtime", completed.stderr)
+
     def test_validate_direction_rejects_explicit_runtime_hook_env_assignment(self) -> None:
         (self.root / "benchmarks" / "init-codex-harness" / "run_cases.js").write_text(
             "console.log('score: 0.97')\n",
@@ -938,7 +1619,7 @@ class StrategySearchCliTests(unittest.TestCase):
         direction_path = self.write_direction(direction)
         completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("must not set runtime hook environment variable: NODE_OPTIONS", completed.stderr)
+        self.assertIn("must not set protected evaluator environment variable: NODE_OPTIONS", completed.stderr)
 
     def test_validate_direction_rejects_explicit_path_env_assignment(self) -> None:
         direction = self.direction()
@@ -946,7 +1627,22 @@ class StrategySearchCliTests(unittest.TestCase):
         direction_path = self.write_direction(direction)
         completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("must not set runtime hook environment variable: PATH", completed.stderr)
+        self.assertIn("must not set protected evaluator environment variable: PATH", completed.stderr)
+
+    def test_validate_direction_rejects_home_and_temp_env_assignment(self) -> None:
+        for env_key in ("HOME", "TMPDIR", "TMP", "TEMP"):
+            with self.subTest(env_key=env_key):
+                direction = self.direction()
+                direction["evaluator"]["command"] = (
+                    f"env {env_key}=tmp python3 benchmarks/init-codex-harness/run_cases.py"
+                )
+                direction_path = self.write_direction(direction)
+                completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIn(
+                    f"must not set protected evaluator environment variable: {env_key}",
+                    completed.stderr,
+                )
 
     def test_validate_direction_rejects_explicit_loader_env_assignment(self) -> None:
         (self.root / "hook.so").write_text("loader hook\n", encoding="utf-8")
@@ -964,7 +1660,7 @@ class StrategySearchCliTests(unittest.TestCase):
                 direction_path = self.write_direction(direction)
                 completed = run_cli(self.root, "validate-direction", "--direction", str(direction_path))
                 self.assertNotEqual(completed.returncode, 0)
-                self.assertIn(f"must not set runtime hook environment variable: {env_key}", completed.stderr)
+                self.assertIn(f"must not set protected evaluator environment variable: {env_key}", completed.stderr)
 
     def test_validate_direction_rejects_runtime_option_operand_inline_eval(self) -> None:
         (self.root / "setup.js").write_text("module.exports = {}\n", encoding="utf-8")
@@ -1126,6 +1822,29 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("VALID candidate", completed.stdout)
+
+    def test_validate_candidate_rejects_unanchored_candidate_metadata(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        score_path = self.write_candidate(direction=direction, anchor=False)
+        candidate = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        candidate["eval_anchor_commit"] = self.base_commit
+        candidate["candidate_digest"] = self.strategy.candidate_digest_for_record(
+            candidate,
+            candidate_path=score_path,
+            previous_anchor=None,
+        )
+        score_path.write_text(yaml.safe_dump(candidate, sort_keys=False), encoding="utf-8")
+        completed = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(score_path),
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("eval_anchor_commit must be reachable from the strategy-search run anchor", completed.stderr)
 
     def test_validate_candidate_rejects_symlinked_sidecars(self) -> None:
         direction = self.direction()
@@ -1539,6 +2258,252 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertTrue((run_dir / "scores.jsonl").is_file())
         self.assertTrue((run_dir / "proposals.jsonl").is_file())
 
+    def test_start_overwrite_removes_stale_anchor_ref(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        score_path = self.write_candidate(direction=direction)
+        self.assertIsNotNone(self.strategy.current_anchor_commit(self.root, "run-001"))
+        stale_candidate = self.root / "stale-cand-001"
+        shutil.copytree(score_path.parent, stale_candidate)
+
+        overwritten = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+            "--overwrite",
+        )
+        self.assertEqual(overwritten.returncode, 0, overwritten.stderr)
+        self.assertIsNone(self.strategy.current_anchor_commit(self.root, "run-001"))
+
+        fresh_candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
+        shutil.copytree(stale_candidate, fresh_candidate_dir)
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(fresh_candidate_dir / "score.yml"),
+        )
+        self.assertNotEqual(accepted.returncode, 0)
+        self.assertIn("eval_anchor_commit must be reachable from the strategy-search run anchor", accepted.stderr)
+
+    def test_start_overwrite_deletes_noncommit_anchor_ref(self) -> None:
+        direction_path = self.write_direction()
+        blob = self.strategy.git_run_bytes(
+            self.root,
+            ["hash-object", "-w", "--stdin"],
+            input_data=b"malformed anchor\n",
+        ).decode("utf-8").strip()
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), blob)
+        completed = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+            "--overwrite",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIsNone(self.strategy.git_ref_object(self.root, self.strategy.anchor_ref("run-001")))
+        self.assertTrue((self.root / ".harness" / "search-runs" / "run-001" / "run.yml").is_file())
+
+    def write_broken_anchor_ref(self, run_id: str = "run-001") -> Path:
+        ref_path = Path(git(self.root, "rev-parse", "--git-path", self.strategy.anchor_ref(run_id)))
+        if not ref_path.is_absolute():
+            ref_path = self.root / ref_path
+        ref_path.parent.mkdir(parents=True, exist_ok=True)
+        ref_path.write_text("not-a-valid-object\n", encoding="utf-8")
+        return ref_path
+
+    def test_start_rejects_broken_anchor_ref_without_overwrite(self) -> None:
+        direction_path = self.write_direction()
+        self.write_broken_anchor_ref()
+        completed = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("run anchor already exists", completed.stderr)
+        self.assertFalse((self.root / ".harness" / "search-runs" / "run-001" / "run.yml").exists())
+
+    def test_start_overwrite_preserves_run_data_when_broken_anchor_ref_cannot_be_deleted(self) -> None:
+        direction_path = self.write_direction()
+        run_dir = self.root / ".harness" / "search-runs" / "run-001"
+        run_dir.mkdir(parents=True)
+        marker = run_dir / "marker.txt"
+        marker.write_text("keep me\n", encoding="utf-8")
+        broken_ref = self.write_broken_anchor_ref()
+        completed = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+            "--overwrite",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("run anchor is malformed and cannot be safely overwritten", completed.stderr)
+        self.assertTrue(marker.is_file())
+        self.assertTrue(broken_ref.is_file())
+
+    def test_start_overwrite_rejects_symbolic_anchor_without_deleting_target_ref(self) -> None:
+        direction_path = self.write_direction()
+        git(self.root, "update-ref", "refs/heads/side-anchor-target", self.base_commit)
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/side-anchor-target")
+        completed = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+            "--overwrite",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("run anchor is malformed and cannot be safely overwritten", completed.stderr)
+        self.assertEqual(git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001")), "refs/heads/side-anchor-target")
+        self.assertEqual(git(self.root, "rev-parse", "refs/heads/side-anchor-target"), self.base_commit)
+        self.assertFalse((self.root / ".harness" / "search-runs" / "run-001" / "run.yml").exists())
+
+    def test_start_overwrite_rejects_dangling_symbolic_anchor(self) -> None:
+        direction_path = self.write_direction()
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/missing-anchor-target")
+        completed = run_cli(
+            self.root,
+            "start",
+            "--direction",
+            str(direction_path),
+            "--run-id",
+            "run-001",
+            "--overwrite",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("run anchor is malformed and cannot be safely overwritten", completed.stderr)
+        self.assertEqual(git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001")), "refs/heads/missing-anchor-target")
+        self.assertIsNone(self.strategy.git_output(self.root, ["rev-parse", "--verify", "refs/heads/missing-anchor-target"]))
+        self.assertFalse((self.root / ".harness" / "search-runs" / "run-001" / "run.yml").exists())
+
+    def test_propose_rejects_dangling_symbolic_anchor_ref(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/missing-anchor-target")
+        proposed = run_cli(
+            self.root,
+            "propose",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate-id",
+            "cand-001",
+            "--patch",
+            str(self.write_patch()),
+        )
+        self.assertNotEqual(proposed.returncode, 0)
+        self.assertIn("anchor ref must be a direct commit ref", proposed.stderr)
+        self.assertEqual(git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001")), "refs/heads/missing-anchor-target")
+        self.assertIsNone(self.strategy.git_output(self.root, ["rev-parse", "--verify", "refs/heads/missing-anchor-target"]))
+
+    def test_start_overwrite_preserves_run_data_when_anchor_delete_fails(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=self.direction(),
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        marker = self.root / ".harness" / "search-runs" / "run-001" / "marker.txt"
+        marker.write_text("keep me\n", encoding="utf-8")
+        parser = self.strategy.build_parser()
+        args = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "start",
+                "--direction",
+                str(direction_path),
+                "--run-id",
+                "run-001",
+                "--overwrite",
+            ]
+        )
+        original_run_git = self.strategy.run_git
+
+        def failing_run_git(root: Path, git_args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+            if git_args[0] == "update-ref" and "-d" in git_args:
+                raise self.strategy.StrategySearchError("forced ref delete failure")
+            return original_run_git(root, git_args, check=check)
+
+        try:
+            self.strategy.run_git = failing_run_git
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as stderr:
+                rc = args.func(args)
+        finally:
+            self.strategy.run_git = original_run_git
+        self.assertEqual(rc, 1)
+        self.assertIn("forced ref delete failure", stderr.getvalue())
+        self.assertTrue(marker.is_file())
+        self.assertEqual(git(self.root, "rev-parse", self.strategy.anchor_ref("run-001")), anchor)
+
+    def test_start_overwrite_preserves_run_data_when_anchor_reappears_after_delete(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=self.direction(),
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        marker = self.root / ".harness" / "search-runs" / "run-001" / "marker.txt"
+        marker.write_text("keep me\n", encoding="utf-8")
+        parser = self.strategy.build_parser()
+        args = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "start",
+                "--direction",
+                str(direction_path),
+                "--run-id",
+                "run-001",
+                "--overwrite",
+            ]
+        )
+        original_run_git = self.strategy.run_git
+
+        def reappearing_run_git(root: Path, git_args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+            completed = original_run_git(root, git_args, check=check)
+            if git_args[0] == "update-ref" and "-d" in git_args:
+                original_run_git(root, ["update-ref", self.strategy.anchor_ref("run-001"), anchor], check=True)
+            return completed
+
+        try:
+            self.strategy.run_git = reappearing_run_git
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as stderr:
+                rc = args.func(args)
+        finally:
+            self.strategy.run_git = original_run_git
+        self.assertEqual(rc, 1)
+        self.assertIn("run anchor still exists after overwrite cleanup", stderr.getvalue())
+        self.assertTrue(marker.is_file())
+        self.assertEqual(git(self.root, "rev-parse", self.strategy.anchor_ref("run-001")), anchor)
+
     def test_start_rejects_symlinked_run_store_parent_before_writing(self) -> None:
         direction_path = self.write_direction()
         real_runs = self.root / "archive" / "v2" / "search-runs"
@@ -1590,6 +2555,8 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertEqual(trace["evidence_status"], "diagnostic_only")
         self.assertEqual(trace["stdout_ref"]["ref"], "stdout.log")
         self.assertEqual(trace["stderr_ref"]["ref"], "stderr.log")
+        self.assertEqual(trace["stdout_raw_ref"]["ref"], "stdout.raw")
+        self.assertEqual(trace["stderr_raw_ref"]["ref"], "stderr.raw")
         self.assertEqual(trace["changed_paths"], ["src/prompt.md"])
         self.assertEqual(trace["why"], "try narrower trace-root heuristic")
         self.assertEqual(trace["next_hypothesis"], "compare against path-depth heuristic")
@@ -1614,6 +2581,161 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertEqual(summary_record["candidates"][0]["trace_ref"], "candidates/cand-001/trace.yml")
         self.assertEqual(summary_record["candidates"][0]["trace_sha256"], file_sha256(trace_path))
         self.assertIn("not archive/v2 evidence", "\n".join(summary_record["notes"]))
+
+    def test_eval_exports_only_declared_workspace_paths(self) -> None:
+        (self.root / "secret.txt").write_text("sealed\n", encoding="utf-8")
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "from pathlib import Path",
+                    "print('score: 0.10' if Path('secret.txt').exists() else 'score: 0.97')",
+                    "print('case: fresh-empty-repo: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "sealed unrelated file")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        self.assertEqual(yaml.safe_load(score_path.read_text(encoding="utf-8"))["score"], 0.97)
+
+    def test_eval_keep_worktree_copies_after_isolated_execution(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+            "--keep-worktree",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        kept_worktree = self.root / ".harness" / "search-runs" / "run-001" / "worktrees" / "cand-001"
+        self.assertTrue((kept_worktree / "src" / "prompt.md").is_file())
+        trace_md = (
+            self.root
+            / ".harness"
+            / "search-runs"
+            / "run-001"
+            / "candidates"
+            / "cand-001"
+            / "trace.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(str(kept_worktree), trace_md)
+
+    def test_eval_rejects_symlink_created_inside_workspace(self) -> None:
+        direction = self.direction()
+        direction["search_surface"] = ["src/"]
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        symlink_path = self.root / "src" / "escape"
+        symlink_path.symlink_to("../benchmarks/init-codex-harness/run_cases.py")
+        git(self.root, "add", "src/escape")
+        patch_text = git(self.root, "diff", "--cached", "--", "src/escape")
+        git(self.root, "reset", "--", "src/escape")
+        symlink_path.unlink()
+        patch_path = self.write_patch(patch_text)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(patch_path),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        self.assertEqual(yaml.safe_load(score_path.read_text(encoding="utf-8"))["verdict"], "invalid")
+        self.assertIn("candidate workspace must not contain symlink", score_path.with_name("stderr.log").read_text(encoding="utf-8"))
+
+    def test_export_commit_tree_rejects_symlink_members(self) -> None:
+        symlink_path = self.root / "src" / "escape"
+        symlink_path.symlink_to("../benchmarks/init-codex-harness/run_cases.py")
+        git(self.root, "add", "src/escape")
+        git(self.root, "commit", "-m", "add exported symlink")
+        commit = git(self.root, "rev-parse", "HEAD")
+        with tempfile.TemporaryDirectory() as workspace_tmp:
+            with self.assertRaisesRegex(Exception, "must not contain symlink or hardlink"):
+                self.strategy.export_commit_tree(self.root, commit, Path(workspace_tmp), paths=["src/escape"])
+
+    def test_workspace_mount_errors_reject_hardlinked_files(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace_tmp:
+            workspace = Path(workspace_tmp)
+            source = workspace / "source.txt"
+            source.write_text("bytes\n", encoding="utf-8")
+            os.link(source, workspace / "linked.txt")
+            errors = self.strategy.workspace_mount_errors(workspace)
+        self.assertTrue(any("hard-linked" in error for error in errors), errors)
+
+    def test_eval_detached_relative_writes_do_not_reach_source_or_run_store(self) -> None:
+        (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
+            "\n".join(
+                [
+                    "import subprocess",
+                    "import sys",
+                    "code = r\"\"\"",
+                    "from pathlib import Path",
+                    "import time",
+                    "time.sleep(0.6)",
+                    "Path('.harness/search-runs/run-001').mkdir(parents=True, exist_ok=True)",
+                    "Path('.harness/search-runs/run-001/late.txt').write_text('bad')",
+                    "Path('.git/late.txt').write_text('bad')",
+                    "Path('archive/v2').mkdir(parents=True, exist_ok=True)",
+                    "Path('archive/v2/late.yml').write_text('bad')",
+                    "\"\"\"",
+                    "subprocess.Popen([sys.executable, '-c', code], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)",
+                    "print('score: 0.97')",
+                    "print('case: fresh-empty-repo: pass')",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-m", "detached relative side effect evaluator")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        time.sleep(1.0)
+        self.assertFalse((self.root / ".harness" / "search-runs" / "run-001" / "late.txt").exists())
+        self.assertFalse((self.root / ".git" / "late.txt").exists())
+        self.assertFalse((self.root / "archive" / "v2" / "late.yml").exists())
 
     def test_eval_rejects_out_of_repo_patch_source_before_copying(self) -> None:
         direction_path = self.write_direction()
@@ -1771,6 +2893,7 @@ class StrategySearchCliTests(unittest.TestCase):
                 [
                     "import sys",
                     "sys.stdout.buffer.write(b'\\xff\\nscore: 0.97\\ncase: fresh-empty-repo: pass\\n')",
+                    "sys.stderr.buffer.write(b'\\xfe')",
                     "",
                 ]
             ),
@@ -1803,6 +2926,92 @@ class StrategySearchCliTests(unittest.TestCase):
             / "stdout.log"
         ).read_text(encoding="utf-8")
         self.assertIn("\ufffd\nscore: 0.97", stdout_log)
+        candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
+        self.assertEqual(
+            (candidate_dir / "stdout.raw").read_bytes(),
+            b"\xff\nscore: 0.97\ncase: fresh-empty-repo: pass\n",
+        )
+        self.assertEqual((candidate_dir / "stderr.raw").read_bytes(), b"\xfe")
+        score = yaml.safe_load((candidate_dir / "score.yml").read_text(encoding="utf-8"))
+        self.assertEqual(score["stdout_raw_sha256"], file_sha256(candidate_dir / "stdout.raw"))
+        self.assertEqual(score["stderr_raw_sha256"], file_sha256(candidate_dir / "stderr.raw"))
+        self.assertNotEqual(score["stdout_raw_sha256"], score["stdout_sha256"])
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(candidate_dir / "score.yml"),
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_validate_candidate_rejects_tampered_raw_output(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
+        (candidate_dir / "stdout.raw").write_bytes(b"tampered\n")
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(candidate_dir / "score.yml"),
+        )
+        self.assertNotEqual(accepted.returncode, 0)
+        self.assertIn("stdout_raw_sha256 must match stdout.raw", accepted.stderr)
+
+    def test_validate_candidate_anchor_binds_raw_output_even_when_local_hashes_are_updated(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        completed = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        candidate_dir = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001"
+        stdout_raw = candidate_dir / "stdout.raw"
+        stdout_raw.write_bytes(b"tampered\n")
+        trace_path = candidate_dir / "trace.yml"
+        trace = yaml.safe_load(trace_path.read_text(encoding="utf-8"))
+        trace["stdout_raw_ref"]["sha256"] = file_sha256(stdout_raw)
+        trace_path.write_text(yaml.safe_dump(trace, sort_keys=False), encoding="utf-8")
+        score_path = candidate_dir / "score.yml"
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        score["stdout_raw_sha256"] = file_sha256(stdout_raw)
+        score["trace_sha256"] = file_sha256(trace_path)
+        score_path.write_text(yaml.safe_dump(score, sort_keys=False), encoding="utf-8")
+
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(score_path),
+        )
+        self.assertNotEqual(accepted.returncode, 0)
+        self.assertIn("candidate_digest must match runner-produced candidate sidecars", accepted.stderr)
 
     def test_eval_detects_source_git_metadata_mutation(self) -> None:
         git_side_path = self.root / ".git" / "logs" / "strategy-search-side"
@@ -2948,7 +4157,7 @@ class StrategySearchCliTests(unittest.TestCase):
                 artifact.read_text(encoding="utf-8", errors="replace"),
             )
 
-    def test_select_does_not_archive_trace_notes(self) -> None:
+    def test_select_rejects_tampered_trace_notes(self) -> None:
         direction_path = self.write_direction()
         run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
         self.assertEqual(run.returncode, 0, run.stderr)
@@ -2979,14 +4188,10 @@ class StrategySearchCliTests(unittest.TestCase):
             "--candidate",
             "cand-001",
         )
-        self.assertEqual(selected.returncode, 0, selected.stderr)
+        self.assertNotEqual(selected.returncode, 0)
+        self.assertIn("candidate_digest must match runner-produced candidate sidecars", selected.stderr)
         artifacts = sorted((self.root / ".harness" / "search-runs" / "run-001" / "selections").glob("cand-001-*"))
-        self.assertTrue(artifacts)
-        for artifact in artifacts:
-            self.assertNotIn(
-                "benchmarks/init-codex-harness/expected/output.txt",
-                artifact.read_text(encoding="utf-8", errors="replace"),
-            )
+        self.assertEqual(artifacts, [])
 
     def test_select_rejects_reason_that_exposes_sealed_paths(self) -> None:
         (self.root / "benchmarks" / "init-codex-harness" / "run_cases.py").write_text(
@@ -3169,6 +4374,31 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         self.assertNotEqual(selected.returncode, 0)
         self.assertIn("invalid candidates cannot be selected for adoption", selected.stderr)
+
+    def test_select_rejects_handwritten_candidate_without_eval_anchor(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        score_path = self.write_candidate(direction=direction, anchor=False)
+        candidate = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        candidate["eval_anchor_commit"] = self.base_commit
+        candidate["candidate_digest"] = self.strategy.candidate_digest_for_record(
+            candidate,
+            candidate_path=score_path,
+            previous_anchor=None,
+        )
+        score_path.write_text(yaml.safe_dump(candidate, sort_keys=False), encoding="utf-8")
+        selected = run_cli(
+            self.root,
+            "select",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate",
+            "cand-001",
+        )
+        self.assertNotEqual(selected.returncode, 0)
+        self.assertIn("eval_anchor_commit must be reachable from the strategy-search run anchor", selected.stderr)
 
     def test_validate_candidate_rejects_tampered_trace(self) -> None:
         direction_path = self.write_direction()
@@ -4075,6 +5305,10 @@ class StrategySearchCliTests(unittest.TestCase):
             "scripts/score-init-codex-harness.py=raw",
             "path:candidates/cand-001/stdout.log",
             "path:candidates/cand-001/stdout.log:raw",
+            "candidates/cand-001/stdout.raw",
+            "candidates/cand-001/stderr.raw/raw",
+            "stdout.raw:raw",
+            "stderr.raw",
             "file://localhost/candidates/cand-001/trace.yml",
             "vscode:file/candidates/cand-001/trace.yml",
             "cursor:file/candidates/cand-001/patch.diff?raw=1",
@@ -4351,6 +5585,11 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         self.assertEqual(policy["evaluation"]["runner"], proposal["evaluation_command"])
         self.assertNotIn(".harness/search-runs", proposal["evaluation_command"])
+        events = self.strategy.anchor_chain(self.root, "run-001", direction=yaml.safe_load(direction_path.read_text(encoding="utf-8")))
+        self.assertEqual([event["event_type"] for event in events], ["proposal_created"])
+        self.assertEqual(events[0]["candidate_id"], "cand-001")
+        self.assertEqual(events[0]["patch_sha256"], file_sha256(stored_patch))
+        self.assertEqual(events[0]["proposal_digest"], file_sha256(proposal_path))
         evaluated = run_cli(
             self.root,
             "eval",
@@ -4367,6 +5606,273 @@ class StrategySearchCliTests(unittest.TestCase):
         self.assertEqual(file_sha256(score_path.with_name("patch.diff")), proposal["patch_sha256"])
         self.assertEqual(trace["why"], "proposer tried a direct prompt replacement")
         self.assertEqual(trace["next_hypothesis"], "compare with a smaller edit")
+        events = self.strategy.anchor_chain(self.root, "run-001", direction=yaml.safe_load(direction_path.read_text(encoding="utf-8")))
+        self.assertEqual(
+            [event["event_type"] for event in events],
+            ["proposal_created", "proposal_ready", "candidate_evaluated"],
+        )
+        self.assertEqual(events[-1]["candidate_id"], "cand-001")
+        self.assertEqual(events[-1]["patch_sha256"], file_sha256(score_path.with_name("patch.diff")))
+        self.assertEqual(score["eval_anchor_ref"], self.strategy.anchor_ref("run-001"))
+        self.assertEqual(score["eval_anchor_commit"], events[-1]["_commit"])
+        self.assertEqual(events[-1]["candidate_digest"], score["candidate_digest"])
+        self.assertEqual(
+            score["candidate_digest"],
+            self.strategy.candidate_digest_for_record(
+                score,
+                candidate_path=score_path,
+                previous_anchor=events[-1]["previous_anchor"],
+            ),
+        )
+
+    def test_anchor_chain_rejects_valid_event_with_wrong_direction_digest(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        event = {
+            "schema_version": self.strategy.ANCHOR_SCHEMA_VERSION,
+            "event_type": "proposal_created",
+            "run_id": "run-001",
+            "candidate_id": "cand-001",
+            "previous_anchor": None,
+            "direction_digest": "0" * 64,
+            "proposal_digest": None,
+            "patch_sha256": None,
+            "candidate_digest": None,
+            "created_at": "2026-05-19T00:00:00Z",
+            "runner_version": self.strategy.RUNNER_VERSION,
+        }
+        bad_anchor = self.write_anchor_event_commit(event)
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), bad_anchor)
+
+        errors = self.strategy.anchor_chain_errors(self.root, run_id="run-001", direction=direction)
+        self.assertTrue(any("direction_digest must match direction.yml" in error for error in errors), errors)
+
+    def test_anchor_chain_rejects_symbolic_anchor_ref(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        git(self.root, "update-ref", "refs/heads/side-anchor-target", anchor)
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/side-anchor-target")
+
+        errors = self.strategy.anchor_chain_errors(self.root, run_id="run-001", direction=direction)
+        self.assertTrue(any("anchor ref must be a direct commit ref" in error for error in errors), errors)
+
+    def test_append_anchor_event_rejects_explicit_previous_when_live_ref_is_symbolic(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        first_anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        git(self.root, "update-ref", "refs/heads/side-anchor-target", first_anchor)
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/side-anchor-target")
+
+        with self.assertRaisesRegex(self.strategy.StrategySearchError, "anchor advanced concurrently"):
+            self.strategy.append_anchor_event(
+                self.root,
+                run_id="run-001",
+                direction=direction,
+                event_type="proposal_ready",
+                candidate_id="cand-001",
+                expected_previous_anchor=first_anchor,
+            )
+        self.assertEqual(git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001")), "refs/heads/side-anchor-target")
+        self.assertEqual(git(self.root, "rev-parse", "refs/heads/side-anchor-target"), first_anchor)
+
+    def test_append_anchor_event_rejects_explicit_previous_ref_before_git_resolution(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        first_anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        git(self.root, "update-ref", "refs/heads/side-anchor-target", first_anchor)
+        git(self.root, "symbolic-ref", self.strategy.anchor_ref("run-001"), "refs/heads/side-anchor-target")
+
+        with self.assertRaisesRegex(self.strategy.StrategySearchError, "full commit SHA"):
+            self.strategy.append_anchor_event(
+                self.root,
+                run_id="run-001",
+                direction=direction,
+                event_type="proposal_ready",
+                candidate_id="cand-001",
+                expected_previous_anchor=self.strategy.anchor_ref("run-001"),
+            )
+        self.assertEqual(git(self.root, "rev-parse", "refs/heads/side-anchor-target"), first_anchor)
+
+    def test_anchor_chain_rejects_tag_anchor_ref(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        git(self.root, "tag", "-a", "anchor-tag", anchor, "-m", "anchor tag")
+        tag_object = git(self.root, "rev-parse", "anchor-tag^{tag}")
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), tag_object)
+
+        errors = self.strategy.anchor_chain_errors(self.root, run_id="run-001", direction=direction)
+        self.assertTrue(any("anchor ref must be a direct commit ref" in error for error in errors), errors)
+
+    def test_anchor_chain_rejects_valid_event_with_wrong_previous_anchor(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        first_anchor = self.strategy.append_anchor_event(
+            self.root,
+            run_id="run-001",
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id="cand-001",
+        )
+        event = {
+            "schema_version": self.strategy.ANCHOR_SCHEMA_VERSION,
+            "event_type": "proposal_ready",
+            "run_id": "run-001",
+            "candidate_id": "cand-001",
+            "previous_anchor": None,
+            "direction_digest": self.strategy.digest_direction(direction),
+            "proposal_digest": None,
+            "patch_sha256": file_sha256(self.write_patch()),
+            "candidate_digest": None,
+            "created_at": "2026-05-19T00:00:01Z",
+            "runner_version": self.strategy.RUNNER_VERSION,
+        }
+        bad_anchor = self.write_anchor_event_commit(event, parent=first_anchor)
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), bad_anchor)
+
+        errors = self.strategy.anchor_chain_errors(self.root, run_id="run-001", direction=direction)
+        self.assertTrue(any("previous_anchor must match first-parent history" in error for error in errors), errors)
+
+    def test_validate_candidate_rejects_valid_anchor_event_with_wrong_candidate_digest(self) -> None:
+        direction = self.direction()
+        direction_path = self.write_direction(direction)
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        evaluated = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(evaluated.returncode, 0, evaluated.stderr)
+        score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
+        score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
+        event = {
+            "schema_version": self.strategy.ANCHOR_SCHEMA_VERSION,
+            "event_type": "candidate_evaluated",
+            "run_id": "run-001",
+            "candidate_id": "cand-001",
+            "previous_anchor": None,
+            "direction_digest": self.strategy.digest_direction(direction),
+            "proposal_digest": None,
+            "patch_sha256": score["patch_sha256"],
+            "candidate_digest": "f" * 64,
+            "created_at": "2026-05-19T00:00:02Z",
+            "runner_version": self.strategy.RUNNER_VERSION,
+        }
+        bad_anchor = self.write_anchor_event_commit(event)
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), bad_anchor)
+        score["eval_anchor_commit"] = bad_anchor
+        score_path.write_text(yaml.safe_dump(score, sort_keys=False), encoding="utf-8")
+
+        accepted = run_cli(
+            self.root,
+            "validate-candidate",
+            "--direction",
+            str(direction_path),
+            "--candidate",
+            str(score_path),
+        )
+        self.assertNotEqual(accepted.returncode, 0)
+        self.assertIn("candidate_evaluated anchor candidate_digest must match candidate_digest", accepted.stderr)
+
+    def test_eval_rejects_corrupt_anchor_chain_before_evaluation(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        patch_path = self.write_patch()
+        proposed = run_cli(
+            self.root,
+            "propose",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate-id",
+            "cand-001",
+            "--patch",
+            str(patch_path),
+        )
+        self.assertEqual(proposed.returncode, 0, proposed.stderr)
+        proposal_path = self.root / ".harness" / "search-runs" / "run-001" / "proposals" / "cand-001" / "proposal.yml"
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), self.base_commit)
+        evaluated = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--proposal",
+            str(proposal_path),
+        )
+        self.assertNotEqual(evaluated.returncode, 0)
+        self.assertIn("anchor commit is missing event.yml", evaluated.stderr)
+        self.assertFalse((self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001").exists())
+
+    def test_select_rejects_corrupt_anchor_chain(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        evaluated = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--patch",
+            str(self.write_patch()),
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(evaluated.returncode, 0, evaluated.stderr)
+        git(self.root, "update-ref", self.strategy.anchor_ref("run-001"), self.base_commit)
+        selected = run_cli(
+            self.root,
+            "select",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate",
+            "cand-001",
+        )
+        self.assertNotEqual(selected.returncode, 0)
+        self.assertIn("anchor commit is missing event.yml", selected.stderr)
 
     def test_propose_rejects_linked_patch_sources_before_copying(self) -> None:
         for link_kind in ("symlink", "hardlink"):
@@ -4692,6 +6198,56 @@ class StrategySearchCliTests(unittest.TestCase):
         score_path = self.root / ".harness" / "search-runs" / "run-001" / "candidates" / "cand-001" / "score.yml"
         score = yaml.safe_load(score_path.read_text(encoding="utf-8"))
         self.assertEqual(score["verdict"], "pass")
+
+    def test_eval_proposal_rolls_back_seal_when_ready_anchor_fails(self) -> None:
+        direction_path = self.write_direction()
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        proposed = run_cli(
+            self.root,
+            "propose",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate-id",
+            "cand-001",
+        )
+        self.assertEqual(proposed.returncode, 0, proposed.stderr)
+        run_dir = self.root / ".harness" / "search-runs" / "run-001"
+        proposal_path = run_dir / "proposals" / "cand-001" / "proposal.yml"
+        shutil.copyfile(self.write_patch(), proposal_path.with_name("patch.diff"))
+        original_proposal = proposal_path.read_bytes()
+        original_ledger = (run_dir / "proposals.jsonl").read_bytes()
+        parser = self.strategy.build_parser()
+        args = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "eval",
+                "--run",
+                ".harness/search-runs/run-001",
+                "--proposal",
+                str(proposal_path),
+            ]
+        )
+        original_append_anchor_event = self.strategy.append_anchor_event
+
+        def fail_ready_anchor(*anchor_args, **anchor_kwargs):
+            if anchor_kwargs.get("event_type") == "proposal_ready":
+                raise self.strategy.StrategySearchError("strategy-search anchor advanced concurrently; retry the command")
+            return original_append_anchor_event(*anchor_args, **anchor_kwargs)
+
+        try:
+            self.strategy.append_anchor_event = fail_ready_anchor
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                rc = args.func(args)
+        finally:
+            self.strategy.append_anchor_event = original_append_anchor_event
+        self.assertNotEqual(rc, 0)
+        self.assertEqual(proposal_path.read_bytes(), original_proposal)
+        self.assertEqual((run_dir / "proposals.jsonl").read_bytes(), original_ledger)
+        proposal = yaml.safe_load(proposal_path.read_text(encoding="utf-8"))
+        self.assertEqual(proposal["status"], "awaiting_patch")
+        self.assertFalse((run_dir / "candidates" / "cand-001").exists())
 
     def test_eval_proposal_does_not_seal_awaiting_bundle_when_candidate_exists(self) -> None:
         direction_path = self.write_direction()
@@ -5385,6 +6941,71 @@ class StrategySearchCliTests(unittest.TestCase):
         )
         self.assertNotEqual(evaluated.returncode, 0)
         self.assertIn("proposal ledger patch_sha256 must match", evaluated.stderr)
+
+    def test_eval_proposal_rejects_rewritten_bundle_even_with_forged_ledger(self) -> None:
+        direction_path = self.write_direction()
+        direction = yaml.safe_load(direction_path.read_text(encoding="utf-8"))
+        run = run_cli(self.root, "start", "--direction", str(direction_path), "--run-id", "run-001")
+        self.assertEqual(run.returncode, 0, run.stderr)
+        proposed = run_cli(
+            self.root,
+            "propose",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--candidate-id",
+            "cand-001",
+            "--patch",
+            str(self.write_patch()),
+        )
+        self.assertEqual(proposed.returncode, 0, proposed.stderr)
+        run_dir = self.root / ".harness" / "search-runs" / "run-001"
+        proposal_path = run_dir / "proposals" / "cand-001" / "proposal.yml"
+        patch_path = proposal_path.with_name("patch.diff")
+        patch_path.write_text(
+            "\n".join(
+                [
+                    "diff --git a/src/prompt.md b/src/prompt.md",
+                    "index 1111111..3333333 100644",
+                    "--- a/src/prompt.md",
+                    "+++ b/src/prompt.md",
+                    "@@ -1 +1 @@",
+                    "-old prompt",
+                    "+forged prompt",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        proposal = yaml.safe_load(proposal_path.read_text(encoding="utf-8"))
+        proposal["patch_sha256"] = file_sha256(patch_path)
+        proposal["why"] = "self-consistent forged proposal bundle"
+        proposal_path.write_text(yaml.safe_dump(proposal, sort_keys=False), encoding="utf-8")
+        forged_entry = self.strategy.proposal_ledger_record(
+            run_id="run-001",
+            direction=direction,
+            candidate_id="cand-001",
+            proposal_path=proposal_path,
+            run_dir=run_dir,
+            status="ready_for_evaluation",
+            prompt_path=proposal_path.with_name("prompt.md"),
+            policy_path=proposal_path.with_name("policy.yml"),
+            context_path=proposal_path.with_name("public-context.yml"),
+            patch_sha256=proposal["patch_sha256"],
+        )
+        (run_dir / "proposals.jsonl").write_text(
+            json.dumps(forged_entry, sort_keys=True, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        evaluated = run_cli(
+            self.root,
+            "eval",
+            "--run",
+            ".harness/search-runs/run-001",
+            "--proposal",
+            str(proposal_path),
+        )
+        self.assertNotEqual(evaluated.returncode, 0)
+        self.assertIn("proposal anchor must contain a matching", evaluated.stderr)
 
     def test_eval_proposal_rejects_forged_later_ledger_entry(self) -> None:
         direction_path = self.write_direction()

@@ -15,5 +15,12 @@ from v2 governance: search runs produce candidate diffs and traces, while v2
 AcceptancePackets remain the adoption and publication path.
 
 Plan 13 is the post-MVP hardening layer for strategy-search runner isolation,
-proposal-ledger anchoring, and any future pointer-bound route for selected
-search artifacts.
+proposal/eval anchoring, and the diagnostic-only adoption boundary. Selected
+search artifacts stay out of archive/v2 stable evidence until the operator
+applies the patch in a normal content commit and uses the v2 packet/pointer
+publication path.
+
+Plan 14 is a boundary definition for optional sandbox and concurrency hardening.
+It keeps the Plan 13 default workflow unchanged while labeling the stronger
+claims that would require a platform sandbox, dedicated evaluator user,
+transactional proposal store, or external high-water mark.

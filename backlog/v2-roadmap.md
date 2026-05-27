@@ -335,6 +335,7 @@ Validate v2 using the method it introduces:
 - Whether and how to build the paper-shaped strategy search loop above the v2
   governance substrate. The initial design is `backlog/plans/12-strategy-search-loop-mvp.md`:
   candidate search produces diffs, scores, and traces; v2 governance remains
-  the only stable adoption/publication path. Runner isolation, proposal-ledger
-  anchoring, and pointer-bound selected search evidence are tracked separately
-  in `backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md`.
+  the only stable adoption/publication path. Runner isolation, Git-backed
+  proposal/eval anchor events, and the diagnostic-only selected-search adoption
+  boundary are tracked separately in
+  `backlog/plans/13-strategy-search-runner-isolation-and-ledger-anchoring.md`.

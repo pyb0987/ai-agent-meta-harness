@@ -156,6 +156,22 @@ Lifecycle rules:
   if required, active pointer publication, and release verification flow.
   Strategy-search selection files are not archive/v2 evidence and cannot make
   stable handoff claims by themselves.
+- Plan 13 is the closing practical Meta-Harness strategy-search hardening
+  layer: evaluator runs move to disposable byte-copied workspaces, proposal and
+  eval records are anchored by a repository-local Git event chain, and
+  `select` requires anchored eval provenance. These checks are automatic behind
+  the existing `start`, `propose`, `eval`, `summarize`, and `select` commands;
+  operators do not supply manual digests, anchor refs, or stable-evidence refs.
+  The anchor chain proves runner-produced diagnostic records, not hostile
+  local-operator tamper resistance, hostile fixed-evaluator absolute host writes
+  after runner exit, or stable governance evidence.
+- Plan 13 review triage boundary: default repository-local findings that break
+  anchored diagnostic records, public proposal hygiene, or diagnostic/stable
+  evidence separation are in scope. Hostile same-user sandbox variants such as
+  runtime symlink/ancestor replacement, temp-sibling checkout discovery,
+  case-insensitive path aliases, transient hijack-and-restore, and concurrent
+  proposal-sealing races are future sandbox/concurrency work, not reasons to
+  add more operator prompts or bespoke runtime exceptions to the default path.
 - `publish` is a composition wrapper for already-stable archive packets. It
   refuses staged or non-archive dirty content, requires current `HEAD` to equal
   packet `accepted_head_commit`, runs `write-pointer`, stages only pointer-bound

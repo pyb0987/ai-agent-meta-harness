@@ -6,20 +6,182 @@ The Meta-Harness paper frames harness design as a major factor in agent performa
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 
-The current active roadmap is the **AI Agent Meta-Harness v2** transition in
-`backlog/v2-roadmap.md`. The previous human-authored gate/backlog model is
-frozen as v1 historical evidence under `archive/v1/`.
+The repository-local **AI Agent Meta-Harness v2** flow is the practical default
+for stable work in this repository. The v2 roadmap and post-v2 boundary notes
+live in `backlog/v2-roadmap.md`.
 
 ## What's Inside
 
 | Component | Description | Path |
 |-----------|-------------|------|
 | **Core methodology** | Runtime-neutral principles and trace formats | `core/` |
+| **Meta-Harness system overview** | Repository-local v2 governance and strategy-search architecture | `docs/meta-harness-system.md` |
 | **Claude adapter** | Claude Code commands, skills, examples, hooks guidance | `adapters/claude/` |
 | **Codex adapter** | Codex skills and project instruction templates | `adapters/codex/` |
-| **Backlog** | Active v2 transition roadmap | `backlog/` |
-| **v1 archive** | Frozen v1 backlog, review, and maintenance evidence | `archive/v1/` |
+| **Backlog** | v2 roadmap, completed plans, and optional post-v2 boundaries | `backlog/` |
 | **Maintenance plan** | Repository upkeep, tests, release checks, review policy | `MAINTENANCE.md` |
+
+## Install For Your Agent
+
+Start from a local clone:
+
+```bash
+git clone https://github.com/pyb0987/ai-agent-meta-harness.git
+cd ai-agent-meta-harness
+```
+
+### Codex
+
+Executable install path: copy the Codex skills into the active Codex home.
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
+The skills installed by this path are:
+
+- `init-codex-harness`
+- `harness-engineer`
+- `autoresearch`
+- `multi-review`
+
+The local plugin bundle is the fuller packaging artifact for Codex surfaces that
+support local plugin activation. Build and smoke-test it before enabling it in
+that surface:
+
+```bash
+python3 scripts/sync-codex-plugin.py --write
+python3 scripts/sync-codex-plugin.py --check
+python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 adapters/codex/scripts/smoke-local-plugin-activation.py
+```
+
+The activation smoke uses an isolated temporary `CODEX_HOME`; it proves the
+bundle shape and local activation mechanism, but it does not install the plugin
+into your real Codex home. If your Codex surface does not expose local plugin
+activation, keep the direct skill-copy install above.
+
+Direct skill copy is enough for init, harness-engineering, multi-review, and
+basic autoresearch guidance. When a project adopts autoresearch and needs the
+project protection assets, install them explicitly:
+
+```bash
+python3 plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py --target /path/to/project --run-smoke
+```
+
+After install, ask Codex in the target project:
+
+```text
+Apply codex-harness to this project.
+```
+
+### Claude Code
+
+Install the shared methodology, reference docs, Claude skills, and the
+`/init-harness` command:
+
+```bash
+mkdir -p ~/.claude/rules/common ~/.claude/docs ~/.claude/skills ~/.claude/commands
+cp core/methodology.md ~/.claude/rules/common/harness-methodology.md
+cp core/reference.md ~/.claude/docs/harness-reference.md
+cp -R adapters/claude/skills/* ~/.claude/skills/
+cp adapters/claude/commands/init-harness.md ~/.claude/commands/
+```
+
+After install, run this in the target project:
+
+```text
+> /init-harness
+```
+
+Claude projects normally write `CLAUDE.md` and `.claude/traces/`. Codex
+projects normally write `AGENTS.md` and `.harness/traces/`. Both adapters use
+the same core methodology and the same v2 governance model.
+
+Agent installation prepares Codex or Claude to bootstrap and maintain a target
+project. It does not install the repository-local v2 `governance` CLI into that
+target project. Use the `./governance` commands below inside this repository, or
+inside another repository that intentionally carries the same v2 governance
+scripts.
+
+## Using The Repository-Local Meta-Harness
+
+The practical default is intentionally small: make the content change, let
+`governance` infer the required evidence, then publish one archive-only
+AcceptancePacket publication for the finished release range.
+
+For routine work:
+
+```bash
+./governance start --base-ref <comparison-ref> --intent "short human intent"
+# edit, test, and commit the content change
+./governance finalize --packet <packet> --base-ref <comparison-ref>
+./governance publish --packet <packet>
+```
+
+Use `origin/main`, the previous release publication, or another explicit
+comparison commit as `<comparison-ref>`. Stable handoff should use `--base-ref`;
+`--staged` is preflight, and `--worktree` is diagnostic only.
+
+When the packet requires review judgment, add the review import step before
+publishing:
+
+```bash
+./governance review-template --packet <packet> --scratch-output /tmp/review.yml
+# reviewers complete the draft with real findings, probe results, and lineage
+./governance import-review --packet <packet> --from /tmp/review.yml
+./governance publish --packet <packet>
+```
+
+The operator should not hand-author stable archive bytes. `review-template`,
+`import-review`, `write-pointer`, and `publish` materialize the archive-bound
+packet, review, probe, and pointer files. If a generated template still contains
+TODO or draft fields, it is a prompt for human judgment, not evidence.
+
+For release-like verification after publication:
+
+```bash
+python3 scripts/verify-release.py --base-ref <comparison-ref>
+```
+
+Use `--skip-clean-worktree` only as local preflight while work is still in
+progress; it is not stable release evidence.
+
+### What Users Usually Provide
+
+- A short intent string.
+- A comparison ref.
+- Normal content commits and test evidence.
+- Completed human review judgment only when `finalize` says review is required.
+
+Everything else should be inferred, generated, or checked by the repository
+tools. If a proposed workflow asks the operator to manually compute packet
+hashes, edit pointer files, classify archive paths, or remember hidden staging
+rules, treat that as design debt.
+
+### Strategy Search
+
+`scripts/strategy-search.py` is the optional evolution engine. Use it when you
+want the harness to search over a bounded strategy surface with a fixed
+evaluator.
+
+The shape is:
+
+```bash
+python3 scripts/strategy-search.py start --direction <direction.yml>
+python3 scripts/strategy-search.py propose --run <run> --candidate-id <id> --patch <patch.diff>
+python3 scripts/strategy-search.py eval --run <run> --proposal <proposal.yml>
+python3 scripts/strategy-search.py select --run <run> --candidate <id>
+```
+
+Strategy-search records are diagnostic. To adopt a selected candidate, apply
+the selected patch as an ordinary content commit, then use the `governance`
+packet/pointer publication flow above. Selection files under
+`.harness/search-runs/` are not stable evidence by themselves.
+
+Plan 14 documents optional sandbox and concurrency hardening boundaries. It is
+not required for the normal repository-local workflow.
 
 ## Core Principles
 
@@ -34,9 +196,9 @@ Evidence categories used in this repository:
 | Category | What It Means Here | Local Evidence |
 |----------|--------------------|----------------|
 | Paper results and benchmark claims | Published Meta-Harness findings, such as benchmark deltas, ablations, tables, and appendix observations | Cited as paper context only; not local reproduction evidence |
-| Repository methodology and documentation correctness | This repository's interpretation of runtime-neutral harness principles, trace formats, and claim boundaries | `core/`, `docs/`, README boundary tests, compatibility mirror checks, and multi-review records |
+| Repository methodology and documentation correctness | This repository's interpretation of runtime-neutral harness principles, trace formats, and claim boundaries | `core/`, `docs/`, README boundary tests, and multi-review records |
 | Adapter and generated-artifact operability | Claude/Codex adapter instructions, hook templates, generated plugin assets, and smoke-tested local workflows | Adapter unit tests, drift checks, plugin sync checks, hook smoke tests, and local activation smoke |
-| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | v2 target: AcceptancePacket artifacts, packet-linked traces, and checker-computed eligibility; v1 archive evidence: `.harness/traces/search-set.md`, `.harness/traces/evolution/`, backlog Completion Gates, and Active search-set verification |
+| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | AcceptancePacket artifacts, packet-linked traces, checker-computed eligibility, `.harness/search-runs/` diagnostic records, and active pointer publication checks |
 
 Paper claim traceability:
 
@@ -50,7 +212,7 @@ Paper claim traceability:
 | Additive modification and confounding-variable isolation are safer change strategies | Paper Appendix A/A.2 qualitative search trajectory and discussion | Repository methodology rule; enforced through maintenance workflow and backlog review records, not a local benchmark reproduction |
 | Skill text quality is a high-leverage implementation detail | Paper Appendix D practical implementation tips | Paper engineering lesson adapted into repository skill-writing guidance |
 
-- **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' traces/evolution/` instantly filters regression cases.
+- **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' .harness/traces/evolution/` instantly filters regression cases.
 - **Additive modification** — Paper-backed: 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Repository practice: prefer adding evidence or guardrails before restructuring.
 - **Code-space search** — Paper-backed by the Meta-Harness proposer/filesystem design: agents explore by modifying isolated, diffable, executable search surfaces such as source, configuration, prompt templates, or generated candidates that are evaluated by the same verifier. Repository-calibrated rule: "try harder" is noise; a 3-line config or prompt-construction change with a fixed evaluator is search.
 - **Minimal outer loop** — Paper-backed by the system's propose -> evaluate -> log loop over candidate harnesses. Repository-calibrated rule: avoid orchestration that makes the harness harder to verify by inspection.
@@ -64,13 +226,9 @@ core/
 ├── methodology.md          # Runtime-neutral principles
 └── reference.md            # Trace formats and analysis workflow
 backlog/
-├── README.md               # Active v2 planning guide
-└── v2-roadmap.md           # v2 transition roadmap and meta-plan
-archive/v1/
-├── README.md               # v1 archive index
-├── IMPORT.md               # initial import manifest and hash record
-├── MAINTENANCE.md          # v1 maintenance policy snapshot
-└── backlog/                # Frozen v1 backlog and review records
+├── README.md               # v2 planning guide
+├── v2-roadmap.md           # v2 roadmap and meta-plan
+└── plans/                  # completed plans and optional boundaries
 adapters/
 ├── claude/
 │   ├── commands/
@@ -81,141 +239,31 @@ adapters/
     └── templates/
 ```
 
-## Claude Code Adapter
+## Verification
 
-### Global setup
-
-```bash
-# Clone the repo
-git clone https://github.com/pyb0987/ai-agent-meta-harness.git
-cd ai-agent-meta-harness
-
-# Copy core docs (loaded every session)
-mkdir -p ~/.claude/rules/common
-cp core/methodology.md ~/.claude/rules/common/harness-methodology.md
-
-# Copy reference docs (loaded on demand)
-mkdir -p ~/.claude/docs
-cp core/reference.md ~/.claude/docs/harness-reference.md
-
-# Copy skills (autoresearch + harness-engineer + multi-review)
-# multi-review is a global dependency consumed from ~/.claude/skills/multi-review/
-mkdir -p ~/.claude/skills
-cp -r adapters/claude/skills/* ~/.claude/skills/
-
-# Copy commands
-mkdir -p ~/.claude/commands
-cp adapters/claude/commands/init-harness.md ~/.claude/commands/
-```
-
-### Per-project setup
-
-Run the bootstrap command in any project:
-
-```text
-> /init-harness
-```
-
-This analyzes your project and generates:
-
-```text
-your-project/
-├── .claude/
-│   ├── traces/
-│   │   ├── evolution/            # Harness change history
-│   │   ├── failures/             # Failure diagnosis records
-│   │   ├── experiments/          # Autoresearch episodes
-│   │   └── search-set.md         # Verification test cases
-│   ├── hooks/                    # Project-specific hook scripts
-│   ├── settings.local.json        # Hook configuration
-│   └── skills/                   # Domain-specific skills (if needed)
-├── CLAUDE.md                     # Project instructions
-```
-
-## Codex Adapter
-
-Codex support is intentionally an adapter, not a fork. Shared methodology stays in `core/`; Codex-specific skills describe how Codex should apply it using `AGENTS.md`, `.harness/traces/` by default, existing `.claude/traces/` only when it contains meaningful history, terminal verification, and optional Codex sub-agents when the active surface supports them.
-
-Initial Codex adapter contents:
-
-| Component | Path |
-|-----------|------|
-| Bootstrap skill | `adapters/codex/skills/init-codex-harness/SKILL.md` |
-| Project instruction template | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` |
-| Harness-engineer skill | `adapters/codex/skills/harness-engineer/SKILL.md` |
-| Autoresearch skill | `adapters/codex/skills/autoresearch/SKILL.md` |
-| Multi-review skill | `adapters/codex/skills/multi-review/SKILL.md` |
-| Local plugin bundle | `plugins/ai-agent-meta-harness/` |
-
-Suggested local plugin workflow while developing the adapter:
-
-```bash
-python3 scripts/sync-codex-plugin.py --write
-python3 scripts/sync-codex-plugin.py --check
-python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
-python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
-python3 adapters/codex/scripts/smoke-local-plugin.py
-python3 adapters/codex/scripts/smoke-local-plugin-activation.py
-```
-
-The generated plugin bundle lives at `plugins/ai-agent-meta-harness/`. The local smoke test validates the plugin artifact. The activation smoke creates an isolated `CODEX_HOME`, registers a temporary local marketplace, enables the generated plugin, and verifies the activated marketplace copy exposes the expected skills. This proves local CLI marketplace registration and enabled-plugin config shape; it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events. Direct skill copy remains the executable degraded fallback for fast skill text iteration:
-
-```bash
-mkdir -p ~/.codex/skills
-cp -r adapters/codex/skills/* ~/.codex/skills/
-```
-
-Use the skill by asking Codex to "init codex harness" or "apply codex-harness to this project". Use Codex multi-review by asking for a multi-perspective review.
-
-Codex does not consume Claude Code slash commands or `.claude/settings.local.json` hooks. The adapter therefore starts with explicit verify commands and trace discipline; stronger enforcement should be added through Codex plugins, CI, git hooks, or project-local scripts where appropriate.
-
-## Migration Notes
-
-Top-level `docs/`, `commands/`, and `skills/` paths are retained as temporary compatibility mirrors for one transition period. Old install commands continue to install working Claude Code assets, but new work should edit `core/` and `adapters/`; mirror files are only there to protect existing bookmarks, scripts, and user muscle memory. `MAINTENANCE.md` owns the mirror removal lifecycle: announce one transition window, keep drift checks until removal, and migrate users to `core/` plus `adapters/claude/`.
-
-Compatibility mirror mapping:
-
-| Old path | New source of truth |
-|----------|---------------------|
-| `docs/methodology.md` | `core/methodology.md` |
-| `docs/reference.md` | `core/reference.md` |
-| `commands/init-harness.md` | `adapters/claude/commands/init-harness.md` |
-| `skills/*` | `adapters/claude/skills/*` |
-| `adapters/codex/templates/AGENTS.md.template` | `adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template` |
-
-For a quick pre-commit-adjacent check before committing focused mirror, adapter,
-generated plugin, marketplace, or backlog-review changes, run the tracked hook:
-
-```bash
-sh .githooks/pre-commit
-```
-
-For release-like local verification during the v2 transition, prefer the
-executable release gate:
+For release-like local verification, prefer the executable release gate:
 
 ```bash
 python3 scripts/verify-release.py --base-ref origin/main
 ```
 
-That release gate runs the Standard verification set plus this repository's
-Active search-set, active packet pointer gate, and clean-worktree gate. The
-`--base-ref` flag makes the search-set evidence, v1 archive boundary, and active
-packet pointer checks compare committed changes against `REF...HEAD`, which is
-the intended mode for a clean release candidate. A release diff should publish
-one active pointer; use `--pointer <archive/v2/pointers/...>` only with
-`--base-ref` when explicitly selecting that single publication. During an
-in-progress maintenance diff, use
+That release gate runs the standard verification set plus this repository's
+active search-set, active packet pointer gate, and clean-worktree gate. The
+`--base-ref` flag makes packet and pointer checks compare committed changes
+against `REF...HEAD`, which is the intended mode for a clean release candidate.
+A release diff should publish one active pointer; use
+`--pointer <archive/v2/pointers/...>` only with `--base-ref` when explicitly
+selecting that single publication. During an in-progress maintenance diff, use
 `python3 scripts/verify-release.py --skip-clean-worktree` without `--base-ref` to
 validate the worktree-status command list before final local verification; that
 preflight does not require an active packet pointer.
 
 The checked-in GitHub Actions workflow runs the deterministic CI release-gate
 subset for pull requests and pushes to `main` with `--ci --base-ref <base>`.
-Maintainers still run the full local legacy verification
-command with the clean-worktree gate and Codex local plugin activation smoke
-before release-like handoff. CI does not prove Codex Desktop/runtime plugin
-skill surfacing, plugin hook event delivery, or maintainer-local Codex CLI
-activation.
+Maintainers still run the full local verification command with the
+clean-worktree gate and Codex local plugin activation smoke before release-like
+handoff. CI does not prove Codex Desktop/runtime plugin skill surfacing, plugin
+hook event delivery, or maintainer-local Codex CLI activation.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and
 rules for when this repository should add tests versus rely on multi-review.
@@ -228,18 +276,34 @@ Enable the tracked git hook in local clones:
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scripts/check-claude-adapter-paths.py`, `python3 scripts/sync-codex-plugin.py --check`, `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`, `python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt`, `python3 adapters/codex/scripts/smoke-local-plugin.py`, `python3 scripts/check-codex-marketplace-metadata.py`, `python3 scripts/check-maintenance-review.py`, `python3 scripts/check-v1-archive-boundary.py --staged`, `python3 scripts/check-search-set-evidence.py --staged`, `python3 scripts/check-backlog-archive-lifecycle.py --staged`, and `python3 scripts/check-active-packet-gate.py --staged` so temporary compatibility mirrors, Claude path contracts, Codex hook output shapes, generated Codex plugin assets, marketplace metadata readiness, maintenance review records, the frozen v1 archive boundary, search-set evidence, completed backlog archive pointers, and staged active packet publications cannot silently drift. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
+The pre-commit hook runs the repository's fast local checks for adapter paths,
+generated Codex plugin assets, marketplace metadata, maintenance review records,
+search-set evidence, backlog lifecycle records, and staged active packet
+publications. The heavier local plugin activation smoke is part of Standard
+verification rather than pre-commit.
 
 ## How It Works
 
-### Daily development flow
+### Daily governance flow
 
 ```text
-1. Start session → project instructions and relevant skills load
-2. Work normally with the coding agent
-3. On failure → harness-engineer diagnoses from traces
-4. Fix applied → recorded in traces/evolution/
-5. Trace-backed harness changes accumulate for future maintenance
+1. Start a packet with a base ref and short intent
+2. Make and commit the content change
+3. Finalize the packet so the checker infers evidence and review requirements
+4. Import human review only when required
+5. Publish one archive-only v2 pointer commit
+6. Run release verification against the base ref
+```
+
+### Strategy-search flow
+
+```text
+1. Write a direction: objective, search surface, fixed evaluator, protected paths
+2. Propose candidate patches inside the allowed search surface
+3. Evaluate candidates in disposable workspaces with anchored diagnostic records
+4. Select a runner-produced candidate as diagnostic adoption context
+5. Apply the selected patch as a normal content commit
+6. Use v2 governance for stable publication
 ```
 
 ### Multi-review flow
@@ -268,7 +332,7 @@ The pre-commit hook runs `python3 scripts/check-compat-mirrors.py`, `python3 scr
 When an agent repeatedly fails at TypeScript type errors:
 
 ```markdown
-# traces/failures/001-type-error-loop.md
+# .harness/traces/failures/001-type-error-loop.md
 ---
 date: "2026-04-01"
 escalated_to: hook

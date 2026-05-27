@@ -61,6 +61,7 @@ CANDIDATE_FIELDS = {
     "search_surface_digest_before",
     "patch_sha256",
     "evaluator_command",
+    "evaluator_runtime",
     "evaluator_digest",
     "evaluator_closure",
     "started_at",
@@ -70,7 +71,12 @@ CANDIDATE_FIELDS = {
     "case_results",
     "stdout_sha256",
     "stderr_sha256",
+    "stdout_raw_sha256",
+    "stderr_raw_sha256",
     "trace_sha256",
+    "candidate_digest",
+    "eval_anchor_ref",
+    "eval_anchor_commit",
     "verdict",
 }
 CLOSURE_GROUPS = ("protected_paths", "oracle_paths", "score_parser_paths")
@@ -93,6 +99,8 @@ TRACE_FIELDS = {
     "patch_ref",
     "stdout_ref",
     "stderr_ref",
+    "stdout_raw_ref",
+    "stderr_raw_ref",
     "candidate_metadata_ref",
     "next_hypothesis",
     "notes",
@@ -161,6 +169,25 @@ PROPOSAL_POLICY_FIELDS = {
 PROPOSAL_POLICY_EVALUATION_FIELDS = {"runner", "uses_fixed_direction_evaluator"}
 PROPOSAL_LEDGER_SCHEMA_VERSION = "strategy-search-proposal-ledger/v1"
 PROPOSAL_EVALUATION_COMMAND = "python3 scripts/strategy-search.py eval --run <run> --proposal <proposal.yml> --overwrite"
+ANCHOR_SCHEMA_VERSION = "strategy-search-anchor-event/v1"
+ANCHOR_REF_PREFIX = "refs/meta-harness/strategy-search"
+ANCHOR_EVENT_TYPES = {"proposal_created", "proposal_ready", "candidate_evaluated"}
+ANCHOR_EVENT_FIELDS = {
+    "schema_version",
+    "event_type",
+    "run_id",
+    "candidate_id",
+    "previous_anchor",
+    "direction_digest",
+    "proposal_digest",
+    "patch_sha256",
+    "candidate_digest",
+    "created_at",
+    "runner_version",
+}
+RUNNER_VERSION = "strategy-search/v1"
+ZERO_COMMIT = "0" * 40
+USE_CURRENT_ANCHOR = object()
 ADOPTION_SCHEMA_VERSION = "strategy-search-adoption-selection/v1"
 SEARCH_RUNS_PREFIX = ".harness/search-runs/"
 ARCHIVE_ARTIFACT_PREFIX = "archive/v2/artifacts/"
@@ -301,6 +328,96 @@ def git_ref_commit(root: Path, ref: str) -> str | None:
     return output.strip() if isinstance(output, str) and output.strip() else None
 
 
+def git_direct_ref_info(root: Path, ref: str) -> dict[str, str] | None:
+    symref_result = subprocess.run(
+        ["git", "symbolic-ref", "--no-recurse", "-q", ref],
+        cwd=root,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if symref_result.returncode == 0:
+        return {
+            "object": "",
+            "object_type": "symref",
+            "symref": symref_result.stdout.strip(),
+        }
+    result = subprocess.run(
+        [
+            "git",
+            "for-each-ref",
+            "--format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)",
+            ref,
+        ],
+        cwd=root,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        return None
+    for raw_line in result.stdout.splitlines():
+        fields = raw_line.split("\0")
+        if len(fields) != 4:
+            continue
+        refname, object_name, object_type, symref = fields
+        if refname == ref:
+            return {
+                "object": object_name,
+                "object_type": object_type,
+                "symref": symref,
+            }
+    ref_path_output = git_output(root, ["rev-parse", "--git-path", ref])
+    if isinstance(ref_path_output, str) and ref_path_output.strip():
+        ref_path = Path(ref_path_output.strip())
+        if not ref_path.is_absolute():
+            ref_path = root / ref_path
+        if ref_path.exists() or ref_path.is_symlink():
+            return {
+                "object": "",
+                "object_type": "broken",
+                "symref": "",
+            }
+    return None
+
+
+def git_ref_object(root: Path, ref: str) -> str | None:
+    info = git_direct_ref_info(root, ref)
+    return info["object"] if info is not None and info.get("object") else None
+
+
+def git_run_bytes(root: Path, args: list[str], *, input_data: bytes | None = None) -> bytes:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        input=input_data,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise StrategySearchError(
+            f"git {' '.join(args)} failed: {result.stderr.decode('utf-8', errors='replace').strip()}"
+        )
+    return result.stdout
+
+
+def git_run_text(root: Path, args: list[str], *, input_text: str | None = None) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        input=input_text,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        raise StrategySearchError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
 def git_blob_bytes(root: Path, commit: str, rel_path: str) -> bytes | None:
     output = git_output(root, ["show", f"{commit}:{rel_path}"], text=False)
     return output if isinstance(output, bytes) else None
@@ -437,7 +554,7 @@ def evaluator_digest(root: Path, direction: dict[str, Any], *, commit: str | Non
 
 
 EVALUATOR_PATH_SUFFIXES = (".py", ".sh", ".js", ".mjs", ".yml", ".yaml", ".json", ".txt", ".toml", ".ini", ".cfg", ".csv")
-PYTHON_RUNTIME_RE = re.compile(r"^python3(?:\.\d+)*$")
+PYTHON_RUNTIME_RE = re.compile(r"^python3$")
 SUPPORTED_EVALUATOR_RUNTIMES = {"node", "sh", "bash"}
 PYTHON_FLAG_OPTIONS = {"-q", "--quiet"}
 BLOCKED_EVALUATOR_ENV_KEYS = {
@@ -447,6 +564,7 @@ BLOCKED_EVALUATOR_ENV_KEYS = {
     "DYLD_INSERT_LIBRARIES",
     "DYLD_LIBRARY_PATH",
     "ENV",
+    "HOME",
     "LD_AUDIT",
     "LD_LIBRARY_PATH",
     "LD_PRELOAD",
@@ -455,6 +573,9 @@ BLOCKED_EVALUATOR_ENV_KEYS = {
     "PATH",
     "PYTHONHOME",
     "PYTHONPATH",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
 }
 
 
@@ -571,7 +692,7 @@ def evaluator_command_paths(
                 break
             env_key = env_token.split("=", 1)[0]
             if env_key in BLOCKED_EVALUATOR_ENV_KEYS:
-                errors.append(f"evaluator.command must not set runtime hook environment variable: {env_key}")
+                errors.append(f"evaluator.command must not set protected evaluator environment variable: {env_key}")
 
     def token_variants(value: str) -> list[str]:
         variants: set[str] = {value}
@@ -1056,6 +1177,20 @@ def validate_trace_record(
         expected_path=candidate_dir / "stderr.log",
         errors=errors,
     )
+    validate_trace_ref(
+        trace.get("stdout_raw_ref"),
+        source="trace.stdout_raw_ref",
+        expected_ref="stdout.raw",
+        expected_path=candidate_dir / "stdout.raw",
+        errors=errors,
+    )
+    validate_trace_ref(
+        trace.get("stderr_raw_ref"),
+        source="trace.stderr_raw_ref",
+        expected_ref="stderr.raw",
+        expected_path=candidate_dir / "stderr.raw",
+        errors=errors,
+    )
 
     result = trace.get("result")
     stderr_text = (candidate_dir / "stderr.log").read_text(encoding="utf-8", errors="replace") if (candidate_dir / "stderr.log").is_file() else ""
@@ -1121,6 +1256,28 @@ def validate_candidate(
         errors.append("search_surface_digest_before must match direction search_surface bytes")
     if candidate.get("evaluator_command") != direction.get("evaluator", {}).get("command"):
         errors.append("evaluator_command must match direction evaluator.command")
+    validate_evaluator_runtime_record(candidate.get("evaluator_runtime"), errors=errors)
+    try:
+        evaluator_argv = shlex.split(str(direction.get("evaluator", {}).get("command", "")))
+    except ValueError:
+        evaluator_argv = []
+    runtime_name = evaluator_command_runtime_name(evaluator_argv)
+    runtime_shims = (
+        candidate.get("evaluator_runtime", {}).get("path_shims", [])
+        if isinstance(candidate.get("evaluator_runtime"), dict)
+        else []
+    )
+    python_shims = [
+        item for item in runtime_shims if isinstance(item, dict) and item.get("runtime") == "python3"
+    ] if isinstance(runtime_shims, list) else []
+    if runtime_name == "python3" and candidate.get("verdict") in {"pass", "fail"}:
+        if len(python_shims) != 1:
+            errors.append("evaluator_runtime must include exactly one python3 path shim for pass/fail python3 candidates")
+        for shim in python_shims:
+            if shim.get("shim_sha256_after") != shim.get("shim_sha256"):
+                errors.append("evaluator_runtime python3 shim_sha256_after must match shim_sha256 for pass/fail candidates")
+            if shim.get("target_sha256_after") != shim.get("target_sha256"):
+                errors.append("evaluator_runtime python3 target_sha256_after must match target_sha256 for pass/fail candidates")
     actual_evaluator_digest = evaluator_digest(root, direction, commit=digest_commit)
     if candidate.get("evaluator_digest") != actual_evaluator_digest:
         errors.append("evaluator_digest must match evaluator closure bytes")
@@ -1131,6 +1288,8 @@ def validate_candidate(
     patch_path = patch_path or candidate_dir / "patch.diff"
     stdout_path = candidate_dir / "stdout.log"
     stderr_path = candidate_dir / "stderr.log"
+    stdout_raw_path = candidate_dir / "stdout.raw"
+    stderr_raw_path = candidate_dir / "stderr.raw"
     trace_path = candidate_dir / "trace.yml"
     sidecar_errors: list[str] = []
     for label, source_path in {
@@ -1138,6 +1297,8 @@ def validate_candidate(
         "patch": patch_path,
         "stdout": stdout_path,
         "stderr": stderr_path,
+        "stdout_raw": stdout_raw_path,
+        "stderr_raw": stderr_raw_path,
         "trace": trace_path,
     }.items():
         sidecar_errors.extend(source_path_symlink_errors(root, source_path, label=label))
@@ -1157,6 +1318,14 @@ def validate_candidate(
         errors.append(f"{stderr_path}: missing stderr.log")
     elif candidate.get("stderr_sha256") != file_sha256(stderr_path):
         errors.append("stderr_sha256 must match stderr.log")
+    if not stdout_raw_path.is_file():
+        errors.append(f"{stdout_raw_path}: missing stdout.raw")
+    elif candidate.get("stdout_raw_sha256") != file_sha256(stdout_raw_path):
+        errors.append("stdout_raw_sha256 must match stdout.raw")
+    if not stderr_raw_path.is_file():
+        errors.append(f"{stderr_raw_path}: missing stderr.raw")
+    elif candidate.get("stderr_raw_sha256") != file_sha256(stderr_raw_path):
+        errors.append("stderr_raw_sha256 must match stderr.raw")
     if not trace_path.is_file():
         errors.append(f"{trace_path}: missing trace.yml")
     else:
@@ -1181,6 +1350,8 @@ def validate_candidate(
         "patch_sha256",
         "stdout_sha256",
         "stderr_sha256",
+        "stdout_raw_sha256",
+        "stderr_raw_sha256",
         "trace_sha256",
         "evaluator_digest",
         "search_surface_digest_before",
@@ -1278,6 +1449,120 @@ def validate_candidate(
                 errors.append(f"evaluator_closure.{group} digest must match direction evaluator closure")
 
     errors.extend(patch_boundary_errors(root, direction, patch_path))
+    errors.extend(validate_candidate_anchor(candidate, direction=direction, root=root, candidate_path=candidate_path))
+    return errors
+
+
+def validate_evaluator_runtime_record(value: Any, *, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append("evaluator_runtime must be a mapping")
+        return
+    validate_exact_fields(value, {"schema_version", "path_shims"}, source="evaluator_runtime", errors=errors)
+    if value.get("schema_version") != "strategy-search-evaluator-runtime/v1":
+        errors.append("evaluator_runtime.schema_version must be strategy-search-evaluator-runtime/v1")
+    shims = value.get("path_shims")
+    if not isinstance(shims, list):
+        errors.append("evaluator_runtime.path_shims must be a list")
+        return
+    shim_fields = {
+        "runtime",
+        "path_entry",
+        "shim_path",
+        "shim_text",
+        "shim_sha256",
+        "shim_sha256_after",
+        "target_path",
+        "target_sha256",
+        "target_sha256_after",
+    }
+    for index, shim in enumerate(shims):
+        if not isinstance(shim, dict):
+            errors.append(f"evaluator_runtime.path_shims[{index}] must be a mapping")
+            continue
+        validate_exact_fields(shim, shim_fields, source=f"evaluator_runtime.path_shims[{index}]", errors=errors)
+        for field in ("runtime", "path_entry", "shim_path", "shim_text", "target_path"):
+            if not isinstance(shim.get(field), str) or not shim[field].strip():
+                errors.append(f"evaluator_runtime.path_shims[{index}].{field} must be a non-empty string")
+        if not is_sha256(shim.get("shim_sha256")):
+            errors.append(f"evaluator_runtime.path_shims[{index}].shim_sha256 must be a SHA-256 hex digest")
+        elif isinstance(shim.get("shim_text"), str) and shim["shim_sha256"] != sha256_bytes(
+            shim["shim_text"].encode("utf-8")
+        ):
+            errors.append(f"evaluator_runtime.path_shims[{index}].shim_sha256 must match shim_text")
+        if shim.get("shim_sha256_after") is not None and not is_sha256(shim.get("shim_sha256_after")):
+            errors.append(f"evaluator_runtime.path_shims[{index}].shim_sha256_after must be null or a SHA-256 hex digest")
+        if not is_sha256(shim.get("target_sha256")):
+            errors.append(f"evaluator_runtime.path_shims[{index}].target_sha256 must be a SHA-256 hex digest")
+        if shim.get("target_sha256_after") is not None and not is_sha256(shim.get("target_sha256_after")):
+            errors.append(f"evaluator_runtime.path_shims[{index}].target_sha256_after must be null or a SHA-256 hex digest")
+        if (
+            shim.get("runtime") == "python3"
+            and isinstance(shim.get("path_entry"), str)
+            and isinstance(shim.get("target_path"), str)
+        ):
+            expected_text = runtime_path_binding_text(Path(shim["path_entry"]), Path(shim["target_path"]))
+            if shim.get("shim_text") != expected_text:
+                errors.append(f"evaluator_runtime.path_shims[{index}].shim_text must bind python3 PATH entry to target_path")
+
+
+def validate_candidate_anchor(
+    candidate: dict[str, Any],
+    *,
+    direction: dict[str, Any],
+    root: Path,
+    candidate_path: Path,
+) -> list[str]:
+    errors: list[str] = []
+    run_id = candidate.get("run_id")
+    candidate_id = candidate.get("candidate_id")
+    if not isinstance(run_id, str) or not run_id.strip():
+        return ["candidate.run_id is required for eval anchor validation"]
+    if not isinstance(candidate_id, str) or not candidate_id.strip():
+        return ["candidate.candidate_id is required for eval anchor validation"]
+    expected_ref = anchor_ref(run_id)
+    if candidate.get("eval_anchor_ref") != expected_ref:
+        errors.append(f"eval_anchor_ref must be {expected_ref!r}")
+    eval_anchor_commit = candidate.get("eval_anchor_commit")
+    if not isinstance(eval_anchor_commit, str) or not FULL_COMMIT_RE.fullmatch(eval_anchor_commit):
+        errors.append("eval_anchor_commit must be a full commit SHA")
+        eval_anchor_commit = None
+    elif git_ref_commit(root, eval_anchor_commit) != eval_anchor_commit:
+        errors.append("eval_anchor_commit must resolve in the repository")
+        eval_anchor_commit = None
+    if not is_sha256(candidate.get("candidate_digest")):
+        errors.append("candidate_digest must be a SHA-256 hex digest")
+    try:
+        events = anchor_chain(root, run_id, direction=direction)
+    except StrategySearchError as exc:
+        errors.append(str(exc))
+        events = []
+    event = next(
+        (
+            item
+            for item in events
+            if eval_anchor_commit is not None and item.get("_commit") == eval_anchor_commit
+        ),
+        None,
+    )
+    if event is None:
+        if eval_anchor_commit is not None:
+            errors.append("eval_anchor_commit must be reachable from the strategy-search run anchor")
+        return errors
+    if event.get("event_type") != "candidate_evaluated":
+        errors.append("eval_anchor_commit must reference a candidate_evaluated anchor event")
+    if event.get("candidate_id") != candidate_id:
+        errors.append("candidate_evaluated anchor candidate_id must match candidate_id")
+    if event.get("patch_sha256") != candidate.get("patch_sha256"):
+        errors.append("candidate_evaluated anchor patch_sha256 must match candidate patch")
+    expected_digest = candidate_digest_for_record(
+        candidate,
+        candidate_path=candidate_path,
+        previous_anchor=event.get("previous_anchor") if isinstance(event.get("previous_anchor"), str) else None,
+    )
+    if candidate.get("candidate_digest") != expected_digest:
+        errors.append("candidate_digest must match runner-produced candidate sidecars and pre-eval anchor")
+    if event.get("candidate_digest") != candidate.get("candidate_digest"):
+        errors.append("candidate_evaluated anchor candidate_digest must match candidate_digest")
     return errors
 
 
@@ -1767,9 +2052,225 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def export_commit_tree(root: Path, commit: str, target: Path) -> None:
+def anchor_ref(run_id: str) -> str:
+    return f"{ANCHOR_REF_PREFIX}/{run_id}"
+
+
+def current_anchor_commit(root: Path, run_id: str) -> str | None:
+    ref = anchor_ref(run_id)
+    info = git_direct_ref_info(root, ref)
+    if info is None:
+        return None
+    if info.get("symref") or info.get("object_type") != "commit":
+        raise StrategySearchError(f"strategy-search anchor ref must be a direct commit ref: {ref}")
+    return info["object"]
+
+
+def anchor_commit_parent(root: Path, commit: str) -> str | None:
+    output = git_output(root, ["rev-list", "--parents", "-n", "1", commit])
+    if not isinstance(output, str) or not output.strip():
+        raise StrategySearchError(f"anchor commit cannot be read: {commit}")
+    parts = output.strip().split()
+    if len(parts) > 2:
+        raise StrategySearchError(f"anchor commit must have at most one parent: {commit}")
+    return parts[1] if len(parts) == 2 else None
+
+
+def anchor_event_from_commit(root: Path, commit: str) -> dict[str, Any]:
+    output = git_output(root, ["show", f"{commit}:event.yml"])
+    if not isinstance(output, str) or not output.strip():
+        raise StrategySearchError(f"anchor commit is missing event.yml: {commit}")
+    try:
+        event = yaml.safe_load(output)
+    except yaml.YAMLError as exc:
+        raise StrategySearchError(f"anchor event is invalid YAML at {commit}: {exc}") from exc
+    if not isinstance(event, dict):
+        raise StrategySearchError(f"anchor event must be a mapping at {commit}")
+    return event
+
+
+def validate_anchor_event(
+    event: dict[str, Any],
+    *,
+    run_id: str,
+    direction: dict[str, Any] | None,
+    previous_anchor: str | None,
+    commit: str,
+    errors: list[str],
+) -> None:
+    validate_exact_fields(event, ANCHOR_EVENT_FIELDS, source=f"anchor event {commit}", errors=errors)
+    if event.get("schema_version") != ANCHOR_SCHEMA_VERSION:
+        errors.append(f"anchor event {commit} schema_version must be {ANCHOR_SCHEMA_VERSION}")
+    if event.get("event_type") not in ANCHOR_EVENT_TYPES:
+        errors.append(f"anchor event {commit} event_type must be one of {sorted(ANCHOR_EVENT_TYPES)}")
+    if event.get("run_id") != run_id:
+        errors.append(f"anchor event {commit} run_id must match {run_id}")
+    candidate_id = event.get("candidate_id")
+    if candidate_id is not None and not isinstance(candidate_id, str):
+        errors.append(f"anchor event {commit} candidate_id must be null or a string")
+    if event.get("previous_anchor") != previous_anchor:
+        errors.append(f"anchor event {commit} previous_anchor must match first-parent history")
+    expected_direction_digest = digest_direction(direction) if direction is not None else None
+    if expected_direction_digest is not None and event.get("direction_digest") != expected_direction_digest:
+        errors.append(f"anchor event {commit} direction_digest must match direction.yml")
+    for field in ("proposal_digest", "patch_sha256", "candidate_digest"):
+        value = event.get(field)
+        if value is not None and not is_sha256(value):
+            errors.append(f"anchor event {commit} {field} must be null or a SHA-256 digest")
+    if not isinstance(event.get("created_at"), str) or not event["created_at"].strip():
+        errors.append(f"anchor event {commit} created_at must be a non-empty string")
+    if event.get("runner_version") != RUNNER_VERSION:
+        errors.append(f"anchor event {commit} runner_version must be {RUNNER_VERSION}")
+
+
+def anchor_chain_errors(
+    root: Path,
+    *,
+    run_id: str,
+    direction: dict[str, Any] | None = None,
+    head: str | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    if head is not None:
+        commit = head
+    else:
+        try:
+            commit = current_anchor_commit(root, run_id)
+        except StrategySearchError as exc:
+            errors.append(str(exc))
+            return errors
+    seen: set[str] = set()
+    while commit is not None:
+        if commit in seen:
+            errors.append(f"anchor chain contains a cycle at {commit}")
+            return errors
+        seen.add(commit)
+        try:
+            parent = anchor_commit_parent(root, commit)
+            event = anchor_event_from_commit(root, commit)
+        except StrategySearchError as exc:
+            errors.append(str(exc))
+            return errors
+        validate_anchor_event(
+            event,
+            run_id=run_id,
+            direction=direction,
+            previous_anchor=parent,
+            commit=commit,
+            errors=errors,
+        )
+        commit = parent
+    return errors
+
+
+def anchor_chain(root: Path, run_id: str, *, direction: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    errors = anchor_chain_errors(root, run_id=run_id, direction=direction)
+    if errors:
+        raise StrategySearchError("; ".join(errors))
+    commit = current_anchor_commit(root, run_id)
+    events: list[dict[str, Any]] = []
+    while commit is not None:
+        event = anchor_event_from_commit(root, commit)
+        event["_commit"] = commit
+        events.append(event)
+        commit = anchor_commit_parent(root, commit)
+    return list(reversed(events))
+
+
+def append_anchor_event(
+    root: Path,
+    *,
+    run_id: str,
+    direction: dict[str, Any],
+    event_type: str,
+    candidate_id: str | None = None,
+    proposal_path: Path | None = None,
+    patch_sha256: str | None = None,
+    candidate_digest: str | None = None,
+    expected_previous_anchor: str | None | object = USE_CURRENT_ANCHOR,
+) -> str:
+    if event_type not in ANCHOR_EVENT_TYPES:
+        raise StrategySearchError(f"unknown strategy-search anchor event type: {event_type}")
+    if event_type == "candidate_evaluated" and not is_sha256(candidate_digest):
+        raise StrategySearchError("candidate_evaluated anchor event requires candidate_digest")
+    previous_anchor = (
+        current_anchor_commit(root, run_id)
+        if expected_previous_anchor is USE_CURRENT_ANCHOR
+        else expected_previous_anchor
+    )
+    if previous_anchor is not None and not isinstance(previous_anchor, str):
+        raise StrategySearchError("expected previous anchor must be a commit SHA or null")
+    if isinstance(previous_anchor, str) and not FULL_COMMIT_RE.fullmatch(previous_anchor):
+        raise StrategySearchError("expected previous anchor must be a full commit SHA or null")
+    errors = anchor_chain_errors(root, run_id=run_id, direction=direction, head=previous_anchor)
+    if errors:
+        raise StrategySearchError("; ".join(errors))
+    event = {
+        "schema_version": ANCHOR_SCHEMA_VERSION,
+        "event_type": event_type,
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "previous_anchor": previous_anchor,
+        "direction_digest": digest_direction(direction),
+        "proposal_digest": file_sha256(proposal_path) if proposal_path is not None else None,
+        "patch_sha256": patch_sha256,
+        "candidate_digest": candidate_digest,
+        "created_at": utc_now(),
+        "runner_version": RUNNER_VERSION,
+    }
+    event_yaml = yaml.safe_dump(event, sort_keys=False).encode("utf-8")
+    blob = git_run_bytes(root, ["hash-object", "-w", "--stdin"], input_data=event_yaml).decode("utf-8").strip()
+    tree = git_run_text(root, ["mktree"], input_text=f"100644 blob {blob}\tevent.yml\n")
+    commit_args = ["commit-tree", tree, "-m", f"strategy-search {event_type} {run_id}/{candidate_id or '-'}"]
+    if previous_anchor is not None:
+        commit_args[2:2] = ["-p", previous_anchor]
+    new_commit = git_run_text(root, commit_args)
+    live_anchor_info = git_direct_ref_info(root, anchor_ref(run_id))
+    if previous_anchor is None:
+        if live_anchor_info is not None:
+            raise StrategySearchError("strategy-search anchor advanced concurrently; retry the command")
+    elif (
+        live_anchor_info is None
+        or live_anchor_info.get("symref")
+        or live_anchor_info.get("object_type") != "commit"
+        or live_anchor_info.get("object") != previous_anchor
+    ):
+        raise StrategySearchError("strategy-search anchor advanced concurrently; retry the command")
+    update = subprocess.run(
+        [
+            "git",
+            "update-ref",
+            "--no-deref",
+            "--create-reflog",
+            anchor_ref(run_id),
+            new_commit,
+            previous_anchor or ZERO_COMMIT,
+        ],
+        cwd=root,
+        encoding="utf-8",
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if update.returncode != 0:
+        raise StrategySearchError("strategy-search anchor advanced concurrently; retry the command")
+    return new_commit
+
+
+def evaluation_workspace_paths(direction: dict[str, Any]) -> list[str]:
+    paths = [
+        *string_list(direction.get("search_surface", [])),
+        *evaluator_combined_closure(direction),
+    ]
+    return sorted(dict.fromkeys(path.rstrip("/") for path in paths if path.strip()))
+
+
+def export_commit_tree(root: Path, commit: str, target: Path, paths: list[str] | None = None) -> None:
+    archive_args = ["git", "archive", "--format=tar", commit]
+    if paths is not None:
+        archive_args.extend(["--", *sorted(dict.fromkeys(path.rstrip("/") for path in paths if path.strip()))])
     result = subprocess.run(
-        ["git", "archive", "--format=tar", commit],
+        archive_args,
         cwd=root,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1778,7 +2279,45 @@ def export_commit_tree(root: Path, commit: str, target: Path) -> None:
         raise StrategySearchError(result.stderr.decode("utf-8", errors="replace").strip())
     target.mkdir(parents=True, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
-        archive.extractall(target)
+        for member in archive.getmembers():
+            member_path = Path(member.name)
+            if member_path.is_absolute() or ".." in member_path.parts:
+                raise StrategySearchError(f"evaluation workspace archive contains unsafe path: {member.name}")
+            if member.issym() or member.islnk():
+                raise StrategySearchError(f"evaluation workspace archive must not contain symlink or hardlink: {member.name}")
+            if not (member.isdir() or member.isfile()):
+                raise StrategySearchError(f"evaluation workspace archive contains unsupported entry: {member.name}")
+            destination = target / member_path
+            if member.isdir():
+                destination.mkdir(parents=True, exist_ok=True)
+                destination.chmod(member.mode & 0o777)
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            source = archive.extractfile(member)
+            if source is None:
+                raise StrategySearchError(f"evaluation workspace archive file could not be read: {member.name}")
+            with source, destination.open("wb") as handle:
+                shutil.copyfileobj(source, handle)
+            destination.chmod(member.mode & 0o777)
+
+
+def workspace_mount_errors(workspace: Path) -> list[str]:
+    errors: list[str] = []
+    for item in sorted(workspace.rglob("*")):
+        rel_path = item.relative_to(workspace)
+        if ".git" in rel_path.parts:
+            continue
+        rel = rel_path.as_posix()
+        if item.is_symlink():
+            errors.append(f"candidate workspace must not contain symlink: {rel}")
+            continue
+        if item.is_file():
+            try:
+                if item.stat().st_nlink > 1:
+                    errors.append(f"candidate workspace file must not be hard-linked: {rel}")
+            except OSError as exc:
+                errors.append(f"candidate workspace file cannot be inspected: {rel}: {exc}")
+    return errors
 
 
 def init_workspace_repo(workspace: Path) -> None:
@@ -1911,6 +2450,8 @@ def candidate_trace_record(
     patch_path: Path,
     stdout_path: Path,
     stderr_path: Path,
+    stdout_raw_path: Path,
+    stderr_raw_path: Path,
     verdict: str,
     score: float,
     exit_code: int,
@@ -1941,6 +2482,8 @@ def candidate_trace_record(
         "patch_ref": {"ref": "patch.diff", "sha256": file_sha256(patch_path)},
         "stdout_ref": {"ref": "stdout.log", "sha256": file_sha256(stdout_path)},
         "stderr_ref": {"ref": "stderr.log", "sha256": file_sha256(stderr_path)},
+        "stdout_raw_ref": {"ref": "stdout.raw", "sha256": file_sha256(stdout_raw_path)},
+        "stderr_raw_ref": {"ref": "stderr.raw", "sha256": file_sha256(stderr_raw_path)},
         "candidate_metadata_ref": "score.yml",
         "next_hypothesis": next_hypothesis,
         "notes": [
@@ -1993,9 +2536,13 @@ def candidate_trace_markdown_text(
         "Changed paths:",
         *[f"- {path}" for path in trace["changed_paths"]],
         "",
-        "Raw evaluator output refs:",
+        "Decoded evaluator log refs:",
         f"- stdout: {trace['stdout_ref']['ref']} ({trace['stdout_ref']['sha256']})",
         f"- stderr: {trace['stderr_ref']['ref']} ({trace['stderr_ref']['sha256']})",
+        "",
+        "Exact evaluator byte refs:",
+        f"- stdout: {trace['stdout_raw_ref']['ref']} ({trace['stdout_raw_ref']['sha256']})",
+        f"- stderr: {trace['stderr_raw_ref']['ref']} ({trace['stderr_raw_ref']['sha256']})",
         "",
         "Diagnostic only: not archive/v2 evidence; adopt by applying the patch in a content commit.",
     ]
@@ -2008,49 +2555,336 @@ def candidate_trace_markdown_text(
     return "\n".join(trace_lines) + "\n"
 
 
-def evaluator_env(workspace: Path, *, source_root: Path | None = None) -> dict[str, str]:
+def safe_external_temp_parent(*blocked_roots: Path | None) -> Path | None:
+    normalized_blocked: list[Path] = []
+    for root in blocked_roots:
+        if root is None:
+            continue
+        normalized_blocked.append(Path(os.path.abspath(os.path.normpath(root))))
+        try:
+            normalized_blocked.append(root.resolve())
+        except OSError:
+            pass
+    for candidate in (Path("/private/tmp"), Path("/tmp"), Path(tempfile.gettempdir())):
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            continue
+        if not candidate.is_dir():
+            continue
+        if any(is_relative_to(resolved, blocked) for blocked in normalized_blocked):
+            continue
+        return candidate
+    return None
+
+
+def require_safe_external_temp_parent(*blocked_roots: Path | None) -> Path:
+    parent = safe_external_temp_parent(*blocked_roots)
+    if parent is None:
+        raise StrategySearchError(
+            "strategy-search requires a temp directory outside the source repository, run store, and archive/v2"
+        )
+    return parent
+
+
+def normalized_evaluator_path_block_roots(*roots: Path | None) -> list[Path]:
+    blocked_path_roots: list[Path] = []
+
+    def add_root(root: Path | None) -> None:
+        if root is None or not root.is_absolute():
+            return
+        blocked_path_roots.append(Path(os.path.abspath(os.path.normpath(root))))
+        try:
+            blocked_path_roots.append(root.resolve())
+        except OSError:
+            pass
+
+    for root in roots:
+        add_root(root)
+    for env_key in ("HOME", "TMPDIR", "TMP", "TEMP"):
+        raw_env_path = os.environ.get(env_key)
+        if raw_env_path:
+            add_root(Path(raw_env_path))
+    add_root(Path(tempfile.gettempdir()))
+    return blocked_path_roots
+
+
+def evaluator_path_entry_is_blocked(entry: Path, blocked_path_roots: list[Path]) -> bool:
+    if not entry.is_absolute():
+        return True
+    normalized_entry = Path(os.path.abspath(os.path.normpath(entry)))
+    if any(is_relative_to(normalized_entry, blocked_root) for blocked_root in blocked_path_roots):
+        return True
+    try:
+        if any(entry.resolve().is_relative_to(blocked_root) for blocked_root in blocked_path_roots):
+            return True
+    except OSError:
+        pass
+    return False
+
+
+def evaluator_env(
+    workspace: Path,
+    *,
+    source_root: Path | None = None,
+    tmp_dir: Path | None = None,
+    home_dir: Path | None = None,
+    path_prefixes: list[Path] | None = None,
+    extra_blocked_roots: list[Path] | None = None,
+) -> dict[str, str]:
     safe_keys = {
-        "HOME",
         "LANG",
         "LC_ALL",
         "LC_CTYPE",
-        "TEMP",
-        "TMP",
-        "TMPDIR",
         "USER",
     }
     env = {key: value for key, value in os.environ.items() if key in safe_keys}
-    blocked_path_roots = [
-        Path(os.path.abspath(os.path.normpath(workspace))),
-        workspace.resolve(),
-    ]
-    if source_root is not None:
-        blocked_path_roots.extend(
-            [
-                Path(os.path.abspath(os.path.normpath(source_root))),
-                source_root.resolve(),
-            ]
-        )
+    tmp_dir = tmp_dir or workspace / ".strategy-search-tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    home_dir = home_dir or tmp_dir / "home"
+    home_dir.mkdir(parents=True, exist_ok=True)
+    tmp_env_value = str(tmp_dir)
+    if not tmp_env_value.endswith(os.sep):
+        tmp_env_value += os.sep
+    env["HOME"] = str(home_dir)
+    env["TEMP"] = tmp_env_value
+    env["TMP"] = tmp_env_value
+    env["TMPDIR"] = tmp_env_value
+    blocked_path_roots = normalized_evaluator_path_block_roots(
+        workspace,
+        source_root,
+        *(extra_blocked_roots or []),
+    )
+
     path_entries: list[str] = []
-    for raw_entry in os.environ.get("PATH", os.defpath).split(os.pathsep):
+    seen_path_entries: set[str] = set()
+
+    def append_path_entry(raw_entry: str) -> None:
         if not raw_entry:
-            continue
+            return
         entry = Path(raw_entry)
-        if not entry.is_absolute():
-            continue
-        normalized_entry = Path(os.path.abspath(os.path.normpath(entry)))
-        if any(is_relative_to(normalized_entry, blocked_root) for blocked_root in blocked_path_roots):
-            continue
-        try:
-            if any(entry.resolve().is_relative_to(blocked_root) for blocked_root in blocked_path_roots):
-                continue
-        except OSError:
-            pass
+        if evaluator_path_entry_is_blocked(entry, blocked_path_roots):
+            return
+        key = str(Path(os.path.abspath(os.path.normpath(entry))))
+        if key in seen_path_entries:
+            return
+        seen_path_entries.add(key)
         path_entries.append(raw_entry)
-    env["PATH"] = os.pathsep.join(path_entries or [entry for entry in os.defpath.split(os.pathsep) if entry])
+
+    for prefix in path_prefixes or []:
+        if prefix.is_dir():
+            append_path_entry(str(prefix))
+    for raw_entry in os.environ.get("PATH", os.defpath).split(os.pathsep):
+        append_path_entry(raw_entry)
+    for raw_entry in os.defpath.split(os.pathsep):
+        append_path_entry(raw_entry)
+    env["PATH"] = os.pathsep.join(path_entries)
     env["PWD"] = str(workspace)
     env["STRATEGY_SEARCH_WORKSPACE"] = str(workspace)
     return env
+
+
+def empty_evaluator_runtime() -> dict[str, Any]:
+    return {
+        "schema_version": "strategy-search-evaluator-runtime/v1",
+        "path_shims": [],
+    }
+
+
+def evaluator_command_runtime_name(argv: list[str]) -> str | None:
+    index = 0
+    if argv and argv[0] == "env":
+        index = 1
+        while index < len(argv):
+            token = argv[index]
+            if token == "--":
+                index += 1
+                break
+            if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token):
+                index += 1
+                continue
+            break
+    if index >= len(argv):
+        return None
+    return Path(argv[index]).name
+
+
+def stable_python3_runtime() -> Path | None:
+    for candidate in (
+        Path("/Applications/Xcode.app/Contents/Developer/usr/bin/python3"),
+        Path("/usr/bin/python3"),
+    ):
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    resolved = shutil.which("python3")
+    if resolved:
+        resolved_path = Path(resolved)
+        if resolved_path.is_file() and os.access(resolved_path, os.X_OK):
+            return resolved_path
+    return None
+
+
+def runtime_path_binding_text(path_entry: Path, target_path: Path) -> str:
+    return f"PATH entry {path_entry} resolves python3 to {target_path}\n"
+
+
+def runtime_path_mutability_errors(path: Path) -> list[str]:
+    errors: list[str] = []
+    paths: list[Path] = [path]
+    try:
+        resolved = path.resolve()
+    except OSError:
+        resolved = path
+    if resolved != path:
+        paths.append(resolved)
+    seen: set[str] = set()
+    for candidate in paths:
+        candidate_key = str(candidate)
+        if candidate_key in seen:
+            continue
+        seen.add(candidate_key)
+        try:
+            candidate_stat = candidate.stat()
+        except OSError as exc:
+            errors.append(f"evaluator runtime python3 target could not be statted: {candidate}: {exc}")
+            continue
+        try:
+            if os.access(candidate, os.W_OK):
+                errors.append(
+                    "evaluator runtime python3 target executable must not be writable by the evaluator user: "
+                    f"{candidate}"
+                )
+        except OSError:
+            pass
+        parent = candidate.parent
+        if str(parent) in seen:
+            continue
+        seen.add(str(parent))
+        try:
+            parent_stat = parent.stat()
+        except OSError as exc:
+            errors.append(f"evaluator runtime python3 target parent could not be statted: {parent}: {exc}")
+            continue
+        try:
+            if os.access(parent, os.W_OK):
+                errors.append(
+                    "evaluator runtime python3 target parent must not be writable by the evaluator user: "
+                    f"{parent}"
+                )
+        except OSError:
+            pass
+    return errors
+
+
+def prepare_evaluator_runtime_shims(shim_root: Path, argv: list[str], *, blocked_roots: list[Path]) -> tuple[list[Path], dict[str, Any], list[str]]:
+    runtime = empty_evaluator_runtime()
+    if evaluator_command_runtime_name(argv) != "python3":
+        return [], runtime, []
+    python3_runtime = stable_python3_runtime()
+    if python3_runtime is None:
+        return [], runtime, ["evaluator runtime python3 could not be resolved to a pinned executable"]
+    target_path = Path(os.path.abspath(os.path.normpath(python3_runtime)))
+    try:
+        resolved_target = target_path.resolve()
+    except OSError:
+        resolved_target = target_path
+    normalized_target = Path(os.path.abspath(os.path.normpath(target_path)))
+    blocked = normalized_evaluator_path_block_roots(*blocked_roots)
+    if any(
+        is_relative_to(candidate_target, blocked_root)
+        for candidate_target in (normalized_target, resolved_target)
+        for blocked_root in blocked
+    ):
+        return [], runtime, [f"evaluator runtime python3 resolved inside a blocked path: {target_path}"]
+    mutability_errors = runtime_path_mutability_errors(target_path)
+    if mutability_errors:
+        return [], runtime, mutability_errors
+    try:
+        target_sha256 = file_sha256(target_path)
+    except OSError as exc:
+        return [], runtime, [f"evaluator runtime python3 target could not be hashed: {target_path}: {exc}"]
+    path_entry = target_path.parent
+    binding_text = runtime_path_binding_text(path_entry, target_path)
+    runtime["path_shims"].append(
+        {
+            "runtime": "python3",
+            "path_entry": str(path_entry),
+            "shim_path": str(target_path),
+            "shim_text": binding_text,
+            "shim_sha256": sha256_bytes(binding_text.encode("utf-8")),
+            "shim_sha256_after": sha256_bytes(binding_text.encode("utf-8")),
+            "target_path": str(target_path),
+            "target_sha256": target_sha256,
+            "target_sha256_after": None,
+        }
+    )
+    return [path_entry], runtime, []
+
+
+def runtime_file_sha256_after(path: Path, *, label: str, errors: list[str]) -> tuple[str | None, bool]:
+    try:
+        if not path.is_file():
+            return None, True
+        return file_sha256(path), True
+    except OSError as exc:
+        errors.append(f"evaluator runtime {label} could not be hashed after candidate evaluation: {path}: {exc}")
+        return None, False
+
+
+def finalize_evaluator_runtime(runtime: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for item in runtime.get("path_shims", []):
+        if not isinstance(item, dict):
+            errors.append("evaluator runtime path shim record is malformed")
+            continue
+        shim_path = item.get("shim_path")
+        if not isinstance(shim_path, str) or not shim_path:
+            errors.append("evaluator runtime shim_path is missing")
+            continue
+        path = Path(shim_path)
+        if (
+            isinstance(item.get("path_entry"), str)
+            and isinstance(item.get("target_path"), str)
+            and item.get("shim_text") == runtime_path_binding_text(Path(item["path_entry"]), Path(item["target_path"]))
+        ):
+            after_sha = item.get("shim_sha256") if isinstance(item.get("shim_sha256"), str) else None
+            shim_hash_ok = True
+        else:
+            after_sha, shim_hash_ok = runtime_file_sha256_after(path, label="shim", errors=errors)
+        item["shim_sha256_after"] = after_sha
+        if shim_hash_ok and after_sha != item.get("shim_sha256"):
+            errors.append(f"evaluator runtime shim changed during candidate evaluation: {item.get('runtime', shim_path)}")
+        target_path = item.get("target_path")
+        if isinstance(target_path, str) and target_path:
+            target = Path(target_path)
+            target_after_sha, target_hash_ok = runtime_file_sha256_after(target, label="target", errors=errors)
+            item["target_sha256_after"] = target_after_sha
+            if target_hash_ok and target_after_sha != item.get("target_sha256"):
+                errors.append(
+                    f"evaluator runtime target changed during candidate evaluation: {item.get('runtime', target_path)}"
+                )
+        else:
+            errors.append("evaluator runtime target_path is missing")
+    return errors
+
+
+def cleanup_temporary_directory(tempdir: Any) -> list[str]:
+    path = Path(tempdir.name)
+    try:
+        tempdir.cleanup()
+        return []
+    except OSError as cleanup_error:
+        if not path.exists() and not path.is_symlink():
+            return []
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            return []
+        except OSError as retry_error:
+            return [
+                f"temporary directory cleanup failed for {path}: {cleanup_error}; retry failed: {retry_error}"
+            ]
+    return []
 
 
 def terminate_process_group(pid: int, sig: int = signal.SIGTERM) -> None:
@@ -2076,8 +2910,12 @@ def run_evaluator_process(
     *,
     cwd: Path,
     source_root: Path | None = None,
+    tmp_dir: Path | None = None,
+    home_dir: Path | None = None,
+    path_prefixes: list[Path] | None = None,
+    extra_blocked_roots: list[Path] | None = None,
     timeout_seconds: int,
-) -> tuple[str, str, int, bool]:
+) -> tuple[str, str, bytes, bytes, int, bool]:
     def decode_stream(data: bytes | None) -> str:
         return (data or b"").decode("utf-8", errors="replace")
 
@@ -2085,22 +2923,33 @@ def run_evaluator_process(
         process = subprocess.Popen(
             argv,
             cwd=cwd,
-            env=evaluator_env(cwd, source_root=source_root),
+            env=evaluator_env(
+                cwd,
+                source_root=source_root,
+                tmp_dir=tmp_dir,
+                home_dir=home_dir,
+                path_prefixes=path_prefixes,
+                extra_blocked_roots=extra_blocked_roots,
+            ),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             start_new_session=True,
         )
     except OSError as exc:
-        return "", f"strategy-search evaluator failed to start: {exc}\n", 127, False
+        return "", f"strategy-search evaluator failed to start: {exc}\n", b"", b"", 127, False
     try:
         stdout, stderr = process.communicate(timeout=timeout_seconds)
         cleanup_process_group(process.pid)
-        return decode_stream(stdout), decode_stream(stderr), process.returncode, False
+        stdout_bytes = stdout or b""
+        stderr_bytes = stderr or b""
+        return decode_stream(stdout_bytes), decode_stream(stderr_bytes), stdout_bytes, stderr_bytes, process.returncode, False
     except subprocess.TimeoutExpired:
         terminate_process_group(process.pid, signal.SIGKILL)
         stdout, stderr = process.communicate()
-        stderr_text = decode_stream(stderr) + f"\nstrategy-search evaluator timed out after {timeout_seconds}s\n"
-        return decode_stream(stdout), stderr_text, 124, True
+        stdout_bytes = stdout or b""
+        stderr_bytes = stderr or b""
+        stderr_text = decode_stream(stderr_bytes) + f"\nstrategy-search evaluator timed out after {timeout_seconds}s\n"
+        return decode_stream(stdout_bytes), stderr_text, stdout_bytes, stderr_bytes, 124, True
 
 
 def closure_digest_record_for_workspace(
@@ -2129,6 +2978,8 @@ def candidate_record(
     patch_path: Path,
     stdout_path: Path,
     stderr_path: Path,
+    stdout_raw_path: Path,
+    stderr_raw_path: Path,
     trace_path: Path,
     started_at: str,
     finished_at: str,
@@ -2137,6 +2988,7 @@ def candidate_record(
     case_results: list[dict[str, str]],
     verdict: str,
     closure: dict[str, dict[str, str]],
+    evaluator_runtime: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": CANDIDATE_SCHEMA_VERSION,
@@ -2151,6 +3003,7 @@ def candidate_record(
         ),
         "patch_sha256": file_sha256(patch_path),
         "evaluator_command": direction["evaluator"]["command"],
+        "evaluator_runtime": evaluator_runtime or empty_evaluator_runtime(),
         "evaluator_digest": evaluator_digest(root, direction, commit=base_commit),
         "evaluator_closure": closure,
         "started_at": started_at,
@@ -2160,9 +3013,78 @@ def candidate_record(
         "case_results": case_results,
         "stdout_sha256": file_sha256(stdout_path),
         "stderr_sha256": file_sha256(stderr_path),
+        "stdout_raw_sha256": file_sha256(stdout_raw_path),
+        "stderr_raw_sha256": file_sha256(stderr_raw_path),
         "trace_sha256": file_sha256(trace_path),
+        "candidate_digest": None,
+        "eval_anchor_ref": anchor_ref(run_id),
+        "eval_anchor_commit": None,
         "verdict": verdict,
     }
+
+
+def optional_file_sha256(path: Path) -> str | None:
+    return file_sha256(path) if path.is_file() else None
+
+
+def candidate_digest_for_record(
+    candidate: dict[str, Any],
+    *,
+    candidate_path: Path,
+    previous_anchor: str | None,
+) -> str:
+    stripped_candidate = dict(candidate)
+    stripped_candidate.pop("candidate_digest", None)
+    stripped_candidate.pop("eval_anchor_commit", None)
+    candidate_dir = candidate_path.parent
+    payload = {
+        "schema_version": "strategy-search-candidate-digest/v1",
+        "previous_anchor": previous_anchor,
+        "candidate": stripped_candidate,
+        "sidecars": {
+            "patch.diff": optional_file_sha256(candidate_dir / "patch.diff"),
+            "stdout.log": optional_file_sha256(candidate_dir / "stdout.log"),
+            "stderr.log": optional_file_sha256(candidate_dir / "stderr.log"),
+            "stdout.raw": optional_file_sha256(candidate_dir / "stdout.raw"),
+            "stderr.raw": optional_file_sha256(candidate_dir / "stderr.raw"),
+            "trace.yml": optional_file_sha256(candidate_dir / "trace.yml"),
+        },
+    }
+    return sha256_bytes(canonical_json_bytes(payload))
+
+
+def finalize_candidate_record_with_anchor(
+    root: Path,
+    *,
+    run_id: str,
+    direction: dict[str, Any],
+    candidate_id: str,
+    candidate_path: Path,
+    record: dict[str, Any],
+    proposal_path: Path | None = None,
+) -> dict[str, Any]:
+    previous_anchor = current_anchor_commit(root, run_id)
+    record["eval_anchor_ref"] = anchor_ref(run_id)
+    record["eval_anchor_commit"] = None
+    record["candidate_digest"] = candidate_digest_for_record(
+        record,
+        candidate_path=candidate_path,
+        previous_anchor=previous_anchor,
+    )
+    anchor_commit = append_anchor_event(
+        root,
+        run_id=run_id,
+        direction=direction,
+        event_type="candidate_evaluated",
+        candidate_id=candidate_id,
+        proposal_path=proposal_path,
+        patch_sha256=record.get("patch_sha256") if is_sha256(record.get("patch_sha256")) else None,
+        candidate_digest=record["candidate_digest"],
+        expected_previous_anchor=previous_anchor,
+    )
+    record["eval_anchor_commit"] = anchor_commit
+    write_yaml(candidate_path, record)
+    return record
 
 
 def validate_direction_command(args: argparse.Namespace) -> int:
@@ -2205,6 +3127,8 @@ def validate_candidate_command(args: argparse.Namespace) -> int:
         "patch": expected_patch_path,
         "stdout": candidate_path.parent / "stdout.log",
         "stderr": candidate_path.parent / "stderr.log",
+        "stdout_raw": candidate_path.parent / "stdout.raw",
+        "stderr_raw": candidate_path.parent / "stderr.raw",
         "trace": candidate_path.parent / "trace.yml",
     }.items():
         preflight_errors.extend(source_path_symlink_errors(root, source_path, label=label))
@@ -2265,6 +3189,27 @@ def start_command(args: argparse.Namespace) -> int:
         return 1
     if run_dir.exists() and not args.overwrite:
         print(f"ERROR: run already exists: {run_dir}", file=sys.stderr)
+        return 1
+    existing_anchor_info = git_direct_ref_info(root, anchor_ref(run_id))
+    if existing_anchor_info is not None and not args.overwrite:
+        print(f"ERROR: run anchor already exists: {anchor_ref(run_id)}", file=sys.stderr)
+        return 1
+    if existing_anchor_info is not None and args.overwrite:
+        if not existing_anchor_info.get("object"):
+            print(
+                f"ERROR: run anchor is malformed and cannot be safely overwritten: {anchor_ref(run_id)}",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            delete_args = ["update-ref", "--no-deref", "-d", anchor_ref(run_id)]
+            delete_args.append(existing_anchor_info["object"])
+            run_git(root, delete_args)
+        except StrategySearchError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+    if args.overwrite and git_direct_ref_info(root, anchor_ref(run_id)) is not None:
+        print(f"ERROR: run anchor still exists after overwrite cleanup: {anchor_ref(run_id)}", file=sys.stderr)
         return 1
     if run_dir.exists() and args.overwrite:
         shutil.rmtree(run_dir)
@@ -2579,8 +3524,8 @@ def public_scalar_variants(value: str | bytes) -> list[str]:
 PUBLIC_PATH_TOKEN_RE = re.compile(r"[A-Za-z0-9_./%\\:?#=(),@+-]+")
 PUBLIC_RUN_ARTIFACT_RE = re.compile(
     r"(?:^|/)\.harness/search-runs/[^/]+/candidates/[^/]+/"
-    r"(?:patch\.diff|score\.yml|stdout\.log|stderr\.log|trace\.ya?ml|trace\.md)(?:$|[:,/])"
-    r"|^candidates/[^/]+/(?:patch\.diff|score\.yml|stdout\.log|stderr\.log|trace\.ya?ml|trace\.md)(?:$|[:,/])"
+    r"(?:patch\.diff|score\.yml|stdout\.log|stderr\.log|stdout\.raw|stderr\.raw|trace\.ya?ml|trace\.md)(?:$|[:,/])"
+    r"|^candidates/[^/]+/(?:patch\.diff|score\.yml|stdout\.log|stderr\.log|stdout\.raw|stderr\.raw|trace\.ya?ml|trace\.md)(?:$|[:,/])"
     r"|^proposals/[^/]+/(?:patch\.diff|proposal\.yml|prompt\.md|policy\.yml|public-context\.yml)(?:$|[:,/])"
 )
 PUBLIC_RUN_SUMMARY_RE = re.compile(
@@ -2594,7 +3539,9 @@ PUBLIC_SIDECAR_BASENAMES = {
     "search-set.yml",
     "scores.jsonl",
     "stderr.log",
+    "stderr.raw",
     "stdout.log",
+    "stdout.raw",
     "summary.yml",
     "trace.md",
     "trace.yaml",
@@ -3129,6 +4076,44 @@ def validate_awaiting_proposal_ledger(
             errors.append(f"awaiting proposal ledger {field} must match original proposal record")
 
 
+def validate_proposal_anchor(
+    proposal: dict[str, Any],
+    *,
+    root: Path,
+    direction: dict[str, Any],
+    proposal_path: Path,
+    event_types: tuple[str, ...],
+    errors: list[str],
+) -> None:
+    run_id = proposal.get("run_id")
+    candidate_id = proposal.get("candidate_id")
+    if not isinstance(run_id, str) or not run_id.strip():
+        errors.append("proposal.run_id is required for proposal anchor validation")
+        return
+    if not isinstance(candidate_id, str) or not candidate_id.strip():
+        errors.append("proposal.candidate_id is required for proposal anchor validation")
+        return
+    try:
+        events = anchor_chain(root, run_id, direction=direction)
+    except StrategySearchError as exc:
+        errors.append(str(exc))
+        return
+    proposal_digest = file_sha256(proposal_path) if proposal_path.is_file() else None
+    patch_sha256 = proposal.get("patch_sha256")
+    for event in events:
+        if event.get("event_type") not in event_types:
+            continue
+        if event.get("candidate_id") != candidate_id:
+            continue
+        if event.get("proposal_digest") == proposal_digest and event.get("patch_sha256") == patch_sha256:
+            return
+    allowed = " or ".join(event_types)
+    errors.append(
+        "proposal anchor must contain a matching "
+        f"{allowed} event for the current proposal.yml and patch.diff"
+    )
+
+
 def remove_proposal_ledger_entries(run_dir: Path, *, proposal_path: Path, candidate_id: str) -> None:
     ledger_path = run_dir / "proposals.jsonl"
     if not ledger_path.exists():
@@ -3314,6 +4299,14 @@ def seal_awaiting_proposal_for_eval(
 
     proposal_dir = proposal_path.parent
     validate_awaiting_proposal_ledger(proposal, run_dir=run_dir, proposal_path=proposal_path, errors=errors)
+    validate_proposal_anchor(
+        proposal,
+        root=root,
+        direction=direction,
+        proposal_path=proposal_path,
+        event_types=("proposal_created",),
+        errors=errors,
+    )
     validate_proposal_public_metadata(proposal, direction=direction, errors=errors)
     validate_proposal_public_bundle(proposal, direction=direction, proposal_dir=proposal_dir, errors=errors)
     patch_path = proposal_dir / "patch.diff"
@@ -3365,6 +4358,7 @@ def validate_proposal_for_eval(
     run_meta: dict[str, Any],
     direction: dict[str, Any],
     proposal_path: Path,
+    enforce_anchor: bool = True,
 ) -> list[str]:
     errors: list[str] = []
     validate_exact_fields(proposal, PROPOSAL_FIELDS, source="proposal", errors=errors)
@@ -3415,6 +4409,15 @@ def validate_proposal_for_eval(
     if isinstance(proposal.get("evaluation_command"), str) and proposal.get("evaluation_command") != expected_command:
         errors.append("proposal.evaluation_command must match the canonical eval --proposal command")
     validate_proposal_ledger(proposal, run_dir=run_dir, proposal_path=proposal_path, errors=errors)
+    if enforce_anchor:
+        validate_proposal_anchor(
+            proposal,
+            root=root,
+            direction=direction,
+            proposal_path=proposal_path,
+            event_types=("proposal_created", "proposal_ready"),
+            errors=errors,
+        )
     return errors
 
 
@@ -3550,6 +4553,19 @@ def propose_command(args: argparse.Namespace) -> int:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
     write_yaml(proposal_path, proposal)
+    try:
+        append_anchor_event(
+            root,
+            run_id=run_id,
+            direction=direction,
+            event_type="proposal_created",
+            candidate_id=candidate_id,
+            proposal_path=proposal_path,
+            patch_sha256=patch_sha,
+        )
+    except StrategySearchError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
     append_jsonl(
         run_dir / "proposals.jsonl",
         proposal_ledger_record(
@@ -3589,7 +4605,11 @@ def invalid_candidate_output(
 ) -> dict[str, Any]:
     stdout_path = candidate_dir / "stdout.log"
     stderr_path = candidate_dir / "stderr.log"
+    stdout_raw_path = candidate_dir / "stdout.raw"
+    stderr_raw_path = candidate_dir / "stderr.raw"
     stdout_path.write_text("", encoding="utf-8")
+    stdout_raw_path.write_bytes(b"")
+    stderr_raw_path.write_bytes(b"")
     stderr_path.write_text(
         "strategy-search invalid candidate: boundary validation failed\n"
         + "\n".join(errors)
@@ -3606,6 +4626,8 @@ def invalid_candidate_output(
         patch_path=patch_path,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
+        stdout_raw_path=stdout_raw_path,
+        stderr_raw_path=stderr_raw_path,
         verdict="invalid",
         score=0.0,
         exit_code=-1,
@@ -3625,6 +4647,8 @@ def invalid_candidate_output(
         patch_path=patch_path,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
+        stdout_raw_path=stdout_raw_path,
+        stderr_raw_path=stderr_raw_path,
         trace_path=trace_path,
         started_at=started_at,
         finished_at=finished_at,
@@ -3648,6 +4672,8 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
     if not isinstance(run_id, str):
         errors.append("run.yml run_id must be a string")
         run_id = run_dir.name
+    else:
+        errors.extend(anchor_chain_errors(root, run_id=run_id, direction=direction))
     proposal: dict[str, Any] | None = None
     proposal_path: Path | None = None
     if args.patch and args.proposal:
@@ -3670,6 +4696,11 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             except StrategySearchError as exc:
                 errors.append(str(exc))
         if proposal is not None:
+            proposal_anchor_checked_before_seal = False
+            sealed_awaiting_proposal = False
+            proposal_restore_bytes: bytes | None = None
+            ledger_restore_bytes: bytes | None = None
+            ledger_path = run_dir / "proposals.jsonl"
             if proposal.get("status") == "awaiting_patch":
                 pending_candidate_id = args.candidate_id or proposal.get("candidate_id")
                 if args.candidate_id and args.candidate_id != proposal.get("candidate_id"):
@@ -3691,6 +4722,8 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                         elif path_component_has_symlink(root, pending_worktree.parent):
                             errors.append("kept worktree path must not contain symlinks")
                 if not errors:
+                    proposal_restore_bytes = proposal_path.read_bytes()
+                    ledger_restore_bytes = ledger_path.read_bytes() if ledger_path.exists() else None
                     proposal, seal_errors = seal_awaiting_proposal_for_eval(
                         proposal,
                         root=root,
@@ -3700,6 +4733,8 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                         proposal_path=proposal_path,
                     )
                     errors.extend(seal_errors)
+                    sealed_awaiting_proposal = not seal_errors
+                    proposal_anchor_checked_before_seal = sealed_awaiting_proposal
             if not errors:
                 errors.extend(
                     validate_proposal_for_eval(
@@ -3709,6 +4744,7 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                         run_meta=run_meta,
                         direction=direction,
                         proposal_path=proposal_path,
+                        enforce_anchor=not proposal_anchor_checked_before_seal,
                     )
                 )
     candidate_id = (
@@ -3754,6 +4790,29 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
         candidate_dir.unlink()
     elif candidate_dir.exists() and args.overwrite:
         shutil.rmtree(candidate_dir)
+    if proposal_path is not None and proposal is not None:
+        try:
+            append_anchor_event(
+                root,
+                run_id=run_id,
+                direction=direction,
+                event_type="proposal_ready",
+                candidate_id=candidate_id,
+                proposal_path=proposal_path,
+                patch_sha256=file_sha256(source_patch),
+            )
+        except StrategySearchError as exc:
+            if sealed_awaiting_proposal and proposal_restore_bytes is not None:
+                proposal_path.write_bytes(proposal_restore_bytes)
+                if ledger_restore_bytes is None:
+                    try:
+                        ledger_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                else:
+                    ledger_path.write_bytes(ledger_restore_bytes)
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
     candidate_dir.mkdir(parents=True, exist_ok=True)
     patch_path = candidate_dir / "patch.diff"
     shutil.copyfile(source_patch, patch_path)
@@ -3792,38 +4851,57 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             why=why,
             next_hypothesis=next_hypothesis,
         )
-        write_yaml(candidate_dir / "score.yml", record)
+        record = finalize_candidate_record_with_anchor(
+            root,
+            run_id=run_id,
+            direction=direction,
+            candidate_id=candidate_id,
+            candidate_path=candidate_dir / "score.yml",
+            record=record,
+            proposal_path=proposal_path,
+        )
         append_jsonl(run_dir / "scores.jsonl", record)
         for error in boundary_errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    workspace_parent: tempfile.TemporaryDirectory[str] | None = None
+    keep_worktree_target: Path | None = None
     if args.keep_worktree:
-        workspace = run_dir / "worktrees" / candidate_id
-        if (workspace.exists() or workspace.is_symlink()) and not args.overwrite:
-            print(f"ERROR: kept worktree already exists: {workspace}", file=sys.stderr)
+        keep_worktree_target = run_dir / "worktrees" / candidate_id
+        if (keep_worktree_target.exists() or keep_worktree_target.is_symlink()) and not args.overwrite:
+            print(f"ERROR: kept worktree already exists: {keep_worktree_target}", file=sys.stderr)
             return 1
-        if path_component_has_symlink(root, workspace.parent):
+        if path_component_has_symlink(root, keep_worktree_target.parent):
             print("ERROR: kept worktree path must not contain symlinks", file=sys.stderr)
             return 1
-        if workspace.is_symlink() and args.overwrite:
-            workspace.unlink()
-        elif workspace.exists() and args.overwrite:
-            shutil.rmtree(workspace)
-    else:
-        workspace_parent = tempfile.TemporaryDirectory(prefix="strategy-search-")
-        workspace = Path(workspace_parent.name)
+        if keep_worktree_target.is_symlink() and args.overwrite:
+            keep_worktree_target.unlink()
+        elif keep_worktree_target.exists() and args.overwrite:
+            shutil.rmtree(keep_worktree_target)
+    try:
+        safe_temp_parent = require_safe_external_temp_parent(root, run_dir, root / "archive" / "v2")
+    except StrategySearchError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    workspace_parent = tempfile.TemporaryDirectory(
+        prefix="strategy-search-",
+        dir=str(safe_temp_parent),
+    )
+    workspace = Path(workspace_parent.name)
 
     stdout_text = ""
     stderr_text = ""
+    stdout_bytes = b""
+    stderr_bytes = b""
     exit_code = -1
     workspace_errors: list[str] = []
     apply_failed = False
     timed_out = False
+    evaluator_runtime = empty_evaluator_runtime()
     started_at = utc_now()
     try:
-        export_commit_tree(root, direction["base_ref"], workspace)
+        export_commit_tree(root, direction["base_ref"], workspace, paths=evaluation_workspace_paths(direction))
+        workspace_errors.extend(workspace_mount_errors(workspace))
         init_workspace_repo(workspace)
         apply_result = run_git(workspace, ["apply", str(patch_path)], check=False)
         if apply_result.returncode != 0:
@@ -3834,8 +4912,7 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             verdict = "invalid"
         else:
             workspace_errors = workspace_boundary_errors(workspace, direction)
-            for symlink_path in symlink_paths(workspace):
-                workspace_errors.append(f"candidate workspace must not contain symlink: {symlink_path}")
+            workspace_errors.extend(workspace_mount_errors(workspace))
             if workspace_errors:
                 verdict = "invalid"
                 stderr_text = (
@@ -3864,19 +4941,53 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                 evaluator = direction["evaluator"]
                 argv = shlex.split(evaluator["command"])
                 timeout_seconds = evaluator["timeout_seconds"]
-                stdout_text, stderr_text, exit_code, timed_out = run_evaluator_process(
-                    argv,
-                    cwd=workspace,
-                    source_root=root,
-                    timeout_seconds=timeout_seconds,
+                eval_env_parent = tempfile.TemporaryDirectory(
+                    prefix="strategy-search-eval-env-",
+                    dir=str(safe_temp_parent),
                 )
-                settle_after_evaluator_exit()
-                parsed_score = parse_score(stdout_text, stderr_text, exit_code)
-                parsed_case_results = parse_case_results(stdout_text, stderr_text, exit_code)
-                score = parsed_score if parsed_score is not None else 0.0
-                case_results = parsed_case_results or [{"case_id": "evaluator-output", "status": "fail"}]
+                eval_cleanup_errors: list[str] = []
+                eval_runtime_errors: list[str] = []
+                eval_env_root = Path(eval_env_parent.name)
+                path_prefixes, evaluator_runtime, runtime_prepare_errors = prepare_evaluator_runtime_shims(
+                    eval_env_root,
+                    argv,
+                    blocked_roots=[root, run_dir, root / "archive" / "v2", workspace, safe_temp_parent],
+                )
+                try:
+                    if runtime_prepare_errors:
+                        stderr_text = (
+                            "strategy-search invalid candidate: evaluator runtime setup failed\n"
+                            + "\n".join(runtime_prepare_errors)
+                            + "\n"
+                        )
+                        exit_code = -1
+                        score = 0.0
+                        case_results = [{"case_id": "evaluator-runtime", "status": "fail"}]
+                    else:
+                        stdout_text, stderr_text, stdout_bytes, stderr_bytes, exit_code, timed_out = run_evaluator_process(
+                            argv,
+                            cwd=workspace,
+                            source_root=root,
+                            tmp_dir=eval_env_root / "tmp",
+                            home_dir=eval_env_root / "home",
+                            path_prefixes=path_prefixes,
+                            extra_blocked_roots=[safe_temp_parent],
+                            timeout_seconds=timeout_seconds,
+                        )
+                        settle_after_evaluator_exit()
+                        eval_runtime_errors = finalize_evaluator_runtime(evaluator_runtime)
+                finally:
+                    eval_cleanup_errors = cleanup_temporary_directory(eval_env_parent)
+                if not runtime_prepare_errors:
+                    parsed_score = parse_score(stdout_text, stderr_text, exit_code)
+                    parsed_case_results = parse_case_results(stdout_text, stderr_text, exit_code)
+                    score = parsed_score if parsed_score is not None else 0.0
+                    case_results = parsed_case_results or [{"case_id": "evaluator-output", "status": "fail"}]
                 workspace_errors = workspace_boundary_errors(workspace, direction)
-                if not timed_out:
+                workspace_errors.extend(runtime_prepare_errors)
+                workspace_errors.extend(eval_runtime_errors)
+                workspace_errors.extend(eval_cleanup_errors)
+                if not timed_out and not runtime_prepare_errors:
                     workspace_errors.extend(evaluator_output_errors(stdout_text, stderr_text))
                 if filesystem_digest(workspace, exclude_roots=[workspace / ".git"]) != workspace_digest_before_eval:
                     workspace_errors.append("candidate workspace changed after patch application")
@@ -3890,8 +5001,7 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                 if filesystem_digest(run_dir, skip_git=False) != run_store_digest_before_eval:
                     restore_filesystem_snapshot(run_dir, run_store_snapshot_before_eval, skip_git=False)
                     workspace_errors.append("candidate evaluation dirtied the search run store")
-                for symlink_path in symlink_paths(workspace):
-                    workspace_errors.append(f"candidate workspace must not contain symlink: {symlink_path}")
+                workspace_errors.extend(workspace_mount_errors(workspace))
                 closure = closure_digest_record_for_workspace(
                     root,
                     workspace,
@@ -3918,8 +5028,12 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
         finished_at = utc_now()
         stdout_path = candidate_dir / "stdout.log"
         stderr_path = candidate_dir / "stderr.log"
+        stdout_raw_path = candidate_dir / "stdout.raw"
+        stderr_raw_path = candidate_dir / "stderr.raw"
         stdout_path.write_text(stdout_text, encoding="utf-8")
         stderr_path.write_text(stderr_text, encoding="utf-8")
+        stdout_raw_path.write_bytes(stdout_bytes)
+        stderr_raw_path.write_bytes(stderr_bytes)
         next_hypothesis = (
             args.next_hypothesis.strip()
             if isinstance(args.next_hypothesis, str) and args.next_hypothesis.strip()
@@ -3931,6 +5045,10 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
                 else default_next_hypothesis(verdict)
             )
         )
+        kept_worktree_path: Path | None = None
+        if keep_worktree_target is not None and not any("symlink" in error or "hard-link" in error for error in workspace_errors):
+            shutil.copytree(workspace, keep_worktree_target, symlinks=False)
+            kept_worktree_path = keep_worktree_target
         trace = candidate_trace_record(
             direction=direction,
             run_id=run_id,
@@ -3939,6 +5057,8 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             patch_path=patch_path,
             stdout_path=stdout_path,
             stderr_path=stderr_path,
+            stdout_raw_path=stdout_raw_path,
+            stderr_raw_path=stderr_raw_path,
             verdict=verdict,
             score=score,
             exit_code=exit_code,
@@ -3951,7 +5071,7 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
         trace_path = write_candidate_trace(
             candidate_dir,
             trace,
-            keep_worktree=workspace if args.keep_worktree else None,
+            keep_worktree=kept_worktree_path,
             workspace_errors=workspace_errors,
             apply_failed=apply_failed,
         )
@@ -3964,6 +5084,8 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             patch_path=patch_path,
             stdout_path=stdout_path,
             stderr_path=stderr_path,
+            stdout_raw_path=stdout_raw_path,
+            stderr_raw_path=stderr_raw_path,
             trace_path=trace_path,
             started_at=started_at,
             finished_at=finished_at,
@@ -3972,15 +5094,24 @@ def evaluate_candidate(args: argparse.Namespace) -> int:
             case_results=case_results,
             verdict=verdict,
             closure=closure,
+            evaluator_runtime=evaluator_runtime,
         )
-        write_yaml(candidate_dir / "score.yml", record)
+        record = finalize_candidate_record_with_anchor(
+            root,
+            run_id=run_id,
+            direction=direction,
+            candidate_id=candidate_id,
+            candidate_path=candidate_dir / "score.yml",
+            record=record,
+            proposal_path=proposal_path,
+        )
         append_jsonl(run_dir / "scores.jsonl", record)
     except StrategySearchError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     finally:
-        if workspace_parent is not None:
-            workspace_parent.cleanup()
+        for error in cleanup_temporary_directory(workspace_parent):
+            print(f"WARNING: {error}", file=sys.stderr)
 
     print(f"candidate_id: {candidate_id}")
     print(f"score: {score}")
@@ -4152,6 +5283,8 @@ def selection_source_files(candidate_dir: Path) -> dict[str, Path]:
         "patch": candidate_dir / "patch.diff",
         "stdout": candidate_dir / "stdout.log",
         "stderr": candidate_dir / "stderr.log",
+        "stdout_raw": candidate_dir / "stdout.raw",
+        "stderr_raw": candidate_dir / "stderr.raw",
         "trace": candidate_dir / "trace.yml",
     }
 
@@ -4316,6 +5449,9 @@ def select_command(args: argparse.Namespace) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     errors = validate_direction(direction, root=root)
+    run_id = run_meta.get("run_id", run_dir.name)
+    if isinstance(run_id, str):
+        errors.extend(anchor_chain_errors(root, run_id=run_id, direction=direction))
     candidate_id = args.candidate
     if validate_run_id(candidate_id, source="candidate", errors=errors) is None:
         candidate_id = "invalid"
@@ -4361,7 +5497,6 @@ def select_command(args: argparse.Namespace) -> int:
         )
         errors.extend(trace_errors)
         errors.extend(selection_trace_public_errors(trace, direction))
-    run_id = run_meta.get("run_id", run_dir.name)
     prefix, prefix_errors = selection_output_prefix(root, run_dir, args.output_prefix, candidate_id=candidate_id)
     errors.extend(prefix_errors)
     targets = selection_artifact_targets(prefix) if prefix else {}
