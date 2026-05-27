@@ -39,12 +39,15 @@ mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
 cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
-The skills installed by this path are:
+The agent receives these routing surfaces:
 
 - `init-codex-harness`
 - `harness-engineer`
 - `autoresearch`
 - `multi-review`
+
+Ordinary users do not need to memorize those names. They are listed here so an
+installing agent can verify what it copied.
 
 The local plugin bundle is the fuller packaging artifact for Codex surfaces that
 support local plugin activation. Build and smoke-test it before enabling it in
@@ -57,9 +60,10 @@ python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 ```
 
-The activation smoke uses an isolated temporary `CODEX_HOME`; it proves the
-bundle shape and local activation mechanism, but it does not install the plugin
-into your real Codex home. If your Codex surface does not expose local plugin
+The activation smoke creates an isolated `CODEX_HOME`; it proves the bundle
+shape and local activation mechanism, but it does not install the plugin into
+your real Codex home and does not prove a running Codex Desktop session has surfaced those skills.
+If your Codex surface does not expose local plugin
 activation, keep the direct skill-copy install above.
 
 Direct skill copy is enough for init, harness-engineering, multi-review, and
@@ -73,8 +77,11 @@ python3 plugins/ai-agent-meta-harness/scripts/install-autoresearch-protection.py
 After install, ask Codex in the target project:
 
 ```text
-Apply codex-harness to this project.
+Apply meta-harness to this project.
 ```
+
+`Apply codex-harness to this project` is also accepted as a Codex-specific
+alias.
 
 ### Claude Code
 
@@ -105,7 +112,45 @@ target project. Use the `./governance` commands below inside this repository, or
 inside another repository that intentionally carries the same v2 governance
 scripts.
 
+## Using Meta-Harness In A Target Project
+
+After the first setup prompt, use the agent normally. Users do not need to name
+harness skills. The point of this adapter is that the user should not need to
+know whether the next step is init, harness-engineering, multi-review, or
+autoresearch.
+
+Common user phrases:
+
+| User says | Agent should do |
+|-----------|-----------------|
+| "Apply meta-harness to this project." | Initialize or update project instructions and trace folders. |
+| "set up agent memory/traces." | Initialize the same trace-backed harness surface. |
+| "Please build/fix/add this feature." | Work normally, using the project instructions and verifier. |
+| "This keeps failing." | Inspect raw traces, find recurrence, and evolve the harness before retrying. |
+| "stop repeating this mistake." | Turn the repeated failure into a trace-backed rule, verifier, hook, or test. |
+| "Review this carefully." or "am I missing anything?" | Use multi-perspective review when the decision is high risk or easy to misframe. |
+| "Try variants and keep the winner." or "keep the measurable winner." | Propose an autoresearch loop only when there is a fixed evaluator and metric. |
+
+What appears in the target project:
+
+```text
+AGENTS.md or CLAUDE.md          # Short project instructions for the agent
+.harness/traces/ or .claude/traces/
+.harness/traces/evolution/ or .claude/traces/evolution/
+.harness/traces/failures/ or .claude/traces/failures/
+.harness/traces/experiments/ or .claude/traces/experiments/
+.harness/traces/search-set.md or .claude/traces/search-set.md
+```
+
+The trace folders are the project memory. They are not a task queue for the
+user. The agent reads and writes them when a failure pattern, harness change, or
+measurable experiment makes that useful.
+
 ## Using The Repository-Local Meta-Harness
+
+Most projects use only the target-project harness above. Use this section only
+inside this repository, or inside another repository that intentionally carries
+the same v2 `governance` scripts.
 
 The practical default is intentionally small: make the content change, let
 `governance` infer the required evidence, then publish one archive-only
@@ -241,14 +286,15 @@ adapters/
 
 ## Verification
 
-For release-like local verification, prefer the executable release gate:
+For release-like local verification during the v2 transition, prefer the
+executable release gate:
 
 ```bash
 python3 scripts/verify-release.py --base-ref origin/main
 ```
 
-That release gate runs the standard verification set plus this repository's
-active search-set, active packet pointer gate, and clean-worktree gate. The
+That release gate runs the Standard verification set plus this repository's
+Active search-set, active packet pointer gate, and clean-worktree gate. The
 `--base-ref` flag makes packet and pointer checks compare committed changes
 against `REF...HEAD`, which is the intended mode for a clean release candidate.
 A release diff should publish one active pointer; use
@@ -279,8 +325,25 @@ git config core.hooksPath .githooks
 The pre-commit hook runs the repository's fast local checks for adapter paths,
 generated Codex plugin assets, marketplace metadata, maintenance review records,
 search-set evidence, backlog lifecycle records, and staged active packet
-publications. The heavier local plugin activation smoke is part of Standard
-verification rather than pre-commit.
+publications. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
+
+For a quick pre-commit-adjacent check:
+
+```bash
+sh .githooks/pre-commit
+```
+
+The hook includes:
+
+```bash
+python3 scripts/check-codex-marketplace-metadata.py
+python3 scripts/check-v1-archive-boundary.py --staged
+python3 scripts/check-backlog-archive-lifecycle.py --staged
+python3 scripts/check-active-packet-gate.py --staged
+```
+
+Those cover marketplace metadata readiness, the frozen v1 archive boundary,
+completed backlog archive pointers, and staged active packet publications.
 
 ## How It Works
 

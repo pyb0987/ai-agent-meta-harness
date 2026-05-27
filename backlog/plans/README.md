@@ -24,3 +24,8 @@ Plan 14 is a boundary definition for optional sandbox and concurrency hardening.
 It keeps the Plan 13 default workflow unchanged while labeling the stronger
 claims that would require a platform sandbox, dedicated evaluator user,
 transactional proposal store, or external high-water mark.
+
+Plan 15 is a user-experience layer for autonomous agent routing. It keeps the
+normal workflow simple by teaching installed agents to route ordinary user
+phrases to harness initialization, harness evolution, multi-review, or
+autoresearch without requiring users to memorize skill names.

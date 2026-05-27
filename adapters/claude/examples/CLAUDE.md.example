@@ -31,6 +31,13 @@ npm run typecheck    # tsc --noEmit
 
 ## Harness
 
+### Agent Routing
+- Users do not need to name harness skills.
+- Ordinary feature work stays ordinary.
+- "This keeps failing", "stop repeating this", or "make this not happen again" routes to harness-engineer.
+- "Review this carefully" or "am I missing anything?" routes to multi-review when risk warrants it.
+- "Try variants", "optimize this", or "keep the measurable winner" routes to autoresearch only with a fixed evaluator and clear metric.
+
 ### Hooks (`.claude/settings.local.json`)
 - PostToolUse Edit|Write on `*.ts` → `tsc --noEmit` (blocking)
 - PostToolUse Edit|Write on `*.test.ts` → `vitest run --reporter=verbose` (blocking)

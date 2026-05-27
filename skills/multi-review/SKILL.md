@@ -1,6 +1,6 @@
 ---
 name: multi-review
-description: "Dynamic multi-perspective review: spawn parallel critics with role separation for high-stakes decisions. Use when a decision needs validation from multiple independent viewpoints."
+description: "Dynamic multi-perspective review: spawn parallel critics with role separation for high-stakes decisions. Use when a decision needs validation from multiple independent viewpoints, or when the user says 'review this carefully', 'am I missing anything?', 'validate this from multiple angles', or 'get several independent perspectives'."
 ---
 
 <!-- Compatibility mirror of `adapters/claude/skills/multi-review/SKILL.md`. Edit the canonical source, not this file. -->

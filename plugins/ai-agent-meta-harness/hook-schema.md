@@ -23,6 +23,9 @@ This drift check validates documented output-shape assumptions only. It does not
   command-hook timeout assumptions remain unchanged. The installer still treats
   Codex hook files as target-project templates and does not enable plugin
   runtime hook manifest fields.
+- Re-verification note: 2026-05-28 Plan 15 updated agent-routing wording in
+  Codex skill descriptions and project templates only; no Codex hook JSON,
+  checker output, timeout, or runtime hook activation contract changed.
 - Re-verification note: 2026-05-04 item 36 added bounded command hook
   `timeout` values for protected-file checks; official Codex hooks docs were
   re-checked, and `timeout` remains a per-command-hook value in seconds with a

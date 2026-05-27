@@ -1,6 +1,6 @@
 ---
 name: multi-review
-description: "Run a Codex-compatible multi-perspective review with independent critics for high-stakes decisions, regressions with suspected confounders, or user requests for review from multiple angles."
+description: "Run a Codex-compatible multi-perspective review with independent critics for high-stakes decisions, regressions with suspected confounders, or user requests such as 'review this carefully', 'am I missing anything?', 'validate this from multiple angles', or 'get several independent perspectives'."
 ---
 
 # Multi-Review for Codex

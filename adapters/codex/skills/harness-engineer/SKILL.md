@@ -1,6 +1,6 @@
 ---
 name: harness-engineer
-description: "Use for Codex harness evolution after repeated agent failure, failed prior prevention, or explicit harness-engineering review. Not for one-off debugging, initial setup, product logic, or broad refactors."
+description: "Use for Codex harness evolution after repeated agent failure, failed prior prevention, or explicit harness-engineering review. Trigger on ordinary user phrases like 'this keeps failing', 'stop repeating this', 'make this not happen again', or 'improve the agent workflow'. Not for one-off debugging, initial setup, product logic, or broad refactors."
 ---
 
 # Harness Engineer for Codex

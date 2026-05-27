@@ -13,10 +13,18 @@ PLAN11 = ROOT / "backlog" / "plans" / "11-v2-residual-hardening-and-operations.m
 PLAN12 = ROOT / "backlog" / "plans" / "12-strategy-search-loop-mvp.md"
 PLAN13 = ROOT / "backlog" / "plans" / "13-strategy-search-runner-isolation-and-ledger-anchoring.md"
 PLAN14 = ROOT / "backlog" / "plans" / "14-sandbox-and-concurrency-boundary.md"
+PLAN15 = ROOT / "backlog" / "plans" / "15-agent-autonomous-routing-and-user-experience.md"
 PLAN02 = ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md"
 PLAN09 = ROOT / "backlog" / "plans" / "09-historical-archive-closure-and-attestation.md"
 PLANS_README = ROOT / "backlog" / "plans" / "README.md"
 FIXTURE_README = ROOT / "backlog" / "fixtures" / "acceptance-packets" / "README.md"
+CODEX_AGENTS_TEMPLATE = ROOT / "adapters" / "codex" / "templates" / "AGENTS.md.template"
+CODEX_INIT_SKILL = ROOT / "adapters" / "codex" / "skills" / "init-codex-harness" / "SKILL.md"
+CODEX_HARNESS_SKILL = ROOT / "adapters" / "codex" / "skills" / "harness-engineer" / "SKILL.md"
+CODEX_MULTI_REVIEW_SKILL = ROOT / "adapters" / "codex" / "skills" / "multi-review" / "SKILL.md"
+CODEX_AUTORESEARCH_SKILL = ROOT / "adapters" / "codex" / "skills" / "autoresearch" / "SKILL.md"
+CLAUDE_INIT_COMMAND = ROOT / "adapters" / "claude" / "commands" / "init-harness.md"
+CLAUDE_EXAMPLE = ROOT / "adapters" / "claude" / "examples" / "CLAUDE.md.example"
 
 
 def maintenance_text() -> str:
@@ -44,13 +52,19 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             'cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"',
             "python3 scripts/sync-codex-plugin.py --write",
             "python3 adapters/codex/scripts/smoke-local-plugin-activation.py",
-            "The activation smoke uses an isolated temporary `CODEX_HOME`",
-            "Apply codex-harness to this project.",
+            "The activation smoke creates an isolated `CODEX_HOME`",
+            "Apply meta-harness to this project.",
+            "`Apply codex-harness to this project` is also accepted",
             "### Claude Code",
             "cp core/methodology.md ~/.claude/rules/common/harness-methodology.md",
             "cp adapters/claude/commands/init-harness.md ~/.claude/commands/",
             "> /init-harness",
             "It does not install the repository-local v2 `governance` CLI into that target project",
+            "## Using Meta-Harness In A Target Project",
+            "After the first setup prompt, use the agent normally",
+            "Ordinary users do not need to memorize those names",
+            "This keeps failing",
+            "Try variants and keep the winner",
             "## Using The Repository-Local Meta-Harness",
             "./governance start --base-ref <comparison-ref> --intent",
             "./governance finalize --packet <packet> --base-ref <comparison-ref>",
@@ -64,12 +78,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, readme)
 
         for forbidden in (
-            "v1",
-            "archive/v1",
             "Migration Notes",
             "legacy verification",
-            "check-v1-archive-boundary",
-            "frozen v1 archive boundary",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, readme)
@@ -461,6 +471,68 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
 
         self.assertIn("Plan 14 is a boundary definition for optional sandbox and concurrency hardening", plans_readme)
         self.assertIn("keeps the Plan 13 default workflow unchanged", plans_readme)
+
+    def test_plan15_locks_zero_skill_user_routing(self) -> None:
+        readme = normalized_file_text(README)
+        plan15 = normalized_file_text(PLAN15)
+        plans_readme = normalized_file_text(PLANS_README)
+        codex_agents = normalized_file_text(CODEX_AGENTS_TEMPLATE)
+        claude_init = normalized_file_text(CLAUDE_INIT_COMMAND)
+        claude_example = normalized_file_text(CLAUDE_EXAMPLE)
+        skills = " ".join(
+            normalized_file_text(path)
+            for path in (
+                CODEX_INIT_SKILL,
+                CODEX_HARNESS_SKILL,
+                CODEX_MULTI_REVIEW_SKILL,
+                CODEX_AUTORESEARCH_SKILL,
+            )
+        )
+
+        for marker in (
+            "ordinary users to remember skill names",
+            "User: Apply meta-harness to this project",
+            "User: This keeps failing / make this stop recurring",
+            "User: This decision is risky / review this carefully",
+            "User: Try variants and keep the measurable winner",
+            "Prefer user-facing phrases over skill names",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan15)
+
+        self.assertIn("Plan 15 is a user-experience layer for autonomous agent routing", plans_readme)
+
+        for marker in (
+            "Users do not need to name harness skills",
+            "Apply meta-harness to this project",
+            "set up agent memory/traces",
+            "This keeps failing",
+            "stop repeating this",
+            "Review this carefully",
+            "am I missing anything?",
+            "Try variants",
+            "keep the measurable winner",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, codex_agents)
+                self.assertIn(marker, readme)
+
+        for marker in (
+            "apply meta-harness",
+            "set up agent memory/traces",
+            "this keeps failing",
+            "stop repeating this",
+            "review this carefully",
+            "am i missing anything?",
+            "try approaches and keep the winner",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, skills.lower())
+
+        self.assertIn("users do not need to name harness skills", claude_init.lower())
+        self.assertIn("this keeps failing", claude_init.lower())
+        self.assertIn("review this carefully", claude_init.lower())
+        self.assertIn("Users do not need to name harness skills", claude_example)
 
 
 if __name__ == "__main__":

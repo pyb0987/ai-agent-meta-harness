@@ -98,6 +98,7 @@ Write or enhance project CLAUDE.md:
 5. **Harness section required**:
    - Hook list + each hook's enforcement level (blocking/warning)
    - .claude/traces/ structure
+   - **Agent routing**: users do not need to name harness skills. Ordinary work stays ordinary; "this keeps failing" / "stop repeating this" routes to harness-engineer; "review this carefully" / "am I missing anything?" routes to multi-review when risk warrants it; "try variants" / "optimize this" routes to autoresearch only when a fixed evaluator and clear metric exist
    - **Change strategy**: Additive first -> Subtractive -> Structural (one at a time, confounding variable isolation)
    - **Failure escalation loop**: a `resolved: true` failure trace under the selected trace root must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
    - **Sub-agent triggers**: reference `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" — two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence). Generic sub-agent uses (parallel Explore, context firewall) are Claude Code runtime tactics, not harness methodology; use them only when they materially preserve independence or unblock bounded parallel work

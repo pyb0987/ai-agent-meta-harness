@@ -1,6 +1,6 @@
 ---
 name: harness-engineer
-description: "INVOKE THIS SKILL when agent repeatedly fails at a task pattern, when evolving CLAUDE.md rules after failure, or when reviewing harness quality. NOT for initial setup (use /init-harness instead)."
+description: "INVOKE THIS SKILL when agent repeatedly fails at a task pattern, when evolving CLAUDE.md rules after failure, or when reviewing harness quality. Trigger on phrases like 'this keeps failing', 'stop repeating this', 'make this not happen again', or 'improve the agent workflow'. NOT for initial setup (use /init-harness instead)."
 ---
 
 <!-- Compatibility mirror of `adapters/claude/skills/harness-engineer/SKILL.md`. Edit the canonical source, not this file. -->

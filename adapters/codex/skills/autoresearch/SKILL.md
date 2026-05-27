@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: "Set up or run a Codex-compatible autoresearch loop with program.md direction, fixed JSON evaluator, mutable genome, experiments.jsonl, and .harness trace episodes. Use for measurable hypothesis -> experiment -> evaluate -> ADOPT/REJECT cycles."
+description: "Set up or run a Codex-compatible autoresearch loop with program.md direction, fixed JSON evaluator, mutable genome, experiments.jsonl, and .harness trace episodes. Use when the user wants measurable variants, autonomous experiments, optimization, or 'try approaches and keep the winner' through hypothesis -> experiment -> evaluate -> ADOPT/REJECT cycles."
 ---
 
 # Autoresearch for Codex

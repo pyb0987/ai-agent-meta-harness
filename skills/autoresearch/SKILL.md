@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: "Autonomous experiment loop: setup and run Karpathy-style autoresearch with fixed evaluator + mutable genome + program.md direction. Use when a project needs automated hypothesis→experiment→evaluate→keep/discard cycles."
+description: "Autonomous experiment loop: setup and run Karpathy-style autoresearch with fixed evaluator + mutable genome + program.md direction. Use when a project needs measurable variants, optimization, autonomous experiments, or automated hypothesis->experiment->evaluate->keep/discard cycles."
 ---
 
 # Autoresearch Protocol

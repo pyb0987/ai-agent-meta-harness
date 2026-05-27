@@ -17,6 +17,18 @@
 
 ## Harness
 
+### Agent Routing
+
+Users do not need to name harness skills. Route ordinary requests by intent:
+
+- "Apply meta-harness to this project" or "set up agent memory/traces" means initialize or update this project harness.
+- "This keeps failing", "stop repeating this", or "make this not happen again" means inspect raw traces and evolve the harness before another retry.
+- "Review this carefully", "am I missing anything?", or other high-stakes judgment requests mean use multi-perspective review when it materially reduces risk.
+- "Try variants", "optimize this", or "keep the measurable winner" means propose an autoresearch loop only when a fixed evaluator and clear metric exist.
+
+For ordinary feature work, work normally. Escalate only when the request or
+evidence matches one of the routing signals above.
+
 ### Trace Root
 
 Use `{TRACE_ROOT}` for harness history:

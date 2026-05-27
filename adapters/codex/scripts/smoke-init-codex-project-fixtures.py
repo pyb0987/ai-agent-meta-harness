@@ -94,6 +94,14 @@ def agents(trace_root: str, command: str, *, migrated: bool = False) -> str:
 
     ## Harness
 
+    ### Agent Routing
+
+    Users do not need to name harness skills. Route ordinary requests by intent:
+    apply meta-harness means initialize this harness; this keeps failing means
+    inspect raw traces and evolve the harness; review this carefully means
+    multi-perspective review; try variants means autoresearch only with a fixed
+    evaluator and clear metric.
+
     Use `{trace_root}` for harness history. Before and after harness changes,
     run Active verify commands from `{trace_root}/search-set.md` when practical
     and record PASS/FAIL in the related evolution trace.
