@@ -44,12 +44,30 @@ def search_set(command: str, source: str) -> str:
     """
 
 
+def retrieval_frontmatter(project_type: str, trace_root: str) -> str:
+    if project_type == "migrated":
+        return f"""
+        retrieval:
+          mode: selective
+          raw_trace_refs:
+            - file: {trace_root}/failures/001-existing-regression.md
+              lines: 5
+              quote: "Existing meaningful failure trace."
+        """
+    return """
+    retrieval:
+      mode: not_needed
+      reason: "Initial Codex harness setup did not rely on prior trace history."
+    """
+
+
 def evolution_trace(project_type: str, trace_root: str, command: str) -> str:
     return f"""
     ---
     title: initial-codex-harness
     project_type: {project_type}
     trace_root: {trace_root}
+    {retrieval_frontmatter(project_type, trace_root)}
     ---
 
     ## Trigger
@@ -105,6 +123,10 @@ def agents(trace_root: str, command: str, *, migrated: bool = False) -> str:
     Use `{trace_root}` for harness history. Before and after harness changes,
     run Active verify commands from `{trace_root}/search-set.md` when practical
     and record PASS/FAIL in the related evolution trace.
+    When harness-changing claims depend on trace history, record
+    `retrieval.mode` and byte-matching `raw_trace_refs` in the trace
+    frontmatter. Use `mode: not_needed` when no prior trace claim is made.
+    Trace catalogs are retrieval pointers, not evidence.
     {migration_note}
 
     ## Codex Notes
@@ -174,7 +196,16 @@ def create_migrated_fixture(root: Path) -> Path:
     trace_root = ".claude/traces"
     command = "npm test -- --runInBand"
     write(project / f"{trace_root}/search-set.md", search_set(command, "existing Claude Active case"))
-    write(project / f"{trace_root}/failures/001-existing-regression.md", "resolved: false\n\nExisting meaningful failure trace.\n")
+    write(
+        project / f"{trace_root}/failures/001-existing-regression.md",
+        """
+        ---
+        resolved: false
+        ---
+
+        Existing meaningful failure trace.
+        """,
+    )
     write(project / f"{trace_root}/evolution/001-initial-codex-harness.md", evolution_trace("migrated", trace_root, command))
     (project / f"{trace_root}/experiments").mkdir(parents=True)
     write(project / "AGENTS.md", agents(trace_root, command, migrated=True))
@@ -261,9 +292,15 @@ def validate_trace_root(project: Path, trace_root: str, command: str, *, migrate
         errors.append(f"{project.name}: MISSING INITIAL EVOLUTION TRACE: {rel(project, evolution)}")
     else:
         text = read(evolution)
-        for marker in ("---", "## Trigger", "## Diagnosis", "## Change", "## Result", "## Lesson"):
+        for marker in ("---", "retrieval:", "mode:", "## Trigger", "## Diagnosis", "## Change", "## Result", "## Lesson"):
             if marker not in text:
                 errors.append(f"{project.name}: EVOLUTION TRACE MISSING MARKER: {marker}")
+        if migrated:
+            for marker in ("mode: selective", "raw_trace_refs:", "001-existing-regression.md"):
+                if marker not in text:
+                    errors.append(f"{project.name}: EVOLUTION TRACE MISSING MIGRATED RETRIEVAL MARKER: {marker}")
+        elif "mode: not_needed" not in text:
+            errors.append(f"{project.name}: EVOLUTION TRACE MISSING NOT_NEEDED RETRIEVAL MODE")
     harness_root = project / ".harness" / "traces"
     if migrated and harness_root.exists():
         errors.append(f"{project.name}: MIGRATED PROJECT MUST NOT SPLIT HISTORY INTO .harness/traces")
@@ -278,7 +315,14 @@ def validate_agents(project: Path, trace_root: str, command: str, *, migrated: b
         return [f"{project.name}: MISSING AGENTS.md"]
     text = read(path)
     errors: list[str] = []
-    for marker in (trace_root, f"{trace_root}/search-set.md", command, "Active verify commands"):
+    for marker in (
+        trace_root,
+        f"{trace_root}/search-set.md",
+        command,
+        "Active verify commands",
+        "retrieval.mode",
+        "Trace catalogs are retrieval pointers, not evidence",
+    ):
         if marker not in text:
             errors.append(f"{project.name}: AGENTS.md MISSING MARKER: {marker}")
     if migrated:

@@ -30,6 +30,11 @@ class PreCommitHookTests(unittest.TestCase):
 
         self.assertIn("python3 scripts/check-search-set-evidence.py --staged", text)
 
+    def test_hook_runs_staged_trace_retrieval_provenance_checker(self):
+        text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
+
+        self.assertIn("python3 scripts/check-trace-retrieval-provenance.py --staged", text)
+
     def test_hook_runs_staged_backlog_archive_lifecycle_checker(self):
         text = (ROOT / ".githooks/pre-commit").read_text(encoding="utf-8")
 
@@ -55,10 +60,12 @@ class PreCommitHookTests(unittest.TestCase):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("python3 scripts/check-backlog-archive-lifecycle.py --staged", text)
+        self.assertIn("python3 scripts/check-trace-retrieval-provenance.py --staged", text)
         self.assertIn("python3 scripts/check-v1-archive-boundary.py --staged", text)
         self.assertIn("python3 scripts/check-active-packet-gate.py --staged", text)
         self.assertIn("completed backlog archive pointers", text)
         self.assertIn("frozen v1 archive boundary", text)
+        self.assertIn("trace retrieval provenance", text)
         self.assertIn("staged active packet publications", text)
 
     def test_standard_verification_runs_codex_activation_smoke(self):

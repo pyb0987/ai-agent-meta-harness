@@ -48,6 +48,25 @@ Use additive changes first, subtractive changes second, structural changes last.
 
 Before and after harness changes, run Active verify commands from `{TRACE_ROOT}/search-set.md` when practical. Record PASS/FAIL and key output lines in the related evolution trace.
 
+### Trace Retrieval Provenance
+
+For harness changes or repeated-failure diagnosis, cite raw trace evidence with
+byte-matching quotes in the evolution/failure trace frontmatter:
+
+```yaml
+retrieval:
+  mode: selective
+  raw_trace_refs:
+    - file: {TRACE_ROOT}/failures/001-example.md
+      lines: 12-18
+      quote: "exact raw text copied from the cited line range"
+```
+
+Use `mode: full_scan` with a reason when broad trace inspection is justified.
+Use `mode: not_needed` with a reason only when no historical trace claim is
+made. Trace catalogs are retrieval pointers, not evidence; if a catalog/query
+helper returns candidates, open the raw trace before citing it.
+
 ### Failure Recording
 
 Record failures that require causal reasoning, produce results opposite to hypothesis, or reveal a new guard violation type. Do not record simple typos or obvious one-off fixes.

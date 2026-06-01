@@ -181,6 +181,70 @@ Useful grep filters:
 - `grep -l 'resolved: false' traces/failures/` — find unresolved failures
 - `grep -l 'type: structural' traces/evolution/` — find structural changes
 
+### Trace Retrieval Provenance
+
+Selective trace retrieval is an evidence discipline, not a filesystem
+access-control boundary. Agents may full-scan the trace root when justified, but
+harness-changing records must make their retrieval claim checkable.
+
+Use one canonical frontmatter block:
+
+```yaml
+retrieval:
+  mode: selective | full_scan | not_needed
+```
+
+- `selective`: targeted trace retrieval was used; include raw trace refs.
+- `full_scan`: a whole trace root or subtree was inspected; include `reason`
+  and raw trace refs.
+- `not_needed`: no historical trace claim was made; include `reason` and do not
+  include raw trace refs.
+
+When trace history supports the diagnosis or claim, cite raw trace bytes:
+
+```yaml
+retrieval:
+  mode: selective
+  raw_trace_refs:
+    - file: .harness/traces/failures/001-example.md
+      lines: 12-18
+      quote: "exact raw text copied from the cited line range"
+```
+
+The checker verifies that the file is inside the active trace root, the line
+range is bounded, and the UTF-8 bytes of `quote` occur inside the cited raw line
+span. This proves the quoted bytes exist. It does not prove semantic relevance
+or retrieval completeness.
+
+Trace catalogs are only retrieval pointers. They may list path, kind, status,
+date, tags, touched files, and search-set refs, but catalog entries do not
+certify evidence and cannot replace raw trace refs. Avoid narrative summaries
+in catalogs unless they are explicitly labeled non-certifying.
+
+Repository-local helper:
+
+```bash
+python3 scripts/trace-query.py catalog --trace-root .harness/traces --write
+python3 scripts/trace-query.py query --trace-root .harness/traces --query "typecheck loop"
+```
+
+The query helper returns candidate raw trace paths. Open the raw trace before
+using it as evidence. `--use-stored` fails closed when the stored catalog is
+stale relative to the current trace files.
+
+Experiment episode frontmatter should be grep-able without replacing the raw
+episode body:
+
+```yaml
+kind: experiment
+date: "YYYY-MM-DD"
+objective: "what this episode tried"
+metric: "fixed evaluator or metric"
+verdict: adopted | rejected | mixed | blocked
+tags: [area, failure-mode]
+evaluator: "command or tool used"
+```
+
 ## 2. Analysis — Project Diagnosis
 
 When applying a harness to a new project, analyze the following. Runtime adapters decide concrete instruction filenames and hook mechanisms.

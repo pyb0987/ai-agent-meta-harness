@@ -46,6 +46,8 @@ npm run typecheck    # tsc --noEmit
 - `.claude/traces/evolution/` — harness change history
 - `.claude/traces/failures/` — failure diagnosis (YAML: classification, resolved)
 - `.claude/traces/search-set.md` — verification cases
+- Harness-changing trace claims use `retrieval.mode` plus byte-matching
+  `raw_trace_refs`; trace catalogs are retrieval pointers, not evidence.
 
 ### Change Strategy
 Additive first → Subtractive → Structural. One change at a time.

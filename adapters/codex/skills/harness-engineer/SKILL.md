@@ -70,6 +70,13 @@ Before starting harness evolution work, define `Done when: ...` as a specific, v
 5. Read raw command output, diffs, test failures, and relevant code. Do not rely on summaries.
 6. If a similar failure exists, diagnose why the prior Prevention did not work before proposing a new one.
 
+When a harness change or failure diagnosis depends on prior trace history,
+record retrieval provenance in the new evolution/failure trace. Use
+`retrieval.mode` plus byte-matching `raw_trace_refs`. Trace catalogs are
+retrieval pointers, not evidence. Use `mode: full_scan` with a reason when broad
+inspection is justified, and `mode: not_needed` with a reason only when no
+historical trace claim is made.
+
 ## Change Strategy
 
 Apply changes in this order:
@@ -205,6 +212,13 @@ type: additive | subtractive | structural
 verdict: improved | regressed | neutral
 files_changed: ["path"]
 refs: []
+retrieval:
+  mode: selective | full_scan | not_needed
+  reason: "required for full_scan or not_needed"
+  raw_trace_refs:
+    - file: {trace_root}/failures/001-example.md
+      lines: 12-18
+      quote: "exact raw text copied from the cited line range"
 ---
 
 ## Iteration NNN: {title}
@@ -232,6 +246,13 @@ date: "YYYY-MM-DD"
 escalated_to: instructions | docs | skill | hook | tool | test | ci | none
 search_set_id: "SS-NNN"
 resolved: true | false
+retrieval:
+  mode: selective | full_scan | not_needed
+  reason: "required for full_scan or not_needed"
+  raw_trace_refs:
+    - file: {trace_root}/failures/001-example.md
+      lines: 12-18
+      quote: "exact raw text copied from the cited line range"
 ---
 
 ## Failure: {title}

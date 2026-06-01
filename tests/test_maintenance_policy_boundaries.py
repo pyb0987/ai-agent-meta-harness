@@ -14,8 +14,10 @@ PLAN12 = ROOT / "backlog" / "plans" / "12-strategy-search-loop-mvp.md"
 PLAN13 = ROOT / "backlog" / "plans" / "13-strategy-search-runner-isolation-and-ledger-anchoring.md"
 PLAN14 = ROOT / "backlog" / "plans" / "14-sandbox-and-concurrency-boundary.md"
 PLAN15 = ROOT / "backlog" / "plans" / "15-agent-autonomous-routing-and-user-experience.md"
+PLAN16 = ROOT / "backlog" / "plans" / "16-trace-retrieval-provenance.md"
 PLAN02 = ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md"
 PLAN09 = ROOT / "backlog" / "plans" / "09-historical-archive-closure-and-attestation.md"
+CORE_REFERENCE = ROOT / "core" / "reference.md"
 PLANS_README = ROOT / "backlog" / "plans" / "README.md"
 FIXTURE_README = ROOT / "backlog" / "fixtures" / "acceptance-packets" / "README.md"
 CODEX_AGENTS_TEMPLATE = ROOT / "adapters" / "codex" / "templates" / "AGENTS.md.template"
@@ -106,6 +108,47 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
+
+    def test_plan16_trace_retrieval_provenance_is_raw_trace_first(self) -> None:
+        plan = normalized_file_text(PLAN16)
+        reference = normalized_file_text(CORE_REFERENCE)
+        codex_template = normalized_file_text(CODEX_AGENTS_TEMPLATE)
+        claude_example = normalized_file_text(CLAUDE_EXAMPLE)
+        codex_harness = normalized_file_text(CODEX_HARNESS_SKILL)
+
+        for marker in (
+            "Selective retrieval is a discipline and evidence rule, not a filesystem access-control boundary",
+            "catalog entries must not certify or replace raw trace evidence",
+            "Retrieval records use one canonical schema: `retrieval.mode`",
+            "UTF-8 byte-span quote matching over cited line ranges",
+            "checker verifies cited bytes, not semantic relevance or retrieval completeness",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan)
+
+        for marker in (
+            "Trace Retrieval Provenance",
+            "retrieval:",
+            "mode: selective | full_scan | not_needed",
+            "exact raw text copied from the cited line range",
+            "Trace catalogs are only retrieval pointers",
+            "This proves the quoted bytes exist. It does not prove semantic relevance or retrieval completeness.",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, reference)
+
+        for marker in (
+            "Trace Retrieval Provenance",
+            "byte-matching quotes",
+            "Trace catalogs are retrieval pointers, not evidence",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, codex_template)
+
+        self.assertIn("retrieval.mode", claude_example)
+        self.assertIn("byte-matching", claude_example)
+        self.assertIn("retrieval.mode", codex_harness)
+        self.assertIn("Trace catalogs are retrieval pointers, not evidence", codex_harness)
 
     def test_v1_gates_are_archived_not_active_target(self) -> None:
         text = normalized_text()

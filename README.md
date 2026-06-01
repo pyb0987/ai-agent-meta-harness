@@ -324,8 +324,8 @@ git config core.hooksPath .githooks
 
 The pre-commit hook runs the repository's fast local checks for adapter paths,
 generated Codex plugin assets, marketplace metadata, maintenance review records,
-search-set evidence, backlog lifecycle records, and staged active packet
-publications. The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
+search-set evidence, backlog lifecycle records, and staged active packet publications.
+The heavier local plugin activation smoke is part of Standard verification rather than pre-commit.
 
 For a quick pre-commit-adjacent check:
 
@@ -338,12 +338,14 @@ The hook includes:
 ```bash
 python3 scripts/check-codex-marketplace-metadata.py
 python3 scripts/check-v1-archive-boundary.py --staged
+python3 scripts/check-trace-retrieval-provenance.py --staged
 python3 scripts/check-backlog-archive-lifecycle.py --staged
 python3 scripts/check-active-packet-gate.py --staged
 ```
 
 Those cover marketplace metadata readiness, the frozen v1 archive boundary,
-completed backlog archive pointers, and staged active packet publications.
+trace retrieval provenance, completed backlog archive pointers, and staged
+active packet publications.
 
 ## How It Works
 

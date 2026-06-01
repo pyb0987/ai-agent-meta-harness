@@ -29,3 +29,8 @@ Plan 15 is a user-experience layer for autonomous agent routing. It keeps the
 normal workflow simple by teaching installed agents to route ordinary user
 phrases to harness initialization, harness evolution, multi-review, or
 autoresearch without requiring users to memorize skill names.
+
+Plan 16 is a trace retrieval provenance layer. It keeps raw traces accessible
+while requiring harness-impacting claims to cite byte-matching raw trace
+quotes, so catalog entries remain retrieval pointers rather than evidence
+substitutes.

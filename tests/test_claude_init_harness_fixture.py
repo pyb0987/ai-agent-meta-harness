@@ -44,6 +44,11 @@ def smoke_validate_init_harness_output(project: Path, trace_root: str = ".claude
 
     if not (project / trace_root / "evolution/001-initial-harness.md").is_file():
         errors.append(f"MISSING FILE: {trace_root}/evolution/001-initial-harness.md")
+    else:
+        text = (project / trace_root / "evolution/001-initial-harness.md").read_text(encoding="utf-8")
+        for marker in ("retrieval:", "mode:"):
+            if marker not in text:
+                errors.append(f"INITIAL EVOLUTION MISSING: {marker}")
 
     claude_md = project / "CLAUDE.md"
     if not claude_md.is_file():
@@ -102,6 +107,9 @@ class ClaudeInitHarnessFixtureSmokeTests(unittest.TestCase):
 iteration: 1
 type: additive
 verdict: neutral
+retrieval:
+  mode: not_needed
+  reason: "Fixture setup did not rely on prior trace history."
 ---
 
 # Initial Harness
@@ -178,6 +186,9 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
 iteration: 1
 type: additive
 verdict: neutral
+retrieval:
+  mode: not_needed
+  reason: "Fixture migration contract test writes synthetic history only."
 ---
 
 # Initial Harness

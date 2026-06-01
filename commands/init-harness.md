@@ -211,6 +211,11 @@ After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial
 `{trace_root}/evolution/001-initial-harness.md`:
 - iteration 1, date, type: additive, verdict: neutral
 - Record actually added hooks, rules, tests, and their rationale
+- Include `retrieval.mode: not_needed` with a reason when no prior trace
+  history was used, or `retrieval.mode: selective` with byte-matching
+  `raw_trace_refs` when existing trace history informed the setup
+- Treat trace catalogs as retrieval pointers only; cite raw evolution/failure
+  traces when making a historical claim
 - Format: see reference.md Section 1
 
 ### Step 8: Completion Verification
@@ -221,6 +226,7 @@ All items below must pass for init-harness to be complete:
 - [ ] `{trace_root}/{evolution,failures,experiments}/` directories exist, where `{trace_root}` is normally `.claude/traces/` unless meaningful migrated history was explicitly reused from `.harness/traces/`
 - [ ] `{trace_root}/search-set.md` template or reused Active search-set exists
 - [ ] `{trace_root}/evolution/001-initial-harness.md` written (Step 7)
+- [ ] Initial evolution log records `retrieval.mode`
 - [ ] CLAUDE.md includes Harness section (.claude/hooks/, selected trace root, change strategy, sub-agent triggers)
 - [ ] Multi-review skill availability verified (`~/.claude/skills/multi-review/SKILL.md` exists, or user instructed to install from `{repo}/adapters/claude/skills/multi-review/`)
 - [ ] CLAUDE.md within 100 lines (split to docs/ complete if exceeded)

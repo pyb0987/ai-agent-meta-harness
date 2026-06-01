@@ -60,6 +60,12 @@ Propose harness changes while freely diagnosing within the following constraints
 - **Required procedure (Non-Markovian)**: Before starting diagnosis, always run `ls {trace_root}/failures/` to check for similar past failures. If found, Read the file and diagnose why the prior Prevention did not work first. Do not skip this step
 - If a similar failure exists in `{trace_root}/failures/`, diagnose why the prior Prevention failed before anything else
 - **Autoresearch projects**: Read Exhausted Axes / Lesson sections from `{trace_root}/experiments/` episodes directly (experiments/ has no classification field — use Read-based reference instead of grep)
+- **Retrieval provenance**: when writing an evolution or failure trace that
+  depends on prior trace history, include `retrieval.mode` and byte-matching
+  `raw_trace_refs` in frontmatter. Use `mode: full_scan` with a reason when
+  broad inspection is justified, and `mode: not_needed` with a reason only when
+  no historical trace claim is made. Trace catalogs are retrieval pointers, not
+  evidence.
 
 ### Change Strategy
 - **Additive → Subtractive → Structural** order (confounding variable isolation)
@@ -76,7 +82,8 @@ Propose harness changes while freely diagnosing within the following constraints
 ### Recording (Required)
 - All changes → `{trace_root}/evolution/NNN-{name}.md` (with YAML frontmatter)
 - All failure diagnoses → `{trace_root}/failures/NNN-{name}.md` (with YAML frontmatter)
-- Formats: see reference.md
+- Formats: see reference.md. Harness-impacting records should include the
+  retrieval provenance block described above.
 
 ### Prohibited
 - Directly modifying CLAUDE.md without user confirmation

@@ -145,6 +145,15 @@ If verification is expensive or unsafe, record why it was skipped and what comma
 
 Write `{trace_root}/evolution/001-initial-codex-harness.md` with YAML frontmatter and sections for Trigger, Diagnosis, Change, Result, and Lesson.
 
+Include trace retrieval provenance in the frontmatter:
+
+- Use `retrieval.mode: not_needed` plus a short `reason` when the initial
+  harness setup did not rely on prior trace history.
+- Use `retrieval.mode: selective` plus byte-matching `raw_trace_refs` when the
+  setup reuses existing `.claude/traces/` or `.harness/traces/` history.
+- Treat trace catalogs as retrieval pointers only; cite raw evolution/failure
+  traces when making a historical claim.
+
 ### Step 7: Completion Check
 
 Confirm:
@@ -153,6 +162,7 @@ Confirm:
 - `search-set.md` has at least one Active executable `verify`
 - `AGENTS.md` names the trace root and verification policy
 - Initial evolution trace exists
+- Initial evolution trace records `retrieval.mode`
 - No Claude-only hook configuration was added for Codex
 
 ## Output
