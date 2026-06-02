@@ -75,7 +75,9 @@ record retrieval provenance in the new evolution/failure trace. Use
 `retrieval.mode` plus byte-matching `raw_trace_refs`. Trace catalogs are
 retrieval pointers, not evidence. Use `mode: full_scan` with a reason when broad
 inspection is justified, and `mode: not_needed` with a reason only when no
-historical trace claim is made.
+historical trace claim is made. Structural harness changes cannot use
+`not_needed`. Keep cited spans to 40 lines or fewer, and quote at least 24
+non-whitespace characters.
 
 ## Change Strategy
 

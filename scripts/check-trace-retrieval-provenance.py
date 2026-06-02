@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TRACE_RECORD_PARTS = {"evolution", "failures"}
 VALID_MODES = {"selective", "full_scan", "not_needed"}
 CATALOG_NAMES = {"trace-catalog.jsonl", "trace-catalog.yml", "trace-catalog.yaml"}
+MAX_QUOTE_LINE_SPAN = 40
+MIN_QUOTE_NONSPACE_CHARS = 24
 
 
 class ProvenanceError(ValueError):
@@ -137,6 +139,10 @@ def line_span(data: bytes, start: int, end: int, source: str) -> bytes:
     return b"".join(lines[start - 1 : end])
 
 
+def nonspace_length(text: str) -> int:
+    return sum(1 for char in text if not char.isspace())
+
+
 def validate_raw_trace_ref(
     ref: object,
     *,
@@ -172,6 +178,15 @@ def validate_raw_trace_ref(
     except ProvenanceError as exc:
         errors.append(str(exc))
         return errors
+    span_width = end - start + 1
+    if span_width > MAX_QUOTE_LINE_SPAN:
+        errors.append(
+            f"{source}: cited line span must be at most {MAX_QUOTE_LINE_SPAN} lines, got {span_width}"
+        )
+    if nonspace_length(quote) < MIN_QUOTE_NONSPACE_CHARS:
+        errors.append(
+            f"{source}: quote must contain at least {MIN_QUOTE_NONSPACE_CHARS} non-whitespace characters"
+        )
     try:
         span = line_span(raw, start, end, source)
     except ProvenanceError as exc:
@@ -205,6 +220,8 @@ def validate_retrieval(
         not isinstance(reason, str) or not reason.strip()
     ):
         errors.append(f"{path}: retrieval.mode {mode} requires a non-empty reason")
+    if mode == "not_needed" and frontmatter.get("type") == "structural":
+        errors.append(f"{path}: structural evolution traces cannot use retrieval.mode not_needed")
     trace_root = trace_root_for(path)
     if trace_root is None:
         errors.append(f"{path}: cannot infer trace root")

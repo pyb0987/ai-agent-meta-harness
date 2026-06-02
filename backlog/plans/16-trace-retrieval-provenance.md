@@ -125,11 +125,14 @@ MVP checker behavior:
   cited line range. The checker should split source files by raw newline bytes,
   preserve line endings for span calculation, and avoid replacing this with a
   generated summary comparison.
+- cited line spans must be narrow: at most 40 lines.
+- quotes must be substantial: at least 24 non-whitespace characters.
 - multi-line quotes are allowed when they match bytes within the cited span.
 - catalog files are not accepted as `raw_trace_refs`.
 - a record that cites only a catalog entry is not sufficient evidence.
 - `mode: full_scan` and `mode: not_needed` require `reason`.
 - `mode: selective` and `mode: full_scan` require non-empty `raw_trace_refs`.
+- structural evolution traces cannot use `mode: not_needed`.
 
 This proves that the cited bytes exist. It does not prove that the agent's
 interpretation is correct or that retrieval was complete.
@@ -279,7 +282,9 @@ less fragile.
 - Slice 1 implemented in `core/reference.md`, `docs/reference.md`, Codex
   AGENTS templates, Claude examples, and harness-engineer skills.
 - Slice 2 implemented in `scripts/check-trace-retrieval-provenance.py` and
-  `.githooks/pre-commit`.
+  `.githooks/pre-commit`, with staged-index-only reads, bounded quote spans,
+  minimum quote substance, and a `not_needed` block for structural evolution
+  traces.
 - Slice 3 and Slice 4 implemented in `scripts/trace-query.py`: catalog output
   is metadata-only JSONL, query output is candidate raw trace paths, and stored
   catalog use fails closed when source hashes are stale.
@@ -350,8 +355,9 @@ Multi-review:
 - Mode: sequential fallback review with separated critics; no sub-agent
   independence claimed.
 - Raw-Evidence Critic: score 9, PASS. Blocking findings: none. The checker
-  verifies raw trace byte quotes and rejects catalog refs as evidence.
-  Residual: quote existence still does not prove semantic sufficiency.
+  verifies raw trace byte quotes, rejects catalog refs as evidence, caps cited
+  spans, and rejects trivial quotes. Residual: quote existence still does not
+  prove semantic sufficiency.
 - User-Experience Critic: score 9, PASS. Blocking findings: none. Init
   instructions and fixture contracts choose `not_needed` for first setup and
   `selective` for reused history, so ordinary users do not need to know the
@@ -374,3 +380,32 @@ Multi-review:
 - Final acceptance: accepted for Plan 16 repository implementation as advisory
   implementation review. This prose multi-review is not a governance-mode
   MultiReviewResult artifact and is not stable acceptance evidence by itself.
+
+## Follow-up Review
+
+Multi-review:
+
+- Mode: sequential fallback review with separated critics; no sub-agent
+  independence claimed.
+- Provenance-Theater Critic: score 9, PASS. Blocking findings: fixed before
+  acceptance. Initial issue: wide line spans and trivial quotes could satisfy
+  byte matching while proving little. Fix: cap cited spans at 40 lines and
+  require at least 24 non-whitespace quote characters. Why not 10: quote
+  matching still cannot prove the agent read enough context. Follow-up/residual
+  risk: accepted.
+- Escape-Hatch Critic: score 9, PASS. Blocking findings: fixed before
+  acceptance. Initial issue: `mode: not_needed` could be used on high-stakes
+  structural harness changes. Fix: structural evolution traces cannot use
+  `not_needed`. Why not 10: lower-risk additive/subtractive records can still
+  use `not_needed` with a reason. Follow-up/residual risk: accepted.
+- Target-Project Critic: score 9, PASS. Blocking findings: none. The docs now
+  state that git-excluded target-project traces are not covered by repository
+  pre-commit and need manual checker or project hook invocation. Why not 10:
+  automatic enforcement in every target project remains adapter/runtime
+  specific. Follow-up/residual risk: accepted.
+- Score handling: all final critic scores are at least 9. Why not 10:
+  semantic completeness and non-staged target-project hooks remain outside the
+  repository-local checker boundary.
+- Rerun status: targeted unit tests, mirror checks, maintenance review
+  validation, and pre-commit passed after the follow-up fixes.
+- Final acceptance: accepted for Plan 16 follow-up implementation.

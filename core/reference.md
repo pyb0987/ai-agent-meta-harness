@@ -213,8 +213,21 @@ retrieval:
 
 The checker verifies that the file is inside the active trace root, the line
 range is bounded, and the UTF-8 bytes of `quote` occur inside the cited raw line
-span. This proves the quoted bytes exist. It does not prove semantic relevance
-or retrieval completeness.
+span. Keep cited spans narrow: at most 40 lines, with a quote containing at
+least 24 non-whitespace characters. This proves the quoted bytes exist. It does
+not prove semantic relevance or retrieval completeness.
+
+`retrieval.mode: not_needed` is for records that make no historical trace claim.
+Structural evolution traces cannot use `not_needed`; structural harness changes
+must cite raw trace evidence or use `full_scan` with raw refs and a reason.
+
+For git-excluded project traces, repository pre-commit hooks will not run this
+checker automatically. Run it manually, or wire the same command into the
+target project's agent completion/check hook:
+
+```bash
+python3 scripts/check-trace-retrieval-provenance.py <trace-file>
+```
 
 Trace catalogs are only retrieval pointers. They may list path, kind, status,
 date, tags, touched files, and search-set refs, but catalog entries do not

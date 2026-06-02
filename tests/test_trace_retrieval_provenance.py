@@ -35,11 +35,11 @@ retrieval:
   raw_trace_refs:
     - file: .harness/traces/failures/001-drift.md
       lines: 13
-      quote: "raw drift output"
+      quote: "raw drift output with enough context"
 ---
 
 ## Failure
-raw drift output
+raw drift output with enough context
 line two
 """,
             )
@@ -79,6 +79,55 @@ retrieval:
 
             self.assertTrue(any("cannot read raw trace ref" in error for error in errors), errors)
             self.assertTrue(any("not staged" in error for error in errors), errors)
+
+    def test_quote_must_be_substantial_and_span_must_be_tight(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trace = root / ".harness" / "traces" / "failures" / "001-drift.md"
+            body = "\n".join(f"line {index} with detailed raw evidence" for index in range(1, 45))
+            write(
+                trace,
+                f"""---
+date: "2026-06-01"
+resolved: false
+retrieval:
+  mode: selective
+  raw_trace_refs:
+    - file: .harness/traces/failures/001-drift.md
+      lines: 12-52
+      quote: "the"
+---
+
+## Failure
+{body}
+""",
+            )
+
+            errors = checker.validate_file(trace, repo_root=root)
+
+            self.assertTrue(any("at most 40 lines" in error for error in errors), errors)
+            self.assertTrue(any("at least 24 non-whitespace" in error for error in errors), errors)
+
+    def test_structural_evolution_trace_cannot_use_not_needed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trace = root / ".harness" / "traces" / "evolution" / "001-change.md"
+            write(
+                trace,
+                """---
+date: "2026-06-01"
+type: structural
+retrieval:
+  mode: not_needed
+  reason: "trivial"
+---
+body
+""",
+            )
+
+            errors = checker.validate_file(trace, repo_root=root)
+
+            self.assertTrue(any("structural evolution traces cannot use" in error for error in errors), errors)
 
     def test_missing_retrieval_fails_when_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

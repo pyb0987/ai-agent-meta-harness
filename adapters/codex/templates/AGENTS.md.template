@@ -64,8 +64,10 @@ retrieval:
 
 Use `mode: full_scan` with a reason when broad trace inspection is justified.
 Use `mode: not_needed` with a reason only when no historical trace claim is
-made. Trace catalogs are retrieval pointers, not evidence; if a catalog/query
-helper returns candidates, open the raw trace before citing it.
+made. Structural harness changes cannot use `not_needed`. Keep cited line spans
+to 40 lines or fewer, and quote at least 24 non-whitespace characters. Trace
+catalogs are retrieval pointers, not evidence; if a catalog/query helper
+returns candidates, open the raw trace before citing it.
 
 ### Failure Recording
 
