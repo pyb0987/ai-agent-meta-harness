@@ -300,6 +300,31 @@ Use multi-review for qualitative judgment and evaluator isolation for fixed eval
         self.assertNotIn("entry in `.claude/traces/failures/*.md`", mirror)
         self.assertEqual(canonical, mirror)
 
+    def test_init_harness_documents_worktree_safe_trace_roots(self):
+        canonical = INIT_HARNESS.read_text(encoding="utf-8")
+        mirror = MIRROR_INIT_HARNESS.read_text(encoding="utf-8")
+
+        for marker in (
+            "Git worktree usage, ignored/local-only instruction files, and existing\n  worktree bootstrap scripts",
+            "If the project uses multiple git worktrees",
+            "do not rely on a different relative\n  trace root in each worktree",
+            "one shared active trace root for all\n  worktrees",
+            "stable absolute path outside the worktree set",
+            "Worktree-local bootstrap is acceptable only if it creates the missing\n  instruction surface in every worktree",
+            "It must not create one trace root per worktree",
+            "Harness routing must be visible in every worktree session through\n  `~/.claude/rules/common/harness-methodology.md`",
+            "Do not leave routing only in an ignored file\n  that exists in the main worktree",
+            "Selected trace root and structure (normally `.claude/traces/`; for\n     worktree projects",
+            "If multiple git worktrees or ignored/local-only harness instruction files are used",
+            "no per-worktree trace roots are created",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, canonical)
+                self.assertIn(marker, mirror)
+                self.assertEqual(canonical.count(marker), mirror.count(marker))
+
+        self.assertEqual(canonical, mirror)
+
     def test_init_harness_sub_agent_boundary_matches_core_policy(self):
         text = INIT_HARNESS.read_text(encoding="utf-8")
 

@@ -43,6 +43,9 @@ npm run typecheck    # tsc --noEmit
 - PostToolUse Edit|Write on `*.test.ts` → `vitest run --reporter=verbose` (blocking)
 
 ### Traces
+- Active trace root: `.claude/traces/` (single root; if this project uses git
+  worktrees, replace this with the shared absolute or migrated root used by
+  every worktree)
 - `.claude/traces/evolution/` — harness change history
 - `.claude/traces/failures/` — failure diagnosis (YAML: classification, resolved)
 - `.claude/traces/search-set.md` — verification cases

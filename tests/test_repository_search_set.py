@@ -81,8 +81,8 @@ class RepositorySearchSetTests(unittest.TestCase):
         entries = active_entries(text)
 
         self.assertIn('description: "Repository self-application search-set', text)
-        self.assertIn('last_updated: "2026-05-04"', text)
-        self.assertGreaterEqual(len(entries), 6)
+        self.assertIn('last_updated: "2026-06-18"', text)
+        self.assertGreaterEqual(len(entries), 7)
 
     def test_active_entries_have_executable_verify_commands(self) -> None:
         run_search_set = load_run_search_set_module()
@@ -159,12 +159,14 @@ class RepositorySearchSetTests(unittest.TestCase):
             "Claude autoresearch preserves REJECT evidence",
             "Codex activation evidence stays aligned",
             "Repository trace root keeps minimum self-application surface",
+            "Claude worktrees keep one shared trace root",
             "python3 scripts/check-maintenance-review.py",
             "python3 scripts/check-compat-mirrors.py",
             "sh .githooks/pre-commit",
             "python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py",
             "python3 -m unittest tests/test_pre_commit_hook.py",
             "python3 -m unittest tests/test_repository_search_set.py",
+            "python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_claude_init_harness_fixture.py tests/test_maintenance_policy_boundaries.py",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)

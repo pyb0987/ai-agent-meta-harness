@@ -24,6 +24,14 @@ the concrete path for their runtime and must document migration behavior when a
 project already has history in another trace root. Do not split harness history
 across multiple trace roots without an explicit migration plan.
 
+For projects that use git worktrees, a project-relative trace root is
+worktree-relative unless the adapter explicitly makes it shared. The adapter
+must name one shared active root for all worktrees, either by using a stable
+absolute path outside the worktree set or by bootstrapping every worktree to the
+same root. Local-only instruction files are not sufficient as the sole routing
+surface unless the worktree bootstrap creates them everywhere and they point to
+that same root.
+
 The paper-backed requirement is to preserve raw prior-experience signals for
 reuse. The exact trace-root surface, YAML frontmatter, and search-set schema
 below are this repository's applied convention for making that signal durable

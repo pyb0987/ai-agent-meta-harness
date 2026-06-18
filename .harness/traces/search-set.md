@@ -1,6 +1,6 @@
 ---
 description: "Repository self-application search-set for claude-code-harness maintenance."
-last_updated: "2026-05-04"
+last_updated: "2026-06-18"
 ---
 # Harness Search Set
 
@@ -39,6 +39,11 @@ repository changes when practical.
 - **Source**: backlog/core.md item 33 and the 2026-05-04 self-application trace-root multi-review VETO.
 - **Symptom**: Repository maintenance can have `.harness/traces/search-set.md` while missing sibling `evolution/`, `failures/`, or `experiments/` surfaces, so future trace reuse silently becomes incomplete.
 - **verify**: `python3 -m unittest tests/test_repository_search_set.py`
+
+### SS-007: Claude worktrees keep one shared trace root
+- **Source**: .harness/traces/failures/002-worktree-local-trace-loss.md
+- **Symptom**: Claude projects that do feature work in git worktrees can leave harness routing only in a local ignored instruction file and write traces to missing or per-worktree `.claude/traces/` roots.
+- **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_claude_init_harness_fixture.py tests/test_maintenance_policy_boundaries.py`
 
 ## Archived
 

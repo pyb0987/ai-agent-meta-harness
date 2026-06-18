@@ -150,6 +150,18 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertIn("retrieval.mode", codex_harness)
         self.assertIn("Trace catalogs are retrieval pointers, not evidence", codex_harness)
 
+    def test_claude_example_trace_root_is_worktree_safe(self) -> None:
+        claude_example = normalized_file_text(CLAUDE_EXAMPLE)
+
+        for marker in (
+            "Active trace root: `.claude/traces/`",
+            "single root",
+            "if this project uses git worktrees",
+            "shared absolute or migrated root used by every worktree",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, claude_example)
+
     def test_v1_gates_are_archived_not_active_target(self) -> None:
         text = normalized_text()
         lower = text.lower()

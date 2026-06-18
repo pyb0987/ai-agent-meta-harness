@@ -197,6 +197,24 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn(marker, reference_mirror)
                 self.assertEqual(reference.count(marker), reference_mirror.count(marker))
 
+    def test_trace_root_policy_is_worktree_safe_and_mirrored(self) -> None:
+        methodology = text(CORE)
+        methodology_mirror = text(MIRROR)
+
+        for marker in (
+            "For projects that use git worktrees",
+            "a project-relative trace root is\nworktree-relative",
+            "one shared active root for all worktrees",
+            "stable\nabsolute path outside the worktree set",
+            "bootstrapping every worktree to the\nsame root",
+            "Local-only instruction files are not sufficient as the sole routing\nsurface",
+            "worktree bootstrap creates them everywhere and they point to\nthat same root",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, methodology)
+                self.assertIn(marker, methodology_mirror)
+                self.assertEqual(methodology.count(marker), methodology_mirror.count(marker))
+
     def test_raw_trace_ablation_claim_is_scoped_and_mirrored(self) -> None:
         methodology = text(CORE)
         methodology_mirror = text(MIRROR)

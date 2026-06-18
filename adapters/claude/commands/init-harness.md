@@ -19,6 +19,8 @@ Core principles are installed at `~/.claude/rules/common/harness-methodology.md`
 Scan the project directly with an Explore agent:
 - Type, tech stack, directory structure, architecture patterns
 - Existing CLAUDE.md, .claude/ directory, linters/formatters, CI/CD
+- Git worktree usage, ignored/local-only instruction files, and existing
+  worktree bootstrap scripts
 - Test framework, build commands
 - Existing hooks, skills, documents
 
@@ -44,6 +46,19 @@ Select the active trace root before writing new trace files:
 - If both `.harness/traces/` and `.claude/traces/` have divergent meaningful
   history, stop and report uncertainty with a migration plan before writing new
   traces. Do not split future trace history silently.
+- If the project uses multiple git worktrees, or if its harness instructions or
+  trace directories are ignored/local-only, do not rely on a different relative
+  trace root in each worktree. Select one shared active trace root for all
+  worktrees and record the exact path in `CLAUDE.md` and the initial evolution
+  log. Prefer a stable absolute path outside the worktree set when no tracked
+  shared root already exists.
+- Worktree-local bootstrap is acceptable only if it creates the missing
+  instruction surface in every worktree and points every worktree at the same
+  active trace root. It must not create one trace root per worktree.
+- Harness routing must be visible in every worktree session through
+  `~/.claude/rules/common/harness-methodology.md`, tracked project guidance, or
+  an automated worktree bootstrap. Do not leave routing only in an ignored file
+  that exists in the main worktree.
 
 For the normal Claude root, create `.claude/traces/` directory and empty search-set template:
 ```
@@ -97,7 +112,9 @@ Write or enhance project CLAUDE.md:
 4. Check for duplicates/conflicts with global rules (~/.claude/rules/common/)
 5. **Harness section required**:
    - Hook list + each hook's enforcement level (blocking/warning)
-   - .claude/traces/ structure
+   - Selected trace root and structure (normally `.claude/traces/`; for
+     worktree projects, the shared absolute or migrated root used by every
+     worktree)
    - **Agent routing**: users do not need to name harness skills. Ordinary work stays ordinary; "this keeps failing" / "stop repeating this" routes to harness-engineer; "review this carefully" / "am I missing anything?" routes to multi-review when risk warrants it; "try variants" / "optimize this" routes to autoresearch only when a fixed evaluator and clear metric exist
    - **Change strategy**: Additive first -> Subtractive -> Structural (one at a time, confounding variable isolation)
    - **Failure escalation loop**: a `resolved: true` failure trace under the selected trace root must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
@@ -223,6 +240,7 @@ After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial
 All items below must pass for init-harness to be complete:
 
 - [ ] Active trace root selected by evidence; existing meaningful `.harness/traces/` history was reused, migrated, or explicitly reported as an uncertainty before new traces were written
+- [ ] If multiple git worktrees or ignored/local-only harness instruction files are used, every worktree session has a visible routing surface and the same exact active trace root is recorded; no per-worktree trace roots are created
 - [ ] `{trace_root}/{evolution,failures,experiments}/` directories exist, where `{trace_root}` is normally `.claude/traces/` unless meaningful migrated history was explicitly reused from `.harness/traces/`
 - [ ] `{trace_root}/search-set.md` template or reused Active search-set exists
 - [ ] `{trace_root}/evolution/001-initial-harness.md` written (Step 7)
