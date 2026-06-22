@@ -96,10 +96,27 @@ class LocalPluginSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("MISSING ASSET", result.stderr)
 
+    def test_rejects_missing_experimental_orientation_hook_asset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = self.copy_plugin(tmp)
+            (plugin / "hooks" / "experimental" / "harness_orientation.py").unlink()
+            result = self.run_smoke(plugin)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("MISSING ASSET", result.stderr)
+
     def test_rejects_non_executable_hook_asset(self):
         with tempfile.TemporaryDirectory() as tmp:
             plugin = self.copy_plugin(tmp)
             path = plugin / "templates" / "hooks" / "pre-commit-autoresearch-protected.sh"
+            path.chmod(0o644)
+            result = self.run_smoke(plugin)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("NON-EXECUTABLE ASSET", result.stderr)
+
+    def test_rejects_non_executable_experimental_orientation_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = self.copy_plugin(tmp)
+            path = plugin / "hooks" / "experimental" / "harness_orientation.py"
             path.chmod(0o644)
             result = self.run_smoke(plugin)
         self.assertEqual(result.returncode, 1)

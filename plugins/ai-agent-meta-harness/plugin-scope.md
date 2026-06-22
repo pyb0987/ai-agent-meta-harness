@@ -10,6 +10,7 @@ only the Codex runtime adapter surfaces needed to apply that methodology.
 |-------|-----------------|--------|
 | v0 scaffold | Skills, AGENTS template, README, plugin manifest, scope document | Implemented |
 | v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains deferred until a product-supported smoke or reviewed manual gate exists |
+| experimental orientation | Opt-in `SessionStart` context hook, exact-command mode tracker, example hook config, and subprocess smoke tests | Implemented as copied assets only; not advertised by the plugin manifest and not evidence of live runtime delivery |
 | Later release | Examples, marketplace metadata, richer install validation, optional generated assets | Planned |
 
 ## Current Generated Contents
@@ -20,6 +21,8 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `README.md`
 - `hook-schema.md`
 - `plugin-scope.md`
+- `hooks/experimental/harness_orientation.py`
+- `hooks/experimental/harness-orientation-hooks.json.example`
 - `skills/autoresearch/SKILL.md`
 - `skills/harness-engineer/SKILL.md`
 - `skills/init-codex-harness/SKILL.md`
@@ -42,10 +45,10 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `scripts/smoke-local-plugin.py`
 
 The sync map recursively copies all files under the canonical `skills/`,
-`templates/`, `scripts/`, and `examples/` trees, while still requiring the
-minimum v1 assets listed here to exist. Future templates, scripts, or examples
-must be added to this scope document before they are considered supported bundle
-surface.
+`templates/`, `scripts/`, `examples/`, and `hooks/` trees, while still requiring
+the minimum supported assets listed here to exist. Future templates, scripts,
+examples, or hooks must be added to this scope document before they are
+considered supported bundle surface.
 
 `adapters/codex/` remains the editable canonical source. Generated plugin files
 must be updated with `python3 scripts/sync-codex-plugin.py --write` and checked
@@ -75,6 +78,7 @@ Do not include:
 | Pre-commit template | `adapters/codex/templates/hooks/pre-commit-autoresearch-protected.sh` | `templates/hooks/pre-commit-autoresearch-protected.sh` | Hard local guardrail using the shared checker |
 | CI template | `adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml` | `templates/hooks/github-actions-autoresearch-protected.yml` | Pull-request guardrail using the shared checker |
 | AGENTS reminder snippet | `adapters/codex/templates/hooks/agents-autoresearch-protection.md` | `templates/hooks/agents-autoresearch-protection.md` | Level 1 instruction layer for target projects |
+| Experimental orientation hooks | `adapters/codex/hooks/experimental/` | `hooks/experimental/` | Opt-in `SessionStart` orientation and exact-command mode tracking; copied as assets only, not referenced from the plugin manifest |
 | Runtime Codex hook config | `adapters/codex/hooks/` | `hooks/` plus manifest `hooks` field | Only after isolated local activation and Codex plugin tool-event delivery smoke tests pass |
 | Autoresearch checker reference | `adapters/codex/scripts/check-autoresearch-protected.py` | `scripts/check-autoresearch-protected.py` | Shared by Codex hooks, pre-commit, and CI templates |
 | Optional Codex CLI surface probe | `adapters/codex/scripts/check-codex-cli-surface.py` | `scripts/check-codex-cli-surface.py` | Checks local `codex plugin marketplace` and `codex app-server` help markers when Codex is installed; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
@@ -92,11 +96,12 @@ Do not include:
 ## Manifest Rules
 
 The manifest exposes only `skills` in v0 because the plugin currently ships
-skills and static templates. Add manifest fields such as `hooks` only when the
-repo has an executable hook config under `adapters/codex/hooks/` that is
-smoke-tested through both the isolated local plugin activation path and a Codex
-plugin tool-event delivery path. Template-only files under `templates/hooks/`
-should not be advertised as active runtime hooks.
+skills, static templates, and opt-in experimental hook assets. Add manifest
+fields such as `hooks` only when the repo has an executable hook config under
+`adapters/codex/hooks/` that is smoke-tested through both the isolated local
+plugin activation path and a Codex plugin tool-event delivery path.
+Template-only files under `templates/hooks/`, and experimental orientation files
+under `hooks/experimental/`, should not be advertised as active runtime hooks.
 
 Runtime delivery evidence is deliberately deferred as of the 2026-05-04
 maintenance pass. Local evidence covers generated artifact integrity and

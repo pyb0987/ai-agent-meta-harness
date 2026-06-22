@@ -8,7 +8,7 @@ This drift check validates documented output-shape assumptions only. It does not
 
 ## Verification Metadata
 
-- Verified date: 2026-05-05
+- Verified date: 2026-06-22
 - Codex CLI checked: 0.126.0-alpha.8
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
@@ -16,6 +16,15 @@ This drift check validates documented output-shape assumptions only. It does not
   hooks/config documentation re-check that this adapter depends on. If the
   output/config contract is unchanged, keep the behavior contract stable and add
   a dated re-verification note explaining the non-behavior change.
+- Re-verification note: 2026-06-22 added experimental orientation-only
+  `SessionStart` and `UserPromptSubmit` hook assets under
+  `adapters/codex/hooks/experimental/`; official Codex hooks/config docs were
+  re-checked. `SessionStart`, `UserPromptSubmit`, `hookSpecificOutput`,
+  `additionalContext`, `systemMessage`, and command-hook timeout assumptions
+  remain documented. Current config docs name `features.hooks` as the primary
+  flag and `features.codex_hooks` is a deprecated alias. These experimental
+  assets remain opt-in and the plugin manifest still does not enable runtime
+  hook fields.
 - Re-verification note: 2026-05-05 item 49 added a target-project
   autoresearch protection installer and updated autoresearch setup guidance;
   official Codex hooks/config docs were re-checked, and `PreToolUse`,
@@ -117,6 +126,35 @@ a 600 second default. This adapter pins protected-file `PreToolUse` and
 `PermissionRequest` hook commands to 5 seconds so evaluator-boundary checks fail
 fast enough for interactive use while still allowing normal repository-local
 Python startup and git-root resolution.
+
+## Session Context Output Shape
+
+For experimental orientation hooks, the adapter expects `SessionStart` to return
+model-visible context without a blocking decision:
+
+```json
+{
+  "systemMessage": "AI_AGENT_META_HARNESS:NORMAL",
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "AI Agent Meta-Harness orientation hook..."
+  }
+}
+```
+
+`UserPromptSubmit` mode-change hooks use the same `systemMessage` plus
+`hookSpecificOutput.additionalContext` shape when an exact `/harness ...`
+command changes mode. Non-command prompts produce no output. The context is
+orientation only; it is not evidence, not enforcement, and not runtime delivery
+proof for plugin manifest hooks.
+
+## Config Flag Contract
+
+Codex config docs currently name `features.hooks` as the flag that enables
+lifecycle hooks loaded from `hooks.json` or inline `[hooks]` config.
+`features.codex_hooks` is a deprecated alias. Adapter examples should prefer
+`features.hooks` for new hook guidance and may mention the deprecated alias only
+as compatibility context.
 
 ## Drift Procedure
 

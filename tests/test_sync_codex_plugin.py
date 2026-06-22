@@ -69,9 +69,13 @@ class SyncCodexPluginTests(unittest.TestCase):
             write(self.source / "scripts" / script, "script\n", mode=mode)
         for example in sync_codex_plugin.REQUIRED_EXAMPLE_FILES:
             write(self.source / "examples" / example, "example\n")
+        for hook in sync_codex_plugin.REQUIRED_HOOK_FILES:
+            mode = 0o755 if hook.endswith("harness_orientation.py") else 0o644
+            write(self.source / "hooks" / hook, "hook\n", mode=mode)
         write(self.source / "templates" / "future-template.txt", "future\n")
         write(self.source / "scripts" / "future-helper.py", "future\n")
         write(self.source / "examples" / "future-example.md", "future\n")
+        write(self.source / "hooks" / "experimental" / "future-hook.py", "future\n")
 
         self.original = (
             sync_codex_plugin.ROOT,
@@ -93,6 +97,7 @@ class SyncCodexPluginTests(unittest.TestCase):
         self.assertIn("templates/future-template.txt", destinations)
         self.assertIn("scripts/future-helper.py", destinations)
         self.assertIn("examples/future-example.md", destinations)
+        self.assertIn("hooks/experimental/future-hook.py", destinations)
 
     def test_write_files_preserves_executable_mode(self):
         mappings = sync_codex_plugin.build_mappings()
@@ -103,6 +108,17 @@ class SyncCodexPluginTests(unittest.TestCase):
         dest_mode = stat.S_IMODE((self.plugin / "templates" / "hooks" / "pre-commit-autoresearch-protected.sh").stat().st_mode)
         self.assertEqual(dest_mode, source_mode)
         self.assertTrue(os.access(self.plugin / "scripts" / "smoke-autoresearch-hooks.py", os.X_OK))
+        self.assertTrue(os.access(self.plugin / "hooks" / "experimental" / "harness_orientation.py", os.X_OK))
+
+    def test_check_files_rejects_missing_required_hook_source(self):
+        mappings = sync_codex_plugin.build_mappings()
+        self.assertEqual(call_silently(sync_codex_plugin.write_files, mappings), 0)
+        (self.source / "hooks" / "experimental" / "harness_orientation.py").unlink()
+
+        code, stderr = call_with_stderr(sync_codex_plugin.check_files, mappings)
+
+        self.assertEqual(code, 1)
+        self.assertIn("MISSING REQUIRED SOURCE: adapters/codex/hooks/experimental/harness_orientation.py", stderr)
 
     def test_check_files_detects_mode_mismatch(self):
         mappings = sync_codex_plugin.build_mappings()

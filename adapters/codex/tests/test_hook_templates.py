@@ -134,12 +134,16 @@ class HookTemplateTests(unittest.TestCase):
 
     def test_plugin_scope_gates_runtime_hooks_on_tool_event_delivery(self):
         text = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
+        normalized = " ".join(text.split())
         for marker in (
             "Only after isolated local activation and Codex plugin tool-event delivery smoke tests pass",
-            "smoke-tested through both the isolated local plugin activation path and a Codex\nplugin tool-event delivery path",
-            "Template-only files under `templates/hooks/`\nshould not be advertised as active runtime hooks",
+            "Template-only files under `templates/hooks/`, and experimental orientation files\nunder `hooks/experimental/`, should not be advertised as active runtime hooks",
         ):
             self.assertIn(marker, text)
+        self.assertIn(
+            "smoke-tested through both the isolated local plugin activation path and a Codex plugin tool-event delivery path",
+            normalized,
+        )
 
     def test_plugin_scope_lists_activation_smoke_generated_surface(self):
         canonical = (ROOT / "adapters" / "codex" / "plugin-scope.md").read_text(encoding="utf-8")
@@ -150,6 +154,12 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("- `scripts/smoke-local-plugin-activation.py`", text)
                 self.assertIn("- `scripts/check-codex-cli-surface.py`", text)
                 self.assertIn("- `scripts/smoke-init-codex-project-fixtures.py`", text)
+                self.assertIn("- `hooks/experimental/harness_orientation.py`", text)
+                self.assertIn("- `hooks/experimental/harness-orientation-hooks.json.example`", text)
+                self.assertIn(
+                    "| Experimental orientation hooks | `adapters/codex/hooks/experimental/` | `hooks/experimental/` |",
+                    text,
+                )
                 self.assertIn(
                     "| Local plugin activation smoke test | `adapters/codex/scripts/smoke-local-plugin-activation.py` | `scripts/smoke-local-plugin-activation.py` |",
                     text,

@@ -53,6 +53,7 @@ The bundle scope is staged so packaging does not outrun tested behavior. Full de
 |-------|----------|--------|
 | v0 scaffold | Skills, AGENTS template, README, plugin manifest, scope document | Implemented |
 | v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains deferred until a product-supported smoke or reviewed manual gate exists |
+| experimental orientation | Opt-in `SessionStart` context hook, exact-command mode tracker, example hook config, and subprocess smoke tests | Implemented as copied assets only; not advertised by the plugin manifest and not evidence of live runtime delivery |
 | Later release | Examples, marketplace metadata, richer install validation | Planned |
 
 The Meta-Harness paper informs the acceptance criteria for this scope, but its methodology remains in `core/`; the plugin should not copy core content into a Codex-specific fork.
@@ -62,6 +63,29 @@ The Meta-Harness paper informs the acceptance criteria for this scope, but its m
 The generated plugin now carries a reference checker at `scripts/check-autoresearch-protected.py`, hook JSON smoke assertions at `scripts/smoke-autoresearch-hooks.py`, a target-project installer at `scripts/install-autoresearch-protection.py`, a protected-path template at `templates/autoresearch-protected.txt`, and enforcement templates plus an AGENTS reminder snippet under `templates/hooks/`. These are project assets to install during autoresearch setup; they are not advertised as active plugin runtime hooks until both isolated local activation and Codex plugin tool-event delivery are smoke-tested.
 
 Hook schema drift is tracked in `hook-schema.md`. Before changing Codex hook templates, checker hook output, or autoresearch hook instructions, re-check the official Codex hooks documentation and run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.
+
+## Experimental Orientation Hooks
+
+The generated plugin carries opt-in experimental hook assets under
+`hooks/experimental/`. They are an orientation layer, not enforcement:
+
+- `harness_orientation.py --session-start` emits a small `SessionStart`
+  context packet with detected trace-root/search-set hints, current harness
+  mode, and explicit reminders to inspect raw traces before historical claims.
+- `harness_orientation.py --user-prompt-submit` tracks exact whole-message
+  commands only: `/harness normal`, `/harness evolve`,
+  `/harness autoresearch-setup`, `/harness autoresearch-run`,
+  `/harness multi-review`, and `/harness off`.
+- `harness-orientation-hooks.json.example` shows a manual hook config shape for
+  local experiments. Set `AI_AGENT_META_HARNESS_PLUGIN_ROOT` to the plugin root
+  or replace the placeholder with an absolute path before using it. It is not
+  referenced by `.codex-plugin/plugin.json`.
+
+These hooks must not be presented as live runtime delivery evidence. The smoke
+tests prove script behavior, JSON shape, state persistence, reset behavior,
+missing-trace handling, malformed-state handling, and incidental text not
+changing mode. The plugin manifest still omits `hooks` until the reviewed
+runtime delivery gate below is satisfied.
 
 ### Target-Project Protection Install
 
@@ -196,6 +220,7 @@ python3 scripts/sync-codex-plugin.py --write
 python3 scripts/sync-codex-plugin.py --check
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
+python3 -m unittest adapters/codex/tests/test_experimental_orientation_hooks.py
 python3 adapters/codex/scripts/smoke-init-codex-project-fixtures.py
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py

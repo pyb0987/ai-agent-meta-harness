@@ -49,6 +49,10 @@ REQUIRED_SCRIPT_FILES = (
 REQUIRED_EXAMPLE_FILES = (
     "AGENTS.md.example",
 )
+REQUIRED_HOOK_FILES = (
+    "experimental/harness_orientation.py",
+    "experimental/harness-orientation-hooks.json.example",
+)
 
 
 @dataclass(frozen=True)
@@ -181,6 +185,7 @@ def validate_source_tree(reader: TreeReader | None = None) -> list[str]:
         ("templates", REQUIRED_TEMPLATE_FILES),
         ("scripts", REQUIRED_SCRIPT_FILES),
         ("examples", REQUIRED_EXAMPLE_FILES),
+        ("hooks", REQUIRED_HOOK_FILES),
     )
     for directory, files in required:
         base = SOURCE_ROOT / directory
@@ -201,7 +206,7 @@ def validate_all_owned(mappings: list[Mapping], reader: TreeReader | None = None
     reader = reader or FilesystemReader()
     mapped_sources = {mapping.source for mapping in mappings}
     errors: list[str] = []
-    for directory in ("skills", "templates", "scripts", "examples"):
+    for directory in ("skills", "templates", "scripts", "examples", "hooks"):
         base = SOURCE_ROOT / directory
         if not reader.exists(base):
             continue
@@ -238,6 +243,10 @@ def build_mappings(reader: TreeReader | None = None) -> list[Mapping]:
     if reader.exists(examples_root):
         for source in reader.iter_files(examples_root):
             mappings.append(Mapping(source, PLUGIN_ROOT / "examples" / source.relative_to(examples_root)))
+
+    hooks_root = SOURCE_ROOT / "hooks"
+    for source in reader.iter_files(hooks_root):
+        mappings.append(Mapping(source, PLUGIN_ROOT / "hooks" / source.relative_to(hooks_root)))
     return mappings
 
 

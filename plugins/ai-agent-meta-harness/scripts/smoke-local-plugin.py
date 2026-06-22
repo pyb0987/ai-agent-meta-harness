@@ -35,6 +35,8 @@ EXPECTED_ASSETS = (
     "templates/hooks/github-actions-autoresearch-protected.yml",
     "templates/hooks/pre-commit-autoresearch-protected.sh",
     "examples/AGENTS.md.example",
+    "hooks/experimental/harness_orientation.py",
+    "hooks/experimental/harness-orientation-hooks.json.example",
     "scripts/check-autoresearch-protected.py",
     "scripts/check-codex-cli-surface.py",
     "scripts/check-codex-hook-schema-drift.py",
@@ -52,6 +54,7 @@ EXPECTED_EXECUTABLE_ASSETS = (
     "scripts/smoke-init-codex-project-fixtures.py",
     "scripts/smoke-local-plugin-activation.py",
     "scripts/smoke-autoresearch-hooks.py",
+    "hooks/experimental/harness_orientation.py",
     "templates/hooks/pre-commit-autoresearch-protected.sh",
 )
 

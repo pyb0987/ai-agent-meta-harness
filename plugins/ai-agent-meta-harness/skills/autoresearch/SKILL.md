@@ -308,7 +308,7 @@ smoke-tested.
 
 Codex hook policy:
 
-- Enable hooks with `[features] codex_hooks = true` in `.codex/config.toml` or the active Codex config layer.
+- Enable hooks with `[features] hooks = true` in `.codex/config.toml` or the active Codex config layer. `codex_hooks` is a deprecated alias and should appear only as compatibility context.
 - Use `PreToolUse` to block direct edits to protected paths through `apply_patch`, `Edit`, `Write`, and simple `Bash` commands.
 - Use `PermissionRequest` to deny escalation requests that would modify protected evaluator paths outside the sandbox.
 - Use `PostToolUse` only for review/backpressure. It can report that a completed command was unsafe, but it cannot undo the command.

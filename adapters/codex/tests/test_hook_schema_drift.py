@@ -86,6 +86,8 @@ class HookSchemaDriftTests(unittest.TestCase):
 
     def test_staged_policy_covers_hook_templates_and_instructions(self):
         for path in [
+            "adapters/codex/hooks/experimental/harness-orientation-hooks.json.example",
+            "adapters/codex/hooks/experimental/harness_orientation.py",
             "adapters/codex/templates/hooks/agents-autoresearch-protection.md",
             "adapters/codex/templates/hooks/codex-hooks.json.template",
             "adapters/codex/templates/hooks/github-actions-autoresearch-protected.yml",

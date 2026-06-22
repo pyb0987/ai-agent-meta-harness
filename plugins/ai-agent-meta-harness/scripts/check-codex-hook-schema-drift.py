@@ -17,13 +17,15 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 REFERENCE_PATH = Path("adapters/codex/hook-schema.md")
-VERIFIED_DATE = "2026-05-05"
+VERIFIED_DATE = "2026-06-22"
 CODEX_CLI_VERSION = "0.126.0-alpha.8"
 PRIMARY_SOURCE = "https://developers.openai.com/codex/hooks"
 CONFIG_SOURCE = "https://developers.openai.com/codex/config-reference"
 
 HOOK_SENSITIVE_PATHS = {
     "adapters/codex/hook-schema.md",
+    "adapters/codex/hooks/experimental/harness-orientation-hooks.json.example",
+    "adapters/codex/hooks/experimental/harness_orientation.py",
     "adapters/codex/scripts/check-autoresearch-protected.py",
     "adapters/codex/scripts/check-codex-hook-schema-drift.py",
     "adapters/codex/scripts/smoke-autoresearch-hooks.py",
@@ -50,6 +52,8 @@ REQUIRED_REFERENCE_MARKERS = (
     '"message"',
     'legacy top-level `{"decision": "block"}` shape',
     "does not prove hook event coverage",
+    "`features.hooks`",
+    "`features.codex_hooks` is a deprecated alias",
 )
 
 SMOKE_SCRIPT_PATH = Path("adapters/codex/scripts/smoke-autoresearch-hooks.py")
