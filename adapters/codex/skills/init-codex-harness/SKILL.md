@@ -127,6 +127,8 @@ Required sections:
 - Build: dev/build/test/lint/typecheck commands discovered from the project
 - Architecture: only non-obvious boundaries that tools cannot infer
 - Harness: trace root, search-set policy, change strategy, verification rule
+- Harness: bounded self-evolution rule for dogfood-gap review and diagnostic
+  trace/search-set/instruction candidates
 - Codex Notes: permission/escalation or local workflow facts that affect Codex
 
 Do not duplicate rules already enforced by linters, tests, or typecheckers. Mention the command instead.
@@ -153,6 +155,10 @@ Include trace retrieval provenance in the frontmatter:
   setup reuses existing `.claude/traces/` or `.harness/traces/` history.
 - Treat trace catalogs as retrieval pointers only; cite raw evolution/failure
   traces when making a historical claim.
+- If existing work suggests a dogfood gap, record only a diagnostic proposal:
+  a concrete trigger-evidence pointer, affected surface, reusable future value,
+  proposed action, and no automatic Active search-set edit or adoption claim.
+  During ordinary work, surface at most one diagnostic maintenance note.
 
 ### Step 7: Completion Check
 
@@ -163,6 +169,7 @@ Confirm:
 - `AGENTS.md` names the trace root and verification policy
 - Initial evolution trace exists
 - Initial evolution trace records `retrieval.mode`
+- AGENTS.md says bounded self-evolution proposals are diagnostic until adopted
 - No Claude-only hook configuration was added for Codex
 
 ## Output

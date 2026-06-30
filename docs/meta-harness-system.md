@@ -246,6 +246,41 @@ The active pointer publication binds the accepted packet and archive evidence.
 This is where repository history says, "this change is stable governance
 evidence." Strategy-search run files alone never make that claim.
 
+## Bounded Self-Evolution
+
+The repository-local Meta-Harness can improve from its own usage without
+becoming an invisible self-modifying system.
+
+The default loop is:
+
+```text
+usage evidence or trace gap
+  -> diagnostic candidate
+  -> raw evidence and executable verification
+  -> reviewable content change
+  -> v2 governance when stable publication is needed
+```
+
+During ordinary agent work, agents may surface at most one diagnostic
+maintenance note when a concrete trigger-evidence pointer, reusable future
+value, and a clear next action are all visible. Explicit dogfood checks may
+inspect the wider candidate list. Those nominations are proposals only. A
+detector saying "this looks stale" or "this search-set may be missing" is a
+pointer to inspect, not proof that the harness has improved.
+
+This preserves the raw-data-first rule:
+
+- trace catalogs and generated summaries help retrieval, but do not certify
+  evidence;
+- trace-history claims use byte-matching raw trace refs from Plan 16;
+- strategy-search selections stay diagnostic until applied as ordinary content
+  changes;
+- stable publication still flows through v2 packets and active pointers.
+
+This is the intended meaning of self-evolution in this repository: during agent
+work or explicit diagnostic checks, the harness can propose ways to improve
+itself, while adoption remains bounded by evidence, verification, and review.
+
 ## Why Commits Are The Unit
 
 Commits are the unit because the system needs a stable, inspectable boundary
@@ -280,6 +315,15 @@ Plans 12 and 13 define and harden the repository-local evolution engine:
 - anchor proposal and eval records in Git;
 - reject handwritten or rewritten candidates during selection;
 - adopt selected changes only through normal v2 governance.
+
+Plans 15, 16, and 17 describe the usability and evidence layers around that
+engine:
+
+- route ordinary user language to the right harness behavior without skill-name
+  ceremony;
+- make trace retrieval claims checkable through raw byte quotes;
+- let agents propose dogfood-derived trace, search-set, instruction, and
+  strategy-search improvements without automatic adoption.
 
 The remaining non-core layer is measurement:
 

@@ -130,6 +130,7 @@ Common user phrases:
 | "stop repeating this mistake." | Turn the repeated failure into a trace-backed rule, verifier, hook, or test. |
 | "Review this carefully." or "am I missing anything?" | Use multi-perspective review when the decision is high risk or easy to misframe. |
 | "Try variants and keep the winner." or "keep the measurable winner." | Propose an autoresearch loop only when there is a fixed evaluator and metric. |
+| "Did the harness learn from this?" or "check for dogfood gaps." | Propose trace, search-set, instruction, or strategy-search candidates only when a concrete trigger-evidence pointer, reusable future value, and a clear next action are all present. |
 
 What appears in the target project:
 
@@ -145,6 +146,13 @@ AGENTS.md or CLAUDE.md          # Short project instructions for the agent
 The trace folders are the project memory. They are not a task queue for the
 user. The agent reads and writes them when a failure pattern, harness change, or
 measurable experiment makes that useful.
+
+During normal work, the harness stays quiet unless a concrete trigger-evidence
+pointer, reusable future value, and a clear next action are all visible. Even
+then, the agent should surface at most one diagnostic maintenance note.
+Explicit dogfood review may inspect the wider candidate list, but proposals are
+diagnostic until adopted. Low trace volume is not a failure by itself, and
+agents should not auto-edit Active search-set entries.
 
 ## Using The Repository-Local Meta-Harness
 

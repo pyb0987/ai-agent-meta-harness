@@ -34,3 +34,9 @@ Plan 16 is a trace retrieval provenance layer. It keeps raw traces accessible
 while requiring harness-impacting claims to cite byte-matching raw trace
 quotes, so catalog entries remain retrieval pointers rather than evidence
 substitutes.
+
+Plan 17 is a bounded self-evolution proposal loop. It lets agents and future
+diagnostic checks notice dogfood gaps and draft trace, search-set, instruction,
+or strategy-search candidates, while preserving the adoption boundary: generated
+candidates are diagnostic until raw evidence, executable verification, and a
+reviewable content change justify adoption.

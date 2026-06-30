@@ -51,6 +51,12 @@ needed three guardrails:
 
 ### Result
 
+- Before: Codex adapter hook orientation was only a design possibility, with no
+  tracked experimental hook asset or drift-checked plugin sync path.
+- After: Codex adapter hook orientation is recorded as opt-in experimental
+  context delivery with tests, plugin sync coverage, and explicit no-stable-
+  acceptance scope.
+
 Verification:
 
 ```text

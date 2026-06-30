@@ -25,6 +25,7 @@ Users do not need to name harness skills. Route ordinary requests by intent:
 - "This keeps failing", "stop repeating this", or "make this not happen again" means inspect raw traces and evolve the harness before another retry.
 - "Review this carefully", "am I missing anything?", or other high-stakes judgment requests mean use multi-perspective review when it materially reduces risk.
 - "Try variants", "optimize this", or "keep the measurable winner" means propose an autoresearch loop only when a fixed evaluator and clear metric exist.
+- "Did the harness learn from this?" or "check for dogfood gaps" means run a bounded dogfood review: propose trace/search-set/instruction candidates only when a concrete trigger-evidence pointer, reusable future value, and a clear next action are all present.
 
 For ordinary feature work, work normally. Escalate only when the request or
 evidence matches one of the routing signals above.
@@ -68,6 +69,16 @@ made. Structural harness changes cannot use `not_needed`. Keep cited line spans
 to 40 lines or fewer, and quote at least 24 non-whitespace characters. Trace
 catalogs are retrieval pointers, not evidence; if a catalog/query helper
 returns candidates, open the raw trace before citing it.
+
+### Bounded Self-Evolution
+
+During ordinary work, stay quiet unless a concrete trigger-evidence pointer,
+reusable future value, and a clear next action are all visible; surface at most
+one diagnostic maintenance note. Explicit dogfood checks may inspect the wider
+candidate list, but proposals are diagnostic until adopted. Do not auto-edit
+Active search-set entries or treat low trace volume as failure. A proposal needs
+a concrete trigger-evidence pointer, affected surface, reusable future value,
+proposed action, and a later reviewable change before adoption.
 
 ### Failure Recording
 

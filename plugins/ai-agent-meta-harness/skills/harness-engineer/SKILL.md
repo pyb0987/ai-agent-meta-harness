@@ -79,6 +79,14 @@ historical trace claim is made. Structural harness changes cannot use
 `not_needed`. Keep cited spans to 40 lines or fewer, and quote at least 24
 non-whitespace characters.
 
+During ordinary work, stay quiet unless a concrete trigger-evidence pointer,
+reusable future value, and a clear next action are all visible. Surface at most
+one diagnostic maintenance note. During explicit dogfood review, inspect the
+wider candidate list, but keep every trace, search-set, instruction, or
+strategy-search candidate diagnostic until raw evidence, executable
+verification, and a reviewable change justify adoption. Do not auto-edit Active
+search-set entries, and do not treat low trace volume as failure by itself.
+
 ## Change Strategy
 
 Apply changes in this order:

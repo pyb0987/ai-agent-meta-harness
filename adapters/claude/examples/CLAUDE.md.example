@@ -37,6 +37,7 @@ npm run typecheck    # tsc --noEmit
 - "This keeps failing", "stop repeating this", or "make this not happen again" routes to harness-engineer.
 - "Review this carefully" or "am I missing anything?" routes to multi-review when risk warrants it.
 - "Try variants", "optimize this", or "keep the measurable winner" routes to autoresearch only with a fixed evaluator and clear metric.
+- "Did the harness learn from this?" or "check for dogfood gaps" routes to bounded dogfood review: propose trace/search-set/instruction candidates only when a concrete trigger-evidence pointer, reusable future value, and a clear next action are all present.
 
 ### Hooks (`.claude/settings.local.json`)
 - PostToolUse Edit|Write on `*.ts` → `tsc --noEmit` (blocking)
@@ -51,6 +52,8 @@ npm run typecheck    # tsc --noEmit
 - `.claude/traces/search-set.md` — verification cases
 - Harness-changing trace claims use `retrieval.mode` plus byte-matching
   `raw_trace_refs`; trace catalogs are retrieval pointers, not evidence.
+- Bounded self-evolution proposals are diagnostic until adopted. Do not
+  auto-edit Active search-set entries or treat low trace volume as failure.
 
 ### Change Strategy
 Additive first → Subtractive → Structural. One change at a time.

@@ -15,6 +15,7 @@ PLAN13 = ROOT / "backlog" / "plans" / "13-strategy-search-runner-isolation-and-l
 PLAN14 = ROOT / "backlog" / "plans" / "14-sandbox-and-concurrency-boundary.md"
 PLAN15 = ROOT / "backlog" / "plans" / "15-agent-autonomous-routing-and-user-experience.md"
 PLAN16 = ROOT / "backlog" / "plans" / "16-trace-retrieval-provenance.md"
+PLAN17 = ROOT / "backlog" / "plans" / "17-bounded-self-evolution-loop.md"
 PLAN02 = ROOT / "backlog" / "plans" / "02-acceptance-packet-schema-and-fixtures.md"
 PLAN09 = ROOT / "backlog" / "plans" / "09-historical-archive-closure-and-attestation.md"
 CORE_REFERENCE = ROOT / "core" / "reference.md"
@@ -149,6 +150,60 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertIn("byte-matching", claude_example)
         self.assertIn("retrieval.mode", codex_harness)
         self.assertIn("Trace catalogs are retrieval pointers, not evidence", codex_harness)
+
+    def test_plan17_bounded_self_evolution_is_diagnostic_only(self) -> None:
+        plan = normalized_file_text(PLAN17)
+        readme = normalized_file_text(README)
+        system_doc = normalized_file_text(ROOT / "docs" / "meta-harness-system.md")
+        codex_template = normalized_file_text(CODEX_AGENTS_TEMPLATE)
+        claude_example = normalized_file_text(CLAUDE_EXAMPLE)
+        codex_harness = normalized_file_text(CODEX_HARNESS_SKILL)
+
+        for marker in (
+            "The loop is intentionally not an automatic self-modifying harness",
+            "generated summaries, catalogs, detectors, and strategy-search selections are pointers or proposals, not evidence by themselves",
+            "Sparse trace volume is not a failure by itself",
+            "The command does not edit files",
+            "maintenance_note",
+            "quiet_post_task_diagnostic_candidate",
+            "concrete trigger-evidence pointer, reusable future value, and a clear next action",
+            "search-set candidates cannot become Active solely because a detector found a stale or missing record",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, plan)
+
+        for marker in (
+            "during agent work or explicit diagnostic checks",
+            "stable publication still flows through v2 packets and active pointers",
+            "without automatic adoption",
+            "at most one diagnostic maintenance note",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, system_doc)
+
+        for marker in (
+            "Did the harness learn from this?",
+            "check for dogfood gaps",
+            "proposals are diagnostic until adopted",
+            "Low trace volume is not a failure by itself",
+            "at most one diagnostic maintenance note",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, readme)
+
+        for marker in (
+            "check for dogfood gaps",
+            "Bounded Self-Evolution",
+            "proposals are diagnostic until adopted",
+            "concrete trigger-evidence pointer",
+            "reusable future value",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, codex_template)
+
+        self.assertIn("check for dogfood gaps", claude_example)
+        self.assertIn("diagnostic until adopted", claude_example)
+        self.assertIn("low trace volume as failure by itself", codex_harness)
 
     def test_claude_example_trace_root_is_worktree_safe(self) -> None:
         claude_example = normalized_file_text(CLAUDE_EXAMPLE)

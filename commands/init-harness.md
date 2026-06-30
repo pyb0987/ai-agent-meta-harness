@@ -115,7 +115,7 @@ Write or enhance project CLAUDE.md:
    - Selected trace root and structure (normally `.claude/traces/`; for
      worktree projects, the shared absolute or migrated root used by every
      worktree)
-   - **Agent routing**: users do not need to name harness skills. Ordinary work stays ordinary; "this keeps failing" / "stop repeating this" routes to harness-engineer; "review this carefully" / "am I missing anything?" routes to multi-review when risk warrants it; "try variants" / "optimize this" routes to autoresearch only when a fixed evaluator and clear metric exist
+   - **Agent routing**: users do not need to name harness skills. Ordinary work stays ordinary; "this keeps failing" / "stop repeating this" routes to harness-engineer; "review this carefully" / "am I missing anything?" routes to multi-review when risk warrants it; "try variants" / "optimize this" routes to autoresearch only when a fixed evaluator and clear metric exist; "did the harness learn from this" / "check for dogfood gaps" routes to bounded dogfood review with diagnostic candidates only
    - **Change strategy**: Additive first -> Subtractive -> Structural (one at a time, confounding variable isolation)
    - **Failure escalation loop**: a `resolved: true` failure trace under the selected trace root must satisfy at least one of — (a) `escalated_to` is not empty (absorbed into CLAUDE.md / hook / tool), (b) an active search-set guard for the same pattern exists. If neither holds, do not mark it resolved
    - **Sub-agent triggers**: reference `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation" — two repo-specific triggers (multi-review for qualitative judgment, Fixed Evaluator for evaluator independence). Generic sub-agent uses (parallel Explore, context firewall) are Claude Code runtime tactics, not harness methodology; use them only when they materially preserve independence or unblock bounded parallel work
@@ -233,6 +233,10 @@ After all components (CLAUDE.md, hooks, skills) are confirmed, write the initial
   `raw_trace_refs` when existing trace history informed the setup
 - Treat trace catalogs as retrieval pointers only; cite raw evolution/failure
   traces when making a historical claim
+- If existing work suggests a dogfood gap, record only a diagnostic proposal:
+  a concrete trigger-evidence pointer, affected surface, reusable future value,
+  proposed action, and no automatic Active search-set edit or adoption claim.
+  During ordinary work, surface at most one diagnostic maintenance note.
 - Format: see reference.md Section 1
 
 ### Step 8: Completion Verification
@@ -245,6 +249,7 @@ All items below must pass for init-harness to be complete:
 - [ ] `{trace_root}/search-set.md` template or reused Active search-set exists
 - [ ] `{trace_root}/evolution/001-initial-harness.md` written (Step 7)
 - [ ] Initial evolution log records `retrieval.mode`
+- [ ] CLAUDE.md says bounded self-evolution proposals are diagnostic until adopted
 - [ ] CLAUDE.md includes Harness section (.claude/hooks/, selected trace root, change strategy, sub-agent triggers)
 - [ ] Multi-review skill availability verified (`~/.claude/skills/multi-review/SKILL.md` exists, or user instructed to install from `{repo}/adapters/claude/skills/multi-review/`)
 - [ ] CLAUDE.md within 100 lines (split to docs/ complete if exceeded)
