@@ -1,0 +1,43 @@
+{
+  "schema_version": "claude-profile-governance/v1",
+  "settings_paths": [
+    "settings.json",
+    "settings.local.json"
+  ],
+  "mirrors": [
+    {
+      "path": "rules/common/harness-methodology.md",
+      "canonical_source": "harness/canonical/harness-methodology.md"
+    },
+    {
+      "path": "docs/harness-reference.md",
+      "canonical_source": "harness/canonical/harness-reference.md"
+    },
+    {
+      "path": "commands/init-harness.md",
+      "canonical_source": "harness/canonical/commands/init-harness.md"
+    },
+    {
+      "path": "skills/autoresearch/SKILL.md",
+      "canonical_source": "harness/canonical/skills/autoresearch/SKILL.md"
+    },
+    {
+      "path": "skills/harness-engineer/SKILL.md",
+      "canonical_source": "harness/canonical/skills/harness-engineer/SKILL.md"
+    },
+    {
+      "path": "skills/multi-review/SKILL.md",
+      "canonical_source": "harness/canonical/skills/multi-review/SKILL.md"
+    }
+  ],
+  "hook_contracts": [],
+  "blocked_model_ids": [],
+  "scan_paths": [
+    "settings.json",
+    "settings.local.json",
+    "rules",
+    "docs",
+    "commands",
+    "skills"
+  ]
+}

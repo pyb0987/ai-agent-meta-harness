@@ -1,6 +1,6 @@
 ---
 description: "Repository self-application search-set for claude-code-harness maintenance."
-last_updated: "2026-06-18"
+last_updated: "2026-07-01"
 ---
 # Harness Search Set
 
@@ -44,6 +44,11 @@ repository changes when practical.
 - **Source**: .harness/traces/failures/002-worktree-local-trace-loss.md
 - **Symptom**: Claude projects that do feature work in git worktrees can leave harness routing only in a local ignored instruction file and write traces to missing or per-worktree `.claude/traces/` roots.
 - **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_claude_init_harness_fixture.py tests/test_maintenance_policy_boundaries.py`
+
+### SS-008: Claude global profile drift checker ships with adapter
+- **Source**: 2026-07-01 Claude global rules scope review.
+- **Symptom**: Users install the harness globally and work in other projects, while hand-authored `~/.claude/rules` and `~/.claude/settings*.json` drift outside repository-local governance.
+- **verify**: `python3 -m unittest tests/test_claude_profile_drift.py tests/test_claude_compat_install_smoke.py`
 
 ## Archived
 

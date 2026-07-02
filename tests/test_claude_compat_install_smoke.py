@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -49,16 +50,34 @@ class ClaudeCompatInstallSmokeTests(unittest.TestCase):
         (claude / "docs").mkdir(parents=True)
         (claude / "commands").mkdir(parents=True)
         (claude / "skills").mkdir(parents=True)
+        (claude / "harness/scripts").mkdir(parents=True)
+        (claude / "harness/canonical/commands").mkdir(parents=True)
+        (claude / "harness/canonical/skills").mkdir(parents=True)
 
         shutil.copy2(ROOT / "core/methodology.md", claude / "rules/common/harness-methodology.md")
+        shutil.copy2(ROOT / "core/methodology.md", claude / "harness/canonical/harness-methodology.md")
         shutil.copy2(ROOT / "core/reference.md", claude / "docs/harness-reference.md")
+        shutil.copy2(ROOT / "core/reference.md", claude / "harness/canonical/harness-reference.md")
         shutil.copy2(
             ROOT / "adapters/claude/commands/init-harness.md",
             claude / "commands/init-harness.md",
         )
+        shutil.copy2(
+            ROOT / "adapters/claude/commands/init-harness.md",
+            claude / "harness/canonical/commands/init-harness.md",
+        )
+        shutil.copy2(
+            ROOT / "adapters/claude/scripts/check-claude-profile-drift.py",
+            claude / "harness/scripts/check-claude-profile-drift.py",
+        )
+        shutil.copy2(
+            ROOT / "adapters/claude/templates/profile-governance.json",
+            claude / "harness/profile-governance.json",
+        )
         for source in (ROOT / "adapters/claude/skills").iterdir():
             if source.is_dir():
                 shutil.copytree(source, claude / "skills" / source.name)
+                shutil.copytree(source, claude / "harness/canonical/skills" / source.name)
 
     def read_installed(self, home: Path, relative: str) -> str:
         return (home / ".claude" / relative).read_text(encoding="utf-8")
@@ -91,10 +110,19 @@ class ClaudeCompatInstallSmokeTests(unittest.TestCase):
             "skills/autoresearch/SKILL.md",
             "skills/harness-engineer/SKILL.md",
             "skills/multi-review/SKILL.md",
+            "harness/scripts/check-claude-profile-drift.py",
+            "harness/profile-governance.json",
+            "harness/canonical/harness-methodology.md",
+            "harness/canonical/harness-reference.md",
+            "harness/canonical/commands/init-harness.md",
+            "harness/canonical/skills/autoresearch/SKILL.md",
+            "harness/canonical/skills/harness-engineer/SKILL.md",
+            "harness/canonical/skills/multi-review/SKILL.md",
         )
         for relative in expected_files:
-            self.assertTrue((self.old_home / ".claude" / relative).is_file(), relative)
             self.assertTrue((self.canonical_home / ".claude" / relative).is_file(), relative)
+            if not relative.startswith("harness/"):
+                self.assertTrue((self.old_home / ".claude" / relative).is_file(), relative)
 
         self.assert_normalized_doc_matches(
             canonical_source="core/methodology.md",
@@ -137,6 +165,25 @@ class ClaudeCompatInstallSmokeTests(unittest.TestCase):
                 self.read_installed(self.old_home, relative),
             )
             self.assertEqual(canonical_norm, mirror_norm, relative)
+
+    def test_canonical_claude_install_profile_drift_check_passes(self):
+        self.install_canonical_claude(self.canonical_home)
+
+        result = subprocess.run(
+            [
+                "python3",
+                str(self.canonical_home / ".claude/harness/scripts/check-claude-profile-drift.py"),
+                "--claude-home",
+                str(self.canonical_home / ".claude"),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Claude profile drift check passed", result.stdout)
 
 
 if __name__ == "__main__":

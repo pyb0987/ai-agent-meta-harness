@@ -85,15 +85,23 @@ alias.
 
 ### Claude Code
 
-Install the shared methodology, reference docs, Claude skills, and the
-`/init-harness` command:
+Install the shared methodology, reference docs, Claude skills, the
+`/init-harness` command, and the optional global-profile drift checker:
 
 ```bash
-mkdir -p ~/.claude/rules/common ~/.claude/docs ~/.claude/skills ~/.claude/commands
-cp core/methodology.md ~/.claude/rules/common/harness-methodology.md
-cp core/reference.md ~/.claude/docs/harness-reference.md
-cp -R adapters/claude/skills/* ~/.claude/skills/
-cp adapters/claude/commands/init-harness.md ~/.claude/commands/
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+mkdir -p "$CLAUDE_HOME/rules/common" "$CLAUDE_HOME/docs" "$CLAUDE_HOME/skills" "$CLAUDE_HOME/commands" "$CLAUDE_HOME/harness/scripts" "$CLAUDE_HOME/harness/canonical/commands" "$CLAUDE_HOME/harness/canonical/skills"
+cp core/methodology.md "$CLAUDE_HOME/rules/common/harness-methodology.md"
+cp core/methodology.md "$CLAUDE_HOME/harness/canonical/harness-methodology.md"
+cp core/reference.md "$CLAUDE_HOME/docs/harness-reference.md"
+cp core/reference.md "$CLAUDE_HOME/harness/canonical/harness-reference.md"
+cp -R adapters/claude/skills/* "$CLAUDE_HOME/skills/"
+cp -R adapters/claude/skills/* "$CLAUDE_HOME/harness/canonical/skills/"
+cp adapters/claude/commands/init-harness.md "$CLAUDE_HOME/commands/"
+cp adapters/claude/commands/init-harness.md "$CLAUDE_HOME/harness/canonical/commands/init-harness.md"
+cp adapters/claude/scripts/check-claude-profile-drift.py "$CLAUDE_HOME/harness/scripts/"
+cp adapters/claude/templates/profile-governance.json "$CLAUDE_HOME/harness/profile-governance.json"
+python3 "$CLAUDE_HOME/harness/scripts/check-claude-profile-drift.py"
 ```
 
 After install, run this in the target project:
@@ -105,6 +113,22 @@ After install, run this in the target project:
 Claude projects normally write `CLAUDE.md` and `.claude/traces/`. Codex
 projects normally write `AGENTS.md` and `.harness/traces/`. Both adapters use
 the same core methodology and the same v2 governance model.
+
+The Claude profile drift checker is for the user's global Claude surface:
+`~/.claude/rules`, `~/.claude/docs`, selected `~/.claude/settings*.json`, and
+any hook contracts listed in `~/.claude/harness/profile-governance.json`. It is
+not repository-local v2 publication evidence. It is a lightweight diagnostic
+guard that helps catch drift in the installed methodology, reference,
+`/init-harness` command, and Claude skills. It can also catch manifest-listed
+hook documentation/settings mismatches and stale model IDs before they steer
+daily work. Add hook contracts or blocked model IDs when you intentionally
+govern those local files.
+
+For example, to govern a local hook note, add a `hook_contracts` entry with
+`event`, non-empty `command_contains`, and optional `declared_in`. The checker then
+requires the hook command to exist in the selected Claude settings file and, if
+`declared_in` is set, requires that documentation file to mention the same hook
+event and command fragment.
 
 Agent installation prepares Codex or Claude to bootstrap and maintain a target
 project. It does not install the repository-local v2 `governance` CLI into that

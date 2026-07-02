@@ -76,6 +76,14 @@ Propose harness changes while freely diagnosing within the following constraints
   until raw evidence, executable verification, and a reviewable change justify
   adoption. Do not auto-edit Active search-set entries, and do not treat low
   trace volume as failure by itself.
+- **Global Claude profile drift**: when a failure or review points at
+  hand-authored `~/.claude/rules`, selected `~/.claude/settings*.json`, fake
+  hook documentation, or stale model IDs, run
+  `python3 ~/.claude/harness/scripts/check-claude-profile-drift.py` if it is
+  installed. Treat the result as diagnostic profile governance, not v2
+  publication evidence. If the checker or manifest is missing, propose
+  installing the Claude adapter profile-governance assets instead of editing
+  global rules directly.
 
 ### Change Strategy
 - **Additive → Subtractive → Structural** order (confounding variable isolation)
