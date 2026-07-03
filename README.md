@@ -171,6 +171,17 @@ The trace folders are the project memory. They are not a task queue for the
 user. The agent reads and writes them when a failure pattern, harness change, or
 measurable experiment makes that useful.
 
+Global installs are a routing and cross-project memory layer, not a replacement
+for project-local traces. Codex may have
+`${CODEX_HOME:-~/.codex}/harness/traces`; Claude may have
+`${CLAUDE_HOME:-~/.claude}/harness/traces`. Those global roots are useful for
+agent/harness failures that span projects, such as install drift or a repeated
+routing mistake. Project-specific recurrence guards, JD filters, tests, and
+verification commands still belong in the target project's active trace root.
+If a target project has no trace root, the agent should report that gap and
+propose initialization instead of claiming that the global harness fully covers
+the project.
+
 During normal work, the harness stays quiet unless a concrete trigger-evidence
 pointer, reusable future value, and a clear next action are all visible. Even
 then, the agent should surface at most one diagnostic maintenance note.

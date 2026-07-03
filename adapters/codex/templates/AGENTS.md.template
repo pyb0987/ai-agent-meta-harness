@@ -41,6 +41,11 @@ Use `{TRACE_ROOT}` for harness history:
 {TRACE_ROOT}/search-set.md  # Active verification cases
 ```
 
+The global Codex trace root at `${CODEX_HOME:-~/.codex}/harness/traces` is
+cross-project agent memory only. It can record routing/install mistakes that
+span projects, but it does not replace this project's active trace root or
+search-set guards.
+
 ### Change Strategy
 
 Use additive changes first, subtractive changes second, structural changes last. Keep one functional harness change per iteration so regressions are attributable.

@@ -18,6 +18,8 @@ New harness creation is handled by /init-harness. This skill handles evolution a
 - Perspective: "Failures are environment problems, not agent problems"
 - Core principles: `~/.claude/rules/common/harness-methodology.md` (repo source: `core/methodology.md`)
 - Detailed reference: `~/.claude/docs/harness-reference.md` (repo source: `core/reference.md`)
+- Global Claude trace root: `${CLAUDE_HOME:-~/.claude}/harness/traces`, used
+  only for cross-project agent/harness failures
 
 <when-to-use>
 
@@ -42,6 +44,14 @@ Propose harness changes while freely diagnosing within the following constraints
   Claude projects, but respect an explicitly documented or evidence-selected
   `.harness/traces/` root in migrated projects. Treat the selected root as
   `{trace_root}` for all reads and writes below.
+- Also inspect `${CLAUDE_HOME:-~/.claude}/harness/traces` when diagnosing a
+  missing project harness or repeated agent/harness behavior that may span
+  projects. This global root is cross-project memory only. Do not use it as the
+  active trace root for project-specific search-set guards, repository
+  verification commands, or domain failures.
+- If the target project lacks a trace root, record cross-project
+  routing/install/profile-drift mistakes globally when useful, and propose
+  project-local initialization for the project recurrence guard.
 - Active trace root evidence includes project guidance in `CLAUDE.md` or
   `AGENTS.md`, `search-set.md` with Active cases, unresolved failures, recent
   evolution entries, meaningful experiment episodes, or migration notes from

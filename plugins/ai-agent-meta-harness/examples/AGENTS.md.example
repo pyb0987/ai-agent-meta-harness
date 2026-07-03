@@ -44,6 +44,11 @@ Use `.harness/traces/` for harness history:
 .harness/traces/search-set.md  # Active verification cases
 ```
 
+The global Codex trace root at `${CODEX_HOME:-~/.codex}/harness/traces` is
+cross-project agent memory only. It can record routing/install mistakes that
+span projects, but it does not replace this project's active trace root or
+search-set guards.
+
 If this project was migrated from Claude Code and `.claude/traces/` contains
 meaningful history, keep using it until an explicit migration trace moves the
 history into `.harness/traces/`.

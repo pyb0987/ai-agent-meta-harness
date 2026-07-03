@@ -192,6 +192,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "proposals are diagnostic until adopted",
             "Low trace volume is not a failure by itself",
             "at most one diagnostic maintenance note",
+            "Global installs are a routing and cross-project memory layer",
+            "Project-specific recurrence guards, JD filters, tests, and verification commands still belong in the target project's active trace root",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, readme)
@@ -202,13 +204,19 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "proposals are diagnostic until adopted",
             "concrete trigger-evidence pointer",
             "reusable future value",
+            "global Codex trace root",
+            "does not replace this project's active trace root",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, codex_template)
 
         self.assertIn("check for dogfood gaps", claude_example)
         self.assertIn("diagnostic until adopted", claude_example)
+        self.assertIn("global Claude trace root", claude_example)
+        self.assertIn("does not replace this project's active", claude_example)
         self.assertIn("low trace volume as failure by itself", codex_harness)
+        self.assertIn("Global Codex trace root", codex_harness)
+        self.assertIn("project recurrence guard", codex_harness)
 
     def test_claude_example_trace_root_is_worktree_safe(self) -> None:
         claude_example = normalized_file_text(CLAUDE_EXAMPLE)

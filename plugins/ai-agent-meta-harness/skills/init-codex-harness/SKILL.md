@@ -34,6 +34,11 @@ absent or equivalent. If the project already has `.claude/traces/`, keep it
 temporarily when it contains meaningful history so Codex does not split
 evidence across roots.
 
+The global Codex trace root at `${CODEX_HOME:-~/.codex}/harness/traces` does
+not satisfy this project-local structure. Use it only for cross-project
+agent/harness failures; initialize a project trace root for project-specific
+guards and verification.
+
 ## Workflow
 
 ### Step 1: Inspect the Project

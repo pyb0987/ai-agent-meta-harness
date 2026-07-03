@@ -31,6 +31,10 @@ Determine components based on analysis results per Section 3 Decision criteria.
 Select the active trace root before writing new trace files:
 
 - Default Claude root: `.claude/traces/`.
+- The global Claude trace root at `${CLAUDE_HOME:-~/.claude}/harness/traces`
+  does not satisfy this project-local structure. Use it only for cross-project
+  agent/harness failures; initialize a project trace root for project-specific
+  guards and verification.
 - Also inspect `.harness/traces/` when it already exists, because migrated
   projects may contain meaningful Codex or shared harness history there.
 - Meaningful history includes `search-set.md` with Active cases, unresolved

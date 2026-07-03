@@ -50,6 +50,10 @@ npm run typecheck    # tsc --noEmit
 - `.claude/traces/evolution/` — harness change history
 - `.claude/traces/failures/` — failure diagnosis (YAML: classification, resolved)
 - `.claude/traces/search-set.md` — verification cases
+- The global Claude trace root at `${CLAUDE_HOME:-~/.claude}/harness/traces` is
+  cross-project agent memory only. It can record routing/install/profile-drift
+  mistakes that span projects, but it does not replace this project's active
+  trace root or search-set guards.
 - Harness-changing trace claims use `retrieval.mode` plus byte-matching
   `raw_trace_refs`; trace catalogs are retrieval pointers, not evidence.
 - Bounded self-evolution proposals are diagnostic until adopted. Do not

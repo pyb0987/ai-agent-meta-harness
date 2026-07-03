@@ -98,6 +98,33 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertNotIn("`AGENTS.md`", document)
                 self.assertNotIn("`CLAUDE.md`", document)
 
+    def test_global_trace_root_does_not_replace_project_trace_root(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+        reference = text(REFERENCE)
+        reference_mirror = text(REFERENCE_MIRROR)
+
+        for document in (canonical, mirror, reference, reference_mirror):
+            with self.subTest(document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("${CODEX_HOME:-~/.codex}/harness/traces", normalized)
+                self.assertIn("${CLAUDE_HOME:-~/.claude}/harness/traces", normalized)
+                self.assertIn("project-specific", normalized.lower())
+
+        for document in (canonical, mirror):
+            with self.subTest(core_document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("Global agent installs may also keep a global trace root", normalized)
+                self.assertIn("cross-project agent/harness memory", normalized)
+                self.assertIn("not as a substitute for the target project's active trace root", normalized)
+
+        for document in (reference, reference_mirror):
+            with self.subTest(reference_document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("Global and Project Trace Roots", normalized)
+                self.assertIn("Use the project trace root for project-specific recurrence prevention", normalized)
+                self.assertIn("Do not let global traces stand in for a missing project search-set", normalized)
+
     def test_sub_agent_guidance_is_subordinate_runtime_tactic(self) -> None:
         methodology = text()
 

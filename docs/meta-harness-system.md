@@ -281,6 +281,12 @@ This is the intended meaning of self-evolution in this repository: during agent
 work or explicit diagnostic checks, the harness can propose ways to improve
 itself, while adoption remains bounded by evidence, verification, and review.
 
+Global agent installs add one more diagnostic layer, not a replacement project
+memory. `${CODEX_HOME:-~/.codex}/harness/traces` and
+`${CLAUDE_HOME:-~/.claude}/harness/traces` are for cross-project agent/harness
+failures such as routing, install drift, or profile drift. Project-specific
+guards and verification remain in the target project's active trace root.
+
 ## Why Commits Are The Unit
 
 Commits are the unit because the system needs a stable, inspectable boundary

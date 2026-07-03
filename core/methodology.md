@@ -24,6 +24,15 @@ the concrete path for their runtime and must document migration behavior when a
 project already has history in another trace root. Do not split harness history
 across multiple trace roots without an explicit migration plan.
 
+Global agent installs may also keep a global trace root, such as
+`${CODEX_HOME:-~/.codex}/harness/traces` or
+`${CLAUDE_HOME:-~/.claude}/harness/traces`. Treat that root as cross-project
+agent/harness memory, not as a substitute for the target project's active trace
+root. Project-specific recurrence guards, verification commands, and domain
+failures belong in the project trace root. Cross-project failures in agent
+routing, harness installation, profile drift, or "I forgot to check the global
+trace root" belong in the global trace root when no project-local harness exists.
+
 For projects that use git worktrees, a project-relative trace root is
 worktree-relative unless the adapter explicitly makes it shared. The adapter
 must name one shared active root for all worktrees, either by using a stable

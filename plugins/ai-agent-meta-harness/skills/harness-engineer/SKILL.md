@@ -12,8 +12,13 @@ Evolve the environment that lets Codex work reliably. This skill handles failure
 - Core methodology: `core/methodology.md` when available
 - Core reference: `core/reference.md` when available
 - Project trace root: selected from the project itself, not assumed globally
+- Global Codex trace root: `${CODEX_HOME:-~/.codex}/harness/traces`, used only
+  for cross-project agent/harness failures
 
-If shared core files are unavailable because the skill was installed standalone, proceed from this skill and read project-local traces directly.
+If shared core files are unavailable because the skill was installed standalone,
+proceed from this skill and read project-local traces directly. If project-local
+traces are absent, check whether the global Codex trace root exists before
+claiming that no trace history exists.
 
 ## Objective
 
@@ -49,6 +54,14 @@ Select the trace root by evidence, not by fixed path preference:
    - prefer the root with meaningful history, not merely the newer directory
 4. If both have meaningful but divergent history, stop and propose a migration/merge plan before recording new traces.
 5. If neither exists, propose initializing `.harness/traces/` with `init-codex-harness` before making harness evolution claims.
+
+Also inspect `${CODEX_HOME:-~/.codex}/harness/traces` when diagnosing a missing
+project harness or a repeated agent/harness behavior that may span projects.
+That global root is cross-project memory only. Do not use it as the active trace
+root for project-specific search-set guards, repository verification commands,
+or domain failures. If the target project lacks a trace root, record
+cross-project routing/install mistakes globally when useful, and propose
+project-local initialization for the project recurrence guard.
 
 Do not create a second trace root without explicit migration intent.
 

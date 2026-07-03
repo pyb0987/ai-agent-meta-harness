@@ -183,6 +183,25 @@ Useful grep filters:
 - `grep -l 'resolved: false' traces/failures/` — find unresolved failures
 - `grep -l 'type: structural' traces/evolution/` — find structural changes
 
+### Global and Project Trace Roots
+
+Installed agent profiles may have a global trace root:
+
+- Codex: `${CODEX_HOME:-~/.codex}/harness/traces`
+- Claude: `${CLAUDE_HOME:-~/.claude}/harness/traces`
+
+Use the project trace root for project-specific recurrence prevention: Active
+search-set guards, domain failures, repository verification commands, and
+project harness evolution. Use the global trace root for cross-project
+agent/harness failures: routing mistakes, install/profile drift, missing global
+skill behavior, or a mistaken diagnosis that skipped global traces.
+
+When diagnosing harness absence in a target project, inspect both layers before
+claiming that no trace history exists. If the project has no trace root but the
+global root exists, report the project-local gap, inspect global failures for
+cross-project patterns, and propose project initialization for project-specific
+guards. Do not let global traces stand in for a missing project search-set.
+
 ### Trace Retrieval Provenance
 
 Selective trace retrieval is an evidence discipline, not a filesystem

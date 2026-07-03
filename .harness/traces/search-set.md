@@ -1,6 +1,6 @@
 ---
 description: "Repository self-application search-set for claude-code-harness maintenance."
-last_updated: "2026-07-01"
+last_updated: "2026-07-03"
 ---
 # Harness Search Set
 
@@ -49,6 +49,11 @@ repository changes when practical.
 - **Source**: 2026-07-01 Claude global rules scope review.
 - **Symptom**: Users install the harness globally and work in other projects, while hand-authored `~/.claude/rules` and `~/.claude/settings*.json` drift outside repository-local governance.
 - **verify**: `python3 -m unittest tests/test_claude_profile_drift.py tests/test_claude_compat_install_smoke.py`
+
+### SS-009: Global traces do not replace project-local guards
+- **Source**: .harness/traces/failures/003-global-trace-blind-spot.md
+- **Symptom**: An agent sees no project-local `.harness/traces/` or `.claude/traces/`, concludes the harness has no trace memory, and misses the installed global trace root; or it treats the global trace root as if it covered project-specific search-set guards.
+- **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_maintenance_policy_boundaries.py`
 
 ## Archived
 
