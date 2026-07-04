@@ -596,7 +596,7 @@ class GovernanceReviewImportTests(unittest.TestCase):
 
     def test_rejects_review_lineage_unanchored_trace_source_ref(self) -> None:
         def mutate_wrapper(wrapper: dict) -> None:
-            wrapper["review_lineage"][0]["source_refs"] = ["trace:.harness/traces/search-set.md"]
+            wrapper["review_lineage"][0]["source_refs"] = ["trace:backlog/repository-search-set.md"]
 
         packet_path = self.materialize_packet(mutate_wrapper=mutate_wrapper)
 

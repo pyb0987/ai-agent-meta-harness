@@ -125,6 +125,27 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn("Use the project trace root for project-specific recurrence prevention", normalized)
                 self.assertIn("Do not let global traces stand in for a missing project search-set", normalized)
 
+    def test_provider_repository_trace_boundary_is_mirrored(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+        reference = text(REFERENCE)
+        reference_mirror = text(REFERENCE_MIRROR)
+
+        for document in (canonical, mirror, reference, reference_mirror):
+            with self.subTest(document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("Trace is working memory; harness changes are the product", normalized)
+                self.assertIn("raw", normalized)
+                self.assertIn("trace roots", normalized)
+                self.assertIn("repository regression manifests", normalized)
+
+        for document in (reference, reference_mirror):
+            with self.subTest(reference_document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("Provider Repository Trace Boundary", normalized)
+                self.assertIn("backlog/repository-search-set.md", normalized)
+                self.assertIn("not another person's accumulated trace history", normalized)
+
     def test_sub_agent_guidance_is_subordinate_runtime_tactic(self) -> None:
         methodology = text()
 

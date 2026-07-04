@@ -85,14 +85,9 @@ AcceptancePacket:
         target: backlog/fixtures/acceptance-packets/artifacts/v1-boundary-release-tests.log
       - origin: generated
         relation: trace
-        ref: trace:.harness/traces/search-set.md#search-set-after-v2-fixture
+        ref: trace:backlog/repository-search-set.md#search-set-after-v2-fixture
         status: resolved
-        target: .harness/traces/search-set.md#search-set-after-v2-fixture
-      - origin: generated
-        relation: trace
-        ref: trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
-        status: resolved
-        target: .harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+        target: backlog/repository-search-set.md#search-set-after-v2-fixture
       - origin: generated
         relation: waiver-provenance
         ref: file:backlog/plans/02-acceptance-packet-schema-and-fixtures.md
@@ -132,9 +127,8 @@ AcceptancePacket:
           - release integration
       trace_refs:
         search_set_before: null
-        search_set_after: trace:.harness/traces/search-set.md#search-set-after-v2-fixture
-        evolution:
-        - trace:.harness/traces/evolution/001-repository-self-application-root.md#iteration-001-repository-self-application-trace-root
+        search_set_after: trace:backlog/repository-search-set.md#search-set-after-v2-fixture
+        evolution: []
         failures: []
         disposition: Search-set after evidence is recorded; before evidence is explicitly
           skipped for this stable fixture.

@@ -23,9 +23,11 @@ MAINTENANCE_NOTE_KIND = "quiet_post_task_diagnostic_candidate"
 POST_TASK_SURFACE = "post_task"
 EXPLICIT_SURFACE = "explicit_dogfood"
 TRACE_ROOT = Path(".harness/traces")
-SEARCH_SET_PATH = TRACE_ROOT / "search-set.md"
+TRACE_SEARCH_SET_PATH = TRACE_ROOT / "search-set.md"
+REPOSITORY_SEARCH_SET_PATH = Path("backlog/repository-search-set.md")
 HARNESS_PREFIXES = (
     ".githooks/",
+    "backlog/repository-search-set.md",
     ".harness/traces/search-set.md",
     "adapters/",
     "backlog/plans/",
@@ -293,8 +295,15 @@ def stale_verify_reason(command: str, repo_root: Path) -> str | None:
     return None
 
 
+def search_set_path_for_repo(repo_root: Path) -> Path:
+    if (repo_root / REPOSITORY_SEARCH_SET_PATH).is_file():
+        return REPOSITORY_SEARCH_SET_PATH
+    return TRACE_SEARCH_SET_PATH
+
+
 def search_set_candidates(repo_root: Path) -> list[dict[str, Any]]:
-    search_set_path = repo_root / SEARCH_SET_PATH
+    search_set_rel = search_set_path_for_repo(repo_root)
+    search_set_path = repo_root / search_set_rel
     active_text = active_search_set_text(search_set_path)
     if not active_text:
         return []
@@ -306,8 +315,8 @@ def search_set_candidates(repo_root: Path) -> list[dict[str, Any]]:
                 candidate(
                     kind="search_set_candidate",
                     status="malformed",
-                    trigger_evidence=[SEARCH_SET_PATH.as_posix()],
-                    affected_surface=[SEARCH_SET_PATH.as_posix()],
+                    trigger_evidence=[search_set_rel.as_posix()],
+                    affected_surface=[search_set_rel.as_posix()],
                     proposed_action="Add a deterministic verify command or archive the Active entry.",
                     reusable_future_value=(
                         "Future harness checks need Active search-set entries to "
@@ -325,8 +334,8 @@ def search_set_candidates(repo_root: Path) -> list[dict[str, Any]]:
             reports.append(
                 candidate(
                     kind="search_set_candidate",
-                    trigger_evidence=[SEARCH_SET_PATH.as_posix()],
-                    affected_surface=[SEARCH_SET_PATH.as_posix()],
+                    trigger_evidence=[search_set_rel.as_posix()],
+                    affected_surface=[search_set_rel.as_posix()],
                     proposed_action="Update the verify command, add the missing file, or archive the entry.",
                     reusable_future_value=(
                         "Future verification can avoid stale guard commands and "

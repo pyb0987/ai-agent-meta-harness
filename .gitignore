@@ -6,3 +6,4 @@
 
 # Personal harness workspace — main should stay provider-only
 .claude/
+.harness/traces/

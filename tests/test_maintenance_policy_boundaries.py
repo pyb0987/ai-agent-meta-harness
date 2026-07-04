@@ -194,6 +194,8 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
             "at most one diagnostic maintenance note",
             "Global installs are a routing and cross-project memory layer",
             "Project-specific recurrence guards, JD filters, tests, and verification commands still belong in the target project's active trace root",
+            "Trace is working memory; harness changes are the product",
+            "backlog/repository-search-set.md",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, readme)

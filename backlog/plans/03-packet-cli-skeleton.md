@@ -135,7 +135,7 @@ Required behavior:
 Plan 03 uses a deliberately small rule table:
 
 - `scripts/`, `.githooks/`, `core/`, `adapters/`, `skills/`, `commands/`,
-  `plugins/`, `MAINTENANCE.md`, `README.md`, and `.harness/traces/search-set.md`
+  `plugins/`, `MAINTENANCE.md`, `README.md`, and `backlog/repository-search-set.md`
   are protected or harness-affecting surfaces.
 - Protected or harness-affecting changes infer high impact, require at least
   `git diff --check`, already-present review closure, and any local command

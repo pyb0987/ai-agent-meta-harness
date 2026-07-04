@@ -1,6 +1,6 @@
 ---
-description: "Repository self-application search-set for claude-code-harness maintenance."
-last_updated: "2026-07-03"
+description: "Repository regression search-set for ai-agent-meta-harness maintenance."
+last_updated: "2026-07-04"
 ---
 # Harness Search Set
 
@@ -35,13 +35,13 @@ repository changes when practical.
 - **Symptom**: Root docs and verification policy can again describe local plugin activation as pending or overclaim that CLI activation proves runtime model-visible skill surfacing.
 - **verify**: `python3 -m unittest tests/test_pre_commit_hook.py`
 
-### SS-006: Repository trace root keeps minimum self-application surface
-- **Source**: backlog/core.md item 33 and the 2026-05-04 self-application trace-root multi-review VETO.
-- **Symptom**: Repository maintenance can have `.harness/traces/search-set.md` while missing sibling `evolution/`, `failures/`, or `experiments/` surfaces, so future trace reuse silently becomes incomplete.
+### SS-006: Repository search-set stays outside maintainer traces
+- **Source**: Maintainer/user boundary review: "Trace is working memory; harness changes are the product."
+- **Symptom**: The repository regression manifest is stored under `.harness/traces/`, mixing maintainer working-memory traces with the shipped product surface.
 - **verify**: `python3 -m unittest tests/test_repository_search_set.py`
 
 ### SS-007: Claude worktrees keep one shared trace root
-- **Source**: .harness/traces/failures/002-worktree-local-trace-loss.md
+- **Source**: backlog/review-2026-06-18-worktree-trace-root.md
 - **Symptom**: Claude projects that do feature work in git worktrees can leave harness routing only in a local ignored instruction file and write traces to missing or per-worktree `.claude/traces/` roots.
 - **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_claude_init_harness_fixture.py tests/test_maintenance_policy_boundaries.py`
 
@@ -51,7 +51,7 @@ repository changes when practical.
 - **verify**: `python3 -m unittest tests/test_claude_profile_drift.py tests/test_claude_compat_install_smoke.py`
 
 ### SS-009: Global traces do not replace project-local guards
-- **Source**: .harness/traces/failures/003-global-trace-blind-spot.md
+- **Source**: backlog/review-2026-07-03-global-project-trace-boundary.md
 - **Symptom**: An agent sees no project-local `.harness/traces/` or `.claude/traces/`, concludes the harness has no trace memory, and misses the installed global trace root; or it treats the global trace root as if it covered project-specific search-set guards.
 - **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_maintenance_policy_boundaries.py`
 

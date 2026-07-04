@@ -13,9 +13,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 HARNESS_AFFECTING_PREFIXES = (
-    ".harness/traces/search-set.md",
     ".githooks/",
     "adapters/",
+    "backlog/repository-search-set.md",
     "commands/",
     "core/",
     "docs/",
@@ -34,7 +34,7 @@ RECORD_PATH_PREFIXES = (
     ".harness/traces/",
     "backlog/",
 )
-SEARCH_SET_PATH = Path(".harness/traces/search-set.md")
+SEARCH_SET_PATH = Path("backlog/repository-search-set.md")
 AGGREGATE_SEARCH_SET_COMMANDS = {
     "python3 scripts/run-search-set.py",
 }

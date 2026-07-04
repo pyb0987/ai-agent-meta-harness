@@ -20,6 +20,10 @@ New harness creation is handled by /init-harness. This skill handles evolution a
 - Detailed reference: `~/.claude/docs/harness-reference.md` (repo source: `core/reference.md`)
 - Global Claude trace root: `${CLAUDE_HOME:-~/.claude}/harness/traces`, used
   only for cross-project agent/harness failures
+- Provider/distribution repositories follow a different publication boundary:
+  trace is working memory; harness changes are the product. Keep maintainer raw
+  traces local/global/target-project, and ship the productized docs, skills,
+  adapters, checkers, tests, and repository regression manifests instead.
 
 <when-to-use>
 

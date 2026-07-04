@@ -2,7 +2,7 @@
 
 A practical framework for maintaining trace-backed AI-assisted development environments across coding agents, inspired by the [Meta-Harness](https://arxiv.org/abs/2603.28052) paper (Lee et al., Stanford 2026).
 
-The Meta-Harness paper frames harness design as a major factor in agent performance, and its introduction cites prior harness-sensitivity evidence that changing only the harness can produce a 6x performance gap on the same benchmark. This project operationalizes Meta-Harness paper principles into a practical harness toolkit, runtime adapters, and verification gates. It combines published findings with repository-local engineering practices and checks for documentation, adapters, generated assets, and self-application traces, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
+The Meta-Harness paper frames harness design as a major factor in agent performance, and its introduction cites prior harness-sensitivity evidence that changing only the harness can produce a 6x performance gap on the same benchmark. This project operationalizes Meta-Harness paper principles into a practical harness toolkit, runtime adapters, and verification gates. It combines published findings with repository-local engineering practices and checks for documentation, adapters, generated assets, and self-application verification, but it does not claim a local reproduction of the paper's end-to-end benchmark gains.
 
 The repository is split into a shared core plus thin runtime adapters. The methodology should be edited once in `core/`; Claude Code and Codex integration details live under `adapters/`.
 
@@ -195,6 +195,12 @@ Most projects use only the target-project harness above. Use this section only
 inside this repository, or inside another repository that intentionally carries
 the same v2 `governance` scripts.
 
+This repository does not ship maintainer raw traces as product state. Trace is
+working memory; harness changes are the product. Maintainer dogfood traces live
+in local/global trace roots, while this public repository keeps the resulting
+docs, skills, adapter code, checkers, tests, and
+`backlog/repository-search-set.md` regression manifest.
+
 The practical default is intentionally small: make the content change, let
 `governance` infer the required evidence, then publish one archive-only
 AcceptancePacket publication for the finished release range.
@@ -286,21 +292,21 @@ Evidence categories used in this repository:
 | Paper results and benchmark claims | Published Meta-Harness findings, such as benchmark deltas, ablations, tables, and appendix observations | Cited as paper context only; not local reproduction evidence |
 | Repository methodology and documentation correctness | This repository's interpretation of runtime-neutral harness principles, trace formats, and claim boundaries | `core/`, `docs/`, README boundary tests, and multi-review records |
 | Adapter and generated-artifact operability | Claude/Codex adapter instructions, hook templates, generated plugin assets, and smoke-tested local workflows | Adapter unit tests, drift checks, plugin sync checks, hook smoke tests, and local activation smoke |
-| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | AcceptancePacket artifacts, packet-linked traces, checker-computed eligibility, `.harness/search-runs/` diagnostic records, and active pointer publication checks |
+| Repository self-application evidence | This repository applying its own maintenance loop and preserving regression memory | `backlog/repository-search-set.md`, AcceptancePacket artifacts, checker-computed eligibility, `.harness/search-runs/` diagnostic records, and active pointer publication checks |
 
 Paper claim traceability:
 
 | README Claim | Paper Location | Local Status |
 |--------------|----------------|--------------|
 | Changing only the harness can produce a 6x performance gap on the same benchmark | Paper Introduction, citing prior harness sensitivity evidence | Paper context only; not locally reproduced here |
-| Meta-Harness improves online text classification by 7.7 points while using 4x fewer context tokens | Paper Abstract and Section 4.1 comparison against ACE | Paper result only; this repo tests documentation, adapters, generated assets, and self-application traces |
-| Full traces outperform summaries in the online text-classification ablation | Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison | Paper result used to motivate this repo's trace discipline; local evidence is search-set and trace-root verification |
+| Meta-Harness improves online text classification by 7.7 points while using 4x fewer context tokens | Paper Abstract and Section 4.1 comparison against ACE | Paper result only; this repo tests documentation, adapters, generated assets, and self-application verification |
+| Full traces outperform summaries in the online text-classification ablation | Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison | Paper result used to motivate target-project trace discipline; repository evidence is search-set and boundary verification |
 | Meta-Harness searches over harness code with source, scores, and execution traces available through the filesystem | Paper Abstract and system design description of the agentic proposer/filesystem interface | Paper-backed design principle adapted into this repo's code-space search and trace-root conventions |
 | The outer loop proposes, evaluates, and logs candidates rather than adding persistent multi-agent orchestration | Paper system design: agentic proposer plus evaluator plus filesystem trace history | Repository-calibrated workflow rule; verified here through maintenance gates and review records, not benchmark reproduction |
 | Additive modification and confounding-variable isolation are safer change strategies | Paper Appendix A/A.2 qualitative search trajectory and discussion | Repository methodology rule; enforced through maintenance workflow and backlog review records, not a local benchmark reproduction |
 | Skill text quality is a high-leverage implementation detail | Paper Appendix D practical implementation tips | Paper engineering lesson adapted into repository skill-writing guidance |
 
-- **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files use YAML frontmatter for programmatic querying — `grep -l 'verdict: regressed' .harness/traces/evolution/` instantly filters regression cases.
+- **Raw traces over summaries** — Paper-backed: full trace access achieved 56.7% accuracy vs 38.7% with summaries (Table 3). Repository practice: agents diagnose failures by reading raw execution logs via `grep` and `cat`, not by ingesting compressed summaries. Trace files in target projects use YAML frontmatter for programmatic querying, while this provider repository ships productized harness changes and `backlog/repository-search-set.md` instead of maintainer raw traces.
 - **Additive modification** — Paper-backed: 6 consecutive iterations regressed when modifying control flow or prompts (Appendix A.2). Iteration 7 won by adding information (environment bootstrap) without touching existing logic. Repository practice: prefer adding evidence or guardrails before restructuring.
 - **Code-space search** — Paper-backed by the Meta-Harness proposer/filesystem design: agents explore by modifying isolated, diffable, executable search surfaces such as source, configuration, prompt templates, or generated candidates that are evaluated by the same verifier. Repository-calibrated rule: "try harder" is noise; a 3-line config or prompt-construction change with a fixed evaluator is search.
 - **Minimal outer loop** — Paper-backed by the system's propose -> evaluate -> log loop over candidate harnesses. Repository-calibrated rule: avoid orchestration that makes the harness harder to verify by inspection.

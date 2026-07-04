@@ -51,7 +51,7 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
             "Repository methodology and documentation correctness",
             "Adapter and generated-artifact operability",
             "Repository self-application evidence",
-            ".harness/traces/search-set.md",
+            "backlog/repository-search-set.md",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
@@ -100,7 +100,7 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
             readme.lower(),
         )
         self.assertNotIn("building reliable ai-assisted development environments", readme.lower())
-        self.assertIn("Trace-backed harness changes accumulate for future maintenance", readme)
+        self.assertIn("Trace is working memory; harness changes are the product", readme)
         self.assertNotIn("Harness gradually improves over time", readme)
 
     def test_readme_has_compact_paper_claim_traceability_map(self) -> None:
@@ -118,7 +118,7 @@ class ReadmeMethodologyBoundaryTests(unittest.TestCase):
             "Paper Abstract and Section 4.1 comparison against ACE",
             "Full traces outperform summaries in the online text-classification ablation",
             "Paper Table 3: scores-only, scores-plus-summary, and full-interface comparison",
-            "Paper result used to motivate this repo's trace discipline",
+            "Paper result used to motivate target-project trace discipline",
             "Meta-Harness searches over harness code with source, scores, and execution traces available through the filesystem",
             "Paper Abstract and system design description of the agentic proposer/filesystem interface",
             "Paper-backed design principle adapted into this repo's code-space search and trace-root conventions",

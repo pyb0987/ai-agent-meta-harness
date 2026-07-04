@@ -201,7 +201,7 @@ Completion Gate:
 
         commands = check_search_set_evidence.active_search_set_commands(
             read_text=read_text,
-            search_set_path=ROOT / ".harness/traces/search-set.md",
+            search_set_path=ROOT / "backlog/repository-search-set.md",
         )
 
         self.assertEqual(commands, {"python3 scripts/check-maintenance-review.py"})
@@ -220,7 +220,7 @@ Completion Gate:
 
     def test_require_active_run_accepts_current_active_verify_command(self) -> None:
         def read_text(path: Path, *, encoding: str) -> str:
-            if path.relative_to(ROOT).as_posix() == ".harness/traces/search-set.md":
+            if path.relative_to(ROOT).as_posix() == "backlog/repository-search-set.md":
                 return """
 ## Active
 
@@ -273,7 +273,7 @@ Completion Gate:
 
     def test_require_active_run_ignores_unrelated_historical_in_progress_sections(self) -> None:
         def read_text(path: Path, *, encoding: str) -> str:
-            if path.relative_to(ROOT).as_posix() == ".harness/traces/search-set.md":
+            if path.relative_to(ROOT).as_posix() == "backlog/repository-search-set.md":
                 return """
 ## Active
 
@@ -450,7 +450,7 @@ Completion Gate:
         self.assertIn("git index", lower)
         self.assertIn("ref...head", lower)
         self.assertIn("shape-only", lower)
-        self.assertIn("parses `.harness/traces/search-set.md`", text)
+        self.assertIn("parses `backlog/repository-search-set.md`", text)
         self.assertIn("requires recorded BEFORE/AFTER commands to match", normalized)
         self.assertIn("prove that `python3 scripts/run-search-set.py` actually\nran", text)
         self.assertIn("Active-case execution is enforced by the separate verification policy", text)
@@ -582,7 +582,7 @@ Completion Gate:
             run_git(repo, "config", "user.email", "test@example.com")
             run_git(repo, "config", "user.name", "Test User")
             write(repo / "core/methodology.md", "baseline\n")
-            write(repo / ".harness/traces/search-set.md", """
+            write(repo / "backlog/repository-search-set.md", """
 # Search Set
 
 ## Active
@@ -607,7 +607,7 @@ Completion Gate:
   - AFTER: PASS `python3 scripts/index-active.py`
 - Multi-review required: yes
 """)
-            write(repo / ".harness/traces/search-set.md", """
+            write(repo / "backlog/repository-search-set.md", """
 # Search Set
 
 ## Active
@@ -617,8 +617,8 @@ Completion Gate:
 
 ## Archived
 """)
-            run_git(repo, "add", "core/methodology.md", "backlog/core.md", ".harness/traces/search-set.md")
-            write(repo / ".harness/traces/search-set.md", """
+            run_git(repo, "add", "core/methodology.md", "backlog/core.md", "backlog/repository-search-set.md")
+            write(repo / "backlog/repository-search-set.md", """
 # Search Set
 
 ## Active

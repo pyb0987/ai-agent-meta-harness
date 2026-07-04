@@ -5,6 +5,7 @@ import importlib.util
 import io
 from pathlib import Path
 import re
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -12,24 +13,9 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = ROOT / ".harness" / "traces"
-SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
+SEARCH_SET = ROOT / "backlog" / "repository-search-set.md"
 MAINTENANCE = ROOT / "MAINTENANCE.md"
 RUN_SEARCH_SET = ROOT / "scripts" / "run-search-set.py"
-FRONTMATTER_RE = re.compile(r"\A---\n(?P<body>.*?)\n---\n", re.S)
-REQUIRED_EVOLUTION_FIELDS = (
-    "iteration",
-    "date",
-    "type",
-    "verdict",
-    "files_changed",
-    "refs",
-)
-REQUIRED_FAILURE_FIELDS = (
-    "date",
-    "escalated_to",
-    "search_set_id",
-    "resolved",
-)
 
 
 def read_search_set() -> str:
@@ -51,37 +37,17 @@ def active_entries(text: str) -> list[str]:
     return re.findall(r"^### SS-\d{3}: .+?(?=^### SS-\d{3}: |\Z)", active, flags=re.M | re.S)
 
 
-def frontmatter(text: str) -> dict[str, str]:
-    match = FRONTMATTER_RE.match(text)
-    if not match:
-        return {}
-    fields: dict[str, str] = {}
-    for line in match.group("body").splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        fields[key.strip()] = value.strip()
-    return fields
-
-
 class RepositorySearchSetTests(unittest.TestCase):
-    def test_repository_trace_root_has_minimum_surfaces(self) -> None:
-        for relative in (
-            "search-set.md",
-            "evolution/001-repository-self-application-root.md",
-            "evolution/002-self-application-evidence-review.md",
-            "failures/.gitkeep",
-            "experiments/.gitkeep",
-        ):
-            with self.subTest(relative=relative):
-                self.assertTrue((TRACE_ROOT / relative).exists())
+    def test_repository_search_set_is_product_manifest_not_trace(self) -> None:
+        self.assertTrue(SEARCH_SET.is_file())
+        self.assertFalse((TRACE_ROOT / "search-set.md").exists())
 
     def test_repository_search_set_exists_with_active_cases(self) -> None:
         text = read_search_set()
         entries = active_entries(text)
 
-        self.assertIn('description: "Repository self-application search-set', text)
-        self.assertIn('last_updated: "2026-06-18"', text)
+        self.assertIn('description: "Repository regression search-set', text)
+        self.assertIn('last_updated: "2026-07-04"', text)
         self.assertGreaterEqual(len(entries), 7)
 
     def test_active_entries_have_executable_verify_commands(self) -> None:
@@ -158,7 +124,7 @@ class RepositorySearchSetTests(unittest.TestCase):
             "Pre-commit release gate remains wired",
             "Claude autoresearch preserves REJECT evidence",
             "Codex activation evidence stays aligned",
-            "Repository trace root keeps minimum self-application surface",
+            "Repository search-set stays outside maintainer traces",
             "Claude worktrees keep one shared trace root",
             "python3 scripts/check-maintenance-review.py",
             "python3 scripts/check-compat-mirrors.py",
@@ -171,80 +137,46 @@ class RepositorySearchSetTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)
 
-    def test_active_search_set_names_trace_root_completeness_regression(self) -> None:
+    def test_active_search_set_names_provider_trace_boundary(self) -> None:
         entries = active_entries(read_search_set())
         matching = [
             entry for entry in entries
-            if "Repository trace root keeps minimum self-application surface" in entry
+            if "Repository search-set stays outside maintainer traces" in entry
         ]
 
         self.assertEqual(len(matching), 1)
         entry = matching[0]
-        self.assertIn("backlog/core.md item 33", entry)
-        self.assertIn("self-application trace-root multi-review VETO", entry)
-        self.assertIn("missing sibling `evolution/`, `failures/`, or `experiments/`", entry)
+        self.assertIn("Trace is working memory; harness changes are the product", entry)
+        self.assertIn("repository regression manifest is stored under `.harness/traces/`", entry)
+        self.assertIn("maintainer working-memory traces with the shipped product surface", entry)
         self.assertIn("python3 -m unittest tests/test_repository_search_set.py", entry)
 
     def test_maintenance_points_repo_self_application_to_search_set(self) -> None:
         text = MAINTENANCE.read_text(encoding="utf-8")
+        normalized = " ".join(text.split())
 
         self.assertIn("For this repository's own harness-maintenance loop", text)
-        self.assertIn("`.harness/traces/` tree as the active repository self-application trace root", text)
-        self.assertIn("`.harness/traces/search-set.md`", text)
+        self.assertIn("`backlog/repository-search-set.md` as the tracked repository regression manifest", normalized)
+        self.assertIn("Maintainer/user trace files are local working memory", normalized)
         self.assertIn("Active verify commands", text)
-        self.assertIn("Historical `.claude/traces/` files are legacy\nClaude-local context", text)
-        self.assertIn("do not write new repository maintenance traces there", text)
+        self.assertIn("do not publish raw maintainer traces as product artifacts", normalized)
 
-    def test_evolution_record_documents_legacy_claude_trace_relationship(self) -> None:
-        text = (TRACE_ROOT / "evolution/001-repository-self-application-root.md").read_text(encoding="utf-8")
+    def test_maintainer_trace_directories_are_ignored_working_memory(self) -> None:
+        ignore_text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn(".harness/traces/", ignore_text)
 
-        self.assertIn("minimum trace surface is present", text)
-        self.assertIn("Legacy Claude-local history remains under `.claude/traces/`", text)
-        self.assertIn("Future repository maintenance traces should be\nwritten under `.harness/traces/`", text)
+    def test_raw_maintainer_trace_files_are_not_tracked(self) -> None:
+        result = subprocess.run(
+            ["git", "ls-files", ".harness/traces"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
 
-    def test_repository_evolution_records_follow_schema(self) -> None:
-        for path in sorted((TRACE_ROOT / "evolution").glob("*.md")):
-            with self.subTest(path=path.relative_to(ROOT).as_posix()):
-                text = path.read_text(encoding="utf-8")
-                fields = frontmatter(text)
-                self.assertEqual([field for field in REQUIRED_EVOLUTION_FIELDS if field not in fields], [])
-                self.assertRegex(fields["iteration"], r"^\d+$")
-                self.assertIn(fields["type"], {"additive", "subtractive", "structural"})
-                self.assertIn(fields["verdict"], {"improved", "regressed", "neutral"})
-                self.assertTrue(fields["files_changed"].startswith("["))
-                self.assertTrue(fields["refs"].startswith("["))
-                iteration = int(fields["iteration"])
-                self.assertIn(f"## Iteration {iteration:03d}:", text)
-                for heading in ("### Diagnosis", "### Change", "### Result", "### Lesson"):
-                    self.assertIn(heading, text)
-                self.assertRegex(text, r"- Before: .+")
-                self.assertRegex(text, r"- After: .+")
-
-    def test_repository_failure_records_follow_schema(self) -> None:
-        for path in sorted((TRACE_ROOT / "failures").glob("*.md")):
-            with self.subTest(path=path.relative_to(ROOT).as_posix()):
-                text = path.read_text(encoding="utf-8")
-                fields = frontmatter(text)
-                self.assertEqual([field for field in REQUIRED_FAILURE_FIELDS if field not in fields], [])
-                self.assertIn(fields["resolved"], {"true", "false"})
-                self.assertIn(fields["escalated_to"], {"instructions", "docs", "skill", "hook", "tool", "none"})
-                self.assertIn("## Failure:", text)
-                for heading in ("### Observation", "### Root Cause", "### Fix", "### Prevention"):
-                    self.assertIn(heading, text)
-
-    def test_evolution_review_trace_records_self_application_evidence_boundary(self) -> None:
-        text = (TRACE_ROOT / "evolution/002-self-application-evidence-review.md").read_text(encoding="utf-8")
-
-        for marker in (
-            "iteration: 2",
-            "verdict: improved",
-            "thin tracked\nself-application evidence",
-            "does not copy that\nhistory blindly",
-            "avoids overclaiming richer local\n  self-application evidence",
-            "not synthetic failures",
-        ):
-            with self.subTest(marker=marker):
-                self.assertIn(marker, text)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "")
 
 
 if __name__ == "__main__":

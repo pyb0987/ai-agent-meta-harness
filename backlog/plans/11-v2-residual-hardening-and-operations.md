@@ -154,13 +154,13 @@ refs for high-risk packets.
 Acceptance criteria:
 
 - High-risk packet tooling can capture or prompt for distinct before/after
-  `.harness/traces/search-set.md` refs.
+  `backlog/repository-search-set.md` refs.
 - Targeted skips remain explicit human/operator decisions with provenance.
 - Review scoring treats targeted skips as acceptable but not equivalent to full
   trace reuse.
 
 Implementation note: `governance capture-search-set --phase before|after`
-records reusable `.harness/traces/search-set.md#search-set-before-*` and
+records reusable `backlog/repository-search-set.md#search-set-before-*` and
 `#search-set-after-*` anchors, and `governance finalize` accepts
 `--search-set-before/after` to bind those refs instead of generating targeted
 skips.
@@ -455,7 +455,7 @@ Closed in this iteration:
 
 - `v2-residual-09 search-set-trace-fidelity`: `governance
   capture-search-set --phase before|after` now appends reusable
-  `.harness/traces/search-set.md#search-set-before-*` and
+  `backlog/repository-search-set.md#search-set-before-*` and
   `#search-set-after-*` anchors, and `governance finalize` can bind those refs
   through `--search-set-before/after` instead of emitting targeted skips.
 
@@ -499,7 +499,7 @@ Multi-review:
 Closed in this iteration:
 
 - `v2-residual-09 search-set-trace-fidelity` hardening: capture-shaped
-  `.harness/traces/search-set.md#search-set-before-*` and
+  `backlog/repository-search-set.md#search-set-before-*` and
   `#search-set-after-*` refs now require a capture record with phase, PASS
   status, zero exit code, command, stdout/stderr SHA-256 values, head ref, and
   capture date. `governance finalize` rejects incomplete or phase-mismatched

@@ -109,8 +109,8 @@ governance finalize --packet <packet> --staged|--base-ref REF|--worktree
 governance capture-search-set --phase before --packet <packet>
 governance capture-search-set --phase after --packet <packet>
 governance finalize --packet <packet> --base-ref REF \
-  --search-set-before trace:.harness/traces/search-set.md#search-set-before-... \
-  --search-set-after trace:.harness/traces/search-set.md#search-set-after-...
+  --search-set-before trace:backlog/repository-search-set.md#search-set-before-... \
+  --search-set-after trace:backlog/repository-search-set.md#search-set-after-...
 governance review-template --packet <packet> [--output <artifact>|--scratch-output <draft>]
 governance import-review --packet <packet> --from <review-artifact-or-stdin> [--output <artifact>]
 governance write-pointer --packet <packet>
@@ -127,7 +127,7 @@ Lifecycle rules:
 - `start` and `finalize` resolve `--base-ref` to a full commit SHA before
   writing packet boundary fields or evidence commands.
 - `capture-search-set` appends a reusable before/after record under
-  `.harness/traces/search-set.md#search-set-before-*` or
+  `backlog/repository-search-set.md#search-set-before-*` or
   `#search-set-after-*`; pass those refs to `finalize --search-set-before` and
   `--search-set-after` for full trace reuse.
 - `finalize` updates evidence and computes `result.decision.stable_handoff_eligible`;
@@ -479,7 +479,7 @@ Known bootstrap residual risks:
 Search-set evidence compliance is shape-only: the checker verifies that a
 required evidence record exists for the changed surface, not that the underlying
 search cases all passed. In staged mode it reads the git index; in base-ref mode
-it compares `REF...HEAD`. The checker parses `.harness/traces/search-set.md`
+it compares `REF...HEAD`. The checker parses `backlog/repository-search-set.md`
 and requires recorded BEFORE/AFTER commands to match the changed paths, but it
 does not prove that `python3 scripts/run-search-set.py` actually
 ran. Active-case execution is enforced by the separate verification policy.
@@ -490,17 +490,18 @@ require an active run record:
 python3 scripts/check-search-set-evidence.py --staged --require-active-run
 ```
 
-For this repository's own harness-maintenance loop, use the
-`.harness/traces/` tree as the active repository self-application trace root,
-including `.harness/traces/search-set.md`. Active verify commands should cite
-that trace root when repository maintenance changes need search-set evidence.
+For this repository's own harness-maintenance loop, use
+`backlog/repository-search-set.md` as the tracked repository regression
+manifest. Maintainer/user trace files are local working memory, not shipped
+product artifacts. Active verify commands should cite the repository manifest
+when repository maintenance changes need search-set evidence.
 High-risk packet flows can run `governance capture-search-set --phase before`
 and `--phase after` to append reusable `Search-set Evidence Captures` anchors,
 then pass those refs to `governance finalize --search-set-before/after`.
 Targeted skips remain valid human dispositions, but captured before/after refs
 are the higher-fidelity reuse path.
 Historical `.claude/traces/` files are legacy
-Claude-local context; do not write new repository maintenance traces there.
+Claude-local context; do not publish raw maintainer traces as product artifacts.
 
 The Codex marketplace metadata readiness check passes when generated plugin
 marketplace metadata is present and points at the expected local plugin bundle.

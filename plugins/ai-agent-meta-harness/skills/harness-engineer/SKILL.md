@@ -15,6 +15,11 @@ Evolve the environment that lets Codex work reliably. This skill handles failure
 - Global Codex trace root: `${CODEX_HOME:-~/.codex}/harness/traces`, used only
   for cross-project agent/harness failures
 
+Provider/distribution repositories follow a different publication boundary:
+trace is working memory; harness changes are the product. Keep maintainer raw
+traces local/global/target-project, and ship the productized docs, skills,
+adapters, checkers, tests, and repository regression manifests instead.
+
 If shared core files are unavailable because the skill was installed standalone,
 proceed from this skill and read project-local traces directly. If project-local
 traces are absent, check whether the global Codex trace root exists before

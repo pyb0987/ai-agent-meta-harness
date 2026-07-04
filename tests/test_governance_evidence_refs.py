@@ -332,12 +332,12 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
             }
         )
 
-        self.assert_rejected(packet, "stable trace_refs.search_set_before must point to .harness/traces/search-set.md")
+        self.assert_rejected(packet, "stable trace_refs.search_set_before must point to backlog/repository-search-set.md")
 
     def test_stable_protected_packet_search_set_refs_must_use_allowed_anchor(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        bad_ref = "trace:.harness/traces/search-set.md#harness-search-set"
+        bad_ref = "trace:backlog/repository-search-set.md#harness-search-set"
         evidence["trace_refs"]["search_set_after"] = bad_ref
         evidence["resolved_refs"].append(
             {
@@ -345,23 +345,23 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "trace",
                 "ref": bad_ref,
                 "status": "resolved",
-                "target": ".harness/traces/search-set.md#harness-search-set",
+                "target": "backlog/repository-search-set.md#harness-search-set",
             }
         )
 
-        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
+        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to backlog/repository-search-set.md")
 
     def test_stable_search_set_before_after_must_use_capture_anchor(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        evidence["trace_refs"]["search_set_before"] = "trace:.harness/traces/search-set.md#active"
+        evidence["trace_refs"]["search_set_before"] = "trace:backlog/repository-search-set.md#active"
 
         self.assert_rejected(packet, "search-set capture ref must use search-set-before-* anchor")
 
     def test_stable_protected_packet_search_set_refs_must_be_canonical(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        bad_ref = "trace:.harness//traces/search-set.md#active"
+        bad_ref = "trace:backlog//repository-search-set.md#active"
         evidence["trace_refs"]["search_set_after"] = bad_ref
         evidence["resolved_refs"].append(
             {
@@ -369,17 +369,17 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "trace",
                 "ref": bad_ref,
                 "status": "resolved",
-                "target": ".harness//traces/search-set.md#active",
+                "target": "backlog//repository-search-set.md#active",
             }
         )
 
-        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to .harness/traces/search-set.md")
+        self.assert_rejected(packet, "stable trace_refs.search_set_after must point to backlog/repository-search-set.md")
 
     def test_stable_protected_packet_search_set_distinctness_uses_normalized_ref(self) -> None:
         packet = load_fixture("finalized-harness-affecting.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        before_ref = "trace:.harness/traces/./search-set.md#active"
-        after_ref = "trace:.harness/traces/search-set.md#active"
+        before_ref = "trace:backlog/./repository-search-set.md#active"
+        after_ref = "trace:backlog/repository-search-set.md#active"
         evidence["trace_refs"]["search_set_before"] = before_ref
         evidence["trace_refs"]["search_set_after"] = after_ref
         evidence["resolved_refs"].append(
@@ -388,7 +388,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "trace",
                 "ref": before_ref,
                 "status": "resolved",
-                "target": ".harness/traces/./search-set.md#active",
+                "target": "backlog/./repository-search-set.md#active",
             }
         )
 
@@ -397,7 +397,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
     def test_stable_recorded_search_set_refs_are_distinct_even_for_routine_packets(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        trace_ref = "trace:.harness/traces/search-set.md#active"
+        trace_ref = "trace:backlog/repository-search-set.md#active"
         evidence["trace_refs"]["search_set_before"] = trace_ref
         evidence["trace_refs"]["search_set_after"] = trace_ref
         evidence["resolved_refs"].append(
@@ -406,7 +406,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "trace",
                 "ref": trace_ref,
                 "status": "resolved",
-                "target": ".harness/traces/search-set.md#active",
+                "target": "backlog/repository-search-set.md#active",
             }
         )
 
@@ -589,7 +589,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
     def test_stable_claim_evidence_trace_ref_must_not_use_search_set_index(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        raw_ref = "trace:.harness/traces/search-set.md#active"
+        raw_ref = "trace:backlog/repository-search-set.md#active"
         evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
 
         self.assert_rejected(packet, "claim evidence ref must use file: scheme")
@@ -597,7 +597,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
     def test_stable_claim_evidence_rejects_any_search_set_file_anchor(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        raw_ref = "trace:.harness/traces/search-set.md#harness-search-set"
+        raw_ref = "trace:backlog/repository-search-set.md#harness-search-set"
         evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
         evidence["resolved_refs"].append(
             {
@@ -605,7 +605,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "claim-evidence",
                 "ref": raw_ref,
                 "status": "resolved",
-                "target": ".harness/traces/search-set.md#harness-search-set",
+                "target": "backlog/repository-search-set.md#harness-search-set",
             }
         )
 
@@ -614,7 +614,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
     def test_stable_claim_evidence_normalizes_search_set_trace_path(self) -> None:
         packet = load_fixture("finalized-routine.yml")
         evidence = packet["AcceptancePacket"]["result"]["evidence"]
-        raw_ref = "trace:.harness/traces/./search-set.md#active"
+        raw_ref = "trace:backlog/./repository-search-set.md#active"
         evidence["claims"] = [{"raw_evidence_refs": [raw_ref]}]
         evidence["resolved_refs"].append(
             {
@@ -622,7 +622,7 @@ class GovernanceEvidenceRefsTests(unittest.TestCase):
                 "relation": "claim-evidence",
                 "ref": raw_ref,
                 "status": "resolved",
-                "target": ".harness/traces/./search-set.md#active",
+                "target": "backlog/./repository-search-set.md#active",
             }
         )
 

@@ -35,6 +35,12 @@ failures belong in the project trace root. Cross-project failures in agent
 routing, harness installation, profile drift, or "I forgot to check the global
 trace root" belong in the global trace root when no project-local harness exists.
 
+Provider repositories should not publish maintainer raw traces as product
+state. Trace is working memory; harness changes are the product. When a
+maintainer also dogfoods the harness, keep raw operational traces in a local,
+global, or target-project trace root, and ship only the resulting methodology,
+skills, adapters, checkers, tests, and repository regression manifests.
+
 For projects that use git worktrees, a project-relative trace root is
 worktree-relative unless the adapter explicitly makes it shared. The adapter
 must name one shared active root for all worktrees, either by using a stable

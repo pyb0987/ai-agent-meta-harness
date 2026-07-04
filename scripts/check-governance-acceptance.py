@@ -181,8 +181,9 @@ PROTECTED_PREFIXES = (
     "scripts/",
     "skills/",
 )
+REPOSITORY_SEARCH_SET_PATH = "backlog/repository-search-set.md"
 PROTECTED_PATHS = {
-    ".harness/traces/search-set.md",
+    REPOSITORY_SEARCH_SET_PATH,
     "MAINTENANCE.md",
     "README.md",
 }
@@ -567,7 +568,7 @@ def search_set_trace_ref_error(
     if not trace_ref_has_anchor(ref):
         return f"{field} must include an anchor: {ref}"
     if not is_search_set_trace_ref(ref):
-        return f"{field} must point to .harness/traces/search-set.md with an allowed search-set anchor: {ref}"
+        return f"{field} must point to {REPOSITORY_SEARCH_SET_PATH} with an allowed search-set anchor: {ref}"
     if resolve_ref(root, ref) is None:
         return f"{field} does not resolve: {ref}"
     if error := search_set_capture_record_error(root, ref, expected_phase=expected_phase):
@@ -641,7 +642,7 @@ def search_set_capture_record(
 
 
 def append_search_set_capture(root: Path, record: str) -> None:
-    path = root / ".harness/traces/search-set.md"
+    path = root / REPOSITORY_SEARCH_SET_PATH
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -694,7 +695,7 @@ def is_search_set_trace_ref(ref: str) -> bool:
     anchor = trace_ref_anchor(ref)
     return (
         canonical == ref
-        and trace_ref_path(ref) == ".harness/traces/search-set.md"
+        and trace_ref_path(ref) == REPOSITORY_SEARCH_SET_PATH
         and (
             anchor in SEARCH_SET_TRACE_ANCHORS
             or (isinstance(anchor, str) and SEARCH_SET_CAPTURE_ANCHOR_RE.fullmatch(anchor))
@@ -703,7 +704,7 @@ def is_search_set_trace_ref(ref: str) -> bool:
 
 
 def is_search_set_trace_path_ref(ref: str) -> bool:
-    return trace_ref_path(ref) == ".harness/traces/search-set.md"
+    return trace_ref_path(ref) == REPOSITORY_SEARCH_SET_PATH
 
 
 def is_harness_trace_ref(ref: str) -> bool:
@@ -4298,7 +4299,7 @@ def validate_packet(
             elif not trace_ref_has_anchor(trace_ref):
                 errors.append(f"stable trace_refs.{trace_name} must include an anchor: {trace_ref}")
             elif not is_search_set_trace_ref(trace_ref):
-                errors.append(f"stable trace_refs.{trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
+                errors.append(f"stable trace_refs.{trace_name} must point to {REPOSITORY_SEARCH_SET_PATH}: {trace_ref}")
             elif error := search_set_capture_record_error(
                 root,
                 trace_ref,
@@ -4353,7 +4354,7 @@ def validate_packet(
                 if not trace_ref:
                     errors.append(f"stable protected packet missing {trace_name}")
                 elif not is_search_set_trace_ref(trace_ref):
-                    errors.append(f"stable protected packet {trace_name} must point to .harness/traces/search-set.md: {trace_ref}")
+                    errors.append(f"stable protected packet {trace_name} must point to {REPOSITORY_SEARCH_SET_PATH}: {trace_ref}")
                 elif error := search_set_capture_record_error(
                     root,
                     trace_ref,
@@ -6403,7 +6404,7 @@ def capture_search_set(args: argparse.Namespace) -> int:
         note=args.note,
     )
     append_search_set_capture(root, record)
-    trace_ref = f"trace:.harness/traces/search-set.md#{markdown_anchor(heading)}"
+    trace_ref = f"trace:{REPOSITORY_SEARCH_SET_PATH}#{markdown_anchor(heading)}"
     print(f"captured search-set {args.phase} trace: {trace_ref}")
     if completed.returncode != 0:
         print(f"search-set capture command failed with exit code {completed.returncode}", file=sys.stderr)
@@ -7133,8 +7134,8 @@ def build_parser() -> argparse.ArgumentParser:
     finalize.add_argument("--staged", action="store_true")
     finalize.add_argument("--worktree", action="store_true")
     finalize.add_argument("--base-ref")
-    finalize.add_argument("--search-set-before", help="trace:.harness/traces/search-set.md#... ref captured before the change")
-    finalize.add_argument("--search-set-after", help="trace:.harness/traces/search-set.md#... ref captured after the change")
+    finalize.add_argument("--search-set-before", help=f"trace:{REPOSITORY_SEARCH_SET_PATH}#... ref captured before the change")
+    finalize.add_argument("--search-set-after", help=f"trace:{REPOSITORY_SEARCH_SET_PATH}#... ref captured after the change")
     finalize.set_defaults(func=finalize_packet)
 
     capture_search = subparsers.add_parser("capture-search-set")

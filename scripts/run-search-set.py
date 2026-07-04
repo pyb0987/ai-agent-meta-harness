@@ -13,7 +13,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SEARCH_SET = ROOT / ".harness" / "traces" / "search-set.md"
+DEFAULT_SEARCH_SET = ROOT / "backlog" / "repository-search-set.md"
 CASE_RE = re.compile(r"^###\s+([A-Za-z0-9_-]+):\s*(.+?)\s*$", re.MULTILINE)
 VERIFY_RE = re.compile(r"^- \*\*verify\*\*: `([^`]+)`\s*$", re.MULTILINE)
 ENV_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")

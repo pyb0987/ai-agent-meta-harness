@@ -3948,8 +3948,8 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             packet_path = Path(tmpdir) / "packet.yml"
             packet = yaml.safe_load((FIXTURE_ROOT / "finalized-harness-affecting.yml").read_text(encoding="utf-8"))
             trace_refs = packet["AcceptancePacket"]["result"]["evidence"]["trace_refs"]
-            trace_refs["search_set_before"] = "trace:.harness/traces/search-set.md#active"
-            trace_refs["search_set_after"] = "trace:.harness/traces/search-set.md#active"
+            trace_refs["search_set_before"] = "trace:backlog/repository-search-set.md#active"
+            trace_refs["search_set_after"] = "trace:backlog/repository-search-set.md#active"
             packet_path.write_text(yaml.safe_dump(packet, sort_keys=False), encoding="utf-8")
 
             result = run_cli("check", "--packet", str(packet_path), "--require-stable")
@@ -4473,7 +4473,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
                 """# Harness Search Set
@@ -4501,7 +4501,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             text = search_set.read_text(encoding="utf-8")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("captured search-set before trace: trace:.harness/traces/search-set.md#", result.stdout)
+        self.assertIn("captured search-set before trace: trace:backlog/repository-search-set.md#", result.stdout)
         self.assertIn("## Search-set Evidence Captures", text)
         self.assertIn("### Search-set before ", text)
         self.assertIn("- **status**: PASS", text)
@@ -4529,7 +4529,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
                 """# Harness Search Set
@@ -4608,9 +4608,9 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "--base-ref",
                 base_ref,
                 "--search-set-before",
-                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "trace:backlog/repository-search-set.md#search-set-before-fixture",
                 "--search-set-after",
-                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+                "trace:backlog/repository-search-set.md#search-set-after-fixture",
             )
             packet_data = yaml.safe_load(packet.read_text(encoding="utf-8"))["AcceptancePacket"]
 
@@ -4619,11 +4619,11 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         evidence = packet_data["result"]["evidence"]
         self.assertEqual(
             evidence["trace_refs"]["search_set_before"],
-            "trace:.harness/traces/search-set.md#search-set-before-fixture",
+            "trace:backlog/repository-search-set.md#search-set-before-fixture",
         )
         self.assertEqual(
             evidence["trace_refs"]["search_set_after"],
-            "trace:.harness/traces/search-set.md#search-set-after-fixture",
+            "trace:backlog/repository-search-set.md#search-set-after-fixture",
         )
         skipped_targets = {item["evidence"] for item in evidence["skipped"]}
         self.assertNotIn("search_set_before", skipped_targets)
@@ -4633,14 +4633,14 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             for item in evidence["resolved_refs"]
             if item.get("relation") == "trace" and item.get("origin") == "generated"
         }
-        self.assertIn("trace:.harness/traces/search-set.md#search-set-before-fixture", trace_refs)
-        self.assertIn("trace:.harness/traces/search-set.md#search-set-after-fixture", trace_refs)
+        self.assertIn("trace:backlog/repository-search-set.md#search-set-before-fixture", trace_refs)
+        self.assertIn("trace:backlog/repository-search-set.md#search-set-after-fixture", trace_refs)
 
     def test_finalize_rejects_incomplete_captured_search_set_trace_ref(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
                 """# Harness Search Set
@@ -4688,7 +4688,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "--base-ref",
                 base_ref,
                 "--search-set-before",
-                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "trace:backlog/repository-search-set.md#search-set-before-fixture",
             )
 
         self.assertNotEqual(finalize.returncode, 0)
@@ -4698,7 +4698,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             git(root, "commit", "--allow-empty", "-m", "base")
             base_ref = git(root, "rev-parse", "HEAD").stdout.strip()
@@ -4752,7 +4752,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "--base-ref",
                 base_ref,
                 "--search-set-after",
-                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+                "trace:backlog/repository-search-set.md#search-set-after-fixture",
             )
 
         self.assertNotEqual(finalize.returncode, 0)
@@ -4762,7 +4762,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text("# Harness Search Set\n\n## Active\n\n## Archived\n", encoding="utf-8")
             git(root, "add", "-A")
@@ -4796,7 +4796,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
             )
             error = load_checker().search_set_capture_record_error(
                 root,
-                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+                "trace:backlog/repository-search-set.md#search-set-after-fixture",
                 expected_phase="after",
                 expected_head_ref=accepted_head,
             )
@@ -4807,7 +4807,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
                 f"""# Harness Search Set
@@ -4861,7 +4861,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "--base-ref",
                 base_ref,
                 "--search-set-before",
-                "trace:.harness/traces/search-set.md#search-set-after-fixture",
+                "trace:backlog/repository-search-set.md#search-set-after-fixture",
             )
 
         self.assertNotEqual(finalize.returncode, 0)
@@ -4871,7 +4871,7 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             init_repo(root)
-            search_set = root / ".harness/traces/search-set.md"
+            search_set = root / "backlog/repository-search-set.md"
             search_set.parent.mkdir(parents=True)
             search_set.write_text(
                 f"""# Harness Search Set
@@ -4925,9 +4925,9 @@ class GovernanceAcceptanceCliTests(unittest.TestCase):
                 "--base-ref",
                 base_ref,
                 "--search-set-before",
-                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "trace:backlog/repository-search-set.md#search-set-before-fixture",
                 "--search-set-after",
-                "trace:.harness/traces/search-set.md#search-set-before-fixture",
+                "trace:backlog/repository-search-set.md#search-set-before-fixture",
             )
 
         self.assertNotEqual(finalize.returncode, 0)

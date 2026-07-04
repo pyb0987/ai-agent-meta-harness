@@ -159,7 +159,7 @@ Initial high-risk surfaces:
 - `adapters/`
 - `scripts/`
 - `.githooks/`
-- `.harness/traces/search-set.md`
+- `backlog/repository-search-set.md`
 - `commands/`
 - `skills/`
 - `plugins/`
@@ -278,7 +278,7 @@ Residual labels:
   evidence; staged preflight and stable packet `check` remain non-executing.
 - `v2-residual-09 search-set-trace-fidelity`: closed for repository-local v2.
   `governance capture-search-set --phase before|after` records reusable
-  `.harness/traces/search-set.md` anchors, and `governance finalize
+  `backlog/repository-search-set.md` anchors, and `governance finalize
   --search-set-before/after` binds those refs instead of targeted skips.
 - `v2-residual-10 review-template-completion-ergonomics`: accepted as post-v2
   simplification. `review-template` owns the target-bound skeleton, but a

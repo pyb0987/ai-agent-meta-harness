@@ -200,6 +200,24 @@ global root exists, report the project-local gap, inspect global failures for
 cross-project patterns, and propose project initialization for project-specific
 guards. Do not let global traces stand in for a missing project search-set.
 
+### Provider Repository Trace Boundary
+
+Provider repositories should ship the harness, not the maintainer's live
+working memory. Trace is working memory; harness changes are the product.
+
+When the maintainer is also a user:
+
+- Keep raw dogfood traces in local, global, or target-project trace roots.
+- Do not track those raw maintainer traces in the public provider repository.
+- Commit the productized outcome instead: methodology changes, skills,
+  adapters, checkers, tests, docs, and repository regression manifests.
+- Use `backlog/repository-search-set.md` for this repository's tracked
+  regression manifest. Keep `.harness/traces/` available only as ignored local
+  working memory.
+
+This keeps user installs consistent: they receive the harness and its
+verification surface, not another person's accumulated trace history.
+
 ### Trace Retrieval Provenance
 
 Selective trace retrieval is an evidence discipline, not a filesystem

@@ -145,8 +145,9 @@ class AcceptancePacketFixtureTests(unittest.TestCase):
 
         self.assertIsNone(trace_refs["search_set_before"])
         self.assertTrue(trace_refs["search_set_after"])
+        self.assertIn("backlog/repository-search-set.md", trace_refs["search_set_after"])
         self.assertIn("search_set_before", skipped)
-        self.assertTrue(trace_refs["evolution"])
+        self.assertEqual(trace_refs["evolution"], [])
 
     def test_residual_risk_records_judgment_provenance(self) -> None:
         for name, packet in self.fixture_packets().items():
