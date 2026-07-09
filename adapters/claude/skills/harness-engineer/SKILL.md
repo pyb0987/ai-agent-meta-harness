@@ -112,6 +112,15 @@ Propose harness changes while freely diagnosing within the following constraints
 ### Recording (Required)
 - All changes → `{trace_root}/evolution/NNN-{name}.md` (with YAML frontmatter)
 - All failure diagnoses → `{trace_root}/failures/NNN-{name}.md` (with YAML frontmatter)
+- Successful tasks may still produce a failure note when they required a
+  non-obvious operational workaround with reusable future value, such as cwd
+  drift, orphaned dev-server cleanup, sandbox/permission/network recovery, or
+  session-state drift. Use the project trace root for project-specific
+  operations and the global trace root only for cross-project agent/environment
+  friction.
+- Do not record simple typos, obvious one-off fixes, one-off CLI deprecations,
+  or agent-created verification mistakes with no environment lesson. Do not use
+  a numeric corrective-round threshold.
 - Formats: see reference.md. Harness-impacting records should include the
   retrieval provenance block described above.
 

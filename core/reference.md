@@ -192,7 +192,15 @@ Use the project trace root for project-specific recurrence prevention: Active
 search-set guards, domain failures, repository verification commands, and
 project harness evolution. Use the global trace root for cross-project
 agent/harness failures: routing mistakes, install/profile drift, missing global
-skill behavior, or a mistaken diagnosis that skipped global traces.
+skill behavior, shell working-directory drift, repeated sandbox/permission
+workarounds, or a mistaken diagnosis that skipped global traces.
+
+Operational friction can be trace-worthy even when the immediate task succeeds.
+Record non-obvious workarounds that have reusable future value, such as cwd
+drift that changes git paths, orphaned dev-server cleanup, sandbox/network
+permission recovery, or session-state drift. Do not record simple typos,
+one-off CLI deprecations, or agent-created verification mistakes that teach no
+environment lesson.
 
 When diagnosing harness absence in a target project, inspect both layers before
 claiming that no trace history exists. If the project has no trace root but the

@@ -59,6 +59,14 @@ npm run typecheck    # tsc --noEmit
 - Bounded self-evolution proposals are diagnostic until adopted. Do not
   auto-edit Active search-set entries or treat low trace volume as failure.
 
+### Failure Recording
+Record a non-obvious operational workaround with reusable future value even
+when the immediate task succeeds. Examples: cwd drift that changes command
+paths, orphaned dev-server cleanup, sandbox/permission/network recovery, and
+session-state drift. Do not record simple typos, obvious one-offs, one-off CLI
+deprecations, agent-created verification mistakes, or use a numeric
+corrective-round threshold.
+
 ### Change Strategy
 Additive first → Subtractive → Structural. One change at a time.
 Record all changes in `.claude/traces/evolution/` with verdict.

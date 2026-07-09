@@ -26,8 +26,14 @@ CODEX_INIT_SKILL = ROOT / "adapters" / "codex" / "skills" / "init-codex-harness"
 CODEX_HARNESS_SKILL = ROOT / "adapters" / "codex" / "skills" / "harness-engineer" / "SKILL.md"
 CODEX_MULTI_REVIEW_SKILL = ROOT / "adapters" / "codex" / "skills" / "multi-review" / "SKILL.md"
 CODEX_AUTORESEARCH_SKILL = ROOT / "adapters" / "codex" / "skills" / "autoresearch" / "SKILL.md"
+CODEX_PLUGIN_HARNESS_SKILL = ROOT / "plugins" / "ai-agent-meta-harness" / "skills" / "harness-engineer" / "SKILL.md"
+CODEX_PLUGIN_AGENTS_TEMPLATE = ROOT / "plugins" / "ai-agent-meta-harness" / "templates" / "AGENTS.md.template"
+CODEX_INIT_AGENTS_TEMPLATE = ROOT / "adapters" / "codex" / "skills" / "init-codex-harness" / "assets" / "AGENTS.md.template"
+CODEX_PLUGIN_INIT_AGENTS_TEMPLATE = ROOT / "plugins" / "ai-agent-meta-harness" / "skills" / "init-codex-harness" / "assets" / "AGENTS.md.template"
 CLAUDE_INIT_COMMAND = ROOT / "adapters" / "claude" / "commands" / "init-harness.md"
 CLAUDE_EXAMPLE = ROOT / "adapters" / "claude" / "examples" / "CLAUDE.md.example"
+CLAUDE_HARNESS_SKILL = ROOT / "adapters" / "claude" / "skills" / "harness-engineer" / "SKILL.md"
+CLAUDE_HARNESS_MIRROR = ROOT / "skills" / "harness-engineer" / "SKILL.md"
 
 
 def maintenance_text() -> str:
@@ -658,6 +664,41 @@ class MaintenancePolicyBoundaryTests(unittest.TestCase):
         self.assertIn("this keeps failing", claude_init.lower())
         self.assertIn("review this carefully", claude_init.lower())
         self.assertIn("Users do not need to name harness skills", claude_example)
+
+    def test_operational_workaround_recording_is_agent_visible_without_round_threshold(self) -> None:
+        surfaces = {
+            "codex_harness_skill": normalized_file_text(CODEX_HARNESS_SKILL),
+            "codex_plugin_harness_skill": normalized_file_text(CODEX_PLUGIN_HARNESS_SKILL),
+            "claude_harness_skill": normalized_file_text(CLAUDE_HARNESS_SKILL),
+            "claude_harness_mirror": normalized_file_text(CLAUDE_HARNESS_MIRROR),
+            "codex_agents_template": normalized_file_text(CODEX_AGENTS_TEMPLATE),
+            "codex_plugin_agents_template": normalized_file_text(CODEX_PLUGIN_AGENTS_TEMPLATE),
+            "codex_init_agents_template": normalized_file_text(CODEX_INIT_AGENTS_TEMPLATE),
+            "codex_plugin_init_agents_template": normalized_file_text(CODEX_PLUGIN_INIT_AGENTS_TEMPLATE),
+            "claude_init_command": normalized_file_text(CLAUDE_INIT_COMMAND),
+            "claude_example": normalized_file_text(CLAUDE_EXAMPLE),
+        }
+
+        for name, surface in surfaces.items():
+            with self.subTest(surface=name):
+                self.assertIn("non-obvious operational workaround", surface)
+                self.assertIn("reusable future value", surface)
+                self.assertIn("cwd drift", surface)
+                self.assertIn("orphaned dev-server cleanup", surface)
+                self.assertIn("agent-created verification mistakes", surface)
+                self.assertIn("numeric corrective-round threshold", surface)
+
+        forbidden_thresholds = (
+            "3 rounds",
+            "three rounds",
+            ">=3 rounds",
+            "≥3 rounds",
+            "corrective rounds threshold",
+        )
+        for name, surface in surfaces.items():
+            with self.subTest(forbidden_surface=name):
+                for forbidden in forbidden_thresholds:
+                    self.assertNotIn(forbidden, surface.lower())
 
 
 if __name__ == "__main__":

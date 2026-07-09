@@ -125,6 +125,28 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn("Use the project trace root for project-specific recurrence prevention", normalized)
                 self.assertIn("Do not let global traces stand in for a missing project search-set", normalized)
 
+    def test_operational_workaround_recording_trigger_is_mirrored(self) -> None:
+        canonical = text(CORE)
+        mirror = text(MIRROR)
+        reference = text(REFERENCE)
+        reference_mirror = text(REFERENCE_MIRROR)
+
+        for document in (canonical, mirror):
+            with self.subTest(core_document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("non-obvious operational workarounds", normalized)
+                self.assertIn("even when the immediate task eventually succeeds", normalized)
+                self.assertIn("agent-created verification mistakes with no reusable environment lesson", normalized)
+                self.assertIn("failures/ recording triggers", normalized)
+                self.assertNotIn("objective criteria", normalized)
+
+        for document in (reference, reference_mirror):
+            with self.subTest(reference_document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("Operational friction can be trace-worthy even when the immediate task succeeds", normalized)
+                self.assertIn("cwd drift that changes git paths", normalized)
+                self.assertIn("agent-created verification mistakes that teach no environment lesson", normalized)
+
     def test_provider_repository_trace_boundary_is_mirrored(self) -> None:
         canonical = text(CORE)
         mirror = text(MIRROR)

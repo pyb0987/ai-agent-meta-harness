@@ -87,7 +87,16 @@ proposed action, and a later reviewable change before adoption.
 
 ### Failure Recording
 
-Record failures that require causal reasoning, produce results opposite to hypothesis, or reveal a new guard violation type. Do not record simple typos or obvious one-off fixes.
+Record failures that require causal reasoning, produce results opposite to
+hypothesis, reveal a new guard violation type, or require a non-obvious
+operational workaround with reusable future value even when the immediate task
+succeeds. Examples include cwd drift, orphaned dev-server cleanup,
+sandbox/permission/network recovery, and session-state drift.
+
+Do not record simple typos, obvious one-off fixes, one-off CLI deprecations, or
+agent-created verification mistakes with no environment lesson. Do not use a
+numeric corrective-round threshold; record only when the workaround is
+non-obvious and reusable.
 
 ### Structural Escalation
 

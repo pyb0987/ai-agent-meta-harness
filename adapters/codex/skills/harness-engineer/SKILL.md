@@ -203,8 +203,18 @@ Record failure diagnoses in `{trace_root}/failures/NNN-{name}.md` when any trigg
 - structural code change failure
 - recurring failure whose Prevention failed
 - unresolved failure is worth adding to the search-set
+- non-obvious operational workaround has reusable future value, even if the
+  immediate task succeeded
 
-Do not record simple typos, obvious one-off fixes, or failures with no future verification value.
+Operational examples include cwd drift that changes git paths, orphaned
+dev-server cleanup, sandbox/permission/network recovery, and session-state
+drift. Choose the project trace root for project-specific operations; use the
+global trace root only for cross-project agent/environment friction.
+
+Do not record simple typos, obvious one-off fixes, one-off CLI deprecations,
+agent-created verification mistakes with no environment lesson, or failures with
+no future verification value. Do not use a numeric corrective-round threshold;
+record only when the workaround is non-obvious and reusable.
 
 A `resolved: true` failure must have at least one of:
 

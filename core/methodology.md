@@ -84,11 +84,18 @@ expanding the project.
 - YAML frontmatter enables programmatic filtering: `grep -l 'verdict: regressed'` etc.
 - Evolution log/failure diagnosis formats: see reference.md
 - Preserve: failures requiring causal reasoning, before/after comparisons, confounding variable identification
-- Don't preserve: simple typos, obvious fixes
-- **failures/ recording triggers** (objective criteria):
+- Preserve: non-obvious operational workarounds that are likely to recur, even
+  when the immediate task eventually succeeds. Examples include shell working
+  directory drift, orphaned dev-server cleanup, sandbox/permission/network
+  workarounds, and session-state drift with reusable prevention value.
+- Don't preserve: simple typos, obvious fixes, one-off CLI deprecations, or
+  agent-created verification mistakes with no reusable environment lesson.
+- **failures/ recording triggers**:
   1. New guard violation type (a guard failure not seen before)
   2. Result opposite to hypothesis (e.g., expected improvement → degradation)
   3. Structural code change failure (logic change, not parameter tuning)
+  4. Non-obvious operational workaround with reusable future value, even if
+     the goal succeeded
   Simple threshold misses (REJECT_THRESHOLD) don't need `failures/` diagnosis
   records, but their candidate diffs still belong in the fixed-evaluator
   rejected-diff trail below.
