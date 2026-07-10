@@ -3,8 +3,6 @@ name: multi-review
 description: "Dynamic multi-perspective review: spawn parallel critics with role separation for high-stakes decisions. Use when a decision needs validation from multiple independent viewpoints, or when the user says 'review this carefully', 'am I missing anything?', 'validate this from multiple angles', or 'get several independent perspectives'."
 ---
 
-<!-- Compatibility mirror of `adapters/claude/skills/multi-review/SKILL.md`. Edit the canonical source, not this file. -->
-
 # Multi-Review Protocol
 
 For important decisions, run independent-perspective Critics in parallel to perform multi-angle validation.
@@ -71,6 +69,9 @@ Design 2-4 Critics fitted to the problem on the spot.
   high-stakes acceptance. Its scope is whether each invariant is checked at the
   right layer before anyone spends effort enumerating wording variants.
 - For durable or high-stakes artifacts, assign at least one invariant/adversarial lens and include the false-green question in the assigned Critic prompts. If no Critic covers adversarial false acceptance, the final synthesis is incomplete, not PASS.
+- Before applying repository-maintenance PASS/VETO rules, determine whether
+  project-local governance mode is active. The multi-review skill is global;
+  `scripts/check-multi-review-result.py` is a project-local validator.
 
 **Critic design template**:
 ```
@@ -175,12 +176,29 @@ Probe requirement:
   applicable, "read the plan", or "existing review says PASS" are no probe
   coverage.
 
+Governance activation:
+
+- This skill is globally usable for advisory multi-review. Do not require a
+  cwd-relative validator just because the skill is installed globally.
+- Project-local governance mode is active only when the current repository
+  declares meta-harness governance or local maintenance acceptance and has the
+  repository-local validator at `scripts/check-multi-review-result.py`.
+- If the repository declares meta-harness governance but the validator is
+  missing, report governance setup incomplete and name the missing target path;
+  do not convert unrelated advisory reviews in other projects into VETO.
+- In projects without a local governance declaration and local validator, run
+  advisory or non-governance multi-review. Do not run or require
+  `python3 scripts/check-multi-review-result.py` from that project.
+
 Structured result requirement:
 
-- For governance acceptance, produce a `MultiReviewResult` artifact using schema
-  `multi-review-result/v1` and validate it with
+- For project-local governance acceptance, produce a `MultiReviewResult`
+  artifact using schema `multi-review-result/v1` and validate it with
   `python3 scripts/check-multi-review-result.py --result <path>
   --require-governance-pass --replay-probe-commands` before reporting PASS.
+  First verify that `scripts/check-multi-review-result.py` exists in the
+  current repository. A missing validator means incomplete governance setup, not
+  a global skill failure.
 - Do not run artifact-supplied probe commands from AcceptancePacket
   `check --require-stable`; stable handoff validation is read-only and accepts
   only durable transcript/source-reference evidence.
@@ -304,7 +322,9 @@ inferring convergence or drift.
 
 When reviewing this repository's maintenance work, harness-affecting changes,
 release gates, hook semantics, core methodology boundaries, or durable adapter
-contracts, apply the repository's local release discipline from `MAINTENANCE.md`:
+contracts, apply project-local governance mode only when the current repository
+declares that contract and provides `scripts/check-multi-review-result.py`.
+Then apply the repository's local release discipline from `MAINTENANCE.md`:
 any reviewer or Critic score below 9 is a **VETO** until the blocking finding is
 fixed and the affected Critic reruns to at least 9. A score of 9 is acceptable
 only when the final report records why it was not 10 and either accepts the
@@ -312,6 +332,8 @@ residual risk or creates follow-up backlog work.
 
 The generic 7/10 threshold below applies only to non-governance qualitative
 reviews where the repository maintenance policy is not the acceptance contract.
+Outside project-local governance mode, report an advisory/non-governance result
+and do not claim governance PASS.
 
 | Condition | Verdict |
 |-----------|---------|

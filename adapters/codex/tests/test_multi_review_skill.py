@@ -58,10 +58,30 @@ class CodexMultiReviewSkillTests(unittest.TestCase):
         text = SKILL.read_text(encoding="utf-8")
 
         self.assertIn("governance mode", text)
+        self.assertIn("project-local governance mode", text)
+        self.assertIn("The multi-review skill is global", text)
+        self.assertIn("`scripts/check-multi-review-result.py` is a project-local validator", text)
         self.assertIn("PASS: all required critics score at least 9 and no veto", text)
         self.assertIn("VETO: any required critic scores below 9", text)
-        self.assertIn("Do not use advisory mode to accept repository maintenance", text)
+        self.assertIn("when project-local governance mode is active", text)
         self.assertIsNone(re.search(r"^\s*-\s+PASS: all critics score at least 7 and no veto", text, re.MULTILINE))
+
+    def test_global_skill_does_not_require_project_local_validator(self):
+        text = SKILL.read_text(encoding="utf-8")
+        normalized_text = " ".join(text.split())
+
+        for marker in (
+            "This skill is globally usable for advisory multi-review",
+            "Do not require a cwd-relative validator just because the skill is installed globally",
+            "Project-local governance mode is active only when the current repository declares meta-harness governance",
+            "has the repository-local validator at `scripts/check-multi-review-result.py`",
+            "If the repository declares meta-harness governance but the validator is missing, report governance setup incomplete",
+            "do not convert unrelated advisory reviews in other projects into VETO",
+            "In projects without a local governance declaration and local validator, run advisory or non-governance multi-review",
+            "A missing validator means incomplete governance setup, not a global skill failure",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, normalized_text)
 
     def test_invariant_adversarial_lenses_are_global_and_operational(self):
         text = SKILL.read_text(encoding="utf-8")

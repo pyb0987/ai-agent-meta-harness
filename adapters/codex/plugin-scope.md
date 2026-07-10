@@ -38,6 +38,7 @@ The generated plugin at `plugins/ai-agent-meta-harness/` currently includes:
 - `scripts/check-autoresearch-protected.py`
 - `scripts/check-codex-cli-surface.py`
 - `scripts/check-codex-hook-schema-drift.py`
+- `scripts/check-multi-review-result.py`
 - `scripts/install-autoresearch-protection.py`
 - `scripts/smoke-autoresearch-hooks.py`
 - `scripts/smoke-init-codex-project-fixtures.py`
@@ -84,6 +85,7 @@ Do not include:
 | Optional Codex CLI surface probe | `adapters/codex/scripts/check-codex-cli-surface.py` | `scripts/check-codex-cli-surface.py` | Checks local `codex plugin marketplace` and `codex app-server` help markers when Codex is installed; does not prove Desktop model-visible skill surfacing or plugin tool-event delivery |
 | Hook schema drift reference | `adapters/codex/hook-schema.md` | `hook-schema.md` | Records verified Codex hook output assumptions and official source URLs |
 | Hook schema drift checker | `adapters/codex/scripts/check-codex-hook-schema-drift.py` | `scripts/check-codex-hook-schema-drift.py` | Fails when hook-sensitive staged changes omit schema re-verification |
+| Multi-review governance validator | `adapters/codex/scripts/check-multi-review-result.py` | `scripts/check-multi-review-result.py` | Project-local validator copied only into projects that declare meta-harness governance acceptance; global multi-review remains advisory without it |
 | Target-project protection installer | `adapters/codex/scripts/install-autoresearch-protection.py` | `scripts/install-autoresearch-protection.py` | Copies missing protection assets into adopting projects, appends safe local snippets, and reports merge-required hook or CI files without overwriting them |
 | Hook smoke assertions | `adapters/codex/scripts/smoke-autoresearch-hooks.py` | `scripts/smoke-autoresearch-hooks.py` | Mechanically asserts Codex hook deny JSON shapes |
 | Init project fixture smoke test | `adapters/codex/scripts/smoke-init-codex-project-fixtures.py` | `scripts/smoke-init-codex-project-fixtures.py` | Deterministic artifact/adoption check that runs generated Active search-set verifiers in fixture projects; does not prove live Codex model dogfooding |

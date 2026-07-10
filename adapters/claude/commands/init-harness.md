@@ -222,9 +222,26 @@ Check whether `multi-review` is installed as a global skill at `~/.claude/skills
   ```
   If you do not know the URL, ask the user — there is no hardcoded upstream because forks are expected. The repo containing this very `init-harness.md` is the source of truth.
 
-  Multi-review is a **global dependency**, not a per-project install. It is shipped in this repo as the source of truth so the methodology is self-contained, but it is consumed from the global skill location. After install, verify with `ls ~/.claude/skills/multi-review/SKILL.md`.
+  Multi-review is a **global advisory dependency**, not a per-project skill
+  install. It is shipped in this repo as the source of truth so the methodology
+  is self-contained, but it is consumed from the global skill location. After
+  install, verify with `ls ~/.claude/skills/multi-review/SKILL.md`.
 
 Rationale: multi-review is the tactical mechanism for the "qualitative multi-perspective judgment" trigger documented in `~/.claude/rules/common/harness-methodology.md` "Sub-Agent Invocation". Without it, that trigger has no implementation.
+
+### Step 6.6: Install Project-Local Multi-Review Governance Validator
+
+The strict governance validator is project-scoped. Install it only when this
+target project declares meta-harness governance acceptance or the user asks for
+governance-grade multi-review PASS/VETO behavior.
+
+- Source: `HARNESS_REPO/scripts/check-multi-review-result.py`
+- Target: `<target-project>/scripts/check-multi-review-result.py`
+- Preserve executable mode.
+- If governance is declared but the validator cannot be installed, record setup
+  incomplete and do not claim governance PASS from multi-review.
+- If governance is not declared, leave the validator uninstalled and treat
+  multi-review results as advisory/non-governance.
 
 ### Step 7: Write Evolution Log
 
@@ -257,6 +274,7 @@ All items below must pass for init-harness to be complete:
 - [ ] CLAUDE.md says bounded self-evolution proposals are diagnostic until adopted
 - [ ] CLAUDE.md includes Harness section (.claude/hooks/, selected trace root, change strategy, sub-agent triggers)
 - [ ] Multi-review skill availability verified (`~/.claude/skills/multi-review/SKILL.md` exists, or user instructed to install from `{repo}/adapters/claude/skills/multi-review/`)
+- [ ] If project-local governance acceptance is declared, `scripts/check-multi-review-result.py` exists in the target project or setup is recorded incomplete
 - [ ] CLAUDE.md within 100 lines (split to docs/ complete if exceeded)
 - [ ] Hooks registered in `.claude/settings.local.json`
 - [ ] `.claude/agents/` directory was NOT created

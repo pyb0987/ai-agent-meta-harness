@@ -68,11 +68,29 @@ class ClaudeMultiReviewSkillTests(unittest.TestCase):
 
         for marker in (
             "Repository Governance Mode",
+            "project-local governance mode",
             "When reviewing this repository's maintenance work, harness-affecting changes, "
             "release gates, hook semantics, core methodology boundaries, or durable adapter contracts",
+            "provides `scripts/check-multi-review-result.py`",
             "any reviewer or Critic score below 9 is a **VETO**",
             "fixed and the affected Critic reruns to at least 9",
             "A score of 9 is acceptable only when the final report records why it was not 10",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, text)
+
+    def test_global_skill_does_not_require_project_local_validator(self) -> None:
+        text = normalized(CANONICAL)
+
+        for marker in (
+            "This skill is globally usable for advisory multi-review",
+            "Do not require a cwd-relative validator just because the skill is installed globally",
+            "Project-local governance mode is active only when the current repository declares meta-harness governance",
+            "has the repository-local validator at `scripts/check-multi-review-result.py`",
+            "If the repository declares meta-harness governance but the validator is missing, report governance setup incomplete",
+            "do not convert unrelated advisory reviews in other projects into VETO",
+            "In projects without a local governance declaration and local validator, run advisory or non-governance multi-review",
+            "A missing validator means incomplete governance setup, not a global skill failure",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, text)

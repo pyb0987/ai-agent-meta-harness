@@ -29,6 +29,12 @@ Create the minimal project-local structure Codex needs to work reliably:
 AGENTS.md
 ```
 
+Optional governance-grade multi-review validation is project-local:
+
+```text
+scripts/check-multi-review-result.py  # only when the project declares meta-harness governance acceptance
+```
+
 Prefer `.harness/traces/` for runtime-neutral projects when history evidence is
 absent or equivalent. If the project already has `.claude/traces/`, keep it
 temporarily when it contains meaningful history so Codex does not split
@@ -123,6 +129,27 @@ Do not seed Active cases with commands that only print information. If network,
 credentials, sandbox approval, missing dependencies, or high cost are
 unavoidable, record that requirement in the search-set entry.
 
+### Step 3.5: Install Project-Local Multi-Review Governance Validator
+
+Install `scripts/check-multi-review-result.py` only when the user asks for
+governance-grade multi-review acceptance or the target project already declares
+meta-harness governance in `AGENTS.md`, `CLAUDE.md`, `MAINTENANCE.md`, or an
+equivalent local policy.
+
+- If installing from the Codex plugin bundle, copy
+  `scripts/check-multi-review-result.py` from the plugin asset tree into the
+  target project at `scripts/check-multi-review-result.py`.
+- If developing from this repository, copy
+  `adapters/codex/scripts/check-multi-review-result.py` into the target project
+  at `scripts/check-multi-review-result.py`.
+- Preserve executable mode when possible. If the target filesystem drops it,
+  restore executable mode for the script.
+- If the project declares meta-harness governance but the validator asset is not
+  available, record setup incomplete and do not claim governance PASS from
+  multi-review. Ordinary advisory multi-review remains available.
+- Do not install this validator for ordinary harness bootstrap when the project
+  only needs traces, AGENTS guidance, and advisory multi-review.
+
 ### Step 4: Write or Update AGENTS.md
 
 If `AGENTS.md` exists, merge without overwriting. Keep it concise.
@@ -134,6 +161,9 @@ Required sections:
 - Harness: trace root, search-set policy, change strategy, verification rule
 - Harness: bounded self-evolution rule for dogfood-gap review and diagnostic
   trace/search-set/instruction candidates
+- Harness: if `scripts/check-multi-review-result.py` exists, governance-grade
+  multi-review PASS requires that project-local validator; otherwise
+  multi-review is advisory/non-governance
 - Codex Notes: permission/escalation or local workflow facts that affect Codex
 
 Do not duplicate rules already enforced by linters, tests, or typecheckers. Mention the command instead.
@@ -175,6 +205,8 @@ Confirm:
 - Initial evolution trace exists
 - Initial evolution trace records `retrieval.mode`
 - AGENTS.md says bounded self-evolution proposals are diagnostic until adopted
+- If the project declares meta-harness governance, `scripts/check-multi-review-result.py`
+  exists or setup is explicitly reported incomplete
 - No Claude-only hook configuration was added for Codex
 
 ## Output

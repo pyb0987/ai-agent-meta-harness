@@ -71,6 +71,14 @@ this app is:
 Use additive changes first, subtractive changes second, structural changes last.
 Keep one functional harness change per iteration so regressions are attributable.
 
+### Multi-Review Governance
+
+Use multi-review as an advisory global skill for high-stakes judgment. Claim
+governance-grade multi-review PASS only if this project declares meta-harness
+governance and has `scripts/check-multi-review-result.py`. If governance is
+declared but the validator is missing, report setup incomplete. If governance is
+not declared, keep the result advisory/non-governance.
+
 ### Autoresearch
 
 Use the `autoresearch` skill only for measurable hypothesis -> experiment ->

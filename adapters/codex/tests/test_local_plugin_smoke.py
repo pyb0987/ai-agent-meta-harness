@@ -88,6 +88,14 @@ class LocalPluginSmokeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("MISSING ASSET", result.stderr)
 
+    def test_rejects_missing_multi_review_validator_asset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = self.copy_plugin(tmp)
+            (plugin / "scripts" / "check-multi-review-result.py").unlink()
+            result = self.run_smoke(plugin)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("MISSING ASSET", result.stderr)
+
     def test_rejects_missing_plugin_smoke_script_asset(self):
         with tempfile.TemporaryDirectory() as tmp:
             plugin = self.copy_plugin(tmp)

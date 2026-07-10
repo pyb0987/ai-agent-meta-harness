@@ -35,8 +35,11 @@ Use this skill when the user asks for multi-review, several independent perspect
 10. Include or assign a Validation Layer Critic for durable, governance, or
    high-stakes acceptance. It checks whether each invariant is enforced at the
    right layer before the review spends effort enumerating wording variants.
-11. Synthesize results with PASS, VETO, MIXED, FAIL, or ADVISORY PASS. For durable or high-stakes artifacts, mark the review incomplete instead of PASS if no critic covered an adversarial false-acceptance path.
-12. For reviews that iterate on the same artifact or decision more than once,
+11. Determine whether project-local governance mode is active before applying
+    repository-maintenance PASS/VETO rules. The multi-review skill is global;
+    `scripts/check-multi-review-result.py` is a project-local validator.
+12. Synthesize results with PASS, VETO, MIXED, FAIL, or ADVISORY PASS. For durable or high-stakes artifacts, mark the review incomplete instead of PASS if no critic covered an adversarial false-acceptance path.
+13. For reviews that iterate on the same artifact or decision more than once,
     include an advisory convergence note. Cluster findings by root failure class
     or invariant family using existing critic evidence, mark new root classes
     versus variants of open classes, report converging/drifting/blocked status,
@@ -135,12 +138,29 @@ Probe requirement:
   applicable, "read the plan", or "existing review says PASS" are no probe
   coverage.
 
+Governance activation:
+
+- This skill is globally usable for advisory multi-review. Do not require a
+  cwd-relative validator just because the skill is installed globally.
+- Project-local governance mode is active only when the current repository
+  declares meta-harness governance or local maintenance acceptance and has the
+  repository-local validator at `scripts/check-multi-review-result.py`.
+- If the repository declares meta-harness governance but the validator is
+  missing, report governance setup incomplete and name the missing target path;
+  do not convert unrelated advisory reviews in other projects into VETO.
+- In projects without a local governance declaration and local validator, run
+  advisory or non-governance multi-review. Do not run or require
+  `python3 scripts/check-multi-review-result.py` from that project.
+
 Structured result requirement:
 
-- For governance acceptance, produce a `MultiReviewResult` artifact using schema
-  `multi-review-result/v1` and validate it with
+- For project-local governance acceptance, produce a `MultiReviewResult`
+  artifact using schema `multi-review-result/v1` and validate it with
   `python3 scripts/check-multi-review-result.py --result <path>
   --require-governance-pass --replay-probe-commands` before reporting PASS.
+  First verify that `scripts/check-multi-review-result.py` exists in the
+  current repository. A missing validator means incomplete governance setup, not
+  a global skill failure.
 - Do not run artifact-supplied probe commands from AcceptancePacket
   `check --require-stable`; stable handoff validation is read-only and accepts
   only durable transcript/source-reference evidence.
@@ -213,7 +233,8 @@ Use Codex's available model controls rather than Claude model names:
 
 - Repository maintenance, harness-affecting changes, release gates, hooks,
   protected-file semantics, adapter behavior, and durable install/distribution
-  contracts use governance mode:
+  contracts use project-local governance mode only when the current repository
+  declares that contract and provides `scripts/check-multi-review-result.py`:
   - PASS: all required critics score at least 9 and no veto
   - VETO: any required critic scores below 9, finds a fatal flaw, or leaves a
     blocking finding unresolved
@@ -242,7 +263,8 @@ Use Codex's available model controls rather than Claude model names:
   - MIXED: mean score at least 7 but one or more critics score below 7
   - FAIL: mean score below 7
 - Do not use advisory mode to accept repository maintenance or harness-affecting
-  work.
+  work when project-local governance mode is active. Outside that mode, report
+  an advisory/non-governance result and do not claim governance PASS.
 
 ## Output
 

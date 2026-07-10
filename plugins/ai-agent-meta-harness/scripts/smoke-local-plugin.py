@@ -40,6 +40,7 @@ EXPECTED_ASSETS = (
     "scripts/check-autoresearch-protected.py",
     "scripts/check-codex-cli-surface.py",
     "scripts/check-codex-hook-schema-drift.py",
+    "scripts/check-multi-review-result.py",
     "scripts/install-autoresearch-protection.py",
     "scripts/smoke-init-codex-project-fixtures.py",
     "scripts/smoke-autoresearch-hooks.py",
@@ -50,6 +51,7 @@ EXPECTED_ASSETS = (
 EXPECTED_EXECUTABLE_ASSETS = (
     "scripts/check-autoresearch-protected.py",
     "scripts/check-codex-cli-surface.py",
+    "scripts/check-multi-review-result.py",
     "scripts/install-autoresearch-protection.py",
     "scripts/smoke-init-codex-project-fixtures.py",
     "scripts/smoke-local-plugin-activation.py",

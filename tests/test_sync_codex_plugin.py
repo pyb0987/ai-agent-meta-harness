@@ -65,7 +65,11 @@ class SyncCodexPluginTests(unittest.TestCase):
             mode = 0o755 if template.endswith("pre-commit-autoresearch-protected.sh") else 0o644
             write(self.source / "templates" / template, "template\n", mode=mode)
         for script in sync_codex_plugin.REQUIRED_SCRIPT_FILES:
-            mode = 0o755 if script in {"check-autoresearch-protected.py", "smoke-autoresearch-hooks.py"} else 0o644
+            mode = 0o755 if script in {
+                "check-autoresearch-protected.py",
+                "check-multi-review-result.py",
+                "smoke-autoresearch-hooks.py",
+            } else 0o644
             write(self.source / "scripts" / script, "script\n", mode=mode)
         for example in sync_codex_plugin.REQUIRED_EXAMPLE_FILES:
             write(self.source / "examples" / example, "example\n")

@@ -9,6 +9,7 @@ The first Codex adapter layer provides:
 - `init-codex-harness` skill for project bootstrap
 - `harness-engineer` skill for Codex harness evolution
 - `autoresearch` skill for measurable autonomous experiment loops
+- `multi-review` skill for global advisory review, with optional project-local governance validation
 - `AGENTS.md` template for project-local instructions
 - Trace filesystem guidance using `.harness/traces/` by default
 - Codex hook enforcement strategy plus explicit verify-command discipline in place of Claude Code hook assumptions
@@ -63,6 +64,20 @@ The Meta-Harness paper informs the acceptance criteria for this scope, but its m
 The generated plugin now carries a reference checker at `scripts/check-autoresearch-protected.py`, hook JSON smoke assertions at `scripts/smoke-autoresearch-hooks.py`, a target-project installer at `scripts/install-autoresearch-protection.py`, a protected-path template at `templates/autoresearch-protected.txt`, and enforcement templates plus an AGENTS reminder snippet under `templates/hooks/`. These are project assets to install during autoresearch setup; they are not advertised as active plugin runtime hooks until both isolated local activation and Codex plugin tool-event delivery are smoke-tested.
 
 Hook schema drift is tracked in `hook-schema.md`. Before changing Codex hook templates, checker hook output, or autoresearch hook instructions, re-check the official Codex hooks documentation and run `python3 adapters/codex/scripts/check-codex-hook-schema-drift.py`.
+
+## Multi-Review Governance Validator
+
+The `multi-review` skill is global so high-stakes advisory review is available
+in every project. Governance-grade PASS is not global. It is active only in
+projects that declare meta-harness governance acceptance and have a local
+validator at `scripts/check-multi-review-result.py`.
+
+The generated plugin carries that validator at
+`scripts/check-multi-review-result.py` as a project bootstrap asset. Copy it into
+the target project only when governance-grade multi-review acceptance is part of
+that project's harness contract. Without that local validator, multi-review
+results must be reported as advisory or non-governance and must not claim
+governance PASS.
 
 ## Experimental Orientation Hooks
 
