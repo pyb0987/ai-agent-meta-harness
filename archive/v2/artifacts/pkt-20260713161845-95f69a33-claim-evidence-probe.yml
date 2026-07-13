@@ -1,0 +1,32 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+    '"'"'scripts/check-multi-review-result.py'"'"', '"'"'--result'"'"', '"'"'backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml'"'"',
+    '"'"'--require-governance-pass'"'"', '"'"'--replay-probe-commands'"'"'], ['"'"'python3'"'"',
+    '"'"'/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py'"'"',
+    '"'"'adapters/codex/plugin'"'"'], ['"'"'python3'"'"', '"'"'/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py'"'"',
+    '"'"'plugins/ai-agent-meta-harness'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    for command in commands]; ok=all(result.returncode==0 for result in results);
+    print('"'"'probe_claim_evidence_pass'"'"' if ok else '"'"'probe_claim_evidence_fail'"'"');
+    sys.exit(0 if ok else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+  result_digest: 290ec29568b6c03d0b10908d7ca75148661b131aa9b696163962aeb4cd8eaf04
+  packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  packet_sha256: 2ae00e9bd53c9fb8610476ab5aedc15608b760ae90db5b05f632cdd0bc669cc9
+  source_refs:
+  - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+  - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+  - adapters/codex/plugin-scope.md
+  - adapters/codex/plugin/.codex-plugin/plugin.json
+  - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+  cwd: .
+  generated_by: codex packet review completion
+  date: '2026-07-13'
+  stdout: 'probe_claim_evidence_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 0f2124dad36d4827205fa94c3c0d820177687369608ddc3b48a6ed6c0f396ddd
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

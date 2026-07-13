@@ -1,0 +1,34 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+    '"'"'-m'"'"', '"'"'unittest'"'"', '"'"'tests.test_core_methodology_boundaries'"'"',
+    '"'"'adapters.codex.tests.test_init_codex_project_fixtures'"'"', '"'"'tests.test_repository_search_set'"'"'],
+    ['"'"'python3'"'"', '"'"'scripts/check-compat-mirrors.py'"'"', '"'"'--worktree'"'"'],
+    ['"'"'python3'"'"', '"'"'scripts/sync-codex-plugin.py'"'"', '"'"'--check'"'"',
+    '"'"'--worktree'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    for command in commands]; ok=all(result.returncode==0 for result in results);
+    print('"'"'probe_methodology_fidelity_pass'"'"' if ok else '"'"'probe_methodology_fidelity_fail'"'"');
+    sys.exit(0 if ok else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+  result_digest: 290ec29568b6c03d0b10908d7ca75148661b131aa9b696163962aeb4cd8eaf04
+  packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  packet_sha256: 2ae00e9bd53c9fb8610476ab5aedc15608b760ae90db5b05f632cdd0bc669cc9
+  source_refs:
+  - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  - core/methodology.md
+  - core/reference.md
+  - docs/methodology.md
+  - docs/reference.md
+  - adapters/codex/skills/init-codex-harness/SKILL.md
+  - tests/test_core_methodology_boundaries.py
+  - adapters/codex/tests/test_init_codex_project_fixtures.py
+  cwd: .
+  generated_by: codex packet review completion
+  date: '2026-07-13'
+  stdout: 'probe_methodology_fidelity_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 74458b68f8075f3c3e90a7a614d8e1c69b8ef37e79acaee31d2f69b13d7726e8
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

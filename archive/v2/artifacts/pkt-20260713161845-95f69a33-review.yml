@@ -1,0 +1,515 @@
+AcceptancePacketReviewImport:
+  schema_version: acceptance-packet-review-import/v1
+  target_binding:
+    packet_id: pkt-20260713161845-95f69a33
+    packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+    review_target_digest: 752e557221abde9c03f3fe3ca6c482cf84de776f76f9caedec404a99be9be593
+    baseline_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+    comparison_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+    source_refs: []
+    changed_paths:
+    - .agents/plugins/marketplace.json
+    - AGENTS.md
+    - MAINTENANCE.md
+    - README.md
+    - adapters/codex/README.md
+    - adapters/codex/examples/AGENTS.md.example
+    - adapters/codex/hook-schema.md
+    - adapters/codex/plugin-scope.md
+    - adapters/codex/plugin/.codex-plugin/plugin.json
+    - adapters/codex/scripts/check-codex-cli-surface.py
+    - adapters/codex/scripts/check-codex-hook-schema-drift.py
+    - adapters/codex/scripts/smoke-autoresearch-hooks.py
+    - adapters/codex/skills/init-codex-harness/SKILL.md
+    - adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+    - adapters/codex/templates/AGENTS.md.template
+    - adapters/codex/tests/test_hook_templates.py
+    - adapters/codex/tests/test_init_codex_project_fixtures.py
+    - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+    - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+    - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+    - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+    - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+    - backlog/repository-search-set.md
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - core/methodology.md
+    - core/reference.md
+    - docs/methodology.md
+    - docs/reference.md
+    - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+    - plugins/ai-agent-meta-harness/README.md
+    - plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+    - plugins/ai-agent-meta-harness/hook-schema.md
+    - plugins/ai-agent-meta-harness/plugin-scope.md
+    - plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+    - plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+    - plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+    - plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+    - plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+    - plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+    - scripts/check-codex-marketplace-metadata.py
+    - scripts/check-compat-mirrors.py
+    - scripts/sync-codex-plugin.py
+    - scripts/verify-release.py
+    - tests/test_check_codex_marketplace_metadata.py
+    - tests/test_check_compat_mirrors.py
+    - tests/test_core_methodology_boundaries.py
+    - tests/test_maintenance_policy_boundaries.py
+    - tests/test_pre_commit_hook.py
+    - tests/test_repository_search_set.py
+    - tests/test_sync_codex_plugin.py
+    - tests/test_verify_release.py
+    required_review:
+    - checker correctness
+    - claim evidence
+    - methodology fidelity
+    - release integration
+    - scope boundary
+  MultiReviewResult:
+    schema_version: multi-review-result/v1
+    review_id: mr-pkt-20260713161845-95f69a33-final
+    lifecycle: finalized
+    review_mode: governance
+    independence: independent
+    target:
+      summary: Independent review of the committed ChatGPT desktop harness alignment.
+      source_refs:
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+      - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    required_critics:
+    - checker-correctness
+    - claim-evidence
+    - methodology-fidelity
+    - release-integration
+    - scope-boundary
+    critics:
+    - critic_id: checker-correctness
+      name: Checker Correctness Critic
+      critic_type: validation_layer
+      persona: Release-gate engineer who requires negative tests and explicit tree
+        selection.
+      scope: Validate marketplace, plugin-sync, and compatibility checker correctness
+        across staged and worktree modes.
+      anti_scope: Does not evaluate product claims or runtime-neutral methodology
+        prose.
+      attack_surface: A malformed catalog or stale derivative passes because a checker
+        reads the wrong tree or validates only prose.
+      primary_failure_mode: Executable checkers derive success from incomplete or
+        mismatched repository state.
+      frame_challenge: false
+      required: true
+      actor: codex-reviewer-checker-correctness
+      date: '2026-07-13'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Unstaged generated drift or a malformed extra marketplace
+        entry could be accepted by an index-only or partial checker.
+      invariant_checked: Negative tests reject malformed catalogs and unstaged drift
+        while staged defaults remain commit-bound.
+      validation_layer: structured-validator
+      probe_run: true
+      probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+        '"'"'-m'"'"', '"'"'unittest'"'"', '"'"'tests.test_check_codex_marketplace_metadata'"'"',
+        '"'"'tests.test_sync_codex_plugin'"'"', '"'"'tests.test_check_compat_mirrors'"'"'],
+        ['"'"'python3'"'"', '"'"'scripts/check-codex-marketplace-metadata.py'"'"',
+        '"'"'--worktree'"'"'], ['"'"'python3'"'"', '"'"'scripts/sync-codex-plugin.py'"'"',
+        '"'"'--check'"'"', '"'"'--worktree'"'"'], ['"'"'python3'"'"', '"'"'scripts/check-compat-mirrors.py'"'"',
+        '"'"'--worktree'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for command in commands]; ok=all(result.returncode==0 for result in results);
+        print('"'"'probe_checker_correctness_pass'"'"' if ok else '"'"'probe_checker_correctness_fail'"'"');
+        sys.exit(0 if ok else 1)'
+      probe_exit_code: 0
+      probe_result: Checker negative tests and direct worktree validations passed.
+      probe_interpretation: The concrete wrong-tree and malformed-catalog false-green
+        paths are closed.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-checker-correctness-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Committed review lineage records VAL-001, VAL-002, and AB-001 fixes and score-9
+        reruns.
+      - review_lineage_sha256:9910070fecc1117c1d3f9342917f07ee36163ca8ad324f7a349a4de38ee8ea2b
+      - provenance_record_sha256:7fc1e5cded1c11f1ad70bce9870afeda9c6f26fa3f60095a18dd451e6d26a886
+      source_refs: &id001
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - scripts/check-codex-marketplace-metadata.py
+      - scripts/sync-codex-plugin.py
+      - scripts/check-compat-mirrors.py
+      - tests/test_check_codex_marketplace_metadata.py
+      - tests/test_sync_codex_plugin.py
+      - tests/test_check_compat_mirrors.py
+      why_not_10: The repository checker intentionally remains narrower than the complete
+        external plugin-creator schema validator.
+      residual_risk_disposition: Accepted for the current single-plugin repository
+        marketplace; broaden validation if distribution scope expands.
+    - critic_id: claim-evidence
+      name: Claim Evidence Critic
+      critic_type: review_quality
+      persona: Audit reviewer who rejects chat-only PASS labels and unbound evidence.
+      scope: Validate plugin packaging claims, review lineage, transcript binding,
+        and explicit runtime-evidence limitations.
+      anti_scope: Does not reimplement checker logic or decide multi-repository wording.
+      attack_surface: A copied PASS summary overstates live ChatGPT behavior or omits
+        replayable evidence and VETO lineage.
+      primary_failure_mode: Public claims rely on summaries rather than structured
+        artifacts and executable validators.
+      frame_challenge: false
+      required: true
+      actor: codex-reviewer-claim-evidence
+      date: '2026-07-13'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A hand-authored review could claim live skill or hook delivery
+        from packaging and isolated activation alone.
+      invariant_checked: Structured review replay passes and docs keep live model-visible
+        delivery outside deterministic repository evidence.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+        '"'"'scripts/check-multi-review-result.py'"'"', '"'"'--result'"'"', '"'"'backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml'"'"',
+        '"'"'--require-governance-pass'"'"', '"'"'--replay-probe-commands'"'"'], ['"'"'python3'"'"',
+        '"'"'/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py'"'"',
+        '"'"'adapters/codex/plugin'"'"'], ['"'"'python3'"'"', '"'"'/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py'"'"',
+        '"'"'plugins/ai-agent-meta-harness'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for command in commands]; ok=all(result.returncode==0 for result in results);
+        print('"'"'probe_claim_evidence_pass'"'"' if ok else '"'"'probe_claim_evidence_fail'"'"');
+        sys.exit(0 if ok else 1)'
+      probe_exit_code: 0
+      probe_result: Structured review replay and both plugin validations passed.
+      probe_interpretation: Claim evidence is artifact-bound and does not substitute
+        packaging for live runtime delivery.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-claim-evidence-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Committed review lineage records RQ-001 and RQ-002 closure plus the live-runtime
+        evidence boundary.
+      source_refs: &id002
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+      - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+      - adapters/codex/plugin-scope.md
+      - adapters/codex/plugin/.codex-plugin/plugin.json
+      - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+      why_not_10: Repository evidence cannot prove a running ChatGPT desktop task
+        surfaced skills or delivered hook events.
+      residual_risk_disposition: Accepted with live runtime delivery explicitly deferred
+        to a product-supported smoke or reviewed manual gate.
+    - critic_id: methodology-fidelity
+      name: Methodology Fidelity Critic
+      critic_type: domain
+      persona: Runtime-neutral harness maintainer who challenges product-specific
+        core assumptions.
+      scope: Validate runtime-neutral multi-repository ownership, explicit write authorization,
+        mirrors, and init guidance.
+      anti_scope: Does not evaluate marketplace parser internals or release command
+        composition.
+      attack_surface: Mechanically synchronized prose still leaks desktop assumptions
+        or authorizes writes outside task scope.
+      primary_failure_mode: Core methodology encodes adapter-specific or unsafe cross-repository
+        execution boundaries.
+      frame_challenge: true
+      required: true
+      actor: codex-reviewer-methodology-fidelity
+      date: '2026-07-13'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: Marker tests could pass while neutral core still names a desktop
+        container or init guidance writes every discovered repository.
+      invariant_checked: Core stays runtime-neutral and only explicitly in-scope repositories
+        may change, each with its own trace root and verifier.
+      validation_layer: prose-smoke
+      probe_run: true
+      probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+        '"'"'-m'"'"', '"'"'unittest'"'"', '"'"'tests.test_core_methodology_boundaries'"'"',
+        '"'"'adapters.codex.tests.test_init_codex_project_fixtures'"'"', '"'"'tests.test_repository_search_set'"'"'],
+        ['"'"'python3'"'"', '"'"'scripts/check-compat-mirrors.py'"'"', '"'"'--worktree'"'"'],
+        ['"'"'python3'"'"', '"'"'scripts/sync-codex-plugin.py'"'"', '"'"'--check'"'"',
+        '"'"'--worktree'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for command in commands]; ok=all(result.returncode==0 for result in results);
+        print('"'"'probe_methodology_fidelity_pass'"'"' if ok else '"'"'probe_methodology_fidelity_fail'"'"');
+        sys.exit(0 if ok else 1)'
+      probe_exit_code: 0
+      probe_result: Focused methodology guards and worktree mirror/plugin synchronization
+        passed.
+      probe_interpretation: CF-001, CF-002, and CF-003 are closed by both prose changes
+        and drift guards.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-methodology-fidelity-probe.yml
+      reason_no_probe: null
+      evidence:
+      - The independent frame-challenge critic separated product installation changes
+        from runtime-neutral trace ownership.
+      source_refs: &id003
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - core/methodology.md
+      - core/reference.md
+      - docs/methodology.md
+      - docs/reference.md
+      - adapters/codex/skills/init-codex-harness/SKILL.md
+      - tests/test_core_methodology_boundaries.py
+      - adapters/codex/tests/test_init_codex_project_fixtures.py
+      why_not_10: Explicitly governed shared-root exceptions and live product behavior
+        still require human judgment.
+      residual_risk_disposition: Accepted with adapter-specific behavior confined
+        to adapters and product-facing documentation.
+    - critic_id: release-integration
+      name: Release Integration Critic
+      critic_type: domain
+      persona: Release engineer who requires one consistent worktree preflight and
+        staged commit boundary.
+      scope: Validate release command wiring, generated bundle synchronization, marketplace
+        activation, and Active search-set coverage.
+      anti_scope: Does not decide semantic methodology wording or general review independence.
+      attack_surface: Release preflight mixes index and worktree checks or omits the
+        new marketplace and regression cases.
+      primary_failure_mode: The published release gate approves a different state
+        than the committed plugin artifacts.
+      frame_challenge: false
+      required: true
+      actor: codex-reviewer-release-integration
+      date: '2026-07-13'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A release list could use worktree marketplace validation beside
+        index-only derivative checks and still report success.
+      invariant_checked: Release and Standard preflight use worktree modes, pre-commit
+        uses staged modes, activation passes, and all Active cases run.
+      validation_layer: derived-verdict
+      probe_run: true
+      probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+        '"'"'scripts/verify-release.py'"'"', '"'"'--list'"'"', '"'"'--base-ref'"'"',
+        '"'"'a26253b6fba552ee3b915d057496ce9882a67f7d'"'"', '"'"'--skip-clean-worktree'"'"'],
+        ['"'"'python3'"'"', '"'"'adapters/codex/scripts/smoke-local-plugin.py'"'"'],
+        ['"'"'python3'"'"', '"'"'adapters/codex/scripts/smoke-local-plugin-activation.py'"'"'],
+        ['"'"'python3'"'"', '"'"'scripts/run-search-set.py'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for command in commands]; ok=all(result.returncode==0 for result in results);
+        print('"'"'probe_release_integration_pass'"'"' if ok else '"'"'probe_release_integration_fail'"'"');
+        sys.exit(0 if ok else 1)'
+      probe_exit_code: 0
+      probe_result: Release command inventory, plugin smokes, activation, and all
+        Active search-set cases passed.
+      probe_interpretation: Release wiring covers the same worktree artifacts under
+        review and retains staged commit enforcement.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-release-integration-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Committed tests lock verify-release, worktree derivative checks, marketplace
+        validation, and SS-010 wiring.
+      source_refs: &id004
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - scripts/verify-release.py
+      - MAINTENANCE.md
+      - adapters/codex/scripts/smoke-local-plugin.py
+      - adapters/codex/scripts/smoke-local-plugin-activation.py
+      - backlog/repository-search-set.md
+      - tests/test_verify_release.py
+      why_not_10: A deterministic local release gate does not prove ChatGPT desktop
+        model-visible skill surfacing.
+      residual_risk_disposition: Accepted for repository release integration; live
+        product evidence remains separately gated.
+    - critic_id: scope-boundary
+      name: Scope Boundary Critic
+      critic_type: domain
+      persona: Minimalist governance engineer who rejects duplicated policy and unauthorized
+        cross-repository writes.
+      scope: Validate bounded file scope, generated-source ownership, explicit repository
+        authorization, and deferred hook delivery.
+      anti_scope: Does not re-audit official product facts or duplicate checker correctness
+        review.
+      attack_surface: The update spreads hand-synced policy, expands operator inputs,
+        changes out-of-scope repositories, or enables unproven hooks.
+      primary_failure_mode: Product alignment expands the governance surface beyond
+        the concrete false-green paths being closed.
+      frame_challenge: false
+      required: true
+      actor: codex-reviewer-scope-boundary
+      date: '2026-07-13'
+      score: 9
+      verdict: pass
+      veto: false
+      blocking_findings: []
+      false_green_risk: A synchronized patch could still change repositories outside
+        task scope or advertise runtime hooks without delivery evidence.
+      invariant_checked: Only this repository changed, generated plugin files derive
+        from the adapter, and manifest hooks remain absent.
+      validation_layer: raw-artifact
+      probe_run: true
+      probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+        '"'"'-m'"'"', '"'"'unittest'"'"', '"'"'tests.test_pre_commit_hook'"'"', '"'"'tests.test_maintenance_policy_boundaries'"'"',
+        '"'"'adapters.codex.tests.test_hook_templates'"'"'], ['"'"'git'"'"', '"'"'diff'"'"',
+        '"'"'--check'"'"', '"'"'origin/main..HEAD'"'"'], ['"'"'python3'"'"', '"'"'scripts/sync-codex-plugin.py'"'"',
+        '"'"'--check'"'"', '"'"'--worktree'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        for command in commands]; ok=all(result.returncode==0 for result in results);
+        print('"'"'probe_scope_boundary_pass'"'"' if ok else '"'"'probe_scope_boundary_fail'"'"');
+        sys.exit(0 if ok else 1)'
+      probe_exit_code: 0
+      probe_result: Scope, policy, hook-boundary, diff, and generated-plugin checks
+        passed.
+      probe_interpretation: The patch remains bounded to this repository and does
+        not activate unsupported runtime hooks.
+      probe_evidence_refs:
+      - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-scope-boundary-probe.yml
+      reason_no_probe: null
+      evidence:
+      - Committed review lineage records the anti-bloat and authorization VETOs, fixes,
+        and score-9 reruns.
+      source_refs: &id005
+      - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+      - AGENTS.md
+      - adapters/codex/templates/AGENTS.md.template
+      - adapters/codex/plugin/.codex-plugin/plugin.json
+      - adapters/codex/plugin-scope.md
+      - tests/test_pre_commit_hook.py
+      - tests/test_maintenance_policy_boundaries.py
+      - adapters/codex/tests/test_hook_templates.py
+      why_not_10: The single-plugin marketplace constraint must be revisited if this
+        repository intentionally adds another plugin.
+      residual_risk_disposition: Accepted for the current repository-local plugin
+        and explicitly in-scope multi-repository semantics.
+    reported_final_verdict: PASS
+    derived_verdict: null
+    derivation_errors: []
+  review_lineage:
+  - review_id: review-pkt-20260713161845-95f69a33-checker-correctness
+    critic: checker correctness
+    scope: Validate marketplace, plugin-sync, and compatibility checker correctness
+      across staged and worktree modes.
+    anti_scope: Does not evaluate product claims or runtime-neutral methodology prose.
+    score: 9
+    veto: false
+    actor: codex-reviewer-checker-correctness
+    role: reviewer
+    date: '2026-07-13'
+    source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+    false_green_risk: Unstaged generated drift or a malformed extra marketplace entry
+      could be accepted by an index-only or partial checker.
+    invariant_checked: Negative tests reject malformed catalogs and unstaged drift
+      while staged defaults remain commit-bound.
+    evidence:
+    - Committed review lineage records VAL-001, VAL-002, and AB-001 fixes and score-9
+      reruns.
+    source_refs: *id001
+    blocking_findings: []
+    why_not_10: The repository checker intentionally remains narrower than the complete
+      external plugin-creator schema validator.
+    disposition: Accepted for the current single-plugin repository marketplace; broaden
+      validation if distribution scope expands.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260713161845-95f69a33-claim-evidence
+    critic: claim evidence
+    scope: Validate plugin packaging claims, review lineage, transcript binding, and
+      explicit runtime-evidence limitations.
+    anti_scope: Does not reimplement checker logic or decide multi-repository wording.
+    score: 9
+    veto: false
+    actor: codex-reviewer-claim-evidence
+    role: reviewer
+    date: '2026-07-13'
+    source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+    false_green_risk: A hand-authored review could claim live skill or hook delivery
+      from packaging and isolated activation alone.
+    invariant_checked: Structured review replay passes and docs keep live model-visible
+      delivery outside deterministic repository evidence.
+    evidence:
+    - Committed review lineage records RQ-001 and RQ-002 closure plus the live-runtime
+      evidence boundary.
+    source_refs: *id002
+    blocking_findings: []
+    why_not_10: Repository evidence cannot prove a running ChatGPT desktop task surfaced
+      skills or delivered hook events.
+    disposition: Accepted with live runtime delivery explicitly deferred to a product-supported
+      smoke or reviewed manual gate.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260713161845-95f69a33-methodology-fidelity
+    critic: methodology fidelity
+    scope: Validate runtime-neutral multi-repository ownership, explicit write authorization,
+      mirrors, and init guidance.
+    anti_scope: Does not evaluate marketplace parser internals or release command
+      composition.
+    score: 9
+    veto: false
+    actor: codex-reviewer-methodology-fidelity
+    role: reviewer
+    date: '2026-07-13'
+    source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+    false_green_risk: Marker tests could pass while neutral core still names a desktop
+      container or init guidance writes every discovered repository.
+    invariant_checked: Core stays runtime-neutral and only explicitly in-scope repositories
+      may change, each with its own trace root and verifier.
+    evidence:
+    - The independent frame-challenge critic separated product installation changes
+      from runtime-neutral trace ownership.
+    source_refs: *id003
+    blocking_findings: []
+    why_not_10: Explicitly governed shared-root exceptions and live product behavior
+      still require human judgment.
+    disposition: Accepted with adapter-specific behavior confined to adapters and
+      product-facing documentation.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260713161845-95f69a33-release-integration
+    critic: release integration
+    scope: Validate release command wiring, generated bundle synchronization, marketplace
+      activation, and Active search-set coverage.
+    anti_scope: Does not decide semantic methodology wording or general review independence.
+    score: 9
+    veto: false
+    actor: codex-reviewer-release-integration
+    role: reviewer
+    date: '2026-07-13'
+    source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+    false_green_risk: A release list could use worktree marketplace validation beside
+      index-only derivative checks and still report success.
+    invariant_checked: Release and Standard preflight use worktree modes, pre-commit
+      uses staged modes, activation passes, and all Active cases run.
+    evidence:
+    - Committed tests lock verify-release, worktree derivative checks, marketplace
+      validation, and SS-010 wiring.
+    source_refs: *id004
+    blocking_findings: []
+    why_not_10: A deterministic local release gate does not prove ChatGPT desktop
+      model-visible skill surfacing.
+    disposition: Accepted for repository release integration; live product evidence
+      remains separately gated.
+    rerun_of: null
+    fixed_finding_ids: []
+  - review_id: review-pkt-20260713161845-95f69a33-scope-boundary
+    critic: scope boundary
+    scope: Validate bounded file scope, generated-source ownership, explicit repository
+      authorization, and deferred hook delivery.
+    anti_scope: Does not re-audit official product facts or duplicate checker correctness
+      review.
+    score: 9
+    veto: false
+    actor: codex-reviewer-scope-boundary
+    role: reviewer
+    date: '2026-07-13'
+    source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+    false_green_risk: A synchronized patch could still change repositories outside
+      task scope or advertise runtime hooks without delivery evidence.
+    invariant_checked: Only this repository changed, generated plugin files derive
+      from the adapter, and manifest hooks remain absent.
+    evidence:
+    - Committed review lineage records the anti-bloat and authorization VETOs, fixes,
+      and score-9 reruns.
+    source_refs: *id005
+    blocking_findings: []
+    why_not_10: The single-plugin marketplace constraint must be revisited if this
+      repository intentionally adds another plugin.
+    disposition: Accepted for the current repository-local plugin and explicitly in-scope
+      multi-repository semantics.
+    rerun_of: null
+    fixed_finding_ids: []

@@ -1,0 +1,753 @@
+AcceptancePacket:
+  meta:
+    packet_id: pkt-20260713161845-95f69a33
+    schema_version: v2.0-draft
+    lifecycle: finalized
+    mode: base-ref
+    created_at: 2026-07-13
+    finalized_at: 2026-07-13
+  input:
+    intent: Align the Codex harness and plugin packaging with the July 2026 ChatGPT
+      desktop update
+    actor: codex
+    source_refs: []
+    user_judgment: {}
+  result:
+    inference:
+      change_class: harness-affecting
+      impact: high
+      changed_paths:
+      - .agents/plugins/marketplace.json
+      - AGENTS.md
+      - MAINTENANCE.md
+      - README.md
+      - adapters/codex/README.md
+      - adapters/codex/examples/AGENTS.md.example
+      - adapters/codex/hook-schema.md
+      - adapters/codex/plugin-scope.md
+      - adapters/codex/plugin/.codex-plugin/plugin.json
+      - adapters/codex/scripts/check-codex-cli-surface.py
+      - adapters/codex/scripts/check-codex-hook-schema-drift.py
+      - adapters/codex/scripts/smoke-autoresearch-hooks.py
+      - adapters/codex/skills/init-codex-harness/SKILL.md
+      - adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+      - adapters/codex/templates/AGENTS.md.template
+      - adapters/codex/tests/test_hook_templates.py
+      - adapters/codex/tests/test_init_codex_project_fixtures.py
+      - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+      - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+      - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+      - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+      - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+      - backlog/repository-search-set.md
+      - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+      - core/methodology.md
+      - core/reference.md
+      - docs/methodology.md
+      - docs/reference.md
+      - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+      - plugins/ai-agent-meta-harness/README.md
+      - plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+      - plugins/ai-agent-meta-harness/hook-schema.md
+      - plugins/ai-agent-meta-harness/plugin-scope.md
+      - plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+      - plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+      - plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+      - plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+      - plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+      - plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+      - scripts/check-codex-marketplace-metadata.py
+      - scripts/check-compat-mirrors.py
+      - scripts/sync-codex-plugin.py
+      - scripts/verify-release.py
+      - tests/test_check_codex_marketplace_metadata.py
+      - tests/test_check_compat_mirrors.py
+      - tests/test_core_methodology_boundaries.py
+      - tests/test_maintenance_policy_boundaries.py
+      - tests/test_pre_commit_hook.py
+      - tests/test_repository_search_set.py
+      - tests/test_sync_codex_plugin.py
+      - tests/test_verify_release.py
+      intended_scope: Align the Codex harness and plugin packaging with the July 2026
+        ChatGPT desktop update
+      actual_scope: .agents/plugins/marketplace.json, AGENTS.md, MAINTENANCE.md, README.md,
+        adapters/codex/README.md, adapters/codex/examples/AGENTS.md.example, adapters/codex/hook-schema.md,
+        adapters/codex/plugin-scope.md, adapters/codex/plugin/.codex-plugin/plugin.json,
+        adapters/codex/scripts/check-codex-cli-surface.py, adapters/codex/scripts/check-codex-hook-schema-drift.py,
+        adapters/codex/scripts/smoke-autoresearch-hooks.py, adapters/codex/skills/init-codex-harness/SKILL.md,
+        adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template, adapters/codex/templates/AGENTS.md.template,
+        adapters/codex/tests/test_hook_templates.py, adapters/codex/tests/test_init_codex_project_fixtures.py,
+        backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml, backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml,
+        backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml, backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml,
+        backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml, backlog/repository-search-set.md,
+        backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md, core/methodology.md,
+        core/reference.md, docs/methodology.md, docs/reference.md, plugins/ai-agent-meta-harness/.codex-plugin/plugin.json,
+        plugins/ai-agent-meta-harness/README.md, plugins/ai-agent-meta-harness/examples/AGENTS.md.example,
+        plugins/ai-agent-meta-harness/hook-schema.md, plugins/ai-agent-meta-harness/plugin-scope.md,
+        plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py, plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py,
+        plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py, plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md,
+        plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template,
+        plugins/ai-agent-meta-harness/templates/AGENTS.md.template, scripts/check-codex-marketplace-metadata.py,
+        scripts/check-compat-mirrors.py, scripts/sync-codex-plugin.py, scripts/verify-release.py,
+        tests/test_check_codex_marketplace_metadata.py, tests/test_check_compat_mirrors.py,
+        tests/test_core_methodology_boundaries.py, tests/test_maintenance_policy_boundaries.py,
+        tests/test_pre_commit_hook.py, tests/test_repository_search_set.py, tests/test_sync_codex_plugin.py,
+        tests/test_verify_release.py
+      deviations: []
+      isolation: isolated
+      protected_boundary_changed: true
+      required_evidence: &id001
+      - python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
+      - python3 scripts/check-v1-archive-boundary.py --base-ref a26253b6fba552ee3b915d057496ce9882a67f7d
+      - python3 scripts/verify-release.py --list --base-ref a26253b6fba552ee3b915d057496ce9882a67f7d
+        --skip-clean-worktree
+      required_review:
+      - checker correctness
+      - claim evidence
+      - methodology fidelity
+      - release integration
+      - scope boundary
+    evidence:
+      baseline_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+      comparison_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+      accepted_head_commit: d78c9c15f94bf6da4158ca6ab7c2e285732eca41
+      evaluator_boundary:
+        status: unchanged
+        commands: *id001
+      command_results:
+      - command: python3 -m unittest tests/test_v1_archive_boundary.py tests/test_verify_release.py
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+      - command: python3 scripts/check-v1-archive-boundary.py --base-ref a26253b6fba552ee3b915d057496ce9882a67f7d
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-2.log
+      - command: python3 scripts/verify-release.py --list --base-ref a26253b6fba552ee3b915d057496ce9882a67f7d
+          --skip-clean-worktree
+        status: pass
+        artifact_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-3.log
+      source_refs:
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:.agents/plugins/marketplace.json
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:AGENTS.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:MAINTENANCE.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:README.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/README.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/examples/AGENTS.md.example
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/hook-schema.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin-scope.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin/.codex-plugin/plugin.json
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-cli-surface.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-hook-schema-drift.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/smoke-autoresearch-hooks.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/SKILL.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/templates/AGENTS.md.template
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_hook_templates.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_init_codex_project_fixtures.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/repository-search-set.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/methodology.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/reference.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/methodology.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/reference.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/README.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/hook-schema.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/plugin-scope.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-codex-marketplace-metadata.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-compat-mirrors.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/sync-codex-plugin.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/verify-release.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_codex_marketplace_metadata.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_compat_mirrors.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_core_methodology_boundaries.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_maintenance_policy_boundaries.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_pre_commit_hook.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_repository_search_set.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_sync_codex_plugin.py
+      - git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_verify_release.py
+      resolved_refs:
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:.agents/plugins/marketplace.json
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:.agents/plugins/marketplace.json
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:AGENTS.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:AGENTS.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:MAINTENANCE.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:MAINTENANCE.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:README.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:README.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/README.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/README.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/examples/AGENTS.md.example
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/examples/AGENTS.md.example
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/hook-schema.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/hook-schema.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin-scope.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin-scope.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin/.codex-plugin/plugin.json
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/plugin/.codex-plugin/plugin.json
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-cli-surface.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-cli-surface.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-hook-schema-drift.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/check-codex-hook-schema-drift.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/smoke-autoresearch-hooks.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/scripts/smoke-autoresearch-hooks.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/SKILL.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/SKILL.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/templates/AGENTS.md.template
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/templates/AGENTS.md.template
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_hook_templates.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_hook_templates.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_init_codex_project_fixtures.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:adapters/codex/tests/test_init_codex_project_fixtures.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/repository-search-set.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/repository-search-set.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/methodology.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/methodology.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/reference.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:core/reference.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/methodology.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/methodology.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/reference.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:docs/reference.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/README.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/README.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/hook-schema.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/hook-schema.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/plugin-scope.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/plugin-scope.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-codex-marketplace-metadata.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-codex-marketplace-metadata.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-compat-mirrors.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/check-compat-mirrors.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/sync-codex-plugin.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/sync-codex-plugin.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/verify-release.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:scripts/verify-release.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_codex_marketplace_metadata.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_codex_marketplace_metadata.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_compat_mirrors.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_check_compat_mirrors.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_core_methodology_boundaries.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_core_methodology_boundaries.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_maintenance_policy_boundaries.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_maintenance_policy_boundaries.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_pre_commit_hook.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_pre_commit_hook.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_repository_search_set.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_repository_search_set.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_sync_codex_plugin.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_sync_codex_plugin.py
+      - origin: generated
+        relation: source
+        ref: git:d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_verify_release.py
+        status: resolved
+        target: d78c9c15f94bf6da4158ca6ab7c2e285732eca41:tests/test_verify_release.py
+      - origin: generated
+        relation: trace
+        ref: trace:backlog/repository-search-set.md#search-set-before-20260713071856-95f69a33-yml-e616aa73
+        status: resolved
+        target: backlog/repository-search-set.md#search-set-before-20260713071856-95f69a33-yml-e616aa73
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:backlog/plans/04-evidence-capture-and-source-refs.md
+        status: resolved
+        target: backlog/plans/04-evidence-capture-and-source-refs.md
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-2.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-2.log
+      - origin: generated
+        relation: artifact
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-3.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check-3.log
+      - origin: generated
+        relation: claim-evidence
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+      - origin: generated
+        relation: review-provenance
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+      - origin: generated
+        relation: waiver-provenance
+        ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        status: resolved
+        target: archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+      trace_refs:
+        search_set_before: trace:backlog/repository-search-set.md#search-set-before-20260713071856-95f69a33-yml-e616aa73
+        search_set_after: null
+        evolution: []
+        failures: []
+        disposition: Search-set before/after trace refs are captured when supplied;
+          missing refs remain explicit targeted skips.
+      skipped:
+      - evidence: search_set_after
+        actor: codex
+        role: operator
+        date: 2026-07-13
+        reason: The full Active search set passed, but its tracked after-capture cannot
+          be committed without moving HEAD beyond the immutable accepted boundary;
+          the archive publisher requires the pointer to follow that boundary directly.
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+      claims:
+      - claim: Repository documentation and plugin packaging claims are supported
+          by finalized verification command evidence.
+        raw_evidence_refs:
+        - file:archive/v2/artifacts/pkt-20260713161845-95f69a33-git-diff-check.log
+      review_imports:
+      - source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        format: acceptance-packet-review-import/v1
+        source_digest: 290ec29568b6c03d0b10908d7ca75148661b131aa9b696163962aeb4cd8eaf04
+        status: imported
+        review_ids:
+        - review-pkt-20260713161845-95f69a33-checker-correctness
+        - review-pkt-20260713161845-95f69a33-claim-evidence
+        - review-pkt-20260713161845-95f69a33-methodology-fidelity
+        - review-pkt-20260713161845-95f69a33-release-integration
+        - review-pkt-20260713161845-95f69a33-scope-boundary
+        target_binding:
+          packet_id: pkt-20260713161845-95f69a33
+          packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+          review_target_digest: 752e557221abde9c03f3fe3ca6c482cf84de776f76f9caedec404a99be9be593
+          baseline_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+          comparison_ref: a26253b6fba552ee3b915d057496ce9882a67f7d
+          source_refs: []
+          changed_paths:
+          - .agents/plugins/marketplace.json
+          - AGENTS.md
+          - MAINTENANCE.md
+          - README.md
+          - adapters/codex/README.md
+          - adapters/codex/examples/AGENTS.md.example
+          - adapters/codex/hook-schema.md
+          - adapters/codex/plugin-scope.md
+          - adapters/codex/plugin/.codex-plugin/plugin.json
+          - adapters/codex/scripts/check-codex-cli-surface.py
+          - adapters/codex/scripts/check-codex-hook-schema-drift.py
+          - adapters/codex/scripts/smoke-autoresearch-hooks.py
+          - adapters/codex/skills/init-codex-harness/SKILL.md
+          - adapters/codex/skills/init-codex-harness/assets/AGENTS.md.template
+          - adapters/codex/templates/AGENTS.md.template
+          - adapters/codex/tests/test_hook_templates.py
+          - adapters/codex/tests/test_init_codex_project_fixtures.py
+          - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+          - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+          - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+          - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+          - backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+          - backlog/repository-search-set.md
+          - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+          - core/methodology.md
+          - core/reference.md
+          - docs/methodology.md
+          - docs/reference.md
+          - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+          - plugins/ai-agent-meta-harness/README.md
+          - plugins/ai-agent-meta-harness/examples/AGENTS.md.example
+          - plugins/ai-agent-meta-harness/hook-schema.md
+          - plugins/ai-agent-meta-harness/plugin-scope.md
+          - plugins/ai-agent-meta-harness/scripts/check-codex-cli-surface.py
+          - plugins/ai-agent-meta-harness/scripts/check-codex-hook-schema-drift.py
+          - plugins/ai-agent-meta-harness/scripts/smoke-autoresearch-hooks.py
+          - plugins/ai-agent-meta-harness/skills/init-codex-harness/SKILL.md
+          - plugins/ai-agent-meta-harness/skills/init-codex-harness/assets/AGENTS.md.template
+          - plugins/ai-agent-meta-harness/templates/AGENTS.md.template
+          - scripts/check-codex-marketplace-metadata.py
+          - scripts/check-compat-mirrors.py
+          - scripts/sync-codex-plugin.py
+          - scripts/verify-release.py
+          - tests/test_check_codex_marketplace_metadata.py
+          - tests/test_check_compat_mirrors.py
+          - tests/test_core_methodology_boundaries.py
+          - tests/test_maintenance_policy_boundaries.py
+          - tests/test_pre_commit_hook.py
+          - tests/test_repository_search_set.py
+          - tests/test_sync_codex_plugin.py
+          - tests/test_verify_release.py
+          required_review:
+          - checker correctness
+          - claim evidence
+          - methodology fidelity
+          - release integration
+          - scope boundary
+    judgment:
+      reviews:
+      - review_id: review-pkt-20260713161845-95f69a33-checker-correctness
+        critic: checker correctness
+        scope: Validate marketplace, plugin-sync, and compatibility checker correctness
+          across staged and worktree modes.
+        anti_scope: Does not evaluate product claims or runtime-neutral methodology
+          prose.
+        score: 9
+        veto: false
+        actor: codex-reviewer-checker-correctness
+        role: reviewer
+        date: '2026-07-13'
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        false_green_risk: Unstaged generated drift or a malformed extra marketplace
+          entry could be accepted by an index-only or partial checker.
+        invariant_checked: Negative tests reject malformed catalogs and unstaged drift
+          while staged defaults remain commit-bound.
+        evidence:
+        - Committed review lineage records VAL-001, VAL-002, and AB-001 fixes and
+          score-9 reruns.
+        source_refs:
+        - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+        - scripts/check-codex-marketplace-metadata.py
+        - scripts/sync-codex-plugin.py
+        - scripts/check-compat-mirrors.py
+        - tests/test_check_codex_marketplace_metadata.py
+        - tests/test_sync_codex_plugin.py
+        - tests/test_check_compat_mirrors.py
+        blocking_findings: []
+        why_not_10: The repository checker intentionally remains narrower than the
+          complete external plugin-creator schema validator.
+        disposition: Accepted for the current single-plugin repository marketplace;
+          broaden validation if distribution scope expands.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260713161845-95f69a33-claim-evidence
+        critic: claim evidence
+        scope: Validate plugin packaging claims, review lineage, transcript binding,
+          and explicit runtime-evidence limitations.
+        anti_scope: Does not reimplement checker logic or decide multi-repository
+          wording.
+        score: 9
+        veto: false
+        actor: codex-reviewer-claim-evidence
+        role: reviewer
+        date: '2026-07-13'
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        false_green_risk: A hand-authored review could claim live skill or hook delivery
+          from packaging and isolated activation alone.
+        invariant_checked: Structured review replay passes and docs keep live model-visible
+          delivery outside deterministic repository evidence.
+        evidence:
+        - Committed review lineage records RQ-001 and RQ-002 closure plus the live-runtime
+          evidence boundary.
+        source_refs:
+        - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+        - backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+        - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+        - adapters/codex/plugin-scope.md
+        - adapters/codex/plugin/.codex-plugin/plugin.json
+        - plugins/ai-agent-meta-harness/.codex-plugin/plugin.json
+        blocking_findings: []
+        why_not_10: Repository evidence cannot prove a running ChatGPT desktop task
+          surfaced skills or delivered hook events.
+        disposition: Accepted with live runtime delivery explicitly deferred to a
+          product-supported smoke or reviewed manual gate.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260713161845-95f69a33-methodology-fidelity
+        critic: methodology fidelity
+        scope: Validate runtime-neutral multi-repository ownership, explicit write
+          authorization, mirrors, and init guidance.
+        anti_scope: Does not evaluate marketplace parser internals or release command
+          composition.
+        score: 9
+        veto: false
+        actor: codex-reviewer-methodology-fidelity
+        role: reviewer
+        date: '2026-07-13'
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        false_green_risk: Marker tests could pass while neutral core still names a
+          desktop container or init guidance writes every discovered repository.
+        invariant_checked: Core stays runtime-neutral and only explicitly in-scope
+          repositories may change, each with its own trace root and verifier.
+        evidence:
+        - The independent frame-challenge critic separated product installation changes
+          from runtime-neutral trace ownership.
+        source_refs:
+        - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+        - core/methodology.md
+        - core/reference.md
+        - docs/methodology.md
+        - docs/reference.md
+        - adapters/codex/skills/init-codex-harness/SKILL.md
+        - tests/test_core_methodology_boundaries.py
+        - adapters/codex/tests/test_init_codex_project_fixtures.py
+        blocking_findings: []
+        why_not_10: Explicitly governed shared-root exceptions and live product behavior
+          still require human judgment.
+        disposition: Accepted with adapter-specific behavior confined to adapters
+          and product-facing documentation.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260713161845-95f69a33-release-integration
+        critic: release integration
+        scope: Validate release command wiring, generated bundle synchronization,
+          marketplace activation, and Active search-set coverage.
+        anti_scope: Does not decide semantic methodology wording or general review
+          independence.
+        score: 9
+        veto: false
+        actor: codex-reviewer-release-integration
+        role: reviewer
+        date: '2026-07-13'
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        false_green_risk: A release list could use worktree marketplace validation
+          beside index-only derivative checks and still report success.
+        invariant_checked: Release and Standard preflight use worktree modes, pre-commit
+          uses staged modes, activation passes, and all Active cases run.
+        evidence:
+        - Committed tests lock verify-release, worktree derivative checks, marketplace
+          validation, and SS-010 wiring.
+        source_refs:
+        - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+        - scripts/verify-release.py
+        - MAINTENANCE.md
+        - adapters/codex/scripts/smoke-local-plugin.py
+        - adapters/codex/scripts/smoke-local-plugin-activation.py
+        - backlog/repository-search-set.md
+        - tests/test_verify_release.py
+        blocking_findings: []
+        why_not_10: A deterministic local release gate does not prove ChatGPT desktop
+          model-visible skill surfacing.
+        disposition: Accepted for repository release integration; live product evidence
+          remains separately gated.
+        rerun_of: null
+        fixed_finding_ids: []
+      - review_id: review-pkt-20260713161845-95f69a33-scope-boundary
+        critic: scope boundary
+        scope: Validate bounded file scope, generated-source ownership, explicit repository
+          authorization, and deferred hook delivery.
+        anti_scope: Does not re-audit official product facts or duplicate checker
+          correctness review.
+        score: 9
+        veto: false
+        actor: codex-reviewer-scope-boundary
+        role: reviewer
+        date: '2026-07-13'
+        source_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+        false_green_risk: A synchronized patch could still change repositories outside
+          task scope or advertise runtime hooks without delivery evidence.
+        invariant_checked: Only this repository changed, generated plugin files derive
+          from the adapter, and manifest hooks remain absent.
+        evidence:
+        - Committed review lineage records the anti-bloat and authorization VETOs,
+          fixes, and score-9 reruns.
+        source_refs:
+        - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+        - AGENTS.md
+        - adapters/codex/templates/AGENTS.md.template
+        - adapters/codex/plugin/.codex-plugin/plugin.json
+        - adapters/codex/plugin-scope.md
+        - tests/test_pre_commit_hook.py
+        - tests/test_maintenance_policy_boundaries.py
+        - adapters/codex/tests/test_hook_templates.py
+        blocking_findings: []
+        why_not_10: The single-plugin marketplace constraint must be revisited if
+          this repository intentionally adds another plugin.
+        disposition: Accepted for the current repository-local plugin and explicitly
+          in-scope multi-repository semantics.
+        rerun_of: null
+        fixed_finding_ids: []
+      waivers: []
+      downgrades: []
+      residual_risk: []
+    decision:
+      accepted: true
+      stable_handoff_eligible: true
+      reason: Required durable evidence and imported multi-review passed.
+      next_action: Publish active archive pointer.

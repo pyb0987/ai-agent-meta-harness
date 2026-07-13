@@ -1,0 +1,14 @@
+# Command Evidence
+packet_id: pkt-20260713161845-95f69a33
+packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+packet_sha256: 2ae00e9bd53c9fb8610476ab5aedc15608b760ae90db5b05f632cdd0bc669cc9
+command: python3 scripts/check-v1-archive-boundary.py --base-ref a26253b6fba552ee3b915d057496ce9882a67f7d
+status: pass
+summary: finalized base-ref command evidence
+replay_metadata: pointer-bound
+replay_recorded_by: scripts/check-governance-acceptance.py
+replay_recorded_at: 2026-07-13
+replay_checker_ref: scripts/check-governance-acceptance.py
+exit_code: 0
+stdout_sha256: 6b0f1bc4052559d11d4b40a2a4e632b38ce3f98c619cbab15effea4e08b51eb1
+stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

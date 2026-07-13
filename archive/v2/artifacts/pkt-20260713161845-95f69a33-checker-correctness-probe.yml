@@ -1,0 +1,34 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c 'import subprocess,sys; commands=[['"'"'python3'"'"',
+    '"'"'-m'"'"', '"'"'unittest'"'"', '"'"'tests.test_check_codex_marketplace_metadata'"'"',
+    '"'"'tests.test_sync_codex_plugin'"'"', '"'"'tests.test_check_compat_mirrors'"'"'],
+    ['"'"'python3'"'"', '"'"'scripts/check-codex-marketplace-metadata.py'"'"', '"'"'--worktree'"'"'],
+    ['"'"'python3'"'"', '"'"'scripts/sync-codex-plugin.py'"'"', '"'"'--check'"'"',
+    '"'"'--worktree'"'"'], ['"'"'python3'"'"', '"'"'scripts/check-compat-mirrors.py'"'"',
+    '"'"'--worktree'"'"']]; results=[subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    for command in commands]; ok=all(result.returncode==0 for result in results);
+    print('"'"'probe_checker_correctness_pass'"'"' if ok else '"'"'probe_checker_correctness_fail'"'"');
+    sys.exit(0 if ok else 1)'
+  probe_exit_code: 0
+  result_ref: file:archive/v2/artifacts/pkt-20260713161845-95f69a33-review.yml
+  result_digest: 290ec29568b6c03d0b10908d7ca75148661b131aa9b696163962aeb4cd8eaf04
+  packet_ref: archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  packet_sha256: 2ae00e9bd53c9fb8610476ab5aedc15608b760ae90db5b05f632cdd0bc669cc9
+  source_refs:
+  - archive/v2/packets/pkt-20260713161845-95f69a33.yml
+  - scripts/check-codex-marketplace-metadata.py
+  - scripts/sync-codex-plugin.py
+  - scripts/check-compat-mirrors.py
+  - tests/test_check_codex_marketplace_metadata.py
+  - tests/test_sync_codex_plugin.py
+  - tests/test_check_compat_mirrors.py
+  cwd: .
+  generated_by: codex packet review completion
+  date: '2026-07-13'
+  stdout: 'probe_checker_correctness_pass
+
+    '
+  stderr: ''
+  stdout_sha256: 166ee49ad58a5fcbf78e07d59c8b6d8136d39ed9b9dbc16b01d07080e054aaf1
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
