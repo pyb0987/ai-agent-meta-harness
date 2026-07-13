@@ -87,8 +87,8 @@ class CompatMirrorIndexIntegrationTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_checker(self) -> subprocess.CompletedProcess[str]:
-        return run(["python3", "scripts/check-compat-mirrors.py"], self.repo)
+    def run_checker(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return run(["python3", "scripts/check-compat-mirrors.py", *args], self.repo)
 
     def test_checker_reads_index_not_unstaged_working_tree(self):
         write(self.repo / "commands" / "init-harness.md", "unstaged drift\n")
@@ -97,6 +97,14 @@ class CompatMirrorIndexIntegrationTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Compatibility mirrors are in sync", result.stdout)
+
+    def test_worktree_checker_fails_on_unstaged_mirror_drift(self):
+        write(self.repo / "commands" / "init-harness.md", "unstaged drift\n")
+
+        result = self.run_checker("--worktree")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("OUT OF SYNC: commands/init-harness.md", result.stderr)
 
     def test_checker_fails_on_staged_modified_mirror(self):
         write(self.repo / "commands" / "init-harness.md", "staged drift\n")

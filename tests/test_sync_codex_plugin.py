@@ -186,6 +186,18 @@ class SyncCodexPluginTests(unittest.TestCase):
 
         self.assertEqual(code, 0, stderr)
 
+    def test_worktree_check_rejects_unstaged_generated_drift(self):
+        mappings = sync_codex_plugin.build_mappings()
+        self.assertEqual(call_silently(sync_codex_plugin.write_files, mappings), 0)
+        git(self.root, "init")
+        git(self.root, "add", ".")
+        write(self.plugin / "README.md", "unstaged generated drift\n")
+
+        code, stderr = call_with_stderr(sync_codex_plugin.main, ["--check", "--worktree"])
+
+        self.assertEqual(code, 1)
+        self.assertIn("OUT OF SYNC: plugins/ai-agent-meta-harness/README.md", stderr)
+
     def test_check_rejects_partially_staged_generated_content(self):
         mappings = sync_codex_plugin.build_mappings()
         self.assertEqual(call_silently(sync_codex_plugin.write_files, mappings), 0)

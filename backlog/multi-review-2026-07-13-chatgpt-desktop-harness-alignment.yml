@@ -1,0 +1,185 @@
+MultiReviewResult:
+  schema_version: multi-review-result/v1
+  review_id: mr-20260713-chatgpt-desktop-harness-alignment
+  lifecycle: finalized
+  review_mode: governance
+  independence: independent
+  target:
+    summary: July 2026 ChatGPT desktop harness alignment and repository validation boundaries.
+    source_refs:
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - .agents/plugins/marketplace.json
+    - AGENTS.md
+    - core/methodology.md
+    - core/reference.md
+    - adapters/codex/plugin-scope.md
+    - scripts/check-codex-marketplace-metadata.py
+    - scripts/sync-codex-plugin.py
+    - scripts/check-compat-mirrors.py
+    - scripts/verify-release.py
+  required_critics:
+  - marketplace-validation
+  - methodology-contract
+  - anti-bloat
+  - review-quality
+  reported_final_verdict: PASS
+  derived_verdict: null
+  derivation_errors: []
+  critics:
+  - critic_id: marketplace-validation
+    name: Marketplace Contract and Release-Gate Critic
+    critic_type: validation_layer
+    persona: Skeptical release-gate engineer who trusts explicit validation layers.
+    scope: Validate marketplace shape, staged/worktree selection, plugin synchronization, and release wiring.
+    anti_scope: Does not evaluate runtime-neutral methodology prose or review independence.
+    attack_surface: A stale generated bundle or malformed catalog passes because gates inspect different trees or ignore extra entries.
+    primary_failure_mode: Release approval combines inconsistent trees or partial marketplace validation.
+    frame_challenge: false
+    required: true
+    actor: codex-subagent-marketplace-validation
+    date: 2026-07-13
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: An unstaged stale generated plugin or malformed extra marketplace entry could previously pass release review.
+    invariant_checked: Release checks inspect the worktree, pre-commit checks inspect the index, and the repository marketplace contains exactly one valid plugin entry.
+    validation_layer: structured-validator
+    probe_run: true
+    probe_command: python3 -c "import subprocess, sys; commands=[[sys.executable, '-m', 'unittest', 'tests.test_check_codex_marketplace_metadata', 'tests.test_sync_codex_plugin', 'tests.test_verify_release'], [sys.executable, 'scripts/check-codex-marketplace-metadata.py', '--worktree'], [sys.executable, 'scripts/sync-codex-plugin.py', '--check', '--worktree'], [sys.executable, '/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py', 'adapters/codex/plugin'], [sys.executable, '/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py', 'plugins/ai-agent-meta-harness']]; results=[subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]; ok=all(result.returncode == 0 for result in results); print('probe_marketplace_validation_pass' if ok else 'probe_marketplace_validation_fail'); sys.exit(0 if ok else 1)"
+    probe_exit_code: 0
+    probe_result: Focused negative tests, worktree marketplace and sync checks, and both plugin-creator validations passed.
+    probe_interpretation: The formerly exploitable tree mismatch and malformed-catalog paths are mechanically rejected.
+    probe_evidence_refs:
+    - file:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-marketplace.yml
+    reason_no_probe: null
+    evidence:
+    - Initial VAL-001 and VAL-002 VETOs were fixed and the critic reran at score 9.
+    - Worktree and staged-index modes have separate negative coverage.
+    source_refs:
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - scripts/check-codex-marketplace-metadata.py
+    - tests/test_check_codex_marketplace_metadata.py
+    - scripts/sync-codex-plugin.py
+    - tests/test_sync_codex_plugin.py
+    - scripts/verify-release.py
+    - tests/test_verify_release.py
+    why_not_10: The repository checker is narrower than the full plugin-creator manifest validator, which is therefore retained in this probe.
+    residual_risk_disposition: Accepted for the current single-plugin marketplace; broaden validation if a second plugin is intentionally added.
+  - critic_id: methodology-contract
+    name: Contract Fidelity and Frame-Challenge Critic
+    critic_type: domain
+    persona: Runtime-neutral harness maintainer skeptical of product-specific methodology claims.
+    scope: Validate multi-repository trace ownership, authorization scope, canonical mirrors, init templates, and product/core boundaries.
+    anti_scope: Does not evaluate marketplace parser internals or hook event schemas.
+    attack_surface: Synchronized documentation can still encode unsafe cross-repository writes or adapter-specific core assumptions.
+    primary_failure_mode: Mechanically consistent prose retains an unsafe or runtime-specific execution boundary.
+    frame_challenge: true
+    required: true
+    actor: codex-subagent-methodology-contract
+    date: 2026-07-13
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: Marker and mirror checks could pass while runtime-neutral reference prose still names a desktop container or authorizes out-of-scope writes.
+    invariant_checked: Core remains runtime-neutral, only explicitly in-scope repositories may change, and every in-scope repository retains its own trace root and verifier.
+    validation_layer: prose-smoke
+    probe_run: true
+    probe_command: python3 -c "import subprocess, sys; commands=[[sys.executable, '-m', 'unittest', 'tests.test_core_methodology_boundaries', 'adapters.codex.tests.test_init_codex_project_fixtures', 'tests.test_repository_search_set'], [sys.executable, 'scripts/check-compat-mirrors.py', '--worktree'], [sys.executable, 'scripts/sync-codex-plugin.py', '--check', '--worktree'], ['git', 'diff', '--check']]; results=[subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]; ok=all(result.returncode == 0 for result in results); print('probe_methodology_contract_pass' if ok else 'probe_methodology_contract_fail'); sys.exit(0 if ok else 1)"
+    probe_exit_code: 0
+    probe_result: Focused semantic guards, worktree mirror and plugin sync checks, and whitespace validation passed.
+    probe_interpretation: The two initial wording/scope VETOs and the narrower follow-up wording VETO are covered by executable guards.
+    probe_evidence_refs:
+    - file:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-methodology.yml
+    reason_no_probe: null
+    evidence:
+    - Initial CF-001 and CF-002 plus rerun CF-003 were fixed before the score-9 rerun.
+    - This critic challenged framing by separating product installation changes from runtime-neutral repository ownership.
+    source_refs:
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - core/methodology.md
+    - core/reference.md
+    - docs/methodology.md
+    - docs/reference.md
+    - adapters/codex/skills/init-codex-harness/SKILL.md
+    - tests/test_core_methodology_boundaries.py
+    - adapters/codex/tests/test_init_codex_project_fixtures.py
+    why_not_10: Live product surfacing and explicitly governed shared-root exceptions still require human or runtime evidence.
+    residual_risk_disposition: Accepted with live product behavior explicitly outside deterministic repository acceptance.
+  - critic_id: anti-bloat
+    name: Governance Anti-Bloat and Scope-Boundary Critic
+    critic_type: domain
+    persona: Minimalist governance engineer focused on false-green closure without operator burden.
+    scope: Validate derivative synchronization, checker API size, search-set coverage, and deferred hook scope.
+    anti_scope: Does not re-audit official product facts or ordinary prose style.
+    attack_surface: Hand-synced copies, index/worktree mismatch, duplicate policy, and undocumented hook expansion.
+    primary_failure_mode: A product-alignment patch adds complexity while its acceptance commands inspect the wrong state.
+    frame_challenge: false
+    required: true
+    actor: codex-subagent-anti-bloat
+    date: 2026-07-13
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: An unstaged stale generated plugin or compatibility mirror could pass an index-only development check.
+    invariant_checked: Worktree review and staged commit checks inspect their intended states through one symmetric flag without a second workflow.
+    validation_layer: raw-artifact
+    probe_run: true
+    probe_command: python3 -c "import subprocess, sys; commands=[[sys.executable, 'scripts/sync-codex-plugin.py', '--check', '--worktree'], [sys.executable, 'scripts/check-compat-mirrors.py', '--worktree'], [sys.executable, 'scripts/run-search-set.py', '--case', 'SS-010'], [sys.executable, '-m', 'unittest', 'tests.test_sync_codex_plugin', 'tests.test_check_compat_mirrors', 'tests.test_check_codex_marketplace_metadata', 'adapters.codex.tests.test_init_codex_project_fixtures', 'tests.test_verify_release', 'tests.test_pre_commit_hook']]; results=[subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]; ok=all(result.returncode == 0 for result in results); print('probe_anti_bloat_pass' if ok else 'probe_anti_bloat_fail'); sys.exit(0 if ok else 1)"
+    probe_exit_code: 0
+    probe_result: Fully short-circuited worktree, search-set, and focused negative-test sequence passed.
+    probe_interpretation: No later success can mask an earlier failure, and the former index-only false green is regression-tested.
+    probe_evidence_refs:
+    - file:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-anti-bloat.yml
+    reason_no_probe: null
+    evidence:
+    - Initial AB-001 was fixed with symmetric worktree modes and rerun at score 9.
+    - The single-entry catalog constraint avoids a second general marketplace schema implementation.
+    source_refs:
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - scripts/sync-codex-plugin.py
+    - scripts/check-compat-mirrors.py
+    - tests/test_sync_codex_plugin.py
+    - tests/test_check_compat_mirrors.py
+    - backlog/repository-search-set.md
+    why_not_10: The single-plugin constraint and readiness markers must be revisited if repository distribution scope expands.
+    residual_risk_disposition: Accepted for the current repository-local single-plugin scope.
+  - critic_id: review-quality
+    name: Review Quality Meta-Critic
+    critic_type: review_quality
+    persona: Audit reviewer hostile to theatrical or self-attested acceptance.
+    scope: Validate critic disjointness, frame challenge, probe substance, VETO reruns, transcript binding, and replayability.
+    anti_scope: Does not re-litigate ordinary product prose or add unrelated feature requirements.
+    attack_surface: Copied PASS summaries, redundant critics, missing transcripts, and unrecorded VETO lineage.
+    primary_failure_mode: Governance PASS relies on conversation summaries instead of result-bound replayable evidence.
+    frame_challenge: false
+    required: true
+    actor: codex-subagent-review-quality
+    date: 2026-07-13
+    score: 9
+    verdict: pass
+    veto: false
+    blocking_findings: []
+    false_green_risk: A synthesizer could copy score-9 labels while omitting exact command/output bindings or the initial VETO-to-rerun sequence.
+    invariant_checked: Required critics are materially disjoint, one challenges the frame, VETOs have durable lineage, and every exact probe has a matching replayable transcript.
+    validation_layer: structured-validator
+    probe_run: true
+    probe_command: python3 -c "import subprocess, sys; command=[sys.executable, '-m', 'unittest', 'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_probe_without_matching_transcript', 'tests.test_multi_review_result_cli.MultiReviewResultCliTests.test_rejects_transcript_bound_to_different_result_ref']; result=subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE); print('probe_review_quality_pass' if result.returncode == 0 else 'probe_review_quality_fail'); sys.exit(result.returncode)"
+    probe_exit_code: 0
+    probe_result: Focused negative validator tests reject missing and incorrectly bound transcript evidence.
+    probe_interpretation: The validator has executable guards for the concrete self-attestation path; this result must still pass full replay before handoff.
+    probe_evidence_refs:
+    - file:backlog/probe-transcripts/2026-07-13-chatgpt-desktop-review-quality.yml
+    reason_no_probe: null
+    evidence:
+    - The initial meta-critic score-8 VETO required durable result/transcript binding and rerun lineage.
+    - The four critic frames have distinct scopes, anti-scopes, attack surfaces, and primary failure modes.
+    source_refs:
+    - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+    - scripts/check-multi-review-result.py
+    - tests/test_multi_review_result_cli.py
+    - adapters/codex/skills/multi-review/SKILL.md
+    why_not_10: Structured replay proves artifact consistency, not a stable committed AcceptancePacket handoff or live product behavior.
+    residual_risk_disposition: Accepted for worktree governance review after full replay; stable release evidence remains a separate packet lifecycle.

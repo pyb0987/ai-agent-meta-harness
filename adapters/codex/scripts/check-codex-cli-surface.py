@@ -2,7 +2,7 @@
 """Optionally inspect local Codex CLI surface used by runtime-delivery docs.
 
 This check proves only local CLI help-shape evidence. It does not prove that a
-running Codex Desktop session surfaced plugin skills to the model or delivered
+running ChatGPT desktop session surfaced plugin skills to the model or delivered
 plugin runtime hook events.
 """
 

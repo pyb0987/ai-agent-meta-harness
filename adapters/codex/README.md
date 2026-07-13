@@ -23,7 +23,7 @@ The first Codex adapter layer provides:
 
 ## Distribution Decision
 
-Primary distribution path: **local Codex plugin bundle**.
+Primary distribution path: **repository marketplace plus local Codex plugin bundle**.
 
 Rationale: the Codex adapter now includes more than standalone skill text. Autoresearch protection needs hooks, checker scripts, templates, and examples to travel together. A plugin bundle is the smallest distribution unit that can carry those assets without turning the adapter into a fork of the core methodology.
 
@@ -41,9 +41,9 @@ Supported paths:
 
 | Path | Status | Use |
 |------|--------|-----|
-| Local plugin bundle | Primary bundle artifact with isolated activation smoke | Generated at `plugins/ai-agent-meta-harness/`; activation smoke registers a temp local marketplace and enables the plugin in an isolated `CODEX_HOME` |
+| Repo marketplace + local plugin bundle | Primary ChatGPT desktop and Codex distribution path | `.agents/plugins/marketplace.json` points at the generated `plugins/ai-agent-meta-harness/` bundle; start a new task after install or update |
 | Direct skill copy | Development fallback | Fast iteration on skill text only |
-| Marketplace/plugin bundle | Future release path | Published distribution after plugin layout stabilizes |
+| Public Plugins Directory | Future release path | Separate submission after publication metadata and policy review |
 | `skill-installer` | Compatibility investigation | Skill-only install if safe degraded behavior is documented |
 
 ## Bundle Scope
@@ -55,7 +55,8 @@ The bundle scope is staged so packaging does not outrun tested behavior. Full de
 | v0 scaffold | Skills, AGENTS template, README, plugin manifest, scope document | Implemented |
 | v1 protection | Checker, hook smoke assertions, protected-path template, AGENTS reminder snippet, Codex hook template, pre-commit template, CI template, target-project install docs, and local smoke commands | Implemented for copied target-project guardrails; runtime plugin hook delivery remains deferred until a product-supported smoke or reviewed manual gate exists |
 | experimental orientation | Opt-in `SessionStart` context hook, exact-command mode tracker, example hook config, and subprocess smoke tests | Implemented as copied assets only; not advertised by the plugin manifest and not evidence of live runtime delivery |
-| Later release | Examples, marketplace metadata, richer install validation | Planned |
+| marketplace distribution | Repo marketplace metadata, schema validation, and ChatGPT desktop installation guidance | Implemented for local/repo distribution |
+| Later release | Richer install validation | Planned |
 
 The Meta-Harness paper informs the acceptance criteria for this scope, but its methodology remains in `core/`; the plugin should not copy core content into a Codex-specific fork.
 
@@ -189,15 +190,17 @@ unchanged.
 
 ## Sub-Agent Capability Matrix
 
-Codex sub-agent support is surface-dependent. Treat sub-agents as an optional
-tactical mechanism, not a required persistence model.
+Current Codex releases expose subagent workflows in the ChatGPT desktop app,
+CLI, and IDE extension. Treat subagents as an optional tactical mechanism, not
+a required persistence model, and delegate only when the user or applicable
+project/skill instructions request it.
 
 | Surface | Sub-agent expectation | Harness behavior |
 |---------|-----------------------|------------------|
-| Codex Desktop | Available when the runtime exposes `spawn_agent`/worker/explorer tools | Use for independent exploration, multi-review, and sidecar implementation only when tasks can run in parallel |
-| Codex CLI | May be unavailable or policy-limited depending on release and invocation | Fall back to a sequential review checklist and fixed evaluator scripts for independence |
+| ChatGPT desktop app | Available in current Codex tasks; activity is visible as agent threads | Use for independent exploration and multi-review when the user, `AGENTS.md`, or a skill requests delegation |
+| Codex CLI and IDE | Enabled in current releases; the host may still constrain concurrency or tools | Keep tasks bounded and inspect agent threads; use sequential fallback when the active host does not expose delegation |
 | Codex API | Do not assume sub-agent orchestration unless the caller provides it | Keep evaluator independence in deterministic scripts or caller-managed review passes |
-| Local plugin bundle | Carries skills/assets, not guaranteed sub-agent activation | Skills must describe fallback behavior instead of requiring sub-agents |
+| Local plugin bundle | Carries skills/assets and can authorize delegation through a selected skill; it does not activate subagents by itself | Skills must retain explicit fallback behavior for hosts without delegation |
 
 Fallback rules:
 
@@ -232,7 +235,7 @@ Generate and verify the repo-local plugin bundle before artifact-level dogfoodin
 
 ```bash
 python3 scripts/sync-codex-plugin.py --write
-python3 scripts/sync-codex-plugin.py --check
+python3 scripts/sync-codex-plugin.py --check --worktree
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py --skip-staged-policy
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 -m unittest adapters/codex/tests/test_experimental_orientation_hooks.py
@@ -244,6 +247,14 @@ python3 adapters/codex/scripts/check-codex-cli-surface.py
 
 The generated plugin lives at `plugins/ai-agent-meta-harness/`. The artifact smoke test validates the bundle artifact: manifest, expected skills, checker/hook/template assets, and degraded fallback warnings.
 
+The repository marketplace lives at `.agents/plugins/marketplace.json`. The
+ChatGPT desktop app discovers it from this project. For CLI testing, register
+the non-default repo marketplace root with
+`codex plugin marketplace add <repository-root>`, install
+`ai-agent-meta-harness@personal`, and start a new task before testing updated
+skills or tools. Run `python3 scripts/check-codex-marketplace-metadata.py
+--worktree` while iterating.
+
 The init project fixture smoke creates representative TypeScript, Python, and
 migrated-Claude-history project fixtures and validates the expected
 `init-codex-harness` contract: trace-root selection, Active executable
@@ -252,9 +263,9 @@ Claude-only hook assumptions. It also runs each generated Active
 `search-set.md` verify command inside the fixture project, so masked exit
 statuses, missing command dependencies, and non-running verifier text fail the
 smoke. It does not run a live Codex model against an external project or prove
-Codex Desktop skill surfacing.
+ChatGPT desktop skill surfacing.
 
-The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running Codex Desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
+The activation smoke test creates an isolated `CODEX_HOME`, creates a temporary local marketplace that points at a copy of the generated plugin, runs `codex plugin marketplace add <marketplace-root>`, enables `[plugins."ai-agent-meta-harness@local-ai-agent-meta-harness"]`, and verifies the activated marketplace copy still exposes the expected skill files. This proves the local CLI marketplace registration path and enabled-plugin config shape, but it does not prove a running ChatGPT desktop session has surfaced those skills to the model or delivered plugin runtime hook events.
 
 ### Runtime Delivery Evidence Status
 
@@ -264,7 +275,7 @@ Runtime delivery has three evidence levels:
 2. Isolated CLI activation/config: `python3 adapters/codex/scripts/smoke-local-plugin-activation.py`.
 3. Runtime model-visible skill surfacing or plugin hook delivery: no stable noninteractive smoke exists in this repo yet.
 
-As of the 2026-05-04 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and experimental app-server protocol tooling. `python3 adapters/codex/scripts/check-codex-cli-surface.py` optionally probes that local CLI help surface when `codex` is installed and skips when it is absent; use `--require-installed` when a local environment must fail instead of skip. This probe does not assert that a running Desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
+As of the 2026-07-13 maintenance pass, the local Codex CLI exposes plugin marketplace management (`codex plugin marketplace add|upgrade|remove`) and app-server protocol tooling. `python3 adapters/codex/scripts/check-codex-cli-surface.py` optionally probes that local CLI help surface when `codex` is installed and skips when it is absent; use `--require-installed` when a local environment must fail instead of skip. This probe does not assert that a running ChatGPT desktop session surfaced plugin skills to the model or delivered plugin runtime hook events. Keep runtime hook manifest fields disabled until that level has a product-supported smoke or explicitly reviewed manual gate.
 
 #### Reviewed Manual Runtime Delivery Gate
 

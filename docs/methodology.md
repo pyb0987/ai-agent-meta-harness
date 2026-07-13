@@ -66,6 +66,14 @@ evidence:
 - Treat divergent non-empty roots as a migration question, not as a normal write
   target. Propose a copy/move/merge plan before recording new traces.
 
+A multi-repository workspace does not create one implicit project trace root.
+Select the active trace root independently inside each repository and keep its
+failures, evolution records, and executable guards bound to that repository.
+A coordinating task may cite several repository roots and verifiers, but it
+must not merge their histories or write one repository's evidence into another
+unless all affected repositories explicitly declare a shared root and migration
+plan.
+
 After selecting the active trace root, check for the minimum trace surface:
 `evolution/`, `failures/`, `experiments/`, and `search-set.md`. For applied
 harness changes, create missing minimum directories/files before writing traces

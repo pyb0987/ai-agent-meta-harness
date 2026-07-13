@@ -53,6 +53,13 @@ class VerifyReleaseTests(unittest.TestCase):
                 self.assertGreater(len(command.argv), 1)
                 self.assertTrue(all(isinstance(part, str) and part for part in command.argv))
 
+    def test_release_derivative_checks_read_the_worktree(self) -> None:
+        commands = {command.name: command.argv for command in verify_release.RELEASE_COMMANDS}
+
+        self.assertIn("--worktree", commands["compat mirrors"])
+        self.assertIn("--worktree", commands["codex plugin sync"])
+        self.assertIn("--worktree", commands["codex marketplace metadata"])
+
     def test_release_command_rejects_shell_c_argv(self) -> None:
         with self.assertRaisesRegex(ValueError, "must not use shell -c"):
             verify_release.ReleaseCommand("unsafe", ("sh", "-c", "python3 scripts/check-compat-mirrors.py"))

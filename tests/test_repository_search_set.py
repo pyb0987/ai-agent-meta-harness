@@ -47,7 +47,7 @@ class RepositorySearchSetTests(unittest.TestCase):
         entries = active_entries(text)
 
         self.assertIn('description: "Repository regression search-set', text)
-        self.assertIn('last_updated: "2026-07-04"', text)
+        self.assertIn('last_updated: "2026-07-13"', text)
         self.assertGreaterEqual(len(entries), 7)
 
     def test_active_entries_have_executable_verify_commands(self) -> None:
@@ -128,7 +128,7 @@ class RepositorySearchSetTests(unittest.TestCase):
             "Claude worktrees keep one shared trace root",
             "python3 scripts/check-maintenance-review.py",
             "python3 scripts/check-compat-mirrors.py",
-            "sh .githooks/pre-commit",
+            "python3 -m unittest tests/test_pre_commit_hook.py tests/test_check_compat_mirrors.py tests/test_sync_codex_plugin.py",
             "python3 -m unittest tests/test_claude_autoresearch_reject_evidence.py",
             "python3 -m unittest tests/test_pre_commit_hook.py",
             "python3 -m unittest tests/test_repository_search_set.py",
@@ -164,6 +164,16 @@ class RepositorySearchSetTests(unittest.TestCase):
     def test_maintainer_trace_directories_are_ignored_working_memory(self) -> None:
         ignore_text = (ROOT / ".gitignore").read_text(encoding="utf-8")
         self.assertIn(".harness/traces/", ignore_text)
+
+    def test_root_agents_declares_provider_and_multi_repository_boundaries(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        normalized = " ".join(agents.split())
+
+        self.assertIn("backlog/repository-search-set.md", agents)
+        self.assertIn("plugins/ai-agent-meta-harness/` is generated", agents)
+        self.assertIn("multi-repository ChatGPT desktop project", normalized)
+        self.assertIn("Governance-grade multi-review PASS", agents)
+        self.assertIn("Bounded self-evolution proposals are diagnostic until adopted", agents)
 
     def test_raw_maintainer_trace_files_are_not_tracked(self) -> None:
         result = subprocess.run(

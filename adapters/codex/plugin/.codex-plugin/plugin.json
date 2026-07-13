@@ -1,6 +1,6 @@
 {
   "name": "ai-agent-meta-harness",
-  "version": "0.1.0",
+  "version": "0.1.0+codex.20260713071938",
   "description": "Codex adapter for the AI Agent Meta-Harness methodology.",
   "author": {
     "name": "AI Agent Meta-Harness maintainers",

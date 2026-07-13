@@ -49,6 +49,11 @@ cross-project agent memory only. It can record routing/install mistakes that
 span projects, but it does not replace this project's active trace root or
 search-set guards.
 
+When this app is one repository in a multi-repository ChatGPT desktop project,
+keep its instructions, trace root, and verification commands in this
+repository. Change only repositories explicitly in task scope. Cross-repository
+tasks must name and verify each in-scope repository.
+
 If this project was migrated from Claude Code and `.claude/traces/` contains
 meaningful history, keep using it until an explicit migration trace moves the
 history into `.harness/traces/`.
@@ -88,6 +93,7 @@ subjective UI review without a fixed evaluator.
 
 ## Codex Notes
 
+- Delegate independent work only when the user, an applicable `AGENTS.md`, or a selected skill explicitly requests subagents.
 - Sandbox mode: record the actual Codex sandbox mode for the project.
 - Writable roots: record any path outside the repo that Codex may write.
 - Network: default to no network for verification unless a command explicitly

@@ -46,6 +46,12 @@ cross-project agent memory only. It can record routing/install mistakes that
 span projects, but it does not replace this project's active trace root or
 search-set guards.
 
+When a ChatGPT desktop project includes multiple repositories, keep this
+repository's instructions, trace root, and verification commands local to this
+repository. Change only repositories explicitly in task scope. Cross-repository
+tasks must name and verify each in-scope repository; the desktop project
+container is coordination context, not a replacement trace root.
+
 ### Change Strategy
 
 Use additive changes first, subtractive changes second, structural changes last. Keep one functional harness change per iteration so regressions are attributable.
@@ -115,6 +121,7 @@ Recurring failures should move from instructions to tooling, CI, generated artif
 ## Codex Notes
 
 - Codex does not use Claude Code slash commands or `.claude/settings.local.json` hooks.
+- Delegate independent work only when the user, an applicable `AGENTS.md`, or a selected skill explicitly requests subagents.
 - Use explicit verification commands unless project tooling provides stronger enforcement.
 - Record local execution constraints here when they affect verification:
   sandbox mode, writable roots, network availability, approval/escalation

@@ -6,12 +6,13 @@ Those mirrors are allowed to add a short HTML comment banner and, for docs/*,
 installed-Claude wording in the opening paragraph. Everything else should stay
 in sync with its canonical source.
 
-This check validates the Git index, not the working tree, so pre-commit reports
-what will actually be committed.
+This check validates the Git index by default so pre-commit reports what will
+actually be committed. Pass ``--worktree`` for development and release review.
 """
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import difflib
 from collections.abc import Callable
@@ -74,6 +75,14 @@ def read_index_text(path: str) -> str:
     return subprocess_run(["git", "show", f":{path}"])
 
 
+def worktree_files() -> set[str]:
+    return {path for pair in MIRRORS for path in pair if (ROOT / path).is_file()}
+
+
+def read_worktree_text(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
 def subprocess_run(args: list[str]) -> str:
     import subprocess
 
@@ -124,9 +133,19 @@ def validate_mirrors(
     return errors
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--worktree",
+        action="store_true",
+        help="validate worktree files instead of the staged index",
+    )
+    args = parser.parse_args(argv)
     try:
-        errors = validate_mirrors()
+        if args.worktree:
+            errors = validate_mirrors(indexed=worktree_files(), read_text=read_worktree_text)
+        else:
+            errors = validate_mirrors()
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -134,7 +153,8 @@ def main() -> int:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    print("Compatibility mirrors are in sync.")
+    mode = "worktree" if args.worktree else "staged index"
+    print(f"Compatibility mirrors are in sync ({mode}).")
     return 0
 
 

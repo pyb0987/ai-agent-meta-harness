@@ -1,0 +1,25 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import subprocess, sys; commands=[[sys.executable, '-m', 'unittest', 'tests.test_core_methodology_boundaries', 'adapters.codex.tests.test_init_codex_project_fixtures', 'tests.test_repository_search_set'], [sys.executable, 'scripts/check-compat-mirrors.py', '--worktree'], [sys.executable, 'scripts/sync-codex-plugin.py', '--check', '--worktree'], ['git', 'diff', '--check']]; results=[subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]; ok=all(result.returncode == 0 for result in results); print('probe_methodology_contract_pass' if ok else 'probe_methodology_contract_fail'); sys.exit(0 if ok else 1)"
+  probe_exit_code: 0
+  result_ref: backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+  result_digest: c185c187665fdd391b54800895ac2d55a9ba61b1b419da97b354bbbff95ffcf0
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+  - core/methodology.md
+  - core/reference.md
+  - docs/methodology.md
+  - docs/reference.md
+  - adapters/codex/skills/init-codex-harness/SKILL.md
+  - tests/test_core_methodology_boundaries.py
+  - adapters/codex/tests/test_init_codex_project_fixtures.py
+  cwd: .
+  generated_by: codex-multi-review
+  date: '2026-07-13'
+  stdout: |
+    probe_methodology_contract_pass
+  stderr: ''
+  stdout_sha256: e71904c847a01e8d76832f291ea7c80b542ee2e8f93c28ee73eec4ab93e89760
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

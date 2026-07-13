@@ -74,6 +74,14 @@ Choose by meaningful history before path preference:
 
 Do not create both `.claude/traces/` and `.harness/traces/` in the same project unless the user explicitly asks for split histories.
 
+When a ChatGPT desktop project includes multiple repositories, repeat this
+selection independently in each repository that the user or task explicitly
+places in scope. Create or update `AGENTS.md` and the active trace root only in
+those repositories; do not treat the desktop project container as one implicit
+repository or trace root. Repositories outside that scope remain read-only
+unless the user authorizes changes. Cross-repository tasks must name and run
+the relevant verifier in each in-scope repository.
+
 Meaningful history means `search-set.md` has Active cases, `failures/` has
 diagnoses, `evolution/` has prior harness changes, or `experiments/` has
 episodes relevant to current work. Empty directories, `.keep` files, and
@@ -205,6 +213,7 @@ Confirm:
 - Initial evolution trace exists
 - Initial evolution trace records `retrieval.mode`
 - AGENTS.md says bounded self-evolution proposals are diagnostic until adopted
+- Multi-repository projects keep instructions, traces, and verifiers bound to each repository
 - If the project declares meta-harness governance, `scripts/check-multi-review-result.py`
   exists or setup is explicitly reported incomplete
 - No Claude-only hook configuration was added for Codex

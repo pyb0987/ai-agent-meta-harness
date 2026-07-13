@@ -36,9 +36,9 @@ class ReleaseCommand:
 
 
 RELEASE_COMMANDS = (
-    ReleaseCommand("compat mirrors", ("python3", "scripts/check-compat-mirrors.py")),
+    ReleaseCommand("compat mirrors", ("python3", "scripts/check-compat-mirrors.py", "--worktree")),
     ReleaseCommand("claude adapter paths", ("python3", "scripts/check-claude-adapter-paths.py")),
-    ReleaseCommand("codex plugin sync", ("python3", "scripts/sync-codex-plugin.py", "--check")),
+    ReleaseCommand("codex plugin sync", ("python3", "scripts/sync-codex-plugin.py", "--check", "--worktree")),
     ReleaseCommand("codex hook schema drift", ("python3", "adapters/codex/scripts/check-codex-hook-schema-drift.py")),
     ReleaseCommand(
         "codex autoresearch hook smoke",
@@ -57,7 +57,7 @@ RELEASE_COMMANDS = (
         ("python3", "adapters/codex/scripts/smoke-local-plugin-activation.py"),
         ci_local_only=True,
     ),
-    ReleaseCommand("codex marketplace metadata", ("python3", "scripts/check-codex-marketplace-metadata.py")),
+    ReleaseCommand("codex marketplace metadata", ("python3", "scripts/check-codex-marketplace-metadata.py", "--worktree")),
     ReleaseCommand("maintenance review records", ("python3", "scripts/check-maintenance-review.py")),
     ReleaseCommand(
         "v1 archive boundary",

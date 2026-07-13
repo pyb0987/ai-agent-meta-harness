@@ -339,14 +339,14 @@ their configured paths.
 Standard verification:
 
 ```bash
-python3 scripts/check-compat-mirrors.py
+python3 scripts/check-compat-mirrors.py --worktree
 python3 scripts/check-claude-adapter-paths.py
-python3 scripts/sync-codex-plugin.py --check
+python3 scripts/sync-codex-plugin.py --check --worktree
 python3 adapters/codex/scripts/check-codex-hook-schema-drift.py
 python3 adapters/codex/scripts/smoke-autoresearch-hooks.py --checker adapters/codex/scripts/check-autoresearch-protected.py --protected-file adapters/codex/templates/autoresearch-protected.txt
 python3 adapters/codex/scripts/smoke-local-plugin.py
 python3 adapters/codex/scripts/smoke-local-plugin-activation.py
-python3 scripts/check-codex-marketplace-metadata.py
+python3 scripts/check-codex-marketplace-metadata.py --worktree
 python3 scripts/check-maintenance-review.py
 python3 scripts/check-v1-archive-boundary.py
 python3 scripts/check-search-set-evidence.py
@@ -509,8 +509,8 @@ Codex local plugin activation smoke test passes when the isolated activation
 fixture exposes the expected plugin skills.
 The heavier Codex local plugin activation smoke is part of Standard verification
 rather than pre-commit; it validates isolated CLI
-  marketplace registration and enabled-plugin config shape, while not running Codex
-  Desktop skill surfacing or plugin tool-event delivery.
+  marketplace registration and enabled-plugin config shape, while not running
+  ChatGPT desktop skill surfacing or plugin tool-event delivery.
 
 During v1-to-v2 bootstrap, `scripts/check-v1-archive-boundary.py` is the
 compatibility report for `archive/v1/`. It says the archive is frozen historical

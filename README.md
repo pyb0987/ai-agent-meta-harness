@@ -32,14 +32,24 @@ cd ai-agent-meta-harness
 
 ### Codex
 
-Executable install path: copy the Codex skills into the active Codex home.
+The primary install path is the repository-local plugin marketplace used by the
+ChatGPT desktop app and current Codex clients. Generate and verify the plugin
+bundle first:
 
 ```bash
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"
+python3 scripts/sync-codex-plugin.py --write
+python3 scripts/sync-codex-plugin.py --check --worktree
+python3 adapters/codex/scripts/smoke-local-plugin.py
+python3 adapters/codex/scripts/smoke-local-plugin-activation.py
 ```
 
-The agent receives these routing surfaces:
+Open the repository in the ChatGPT desktop app, open **Plugins**, select the
+repo marketplace, and install **AI Agent Meta-Harness**. Start a new task after
+installation or an update so the bundled skills are loaded. The marketplace
+entry is tracked at `.agents/plugins/marketplace.json` and points to
+`plugins/ai-agent-meta-harness/`.
+
+The plugin provides these routing surfaces:
 
 - `init-codex-harness`
 - `harness-engineer`
@@ -49,22 +59,26 @@ The agent receives these routing surfaces:
 Ordinary users do not need to memorize those names. They are listed here so an
 installing agent can verify what it copied.
 
-The local plugin bundle is the fuller packaging artifact for Codex surfaces that
-support local plugin activation. Build and smoke-test it before enabling it in
-that surface:
+For CLI testing, register this non-default repo marketplace before installing
+from it:
 
 ```bash
-python3 scripts/sync-codex-plugin.py --write
-python3 scripts/sync-codex-plugin.py --check
-python3 adapters/codex/scripts/smoke-local-plugin.py
-python3 adapters/codex/scripts/smoke-local-plugin-activation.py
+codex plugin marketplace add /absolute/path/to/ai-agent-meta-harness
+codex plugin add ai-agent-meta-harness@personal
 ```
 
 The activation smoke creates an isolated `CODEX_HOME`; it proves the bundle
 shape and local activation mechanism, but it does not install the plugin into
-your real Codex home and does not prove a running Codex Desktop session has surfaced those skills.
-If your Codex surface does not expose local plugin
-activation, keep the direct skill-copy install above.
+your real Codex home and does not prove a running ChatGPT desktop session has
+surfaced those skills.
+
+For older or constrained Codex surfaces without plugin activation, direct skill
+copy remains a degraded fallback:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R adapters/codex/skills/* "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
 
 Direct skill copy is enough for init, harness-engineering, multi-review, and
 basic autoresearch guidance. When a project adopts autoresearch and needs the
@@ -170,6 +184,12 @@ AGENTS.md or CLAUDE.md          # Short project instructions for the agent
 The trace folders are the project memory. They are not a task queue for the
 user. The agent reads and writes them when a failure pattern, harness change, or
 measurable experiment makes that useful.
+
+When one ChatGPT desktop project contains multiple repositories, apply this
+structure per repository. Each repository owns its own `AGENTS.md`, active trace
+root, search-set cases, and verification commands. A cross-repository task may
+coordinate those roots, but it should name and verify every affected repository
+instead of treating the desktop project as one implicit trace history.
 
 Global installs are a routing and cross-project memory layer, not a replacement
 for project-local traces. Codex may have
@@ -357,7 +377,7 @@ The checked-in GitHub Actions workflow runs the deterministic CI release-gate
 subset for pull requests and pushes to `main` with `--ci --base-ref <base>`.
 Maintainers still run the full local verification command with the
 clean-worktree gate and Codex local plugin activation smoke before release-like
-handoff. CI does not prove Codex Desktop/runtime plugin skill surfacing, plugin
+handoff. CI does not prove ChatGPT desktop/runtime plugin skill surfacing, plugin
 hook event delivery, or maintainer-local Codex CLI activation.
 
 See `MAINTENANCE.md` for the standard verification set, release checklist, and

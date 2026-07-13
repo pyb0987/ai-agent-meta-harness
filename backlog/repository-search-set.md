@@ -1,6 +1,6 @@
 ---
 description: "Repository regression search-set for ai-agent-meta-harness maintenance."
-last_updated: "2026-07-04"
+last_updated: "2026-07-13"
 ---
 # Harness Search Set
 
@@ -18,12 +18,12 @@ repository changes when practical.
 ### SS-002: Compatibility mirrors stay synchronized
 - **Source**: backlog/core.md item 8 and Claude adapter compatibility mirror follow-ups.
 - **Symptom**: Root compatibility mirrors can silently diverge from canonical adapter/core sources, causing old install paths to serve stale instructions.
-- **verify**: `python3 scripts/check-compat-mirrors.py`
+- **verify**: `python3 scripts/check-compat-mirrors.py --worktree`
 
 ### SS-003: Pre-commit release gate remains wired
 - **Source**: backlog/core.md item 18, item 29, and Codex adapter release-gate follow-ups.
 - **Symptom**: Repository drift, smoke, marketplace metadata, or maintenance-review checks can fall out of the tracked pre-commit gate.
-- **verify**: `sh .githooks/pre-commit`
+- **verify**: `python3 -m unittest tests/test_pre_commit_hook.py tests/test_check_compat_mirrors.py tests/test_sync_codex_plugin.py`
 
 ### SS-004: Claude autoresearch preserves REJECT evidence
 - **Source**: backlog/claude-adapter.md item 13.
@@ -55,6 +55,11 @@ repository changes when practical.
 - **Symptom**: An agent sees no project-local `.harness/traces/` or `.claude/traces/`, concludes the harness has no trace memory, and misses the installed global trace root; or it treats the global trace root as if it covered project-specific search-set guards.
 - **verify**: `python3 -m unittest tests/test_core_methodology_boundaries.py tests/test_maintenance_policy_boundaries.py`
 
+### SS-010: ChatGPT desktop plugin and multi-repository contracts stay aligned
+- **Source**: 2026-07-13 ChatGPT desktop, plugin marketplace, hooks, and multi-repository compatibility review.
+- **Symptom**: The Codex adapter can regress to deferred marketplace metadata, stale hook compatibility claims, Codex Desktop terminology, or one implicit trace root for a multi-repository project.
+- **verify**: `python3 -m unittest tests/test_check_codex_marketplace_metadata.py tests/test_core_methodology_boundaries.py adapters.codex.tests.test_hook_schema_drift adapters.codex.tests.test_init_codex_project_fixtures.InitCodexProjectFixtureSmokeTests.test_init_guidance_and_template_cover_multi_repository_projects tests/test_pre_commit_hook.py`
+
 ## Archived
 
 ## Search-set Evidence Captures
@@ -69,3 +74,36 @@ repository changes when practical.
 - **head_ref**: `dc0545f5f9403b52b81221fc0cd27a0a7ecd1165`
 - **captured_at**: 2026-05-18
 - **packet_ref**: `backlog/fixtures/acceptance-packets/finalized-harness-affecting.yml`
+
+### Search-set before 20260713071856 95f69a33.yml e616aa73
+- **phase**: before
+- **status**: PASS
+- **command**: `python3 scripts/run-search-set.py`
+- **exit_code**: 0
+- **stdout_sha256**: 2cf5bf2f3dfdc9ab4edf1d2a7a834c596a68ea3d8ce1de31b7794e6f33ed7d65
+- **stderr_sha256**: 36becea9e0b49507a0e91031479b0cd325a6465139fd93456edf43a89cb28815
+- **head_ref**: `a26253b6fba552ee3b915d057496ce9882a67f7d`
+- **captured_at**: 2026-07-13
+- **packet_ref**: `archive/v2/packets/pkt-20260713161845-95f69a33.yml`
+
+### Search-set after 20260713081640 95f69a33.yml 253ffba8
+- **phase**: after
+- **status**: FAIL
+- **command**: `python3 scripts/run-search-set.py`
+- **exit_code**: 1
+- **stdout_sha256**: afa517754d096dfdda8e2d1f7fbaa33e7cc0c54e99220d498edc44d60f8edd58
+- **stderr_sha256**: 0bba9d1b3f02d1ce198abdd622b252123bef0836ae70243fcfce5bd51f27619b
+- **head_ref**: `a26253b6fba552ee3b915d057496ce9882a67f7d`
+- **captured_at**: 2026-07-13
+- **packet_ref**: `archive/v2/packets/pkt-20260713161845-95f69a33.yml`
+
+### Search-set after 20260713081809 95f69a33.yml 0484e870
+- **phase**: after
+- **status**: PASS
+- **command**: `python3 scripts/run-search-set.py`
+- **exit_code**: 0
+- **stdout_sha256**: a6c7167e5c041029c4a059f20918622327dff98f8003f5e815fac606b023fde6
+- **stderr_sha256**: f467c3495ea8dbb8dda0e7b733f5299dd977ab4160d042d5b459ca78f2b2d0a5
+- **head_ref**: `a26253b6fba552ee3b915d057496ce9882a67f7d`
+- **captured_at**: 2026-07-13
+- **packet_ref**: `archive/v2/packets/pkt-20260713161845-95f69a33.yml`

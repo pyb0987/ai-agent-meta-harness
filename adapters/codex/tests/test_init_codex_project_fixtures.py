@@ -18,6 +18,24 @@ spec.loader.exec_module(fixtures)
 
 
 class InitCodexProjectFixtureSmokeTests(unittest.TestCase):
+    def test_init_guidance_and_template_cover_multi_repository_projects(self) -> None:
+        skill = (ROOT / "adapters/codex/skills/init-codex-harness/SKILL.md").read_text(encoding="utf-8")
+        template = (ROOT / "adapters/codex/templates/AGENTS.md.template").read_text(encoding="utf-8")
+
+        for marker in (
+            "ChatGPT desktop project includes multiple repositories",
+            "repeat this selection independently in each repository",
+            "the user or task explicitly places in scope",
+            "Repositories outside that scope remain read-only",
+            "do not treat the desktop project container as one implicit repository or trace root",
+        ):
+            self.assertIn(marker, " ".join(skill.split()))
+
+        normalized_template = " ".join(template.split())
+        self.assertIn("keep this repository's instructions, trace root, and verification commands local", normalized_template)
+        self.assertIn("Change only repositories explicitly in task scope", normalized_template)
+        self.assertIn("Delegate independent work only when the user", normalized_template)
+
     def test_generated_representative_fixtures_pass(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

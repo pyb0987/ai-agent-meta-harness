@@ -1,40 +1,33 @@
 #!/usr/bin/env python3
-"""Validate Codex marketplace metadata readiness.
-
-Marketplace publication is intentionally deferred. This check protects the
-current release state: no publication manifest should appear until the adapter
-policy records a ready state with official schema/taxonomy evidence.
-"""
+"""Validate the repository-local Codex plugin marketplace contract."""
 
 from __future__ import annotations
 
+import argparse
+import json
 from pathlib import Path
 import subprocess
 import sys
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "adapters" / "codex" / "plugin-scope.md"
-PUBLICATION_MANIFESTS = (
-    ROOT / ".agents" / "plugins" / "marketplace.json",
-)
+MARKETPLACE_PATH = ROOT / ".agents" / "plugins" / "marketplace.json"
+PLUGIN_MANIFEST_PATH = ROOT / "plugins" / "ai-agent-meta-harness" / ".codex-plugin" / "plugin.json"
+PLUGIN_NAME = "ai-agent-meta-harness"
+PLUGIN_SOURCE_PATH = "./plugins/ai-agent-meta-harness"
 
-REQUIRED_DEFERRED_POLICY_MARKERS = (
-    "Marketplace metadata is a release surface",
-    "not part of the local-only dogfood path",
-    "Official source check (2026-05-03)",
-    "no publication manifest exists",
-)
-
-READY_POLICY_MARKERS = (
+REQUIRED_POLICY_MARKERS = (
     "Marketplace publication ready: yes",
     "Official marketplace schema:",
     "Official marketplace taxonomy:",
     "Generated metadata source:",
+    "python3 scripts/check-codex-marketplace-metadata.py --worktree",
 )
 
 
-def _git(args: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
+def _git(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
         cwd=ROOT,
@@ -42,7 +35,6 @@ def _git(args: list[str], *, check: bool = False) -> subprocess.CompletedProcess
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        check=check,
     )
 
 
@@ -55,26 +47,30 @@ def _relative(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
 
 
-def _read_index_text(path: Path) -> tuple[str, list[str]]:
-    relative = _relative(path)
-    result = _git(["show", f":{relative}"])
-    if result.returncode != 0:
-        return "", [f"UNREADABLE STAGED POLICY: {relative}: {result.stderr.strip()}"]
-    return result.stdout, []
-
-
-def _index_contains(path: Path) -> bool:
-    result = _git(["ls-files", "--error-unmatch", "--", _relative(path)])
-    return result.returncode == 0
-
-
-def read_policy(*, use_index: bool = False) -> tuple[str, list[str]]:
+def read_text(path: Path, *, use_index: bool) -> tuple[str, list[str]]:
     if use_index:
-        return _read_index_text(POLICY_PATH)
+        relative = _relative(path)
+        result = _git(["show", f":{relative}"])
+        if result.returncode != 0:
+            return "", [f"MISSING STAGED FILE: {relative}"]
+        return result.stdout, []
     try:
-        return POLICY_PATH.read_text(encoding="utf-8"), []
+        return path.read_text(encoding="utf-8"), []
     except OSError as exc:
-        return "", [f"UNREADABLE POLICY: {POLICY_PATH.relative_to(ROOT)}: {exc}"]
+        return "", [f"UNREADABLE FILE: {_relative(path)}: {exc}"]
+
+
+def read_json_object(path: Path, *, use_index: bool) -> tuple[dict[str, Any] | None, list[str]]:
+    text, errors = read_text(path, use_index=use_index)
+    if errors:
+        return None, errors
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return None, [f"INVALID JSON: {_relative(path)}: {exc}"]
+    if not isinstance(payload, dict):
+        return None, [f"INVALID JSON ROOT: {_relative(path)} must contain an object"]
+    return payload, []
 
 
 def missing_markers(text: str, markers: tuple[str, ...]) -> list[str]:
@@ -82,53 +78,93 @@ def missing_markers(text: str, markers: tuple[str, ...]) -> list[str]:
     return [marker for marker in markers if marker not in normalized]
 
 
-def existing_publication_manifests(*, use_index: bool = False) -> list[Path]:
-    if use_index:
-        return sorted(path for path in PUBLICATION_MANIFESTS if _index_contains(path))
-    manifests = {path for path in PUBLICATION_MANIFESTS if path.exists()}
-    return sorted(manifests)
+def _non_empty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
-def validate(*, use_index: bool = False) -> list[str]:
-    text, errors = read_policy(use_index=use_index)
-    if errors:
-        return errors
+def validate_marketplace(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not _non_empty_string(payload.get("name")):
+        errors.append("marketplace name must be a non-empty string")
 
-    for marker in missing_markers(text, REQUIRED_DEFERRED_POLICY_MARKERS):
-        errors.append(f"MISSING POLICY MARKER: {marker}")
+    interface = payload.get("interface")
+    if not isinstance(interface, dict) or not _non_empty_string(interface.get("displayName")):
+        errors.append("marketplace interface.displayName must be a non-empty string")
 
-    manifests = existing_publication_manifests(use_index=use_index)
-    if not manifests:
-        return errors
+    plugins = payload.get("plugins")
+    if not isinstance(plugins, list):
+        return errors + ["marketplace plugins must be an array"]
+    if len(plugins) != 1:
+        return errors + ["marketplace plugins must contain exactly one entry"]
 
-    missing_ready = missing_markers(text, READY_POLICY_MARKERS)
-    for path in manifests:
-        rel = path.relative_to(ROOT)
-        if missing_ready:
-            errors.append(
-                f"MARKETPLACE METADATA NOT READY: {rel} exists before policy records "
-                "official schema/taxonomy evidence and generated metadata source"
-            )
-        elif use_index:
-            continue
-        elif path.is_dir():
-            errors.append(f"INVALID MARKETPLACE MANIFEST: {rel} is a directory")
-        elif not path.is_file():
-            errors.append(f"INVALID MARKETPLACE MANIFEST: {rel} is not a regular file")
+    matches = [entry for entry in plugins if isinstance(entry, dict) and entry.get("name") == PLUGIN_NAME]
+    if len(matches) != 1:
+        return errors + [f"marketplace must contain exactly one {PLUGIN_NAME} entry"]
+
+    entry = matches[0]
+    source = entry.get("source")
+    if not isinstance(source, dict):
+        errors.append("plugin source must be an object")
+    else:
+        if source.get("source") != "local":
+            errors.append("plugin source.source must be local")
+        if source.get("path") != PLUGIN_SOURCE_PATH:
+            errors.append(f"plugin source.path must be {PLUGIN_SOURCE_PATH}")
+
+    policy = entry.get("policy")
+    if not isinstance(policy, dict):
+        errors.append("plugin policy must be an object")
+    else:
+        if policy.get("installation") != "AVAILABLE":
+            errors.append("plugin policy.installation must be AVAILABLE")
+        if policy.get("authentication") != "ON_INSTALL":
+            errors.append("plugin policy.authentication must be ON_INSTALL")
+
+    if entry.get("category") != "Productivity":
+        errors.append("plugin category must be Productivity")
     return errors
 
 
+def validate(*, use_index: bool = False) -> list[str]:
+    errors: list[str] = []
+
+    policy_text, policy_errors = read_text(POLICY_PATH, use_index=use_index)
+    errors.extend(policy_errors)
+    if not policy_errors:
+        errors.extend(f"MISSING POLICY MARKER: {marker}" for marker in missing_markers(policy_text, REQUIRED_POLICY_MARKERS))
+
+    marketplace, marketplace_errors = read_json_object(MARKETPLACE_PATH, use_index=use_index)
+    errors.extend(marketplace_errors)
+    if marketplace is not None:
+        errors.extend(validate_marketplace(marketplace))
+
+    plugin_manifest, plugin_errors = read_json_object(PLUGIN_MANIFEST_PATH, use_index=use_index)
+    errors.extend(plugin_errors)
+    if plugin_manifest is not None and plugin_manifest.get("name") != PLUGIN_NAME:
+        errors.append(f"plugin manifest name must be {PLUGIN_NAME}")
+    return errors
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--worktree",
+        action="store_true",
+        help="validate worktree files instead of the staged index",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
-    use_index = _inside_git_worktree()
+    args = parse_args()
+    use_index = _inside_git_worktree() and not args.worktree
     errors = validate(use_index=use_index)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    if existing_publication_manifests(use_index=use_index):
-        print("Codex marketplace metadata publication markers are present.")
-    else:
-        print("Codex marketplace metadata validation deferred: no publication manifest exists.")
+    mode = "worktree" if not use_index else "staged index"
+    print(f"Codex marketplace metadata is valid ({mode}).")
     return 0
 
 

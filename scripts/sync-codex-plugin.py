@@ -397,12 +397,19 @@ def main(argv: list[str] | None = None) -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true", help="materialize generated plugin files")
     mode.add_argument("--check", action="store_true", help="verify generated plugin files without modifying them")
+    parser.add_argument(
+        "--worktree",
+        action="store_true",
+        help="with --check, validate worktree files instead of the staged index",
+    )
     args = parser.parse_args(argv)
 
     if args.write:
+        if args.worktree:
+            parser.error("--worktree is valid only with --check")
         mappings = build_mappings()
         return write_files(mappings)
-    reader = _check_reader()
+    reader = FilesystemReader() if args.worktree else _check_reader()
     mappings = build_mappings(reader)
     return check_files(mappings, reader)
 

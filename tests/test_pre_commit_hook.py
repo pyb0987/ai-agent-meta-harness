@@ -76,14 +76,14 @@ class PreCommitHookTests(unittest.TestCase):
         self.assertIn("heavier Codex local plugin activation smoke", normalized)
         self.assertIn("Codex local plugin activation smoke test passes", text)
         self.assertIn("isolated CLI\n  marketplace registration and enabled-plugin config shape", text)
-        self.assertIn("not running Codex\n  Desktop skill surfacing or plugin tool-event delivery", text)
+        self.assertIn("not running\n  ChatGPT desktop skill surfacing or plugin tool-event delivery", text)
 
     def test_root_readme_says_codex_activation_smoke_is_implemented(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("python3 adapters/codex/scripts/smoke-local-plugin-activation.py", text)
         self.assertIn("The activation smoke creates an isolated `CODEX_HOME`", text)
-        self.assertIn("does not prove a running Codex Desktop session has surfaced those skills", text)
+        self.assertIn("does not prove a running ChatGPT desktop session has\n", text)
         self.assertIn("part of Standard verification rather than pre-commit", text)
         self.assertNotIn("pending an activation smoke test", text)
 

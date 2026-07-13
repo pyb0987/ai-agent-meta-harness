@@ -8,8 +8,8 @@ This drift check validates documented output-shape assumptions only. It does not
 
 ## Verification Metadata
 
-- Verified date: 2026-06-22
-- Codex CLI checked: 0.126.0-alpha.8
+- Verified date: 2026-07-13
+- Codex CLI checked: 0.144.0-alpha.4
 - Primary source: https://developers.openai.com/codex/hooks
 - Config source: https://developers.openai.com/codex/config-reference
 - Freshness convention: `Verified date` tracks the most recent official
@@ -25,6 +25,14 @@ This drift check validates documented output-shape assumptions only. It does not
   flag and `features.codex_hooks` is a deprecated alias. These experimental
   assets remain opt-in and the plugin manifest still does not enable runtime
   hook fields.
+- Re-verification note: 2026-07-13 checked the current ChatGPT/Codex hooks and
+  plugin documentation after Codex joined the ChatGPT desktop app. Hooks are
+  documented as enabled by default, plugin-bundled hooks require user review
+  and trust, and the `PreToolUse`, `PermissionRequest`, `SessionStart`,
+  `hookSpecificOutput`, `additionalContext`, `features.hooks`, deprecated
+  `features.codex_hooks`, and timeout contracts used here remain compatible.
+  This documentation re-verification does not prove live plugin hook delivery;
+  the plugin manifest therefore continues to omit a runtime hook field.
 - Re-verification note: 2026-05-05 item 49 added a target-project
   autoresearch protection installer and updated autoresearch setup guidance;
   official Codex hooks/config docs were re-checked, and `PreToolUse`,

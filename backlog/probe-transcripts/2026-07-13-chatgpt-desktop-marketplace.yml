@@ -1,0 +1,24 @@
+ProbeTranscript:
+  schema_version: probe-transcript/v1
+  probe_command: python3 -c "import subprocess, sys; commands=[[sys.executable, '-m', 'unittest', 'tests.test_check_codex_marketplace_metadata', 'tests.test_sync_codex_plugin', 'tests.test_verify_release'], [sys.executable, 'scripts/check-codex-marketplace-metadata.py', '--worktree'], [sys.executable, 'scripts/sync-codex-plugin.py', '--check', '--worktree'], [sys.executable, '/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py', 'adapters/codex/plugin'], [sys.executable, '/Users/fainders/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py', 'plugins/ai-agent-meta-harness']]; results=[subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]; ok=all(result.returncode == 0 for result in results); print('probe_marketplace_validation_pass' if ok else 'probe_marketplace_validation_fail'); sys.exit(0 if ok else 1)"
+  probe_exit_code: 0
+  result_ref: backlog/multi-review-2026-07-13-chatgpt-desktop-harness-alignment.yml
+  result_digest: c185c187665fdd391b54800895ac2d55a9ba61b1b419da97b354bbbff95ffcf0
+  packet_ref: null
+  packet_sha256: null
+  source_refs:
+  - backlog/review-2026-07-13-chatgpt-desktop-harness-alignment.md
+  - scripts/check-codex-marketplace-metadata.py
+  - tests/test_check_codex_marketplace_metadata.py
+  - scripts/sync-codex-plugin.py
+  - tests/test_sync_codex_plugin.py
+  - scripts/verify-release.py
+  - tests/test_verify_release.py
+  cwd: .
+  generated_by: codex-multi-review
+  date: '2026-07-13'
+  stdout: |
+    probe_marketplace_validation_pass
+  stderr: ''
+  stdout_sha256: d8186a4d8b69588cd5641cb2c0652a54396497180cbab9a95e05e0cf492e9c01
+  stderr_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

@@ -174,7 +174,7 @@ class HookTemplateTests(unittest.TestCase):
                 )
                 self.assertIn("Deterministic artifact/adoption check that runs generated Active search-set verifiers in fixture projects", text)
                 self.assertIn("does not prove live Codex model dogfooding", text)
-                self.assertIn("does not prove Desktop model-visible skill surfacing or plugin tool-event delivery", text)
+                self.assertIn("does not prove ChatGPT desktop model-visible skill surfacing or plugin tool-event delivery", text)
         self.assertEqual(canonical, generated)
 
     def test_plugin_scope_lists_init_skill_bundled_agents_asset(self):
@@ -238,10 +238,10 @@ class HookTemplateTests(unittest.TestCase):
                 self.assertIn("Runtime model-visible skill surfacing or plugin hook delivery", text)
                 self.assertIn("no stable noninteractive smoke exists in this repo yet", text)
                 self.assertIn("codex plugin marketplace add|upgrade|remove", text)
-                self.assertIn("experimental app-server protocol tooling", text)
+                self.assertIn("and app-server protocol tooling", text)
                 self.assertIn("check-codex-cli-surface.py", text)
                 self.assertIn("skips when it is absent", text)
-                self.assertIn("This probe does not assert that a running Desktop session surfaced plugin skills", text)
+                self.assertIn("This probe does not assert that a running ChatGPT desktop session surfaced plugin skills", text)
                 self.assertIn("Keep runtime hook manifest fields disabled", text)
                 self.assertIn("Reviewed Manual Runtime Delivery Gate", text)
                 self.assertIn("Minimum manual evidence packet", text)
@@ -252,10 +252,12 @@ class HookTemplateTests(unittest.TestCase):
         for text in (scope, generated_scope):
             normalized = " ".join(text.split())
             with self.subTest(path="plugin-scope"):
-                self.assertIn("Runtime delivery evidence is deliberately deferred as of the 2026-05-04 maintenance pass", normalized)
-                self.assertIn("generated artifact integrity and isolated CLI activation/config shape", normalized)
+                self.assertIn("Runtime delivery evidence remains distinct from packaging evidence", normalized)
+                self.assertIn("repository marketplace metadata", normalized)
+                self.assertIn("generated artifact integrity", normalized)
+                self.assertIn("isolated CLI activation/config shape", normalized)
                 self.assertIn("optional CLI surface probe can mechanically confirm those help markers", normalized)
-                self.assertIn("That probe is not runtime delivery evidence and does not prove Desktop model-visible skill surfacing or plugin hook event delivery", normalized)
+                self.assertIn("That probe is not runtime delivery evidence and does not prove ChatGPT desktop model-visible skill surfacing or plugin hook event delivery", normalized)
                 self.assertIn("Runtime hook manifest fields must remain absent", normalized)
                 self.assertIn("An explicitly reviewed manual gate may substitute for an automated runtime delivery smoke only when it records a concrete evidence packet", normalized)
                 self.assertIn("Codex app or runtime version, surface name, OS, plugin source path", normalized)

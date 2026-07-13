@@ -125,6 +125,25 @@ class CoreMethodologyBoundaryTests(unittest.TestCase):
                 self.assertIn("Use the project trace root for project-specific recurrence prevention", normalized)
                 self.assertIn("Do not let global traces stand in for a missing project search-set", normalized)
 
+    def test_multi_repository_projects_keep_per_repository_harness_roots(self) -> None:
+        for document in (text(CORE), text(MIRROR), text(REFERENCE), text(REFERENCE_MIRROR)):
+            with self.subTest(document=document[:20]):
+                normalized = " ".join(document.split())
+                self.assertIn("multi-repository", normalized)
+                self.assertIn("each repository", normalized.lower())
+                self.assertIn("verification", normalized.lower())
+
+        for document in (text(CORE), text(MIRROR)):
+            normalized = " ".join(document.split())
+            self.assertIn("does not create one implicit project trace root", normalized)
+            self.assertIn("must not merge their histories", normalized)
+
+        for document in (text(REFERENCE), text(REFERENCE_MIRROR)):
+            normalized = " ".join(document.split())
+            self.assertNotIn("desktop", normalized.lower())
+            self.assertIn("containing workspace is coordination context", normalized)
+            self.assertIn("run each relevant verifier", normalized)
+
     def test_operational_workaround_recording_trigger_is_mirrored(self) -> None:
         canonical = text(CORE)
         mirror = text(MIRROR)

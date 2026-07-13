@@ -195,6 +195,13 @@ agent/harness failures: routing mistakes, install/profile drift, missing global
 skill behavior, shell working-directory drift, repeated sandbox/permission
 workarounds, or a mistaken diagnosis that skipped global traces.
 
+For a multi-repository workspace, apply this
+boundary per repository. Each repository keeps its own project instructions,
+active trace root, search-set guards, and verification commands. A cross-repo
+task should record the affected repository roots and run each relevant verifier;
+the containing workspace is coordination context, not a replacement trace
+root.
+
 Operational friction can be trace-worthy even when the immediate task succeeds.
 Record non-obvious workarounds that have reusable future value, such as cwd
 drift that changes git paths, orphaned dev-server cleanup, sandbox/network
